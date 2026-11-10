@@ -237,4 +237,79 @@ module.exports = [
     }
     noErrors(errors);
   } },
+
+  // ---- 6. the fuel cliff ----
+  { name: 'fuel: the low-fuel check plans for wind and the longest run, not just the average burn', fn: async ctx => {
+    const { page, errors } = await open(ctx, { seed: 8 });
+    await newGame(page);
+    const r = await page.evaluate(() => {
+      closeModals(); S.cur = 3; S.t = 3 * 1440 + 330; S.loc = 'lower'; S.book = []; const o = {};
+      const b = addBooking({ d: 3, type: 'reds', n: 3, who: 'x', from: 'Y', quirk: [] }), sv = addBooking({ d: 3, type: 'silver', n: 3, who: 'x', from: 'Y', quirk: [] });
+      S.wxd[3] = { temp: 65, wind: 6, level: .5, dw: 0 }; o.calm = expectBurn(b); o.calmShort11 = (S.fuel = 11, fuelShort(b)); o.calm15 = (S.fuel = 15, fuelShort(b));
+      S.wxd[3].wind = 24; o.windy = expectBurn(b); o.windy15 = fuelShort(b); o.silverWindy = expectBurn(sv);
+      S.up.motor = true; S.wxd[3].wind = 6; o.motor = expectBurn(b); delete S.up.motor;
+      o.typical = tripFuel(b).gal; return o;
+    });
+    assert.strictEqual(r.typical, 9);
+    assert.ok(r.calm >= 13 && r.calm <= 14, 'longest run + scatter: ' + r.calm); assert.ok(r.calmShort11, '11 gallons is no longer enough for a sockeye trip (it used to be)'); assert.ok(!r.calm15);
+    assert.ok(r.windy > r.calm * 1.1 && r.windy15, `wind ${r.calm} -> ${r.windy}`); assert.ok(r.silverWindy > 17);
+    assert.ok(r.motor < r.calm, 'the repower still burns less');
+    noErrors(errors);
+  } },
+  { name: 'fuel: the first “Risk it” asks again with the consequences; after that it goes straight through', fn: async ctx => {
+    const { page, errors } = await open(ctx, { seed: 8 });
+    await newGame(page);
+    const r = await page.evaluate(() => {
+      closeModals(); S.cur = 1; S.t = 1440 + 345; S.loc = 'lower'; S.fuel = 10; S.gear = 3; const b = todays()[0], o = {};
+      tripStart(b); o.first = document.querySelector('#mbg h2').textContent; o.step0 = S.trip.step; o.warned0 = S.riskWarned;
+      const risk = () => MBTN(MB.findIndex(x => /Risk it/.test(x.l)));
+      risk(); o.again = document.querySelector('#mbg h2').textContent; o.warnTxt = document.querySelector('#mbg .mb').textContent; o.step1 = S.trip.step; o.warned1 = S.riskWarned;
+      o.label = MB.find(x => /Risk it/.test(x.l)).l; risk(); o.next = document.querySelector('#mbg h2').textContent;
+      while (S.trip) MBTN(legalBtn()); closeModals();
+      // a second low-fuel trip: one click and you are through
+      S.cur = 2; S.t = 2 * 1440 + 345; S.fuel = 10; S.trip = null; const b2 = addBooking({ d: 2, type: 'reds', n: 3, who: 'y', from: 'Z', quirk: [] });
+      tripStart(b2); const risk2 = MB.findIndex(x => /Risk it/.test(x.l)); const n0 = S.trip.step; MBTN(risk2); o.second = document.querySelector('#mbg h2').textContent;
+      return o;
+    });
+    assert.match(r.first, /Low on fuel/); assert.strictEqual(r.warned0, false);
+    assert.match(r.again, /Low on fuel/, 'asked again'); assert.strictEqual(r.step1, r.step0); assert.ok(/Think twice/.test(r.warnTxt) && /Coast Guard/.test(r.warnTxt) && /half|halved/.test(r.warnTxt));
+    assert.ok(r.warned1 && /Risk it anyway/.test(r.label)); assert.ok(!/Low on fuel/.test(r.next), 'second click goes through: ' + r.next);
+    assert.ok(!/Low on fuel/.test(r.second), 'later trips are not asked again');
+    noErrors(errors);
+  } },
+  { name: 'fuel: refueling in the middle of a trip respects the 6 AM–10 PM dock hours', fn: async ctx => {
+    const { page, errors } = await open(ctx, { seed: 8 });
+    await newGame(page);
+    const r = await page.evaluate(() => {
+      closeModals(); S.cur = 1; S.t = 1440 + 300; S.loc = 'lower'; S.fuel = 5; S.gear = 3; S.money = 3000; const b = todays()[0], o = {};
+      tripStart(b); const i = MB.findIndex(x => /fuel dock opens at/.test(x.l)); o.early = i >= 0; o.earlyLabel = i >= 0 ? MB[i].l : MB.map(x => x.l).join('|'); o.dis = i >= 0 && !!MB[i].dis;
+      const t0 = S.t; MBTN(i); o.waited = S.t - t0; o.fuel = S.fuel; o.endAfter6 = tod() >= 360 + 30;
+      while (S.trip) MBTN(legalBtn()); closeModals();
+      // after closing time there is no fuel at all
+      const b2 = addBooking({ d: 1, type: 'silver', n: 2, who: 'z', from: 'Q', quirk: [] }); S.cur = 1; S.t = 1440 + 1290; S.fuel = 3; S.trip = null;
+      const t = { id: b2.id, late: 0, q: 0, happy: 0, notes: [], step: 0, steps: ['fuel'], shore: false, nofish: 0, kept: 0, abort: false, x: [], lost: 0 }; S.trip = t; tripNext();
+      const j = MB.findIndex(x => /fuel dock|Send them/.test(x.l)); o.lateDis = j >= 0 && !!MB[j].dis; o.lateTxt = MB[j] && MB[j].s; closeModals();
+      return o;
+    });
+    assert.ok(r.early, r.earlyLabel); assert.ok(!r.dis); assert.ok(r.waited >= 60 + 30, 'waited for the dock: ' + r.waited); assert.ok(r.fuel > 20);
+    assert.ok(r.lateDis && /closed/.test(r.lateTxt), r.lateTxt);
+    noErrors(errors);
+  } },
+  { name: 'fuel: an evening reminder when tomorrow’s trips need more fuel than the tank holds', fn: async ctx => {
+    const { page, errors } = await open(ctx, { seed: 8 });
+    await newGame(page);
+    const r = await page.evaluate(() => {
+      closeModals(); S.cur = 1; S.loc = 'shop'; S.book = []; addBooking({ d: 2, type: 'reds', n: 3, who: 'x', from: 'Y', quirk: [] }); addBooking({ d: 2, type: 'silver', n: 3, who: 'x', from: 'Y', quirk: [] }); const o = {};
+      S.fuel = 8; S.t = 1440 + 600; o.morning = (alertBar() || {}).t || ''; o.morningTodo = (todoItems().find(x => /Fuel up/.test(x.l)) || {}).urgent;
+      S.t = 1440 + 1140; o.evening = (alertBar() || {}).t || ''; o.todo = todoItems().find(x => /Fuel up/.test(x.l)); o.bed = actionsHere().find(a => /Go to bed/.test(a.l)).s;
+      S.t = 1440 + 1380; o.late = (alertBar() || {}).t || '';
+      S.fuel = 40; S.t = 1440 + 1140; o.enough = /Fuel for tomorrow/.test((alertBar() || {}).t || '') || todoItems().some(x => /Fuel up/.test(x.l));
+      S.fuel = 8; const notes = []; onNight('home', notes, 1); o.night = notes.join(' ');
+      return o;
+    });
+    assert.ok(!/Fuel for tomorrow/.test(r.morning) && !r.morningTodo, 'the alert and the urgent flag come only in the evening');
+    assert.ok(/Fuel for tomorrow/.test(r.evening) && /open until 10:00 PM/.test(r.evening), r.evening); assert.ok(r.todo && r.todo.urgent); assert.ok(/needs about/.test(r.bed));
+    assert.ok(/opens at 6:00 AM/.test(r.late), r.late); assert.ok(!r.enough); assert.ok(/tomorrow’s trips need about/.test(r.night), r.night);
+    noErrors(errors);
+  } },
 ];

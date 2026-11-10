@@ -192,7 +192,7 @@ function tripNext(){
   const v=f(b,t),T=TRIPS[b.type];
   const opts=v.o.map((o,k)=>({o,k}));
   for(let i=opts.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[opts[i],opts[j]]=[opts[j],opts[i]]}   // shuffled every showing
-  modal(v.t,`<p class="small-note" style="color:var(--mute);margin:0 0 6px">${T.ic} ${T.n} · ${b.who}</p>${v.b}`,opts.map(({o,k})=>({l:o.l,s:o.s,legal:o.legal!==false,np:true,k,fn:()=>{
+  modal(v.t,`<p class="small-note" style="color:var(--mute);margin:0 0 6px">${T.ic} ${T.n} · ${b.who}</p>${v.b}`,opts.map(({o,k})=>({l:o.l,s:o.s,legal:o.legal!==false,dis:!!o.dis,np:true,k,fn:()=>{
     const tt=S.trip;if(!tt) return;const bb=bk(tt.id);if(!bb) {S.trip=null;return}
     o.fn&&o.fn(bb,tt);
     if(S.trip&&!tt.abort){tt.step++;tripNext()}}})));
@@ -209,7 +209,7 @@ function tripEnd(b,t){
   const ft=tripFuel(b);let towed=false;
   if(ft){const gal=Math.round((ft.gal+(t.fuelx||0)*(ft.tank==='fuel'?fuelMult():1)+(r()-.3)*3*(ft.tank==='fuel'?fuelMult():1))*(1+Math.max(0,wxOf(d).wind-12)/40)*10)/10;
     if(S[ft.tank]>=gal) S[ft.tank]=Math.round((S[ft.tank]-gal)*10)/10;
-    else{q*=Math.max(.2,S[ft.tank]/gal);t.happy-=25;towed=true;if(ft.tank==='fuel')towIn(t.notes);else{S.hfuel=0;S.stats.tows=(S.stats.tows||0)+1;money(-HARBOR_TOW);adj('rep',-4);t.notes.push('🛟 The charter boat runs dry off Anchor Point. The Coast Guard tows you into Homer Harbor and the harbormaster brings you to the fuel dock: '+$(HARBOR_TOW)+'.')}}}
+    else{q*=Math.max(.2,S[ft.tank]/gal);t.happy-=25;towed=true;if(ft.tank==='fuel')towIn(t.notes);else{S.hfuel=0;S.stats.tows=(S.stats.tows||0)+1;money(-HARBOR_TOW);adj('rep',-4);const tp=fillUp('hfuel','homer',TOW_FILL*3);t.notes.push('🛟 The charter boat runs dry off Anchor Point. The Coast Guard tows you into Homer Harbor and the harbormaster brings you to the fuel dock: '+$(HARBOR_TOW)+'.'+(tp?` You fill the tank: ${tp.gal.toFixed(0)} gallons, ${$(Math.round(tp.cost))}.`:''))}}}
   const fishers=Math.max(0,b.n-t.nofish);let fish=0,frac=0,line='',limits=0;
   if(b.type==='reds'||b.type==='silver'){
     const lim=b.type==='reds'?S.limit:2,nm=b.type==='reds'?'red':'silver';

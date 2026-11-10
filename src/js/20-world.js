@@ -16,7 +16,7 @@ const OVERHEAD=75, overhead=()=>Math.round(OVERHEAD*DF().cost), rp=c=>Math.round
 function newState(){
   return {years:(typeof prefs==='function'&&prefs().years)||2,reg:null,up:{rate:1,value:0},citeLog:[],seasons:[],st0:null,winter:null,
     fuel:18,hfuel:0,fuelBase:{kenai:6.19,homer:6.45},
-    money:1500,rep:50,energy:90,boat:85,loaner:-1,patch:null,cites:0,warns:0,
+    money:1500,rep:50,energy:90,boat:85,loaner:-1,patch:null,riskWarned:false,cites:0,warns:0,
     dipnetAsk:-1,         // season index of the last dipnet-scam request (at most one per season)
     cred:{fa:2},            // first-aid/CPR card valid through the end of this day index (Wed Jul 15)
     gear:3,                 // trips' worth of beads, flies, leader and lures
@@ -129,7 +129,7 @@ function actionsHere(){
     else a.push({ic:'😠',l:`The ${b.who} gave up on you`,s:'They waited 90 minutes, then left. Expect a review.',cat:'trip',dis:true,fn:()=>{}});
   });
   if(S.loc==='shop'){
-    a.push({ic:'🛏️',l:'Go to bed',s:`Ends the day. Overhead ${$(overhead())} tonight. Alarm ${fmt(S.alarm)}. The sun won’t fully set.`,cat:'rest',cls:m>=1260?'primary':'',fn:()=>endDay('home')});
+    a.push({ic:'🛏️',l:'Go to bed',s:`Ends the day. Overhead ${$(overhead())} tonight. Alarm ${fmt(S.alarm)}. The sun won’t fully set.${fuelPlan().short&&fuelPlan().tomorrow?` ⛽ The sled has ${fuelPlan().have} gal; tomorrow needs about ${fuelPlan().need}.`:''}`,cat:'rest',cls:m>=1260?'primary':'',fn:()=>endDay('home')});
     a.push({ic:'😴',l:'Nap for an hour',s:'Energy +10.',cat:'rest',fn:()=>{pass(60);adj('energy',10);say('😴 Blackout curtains, earplugs, one glorious hour.')}});
     const logs=S.unlogged+S.overdue;
     if(logs) a.push({ic:'📓',l:`Fill out your ADF&G logbook (${logs} trip${logs>1?'s':''})`,s:`${logs*10} min. Every guided trip gets an entry: anglers, licenses, hours, fish kept and released.`,cat:'work',cls:'primary',fn:()=>{pass(logs*10);say(`📓 You write up ${logs} trip${logs>1?'s':''}: license numbers, hours fished, sockeye kept, kings released.${S.overdue?' A day late, but done.':''}`);S.unlogged=0;S.overdue=0}});
@@ -232,7 +232,8 @@ function alertBar(){
   for(const b of todays(d)){const T=TRIPS[b.type];
     if(m>T.start&&m<=T.start+90&&S.loc!==T.loc) return {t:`⏰ The ${b.who} are waiting at ${L[T.loc].name} (launch was ${fmt(T.start)}).`};
     if(m>=T.start-120&&m<=T.start&&S.loc!==T.loc) return {t:`🛶 ${T.n} launches at ${fmt(T.start)} from ${L[T.loc].name}: ${travelMins(S.loc,T.loc)} min away.`,kind:'info'};}
-  {const low=todays(d).find(b=>tripFuel(b)&&tripFuel(b).tank==='fuel'&&S.fuel<tripFuel(b).gal+2);if(low&&m<TRIPS[low.type].start)return {t:`⛽ ${Math.round(S.fuel)} gallons in the sled; your ${TRIPS[low.type].n.toLowerCase()} burns ~${tripFuel(low).gal}. Fuel dock: Kenai Harbor.`}}
+  {const low=todays(d).find(b=>tripFuel(b)&&tripFuel(b).tank==='fuel'&&fuelShort(b));if(low&&m<TRIPS[low.type].start)return {t:`⛽ ${Math.round(S.fuel)} gallons in the sled; your ${TRIPS[low.type].n.toLowerCase()} burns ~${tripFuel(low).gal} and up to ~${Math.round(expectBurn(low))} with wind or a long run. Fuel dock: Kenai Harbor, ${hoursTxt('harbor').replace('Open ','')}.`}}
+  {const fp=fuelPlan();if(fp.short&&fp.tomorrow&&m>=1020)return {t:`⛽ Fuel for tomorrow: ${fp.need} gallons likely needed, ${fp.have} in the sled. ${m<1320?`Kenai Harbor’s fuel dock is open until ${fmt(1320)}.`:`Kenai Harbor’s fuel dock opens at ${fmt(360)}.`}`}}
   if(S.boat>10&&S.boat<=40&&todays(d).some(b=>b.type!=='halibut')) return {t:BOAT_WARN[S.boat<=20?2:1].replace('{b}',S.boat),kind:S.boat<=20?'':'info'};
   if(faUrgent(d)) return {t:`⛑️ First-aid card expires ${dayName(S.cred.fa)} night: classes ${FA_CLASS_TXT}`,kind:'info'};
   return null;
