@@ -37,7 +37,7 @@ function newState(){
 
 // ---- HUD ----
 const STATS=[
-  {l:'Cash',  v:()=>$(Math.round(S.money)),warn:()=>S.money<0},
+  {l:'Cash',  v:()=>$k(Math.round(S.money)),warn:()=>S.money<0,get title(){return 'Cash: '+$(Math.round(S.money))}},
   {l:'Rep',   v:()=>S.rep,m:()=>S.rep,warn:()=>S.rep<20,title:'Reputation: reviews and word of mouth. At 0, nobody books you.'},
   {l:'Energy',v:()=>S.energy,m:()=>S.energy},
   {l:'Boat',  v:()=>S.boat,m:()=>S.boat,warn:()=>S.boat<20,title:'Your jet sled and drift boat. Below 40 they break down more; at 0 they are out of service until a major repair (or an emergency patch or a loaner).'},

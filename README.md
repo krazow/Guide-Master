@@ -41,6 +41,12 @@ Every trip throws decisions at you. The options are **shuffled every time** and 
 
 To change the form, edit `FEEDBACK.formId` in `27-feedback.js` and rebuild.
 
+## Accessibility
+
+- **Pop-ups** (`modal()` in `src/js/02-kit.js`): focus moves into the pop-up, Tab and Shift+Tab stay inside it (the page behind is `inert`), **Esc closes it** (it presses the pop-up's own Close/Got it button, or just puts a multi-choice pop-up away; a trip dilemma you put away is picked up again from **Back to your trip**) and focus returns to the button you pressed. Required pop-ups (`modal(…, true)`, like the update notice) ignore Esc.
+- **Go buttons** carry an `aria-label` with the destination ("Go to Kenai Harbor · 25 min"). Everything you can press is at least **44×44 px**: action buttons, chips, the ⚙️ gear, toast ✓, tips, pins and the priority list buttons.
+- **Top bar:** the day and clock stay on one line and the date line gets its own full-width row (it ellipsizes, with the full text in its tooltip). Stat values never wrap: cash shows compact in the bar ($48k from $10,000 up, full amount in its tooltip) and the largest text setting lays the stats out two rows of three. Settings also has text size, high contrast and reduced motion.
+
 ## Update notice
 
 `src/js/29-update-notice.js`. The game remembers the last version it showed on this device (`guidemaster.lastVersion`). When the title screen appears with a different version (including after the service worker brings in an update and the app reloads), a **🆕 Updated to version X.Y.Z** pop-up lists what's new (from the `CHANGELOG` object; unknown versions get a generic line) and, if there are saved games, says they were updated. Every slot's save is run through `migrate()` and re-saved first, keeping its timestamp. It is required: Esc and shortcut keys don't dismiss it (`modal(…, true)`), and only **Got it** stores the new version, so a reload before that shows it again. New players with no saves see nothing. When you release, add a `CHANGELOG` entry for the new version.

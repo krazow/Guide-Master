@@ -167,4 +167,74 @@ module.exports = [
     assert.ok(r.length < 900, 'tighter text: ' + r.length);
     noErrors(errors);
   } },
+
+  // ---- 5. accessibility ----
+  { name: 'a11y: focus stays inside a pop-up, Esc closes it, focus goes back to the button that opened it', fn: async ctx => {
+    const { page, errors } = await open(ctx, { seed: 6 });
+    await newGame(page);
+    await page.focus('button.act:has-text("Wait until")');
+    await page.keyboard.press('Enter');
+    await page.waitForSelector('#mbg');
+    await page.waitForTimeout(80);
+    const inside = () => page.evaluate(() => !!document.activeElement.closest('#mbg'));
+    assert.ok(await inside(), 'focus moves into the pop-up');
+    assert.ok(await page.evaluate(() => document.getElementById('app').hasAttribute('inert')), 'the page behind is inert');
+    for (let i = 0; i < 9; i++) { await page.keyboard.press('Tab'); assert.ok(await inside(), 'Tab ' + i + ' stays inside'); }
+    for (let i = 0; i < 9; i++) { await page.keyboard.press('Shift+Tab'); assert.ok(await inside(), 'Shift+Tab ' + i + ' stays inside'); }
+    await page.keyboard.press('Escape');
+    assert.strictEqual(await page.locator('#mbg').count(), 0, 'Esc closes it');
+    assert.ok(!(await page.evaluate(() => document.getElementById('app').hasAttribute('inert'))));
+    const back = await page.evaluate(() => (document.activeElement.textContent || '').trim());
+    assert.ok(/Wait until/.test(back), 'focus restored to: ' + back);
+    // Esc also closes a multi-choice pop-up with no “close” button (it is just put away), and works from inside a text field
+    await page.evaluate(() => modal('Pick one', '<input id="zz">', [{ l: 'Alpha', fn: () => {} }, { l: 'Beta', fn: () => {} }]));
+    await page.focus('#zz'); await page.keyboard.press('Escape');
+    assert.strictEqual(await page.locator('#mbg').count(), 0);
+    noErrors(errors);
+  } },
+  { name: 'a11y: Esc never closes a required pop-up (the update notice)', fn: async ctx => {
+    const { page, errors } = await open(ctx, { seed: 6 });
+    await page.evaluate(() => modal('Required', '<p>x</p>', [{ l: 'Got it', fn: () => {} }], true));
+    await page.waitForTimeout(60); await page.keyboard.press('Escape'); await page.keyboard.press('Tab'); await page.keyboard.press('Escape');
+    assert.strictEqual(await page.locator('#mbg').count(), 1);
+    assert.ok(await page.evaluate(() => !!document.activeElement.closest('#mbg')));
+    await page.click('#mbg button'); assert.strictEqual(await page.locator('#mbg').count(), 0);
+    noErrors(errors);
+  } },
+  { name: 'a11y: Go buttons name the destination; tappable things are at least 44px', fn: async ctx => {
+    const { page, errors } = await open(ctx, { seed: 6 });
+    await page.setViewportSize({ width: 420, height: 860 });
+    await newGame(page);
+    await page.evaluate(() => { document.querySelector('details.go').open = true; S.prios = [{ t: 'a', done: false }, { t: 'b', done: false }]; tab = 'todo'; render(); showTile('🔧', 'A tile', 'x', 'warn') });
+    const small = await page.evaluate(() => { const o = []; document.querySelectorAll('button,summary,[role=button]').forEach(e => { if (e.closest('.tile')) { } const r = e.getBoundingClientRect(); if (r.width && r.height && (r.height < 43.5 || r.width < 43.5) && !e.closest('.tile')) o.push(e.className + ' ' + Math.round(r.width) + 'x' + Math.round(r.height) + ' ' + e.textContent.trim().slice(0, 20)) }); return o });
+    assert.deepStrictEqual(small, [], 'small targets');
+    await page.evaluate(() => { tab = 'act'; render() });
+    const labels = await page.evaluate(() => [...document.querySelectorAll('.chip')].map(c => c.getAttribute('aria-label')));
+    assert.ok(labels.length >= 4 && labels.every(l => /^Go to .+ · \d+ min$/.test(l)), JSON.stringify(labels));
+    assert.ok(labels.some(l => /Kenai Harbor/.test(l)));
+    const g = await page.evaluate(() => { const e = document.querySelector('.hud .gear').getBoundingClientRect(); const t = document.querySelector('.tile .ok'); return [e.width, e.height, t ? parseFloat(getComputedStyle(t).width) : 44] });
+    assert.ok(g.every(v => v >= 43.5), JSON.stringify(g));
+    noErrors(errors);
+  } },
+  { name: 'a11y: the top bar never wraps or clips at the largest text size (420×860)', fn: async ctx => {
+    const { page, errors } = await open(ctx, { seed: 6 });
+    await page.setViewportSize({ width: 420, height: 860 });
+    await page.evaluate(() => { localStorage.setItem('guidemaster.name', 'Wilhelmina Longname 20c'); setPref('fs', 'xl'); setPref('years', 10) });
+    await newGame(page, 'hard');
+    for (const fs of ['n', 'l', 'xl']) {
+      const r = await page.evaluate(fs => {
+        setPref('fs', fs); S.money = -1999; S.cites = 2; S.fuel = 40; S.cur = 9 * 14 + 3; S.t = S.cur * 1440 + 500; render();
+        const o = {}, q = s => document.querySelector(s);
+        o.top = q('.hud-top').getBoundingClientRect().height; o.time = q('.hud-time').getBoundingClientRect().height; o.day = q('.hud-day').getBoundingClientRect().height;
+        o.stats = [...document.querySelectorAll('.stat b')].map(e => [e.textContent, e.getBoundingClientRect().height, e.scrollWidth > e.clientWidth + 1]);
+        S.money = 123456; render(); o.cash = q('.stat b').textContent; o.cashTitle = q('.stat').title; o.cashClip = q('.stat b').scrollWidth > q('.stat b').clientWidth + 1;
+        return o;
+      }, fs);
+      const lh = r.stats[1][1];
+      assert.ok(r.stats.every(([, h, clip]) => h <= lh + 1 && !clip), fs + ' stats wrap or clip: ' + JSON.stringify(r.stats));
+      assert.ok(r.time < 40 && r.day < 40 && r.top < 80, fs + ' top bar: ' + JSON.stringify([r.top, r.time, r.day]));
+      assert.strictEqual(r.cash, '$123k'); assert.ok(/\$123,456/.test(r.cashTitle)); assert.ok(!r.cashClip);
+    }
+    noErrors(errors);
+  } },
 ];

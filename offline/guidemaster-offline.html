@@ -44,15 +44,16 @@ button{font:inherit;cursor:pointer;touch-action:manipulation;-webkit-user-select
 .small-note{font-size:12px;opacity:.7}
 /* hud */
 .hud{background:var(--brand-dark);color:#fff;padding:10px 14px 10px;position:sticky;top:0;z-index:5}
-.hud-top{display:flex;justify-content:space-between;align-items:baseline}
+.hud-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.hud-right{display:flex;align-items:center;gap:8px;flex:none}
 .hud-day{font-family:"Fraunces";font-size:20px;font-weight:800}
 .hud-time{white-space:nowrap;font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
-.hud-sub{font-size:12px;opacity:.75;margin-top:1px}
-.stats{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px;margin-top:8px}
-.stat b{overflow-wrap:anywhere}
-html.fs-xl .stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+.hud-sub{font-size:12px;opacity:.75;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stats{display:grid;grid-template-columns:minmax(0,1.45fr) repeat(5,minmax(0,1fr));gap:5px;margin-top:8px}   /* Cash is the widest */
+.stat b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html.fs-xl .stats{grid-template-columns:repeat(3,minmax(0,1fr))}   /* large text: two rows of three, so no value wraps or clips */
 @media (max-width:360px){.stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
-.stat{background:rgba(255,255,255,.08);border-radius:9px;padding:5px 4px 6px;text-align:center}
+.stat{background:rgba(255,255,255,.08);border-radius:9px;padding:5px 2px 6px;text-align:center}
 .stat b{display:block;font-size:14px;font-variant-numeric:tabular-nums}
 .stat small{font-size:10px;opacity:.75;text-transform:uppercase;letter-spacing:.5px}
 .meter{height:4px;border-radius:2px;background:rgba(255,255,255,.15);margin-top:4px;overflow:hidden}
@@ -197,6 +198,16 @@ html.hc .hud :focus-visible,html.hc .title :focus-visible,html.hc nav.tabs :focu
 .end .kv span{color:var(--mute)}
 .slot-empty{color:var(--mute)}
 .alertbar.info{background:var(--brand)}
+/* tap targets: anything you press is at least 44×44 CSS px */
+.chip{min-height:44px;min-width:44px;display:inline-flex;align-items:center;justify-content:center;padding:6px 14px}
+.gear,.tile .ok{width:44px;height:44px}
+.tip button,.todo .pin,.prio-add button{min-height:44px;min-width:44px}
+.prio .pb button{min-width:44px;height:44px}
+.prio-add button{height:44px}
+.prio .pt{min-height:44px;display:flex;align-items:center}
+details.go>summary{min-height:44px;align-items:center}
+.modal:focus{outline:none}
+button.act,.ghost,.big{min-height:44px}
 </style>
 </head>
 <body>
@@ -330,19 +341,51 @@ function hoursTxt(id){const h=L[id].hours;if(!h)return '';const r=h(day());retur
 // A button may carry legal:true/false, written to its data-legal attribute. Modals opened while one is showing are queued and shown in order.
 // A 4th argument true makes the pop-up required: Esc doesn't close it, only its own button does (no backdrop-tap close exists).
 // After any button, the game re-renders (unless you're on the title or end screen).
-let MB=[], MQ=[];
+let MB=[], MQ=[], FOCUS_RET=null;
+// Keyboard and screen-reader behavior: while a pop-up is open the page behind it is inert and Tab stays inside the pop-up;
+// Esc closes it unless it is required (a 4th argument of true); closing gives focus back to what you had pressed.
+const FOCUSABLE='button:not([disabled]),input:not([disabled]),textarea:not([disabled]),select:not([disabled]),a[href],[tabindex]:not([tabindex="-1"])';
+function focusKey(el){if(!el||el===document.body||!el.tagName)return null;const tag=el.tagName.toLowerCase();return {id:el.id||'',tag,txt:(el.textContent||'').trim().slice(0,80),idx:[...document.querySelectorAll(tag)].indexOf(el)}}
+function focusBack(k){if(!k)return;
+  let el=k.id?document.getElementById(k.id):null;
+  if(!el){const all=[...document.querySelectorAll(k.tag)].filter(e=>!e.closest('#mbg'));el=all.find(e=>(e.textContent||'').trim().slice(0,80)===k.txt)||all[k.idx]}
+  if(el&&!el.disabled&&el.offsetParent!==null){try{el.focus({preventScroll:true})}catch(e){}}}
+function syncInert(){const a=document.getElementById('app'),on=!!document.getElementById('mbg');if(a){if(on)a.setAttribute('inert','');else a.removeAttribute('inert')}}
 function modal(title,body,btns,noClose){
   if(document.getElementById('mbg')){MQ.push([title,body,btns,noClose]);return}
   MB=btns;
+  if(!FOCUS_RET)FOCUS_RET=focusKey(document.activeElement)||{};
   const el=document.createElement('div');el.className='modal-bg';el.id='mbg';if(noClose)el.dataset.lock='1';
-  el.innerHTML=withName(`<div class="modal" role="dialog" aria-modal="true" aria-label="${esc(title.replace(/<[^>]+>/g,''))}"><h2>${title}</h2><div class="mb">${body}</div>${btns.map((b,i)=>`<button class="act ${i===0&&!b.dis&&!b.np?'primary':''}" ${b.legal!==undefined?`data-legal="${b.legal}"`:''} ${b.dis?'disabled':''} onclick="MBTN(${i})"><span class="tx"><b>${b.l}</b>${b.s?'<span>'+b.s+'</span>':''}</span></button>`).join('')}</div>`);
-  document.body.appendChild(el);
-  setTimeout(()=>{const b=el.querySelector('button.act:not([disabled])');if(b&&!el.querySelector('input,textarea'))b.focus({preventScroll:true})},30);
+  el.innerHTML=withName(`<div class="modal" role="dialog" aria-modal="true" aria-label="${esc(title.replace(/<[^>]+>/g,''))}" tabindex="-1"><h2>${title}</h2><div class="mb">${body}</div>${btns.map((b,i)=>`<button class="act ${i===0&&!b.dis&&!b.np?'primary':''}" ${b.legal!==undefined?`data-legal="${b.legal}"`:''} ${b.dis?'disabled':''} onclick="MBTN(${i})"><span class="tx"><b>${b.l}</b>${b.s?'<span>'+b.s+'</span>':''}</span></button>`).join('')}</div>`);
+  el.addEventListener('keydown',e=>{
+    if(e.key==='Escape'){e.preventDefault();e.stopPropagation();escModal();return}
+    if(e.key!=='Tab')return;
+    const f=[...el.querySelectorAll(FOCUSABLE)].filter(x=>x.offsetParent!==null||x===document.activeElement);
+    if(!f.length){e.preventDefault();el.querySelector('.modal').focus();return}
+    const first=f[0],last=f[f.length-1],cur=document.activeElement;
+    if(!el.contains(cur)||cur===el.querySelector('.modal')){e.preventDefault();(e.shiftKey?last:first).focus();return}
+    if(e.shiftKey&&cur===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&cur===last){e.preventDefault();first.focus()}});
+  document.body.appendChild(el);syncInert();
+  setTimeout(()=>{const m=el.querySelector('.modal'),b=el.querySelector('button.act:not([disabled])');if(!document.body.contains(el))return;
+    if(b&&!el.querySelector('input,textarea'))b.focus({preventScroll:true});else if(!el.contains(document.activeElement)&&m)m.focus({preventScroll:true})},30);
 }
-window.MBTN=i=>{if(MB[i]&&MB[i].dis)return;const el=document.getElementById('mbg');el&&el.remove();const f=MB[i]&&MB[i].fn;f&&f();
+// after a pop-up closes: show the next queued one, else redraw and give focus back
+function modalClosed(){
   if(!document.getElementById('mbg')&&MQ.length&&S&&!S.over){const q=MQ.shift();modal(...q)}
-  if(S&&!S.over&&!document.querySelector('.title,.end'))render()};
-function closeModals(){MQ=[];document.querySelectorAll('.modal-bg').forEach(e=>e.remove())}
+  if(S&&!S.over&&!document.querySelector('.title,.end'))render();
+  syncInert();
+  if(!document.getElementById('mbg')){const k=FOCUS_RET;FOCUS_RET=null;focusBack(k)}
+}
+window.MBTN=i=>{if(MB[i]&&MB[i].dis)return;const el=document.getElementById('mbg');el&&el.remove();const f=MB[i]&&MB[i].fn;f&&f();modalClosed()};
+// Esc: press the pop-up's own close button if it has one (or its only button); otherwise just put it away. Required pop-ups ignore it.
+function escModal(){
+  const el=document.getElementById('mbg');if(!el||el.dataset.lock)return false;
+  const bs=[...el.querySelectorAll('.modal > button.act')].filter(b=>!b.disabled);
+  const c=[...bs].reverse().find(x=>/^(never mind|close|cancel|not now|ok|got it|back|keep playing|keep it)\b/i.test(((x.querySelector('.tx b')||x).textContent||'').trim()))||(bs.length===1?bs[0]:null);
+  if(c){c.click();return true}
+  el.remove();modalClosed();return true}
+window.escModal=escModal;
+function closeModals(){MQ=[];FOCUS_RET=null;document.querySelectorAll('.modal-bg').forEach(e=>e.remove());syncInert()}
 
 // ---------------- full-screen transition ----------------
 // transition('🚌','Off to work','20 minutes', done)  plays a short animation, then calls done().
@@ -555,8 +598,9 @@ function sceneSVG(){
 }
 function hud(){
   const d=day(),n=STATS.length;
-  return `<div class="hud"><div class="hud-top"><div><div class="hud-day">${dayName(d)}</div><div class="hud-sub">{{name}} · ${DF().ic} ${DF().n} · ${typeof hudDay==='function'?hudDay(d):`Day ${d+1} of ${GAME.days}`}</div></div><div style="display:flex;align-items:center;gap:10px"><div class="hud-time">${fmt(S.t)}</div><button class="gear" onclick="openSettings()" aria-label="Settings">⚙️</button></div></div>
-  <div class="stats" style="grid-template-columns:repeat(${Math.min(n,6)},minmax(0,1fr))">${STATS.map(s=>`<div class="stat"${s.title?` title="${esc(s.title)}"`:''}><small>${s.l}</small><b${s.warn&&s.warn()?' style="color:#ff8a70"':''}>${s.v()}</b>${s.m?meter(s.m(),s.good!==false):''}</div>`).join('')}</div></div>`;
+  const sub=`{{name}} · ${DF().ic} ${DF().n} · ${typeof hudDay==='function'?hudDay(d):`Day ${d+1} of ${GAME.days}`}`;
+  return `<div class="hud"><div class="hud-top"><div class="hud-day">${dayName(d)}</div><div class="hud-right"><div class="hud-time">${fmt(S.t)}</div><button class="gear" onclick="openSettings()" aria-label="Settings">⚙️</button></div></div><div class="hud-sub" title="${esc(sub)}">${sub}</div>
+  <div class="stats">${STATS.map(s=>`<div class="stat"${s.title?` title="${esc(s.title)}"`:''}><small>${s.l}</small><b${s.warn&&s.warn()?' style="color:#ff8a70"':''}>${s.v()}</b>${s.m?meter(s.m(),s.good!==false):''}</div>`).join('')}</div></div>`;
 }
 function allTabs(){return [['act','🧭','Here'],...(EXTRA_TABS||[]).map(t=>[t.k,t.ic,t.l]),['todo','📋','To-do'],['log','📜','Log']]}
 function render(){
@@ -595,7 +639,7 @@ function actView(){
   const p=prefs().goOpen,open=p===null||p===undefined?acts.length<=5:p;
   h+=`<details class="go" ${open?'open':''} ontoggle="setPref('goOpen',this.open)"><summary>🧭 Go somewhere (${dests.length})</summary>`;
   dests.forEach(k=>{const m=travelMins(S.loc,k),i=ACTS.push(()=>go(k))-1;
-    h+=`<div class="dest compact"><div class="dn"><b>${L[k].ic} ${L[k].name}</b><span>${L[k].hours?hoursTxt(k):L[k].desc||''}</span></div><div class="chips"><button class="chip" onclick="ACT(${i})">Go · ${m} min</button></div></div>`});
+    h+=`<div class="dest compact"><div class="dn"><b>${L[k].ic} ${L[k].name}</b><span>${L[k].hours?hoursTxt(k):L[k].desc||''}</span></div><div class="chips"><button class="chip" onclick="ACT(${i})" aria-label="Go to ${esc(L[k].name)} · ${m} min">Go · ${m} min</button></div></div>`});
   return h+'</details>';
 }
 window.ACT=i=>{uiNarr=[];sfx('tap');const f=ACTS[i];f&&f();afterAction();if(S&&!S.over&&!document.querySelector('.title,.end'))render()};
@@ -903,7 +947,7 @@ document.addEventListener('keydown',e=>{
   const {where,list}=keyTargets();
   if(/^[1-9]$/.test(k)){const b=list[+k-1];if(b){e.preventDefault();b.click()}return}
   if(where==='modal'){
-    if(k==='Escape'){if(document.getElementById('mbg').dataset.lock){e.preventDefault();return}const b=[...list].reverse().find(x=>KEY_CLOSE.test(((x.querySelector('.tx b')||x).textContent||'').trim()));if(b){e.preventDefault();b.click()}}
+    if(k==='Escape'){e.preventDefault();escModal()}
     return}
   if(where!=='main')return;
   const kt=keyTabs();if(kt[lk]){e.preventDefault();setTab(kt[lk])}
@@ -951,7 +995,7 @@ function newState(){
 
 // ---- HUD ----
 const STATS=[
-  {l:'Cash',  v:()=>$(Math.round(S.money)),warn:()=>S.money<0},
+  {l:'Cash',  v:()=>$k(Math.round(S.money)),warn:()=>S.money<0,get title(){return 'Cash: '+$(Math.round(S.money))}},
   {l:'Rep',   v:()=>S.rep,m:()=>S.rep,warn:()=>S.rep<20,title:'Reputation: reviews and word of mouth. At 0, nobody books you.'},
   {l:'Energy',v:()=>S.energy,m:()=>S.energy},
   {l:'Boat',  v:()=>S.boat,m:()=>S.boat,warn:()=>S.boat<20,title:'Your jet sled and drift boat. Below 40 they break down more; at 0 they are out of service until a major repair (or an emergency patch or a loaner).'},
@@ -2316,7 +2360,7 @@ const HELP=[
   ['🔧','Money & gear','The booked fare is your base pay; tips, refunds and word of mouth follow how the day went: the catch, happy clients, tackle and a boat in good shape. Run out of tackle or let the boat wear down and you’ll see smaller tips, refunds and breakdowns. Restock tackle in Soldotna, service the boats at the shop, buy fuel at the harbor. Overhead is charged every night. The Boat stat warns you at 40, 20 and 10. At 0 your sled and drift boat are out of service until a major repair ($2,400), though an emergency patch ($600, back to 25 for two days, only at 10 or less) or a rented loaner ($600, for the day) keeps a booked trip running. In the off-season you can buy upgrades: a new motor (burns less gas), a new sled (trips finish 30 minutes sooner), a drift boat, marketing, higher rates (more per trip, fewer bookings, pickier clients), your own Homer charter permit and, later in a career, an assistant guide, guest cabins or a riverfront lot with a private launch.'],
   ['🏕️','Winter camping','In the off-season you can <strong>go winter camping</strong> once per winter: pick one of ten real Kenai Peninsula spots within 100 road miles of Soldotna and 1–7 nights. You pay gas, campsite fees (most places are unserviced in winter) and supplies. Each night has a <strong>50% chance of a wildlife encounter</strong>, good or bad, that nudges your energy, skill, rep or cash going into the new season.'],
   ['💀','How you lose','Three active citations (permit pulled), reputation down to 0 (nobody books you), or $2,000 in debt (the bank takes the sled).'],
-  ['💡','Tips','Rig tomorrow’s gear and scout the river for better trips. Tips (💡) appear as you play; turn them on or off in ⚙️ Settings. On a computer, number keys press buttons and <strong>?</strong> lists the shortcuts.'],
+  ['💡','Tips','Rig tomorrow’s gear and scout the river for better trips. Tips (💡) appear as you play; turn them on or off in ⚙️ Settings. On a computer, number keys press buttons, <strong>Esc</strong> closes a pop-up and <strong>?</strong> lists the shortcuts. Settings has bigger text and high contrast.'],
 ];
 function helpModal(){
   modal('❓ Help! How to play Guide Master',HELP.map(([ic,h,t])=>`<div class="todo"><span class="ck">${ic}</span><div><b>${h}</b><span style="font-size:13.5px;line-height:1.45;color:var(--ink)">${t}</span></div></div>`).join('')+
@@ -2528,7 +2572,7 @@ const CHANGELOG={
   '1.5.3':['⚖️ Difficulty now changes the game, not the score: Combat Season means more patrols and dearer bills, Rookie the reverse. Grades were recalibrated, so an A takes real work.'],
   '1.5.4':['🎲 Dilemma options shuffle: playing it straight costs something, bending a rule can pay cash, and repeat offenders pay steeper fines. Pay now follows the day: catch, tackle and boat shape tips, refunds and word of mouth.'],
   '1.6.0':['💲 Higher rates now cost you: fewer bookings, pickier clients and a rep requirement that rises each step.','🔧 Boats at condition 0 are out of service until repaired; new motors burn less gas, new sleds finish sooner, and late-career money can buy an assistant guide, guest cabins or a riverfront launch.','⏳ New “Wait until…” action skips to the next launch or the 1 PM class. New games start with a 5:00 AM alarm.','🌙 The night summary now comes before the morning’s news, and pop-up toasts are fewer, shorter and sit below your Cash and Rep.','⭐ Longer careers: 54 client parties, regulars who come back (or don’t), six new river dilemmas, fewer repeats and three multi-season stories.'],
-  '1.6.1':['🔧 A worn-out boat now gives warnings at 40, 20 and 10, and at condition 0 you can pay for an emergency patch or rent a loaner to keep a booked trip running.','🏛️ The Board of Fisheries hearing only comes on a day with no trips booked, so it can’t cost you a no-show.','💵 Money shows thousands separators ($47,975), the end screen breaks your score down line by line and labels played trips versus the estimated rest of the summer, and the off-season summary is shorter.'],
+  '1.6.1':['🔧 A worn-out boat now gives warnings at 40, 20 and 10, and at condition 0 you can pay for an emergency patch or rent a loaner to keep a booked trip running.','🏛️ The Board of Fisheries hearing only comes on a day with no trips booked, so it can’t cost you a no-show.','💵 Money shows thousands separators ($47,975), the end screen breaks your score down line by line and labels played trips versus the estimated rest of the summer, and the off-season summary is shorter.','♿ Pop-ups keep keyboard focus inside and close with Esc, Go buttons say where they go, tap targets are 44 px and the top bar no longer wraps at large text.'],
 };
 const CHANGELOG_GENERIC='Fixes and small improvements throughout.';
 const LASTVER_KEY=KEY('lastVersion');

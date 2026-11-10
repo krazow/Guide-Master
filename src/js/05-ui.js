@@ -17,8 +17,9 @@ function sceneSVG(){
 }
 function hud(){
   const d=day(),n=STATS.length;
-  return `<div class="hud"><div class="hud-top"><div><div class="hud-day">${dayName(d)}</div><div class="hud-sub">{{name}} · ${DF().ic} ${DF().n} · ${typeof hudDay==='function'?hudDay(d):`Day ${d+1} of ${GAME.days}`}</div></div><div style="display:flex;align-items:center;gap:10px"><div class="hud-time">${fmt(S.t)}</div><button class="gear" onclick="openSettings()" aria-label="Settings">⚙️</button></div></div>
-  <div class="stats" style="grid-template-columns:repeat(${Math.min(n,6)},minmax(0,1fr))">${STATS.map(s=>`<div class="stat"${s.title?` title="${esc(s.title)}"`:''}><small>${s.l}</small><b${s.warn&&s.warn()?' style="color:#ff8a70"':''}>${s.v()}</b>${s.m?meter(s.m(),s.good!==false):''}</div>`).join('')}</div></div>`;
+  const sub=`{{name}} · ${DF().ic} ${DF().n} · ${typeof hudDay==='function'?hudDay(d):`Day ${d+1} of ${GAME.days}`}`;
+  return `<div class="hud"><div class="hud-top"><div class="hud-day">${dayName(d)}</div><div class="hud-right"><div class="hud-time">${fmt(S.t)}</div><button class="gear" onclick="openSettings()" aria-label="Settings">⚙️</button></div></div><div class="hud-sub" title="${esc(sub)}">${sub}</div>
+  <div class="stats">${STATS.map(s=>`<div class="stat"${s.title?` title="${esc(s.title)}"`:''}><small>${s.l}</small><b${s.warn&&s.warn()?' style="color:#ff8a70"':''}>${s.v()}</b>${s.m?meter(s.m(),s.good!==false):''}</div>`).join('')}</div></div>`;
 }
 function allTabs(){return [['act','🧭','Here'],...(EXTRA_TABS||[]).map(t=>[t.k,t.ic,t.l]),['todo','📋','To-do'],['log','📜','Log']]}
 function render(){
@@ -57,7 +58,7 @@ function actView(){
   const p=prefs().goOpen,open=p===null||p===undefined?acts.length<=5:p;
   h+=`<details class="go" ${open?'open':''} ontoggle="setPref('goOpen',this.open)"><summary>🧭 Go somewhere (${dests.length})</summary>`;
   dests.forEach(k=>{const m=travelMins(S.loc,k),i=ACTS.push(()=>go(k))-1;
-    h+=`<div class="dest compact"><div class="dn"><b>${L[k].ic} ${L[k].name}</b><span>${L[k].hours?hoursTxt(k):L[k].desc||''}</span></div><div class="chips"><button class="chip" onclick="ACT(${i})">Go · ${m} min</button></div></div>`});
+    h+=`<div class="dest compact"><div class="dn"><b>${L[k].ic} ${L[k].name}</b><span>${L[k].hours?hoursTxt(k):L[k].desc||''}</span></div><div class="chips"><button class="chip" onclick="ACT(${i})" aria-label="Go to ${esc(L[k].name)} · ${m} min">Go · ${m} min</button></div></div>`});
   return h+'</details>';
 }
 window.ACT=i=>{uiNarr=[];sfx('tap');const f=ACTS[i];f&&f();afterAction();if(S&&!S.over&&!document.querySelector('.title,.end'))render()};

@@ -4,19 +4,51 @@
 // A button may carry legal:true/false, written to its data-legal attribute. Modals opened while one is showing are queued and shown in order.
 // A 4th argument true makes the pop-up required: Esc doesn't close it, only its own button does (no backdrop-tap close exists).
 // After any button, the game re-renders (unless you're on the title or end screen).
-let MB=[], MQ=[];
+let MB=[], MQ=[], FOCUS_RET=null;
+// Keyboard and screen-reader behavior: while a pop-up is open the page behind it is inert and Tab stays inside the pop-up;
+// Esc closes it unless it is required (a 4th argument of true); closing gives focus back to what you had pressed.
+const FOCUSABLE='button:not([disabled]),input:not([disabled]),textarea:not([disabled]),select:not([disabled]),a[href],[tabindex]:not([tabindex="-1"])';
+function focusKey(el){if(!el||el===document.body||!el.tagName)return null;const tag=el.tagName.toLowerCase();return {id:el.id||'',tag,txt:(el.textContent||'').trim().slice(0,80),idx:[...document.querySelectorAll(tag)].indexOf(el)}}
+function focusBack(k){if(!k)return;
+  let el=k.id?document.getElementById(k.id):null;
+  if(!el){const all=[...document.querySelectorAll(k.tag)].filter(e=>!e.closest('#mbg'));el=all.find(e=>(e.textContent||'').trim().slice(0,80)===k.txt)||all[k.idx]}
+  if(el&&!el.disabled&&el.offsetParent!==null){try{el.focus({preventScroll:true})}catch(e){}}}
+function syncInert(){const a=document.getElementById('app'),on=!!document.getElementById('mbg');if(a){if(on)a.setAttribute('inert','');else a.removeAttribute('inert')}}
 function modal(title,body,btns,noClose){
   if(document.getElementById('mbg')){MQ.push([title,body,btns,noClose]);return}
   MB=btns;
+  if(!FOCUS_RET)FOCUS_RET=focusKey(document.activeElement)||{};
   const el=document.createElement('div');el.className='modal-bg';el.id='mbg';if(noClose)el.dataset.lock='1';
-  el.innerHTML=withName(`<div class="modal" role="dialog" aria-modal="true" aria-label="${esc(title.replace(/<[^>]+>/g,''))}"><h2>${title}</h2><div class="mb">${body}</div>${btns.map((b,i)=>`<button class="act ${i===0&&!b.dis&&!b.np?'primary':''}" ${b.legal!==undefined?`data-legal="${b.legal}"`:''} ${b.dis?'disabled':''} onclick="MBTN(${i})"><span class="tx"><b>${b.l}</b>${b.s?'<span>'+b.s+'</span>':''}</span></button>`).join('')}</div>`);
-  document.body.appendChild(el);
-  setTimeout(()=>{const b=el.querySelector('button.act:not([disabled])');if(b&&!el.querySelector('input,textarea'))b.focus({preventScroll:true})},30);
+  el.innerHTML=withName(`<div class="modal" role="dialog" aria-modal="true" aria-label="${esc(title.replace(/<[^>]+>/g,''))}" tabindex="-1"><h2>${title}</h2><div class="mb">${body}</div>${btns.map((b,i)=>`<button class="act ${i===0&&!b.dis&&!b.np?'primary':''}" ${b.legal!==undefined?`data-legal="${b.legal}"`:''} ${b.dis?'disabled':''} onclick="MBTN(${i})"><span class="tx"><b>${b.l}</b>${b.s?'<span>'+b.s+'</span>':''}</span></button>`).join('')}</div>`);
+  el.addEventListener('keydown',e=>{
+    if(e.key==='Escape'){e.preventDefault();e.stopPropagation();escModal();return}
+    if(e.key!=='Tab')return;
+    const f=[...el.querySelectorAll(FOCUSABLE)].filter(x=>x.offsetParent!==null||x===document.activeElement);
+    if(!f.length){e.preventDefault();el.querySelector('.modal').focus();return}
+    const first=f[0],last=f[f.length-1],cur=document.activeElement;
+    if(!el.contains(cur)||cur===el.querySelector('.modal')){e.preventDefault();(e.shiftKey?last:first).focus();return}
+    if(e.shiftKey&&cur===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&cur===last){e.preventDefault();first.focus()}});
+  document.body.appendChild(el);syncInert();
+  setTimeout(()=>{const m=el.querySelector('.modal'),b=el.querySelector('button.act:not([disabled])');if(!document.body.contains(el))return;
+    if(b&&!el.querySelector('input,textarea'))b.focus({preventScroll:true});else if(!el.contains(document.activeElement)&&m)m.focus({preventScroll:true})},30);
 }
-window.MBTN=i=>{if(MB[i]&&MB[i].dis)return;const el=document.getElementById('mbg');el&&el.remove();const f=MB[i]&&MB[i].fn;f&&f();
+// after a pop-up closes: show the next queued one, else redraw and give focus back
+function modalClosed(){
   if(!document.getElementById('mbg')&&MQ.length&&S&&!S.over){const q=MQ.shift();modal(...q)}
-  if(S&&!S.over&&!document.querySelector('.title,.end'))render()};
-function closeModals(){MQ=[];document.querySelectorAll('.modal-bg').forEach(e=>e.remove())}
+  if(S&&!S.over&&!document.querySelector('.title,.end'))render();
+  syncInert();
+  if(!document.getElementById('mbg')){const k=FOCUS_RET;FOCUS_RET=null;focusBack(k)}
+}
+window.MBTN=i=>{if(MB[i]&&MB[i].dis)return;const el=document.getElementById('mbg');el&&el.remove();const f=MB[i]&&MB[i].fn;f&&f();modalClosed()};
+// Esc: press the pop-up's own close button if it has one (or its only button); otherwise just put it away. Required pop-ups ignore it.
+function escModal(){
+  const el=document.getElementById('mbg');if(!el||el.dataset.lock)return false;
+  const bs=[...el.querySelectorAll('.modal > button.act')].filter(b=>!b.disabled);
+  const c=[...bs].reverse().find(x=>/^(never mind|close|cancel|not now|ok|got it|back|keep playing|keep it)\b/i.test(((x.querySelector('.tx b')||x).textContent||'').trim()))||(bs.length===1?bs[0]:null);
+  if(c){c.click();return true}
+  el.remove();modalClosed();return true}
+window.escModal=escModal;
+function closeModals(){MQ=[];FOCUS_RET=null;document.querySelectorAll('.modal-bg').forEach(e=>e.remove());syncInert()}
 
 // ---------------- full-screen transition ----------------
 // transition('🚌','Off to work','20 minutes', done)  plays a short animation, then calls done().
