@@ -60,9 +60,10 @@ function endDay(where){
   const loss=checkLoss();if(loss) return gameOver(loss);
   if(d+1>=GAME.days) return finish();
   S.cur=d+1;S.t=S.cur*1440+S.alarm;uiNarr=[];
-  startDay();
+  // the night summary opens first; whatever the new morning brings (booking requests, event pop-ups, the off-season) queues behind it
   modal(`🌙 ${dayName(d)} night`,card+notes.map(n=>`<p>${n}</p>`).join(''),[{l:`☀️ Wake up: ${dayName(S.cur)}, ${fmt(S.t)}`,fn:()=>{}}]);
   sfx('info');
+  startDay();
   render();
 }
 // Travel. Long trips get the full-screen transition.

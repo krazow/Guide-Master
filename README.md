@@ -184,9 +184,9 @@ Guide Master is built on [krazow/framework](https://github.com/krazow/framework)
 | `say(html)` | Narrate at the top of the Here tab and add to the Log |
 | `adj('stress', 5)` / `money(-12)` | Nudge a 0–100 stat (clamped) / change cash |
 | `go('cafe')` | Travel (plays a transition for long trips; fires `travel` and `arrive`) |
-| `endDay('home')` | Sleep: runs `onNight`, the `night` hook and the summary, then the next morning |
+| `endDay('home')` | Sleep: runs `onNight`, the `night` hook and the summary, then the next morning. The night summary opens first; anything the morning brings (booking requests, event pop-ups, the off-season screen) queues behind it |
 | `modal(title, html, [{l, s, fn, dis}])` | Bottom sheet; queued if one is open |
-| `showTile(ic, title, sub, 'good'|'bad'|'warn'|'info')` | Toast at the top |
+| `showTile(ic, title, sub, 'good'|'bad'|'warn'|'info')` | Toast just below the HUD (so Cash and Rep stay visible): one at a time, about 3.5 seconds each, the rest queue briefly (duplicates dropped, at most 3 waiting), and it is skipped if an open or queued pop-up already contains its title. Events that open their own modal or show the OK pop-up (Settings → Event pop-ups) don't also toast |
 | `transition(ic, caption, sub, done)` | Full-screen interstitial, tap to skip |
 | `defEvent({...})` / `chain(id)` / `fireHook(name, ctx)` | Random events; see the header of `03-events.js` |
 | `sfx('good')` / `buzz(30)` | Sound / vibration. Add sounds to `SFX` in `01-core.js` |

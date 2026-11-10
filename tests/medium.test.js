@@ -195,4 +195,45 @@ module.exports = [
     assert.ok(!r.late.some(l => /60 more/.test(l)), 'no waiting past midnight');
     noErrors(errors);
   } },
+
+  // ---- 4. night summary first; calmer toasts ----
+  { name: 'the night summary opens before the morning events, which queue behind it', fn: async ctx => {
+    const { page, errors } = await open(ctx, { seed: 21 });
+    await page.evaluate(() => setPref('years', 5));
+    await newGame(page);
+    const r = await page.evaluate(() => {
+      closeModals(); S.cur = 2; S.t = 2 * 1440 + 1300; S.loc = 'shop'; S.book = []; S.calls = {}; S.dipnetAsk = 99;
+      addBooking({ d: 4, type: 'reds', n: 3, who: 'x', from: 'X', quirk: [] });
+      forceEvent('call_request'); endDay('home');
+      return { first: document.querySelector('#mbg h2').textContent, queued: MQ.map(q => q[0]), cur: S.cur };
+    });
+    assert.strictEqual(r.cur, 3);
+    assert.ok(/night/.test(r.first), 'first modal: ' + r.first);
+    assert.ok(r.queued.some(t => /Booking request/.test(t)), 'the request waits behind it: ' + r.queued.join('|'));
+    noErrors(errors);
+  } },
+  { name: 'toasts: one at a time, below the HUD, short, and never a copy of an open modal', fn: async ctx => {
+    const { page, errors } = await open(ctx, { seed: 2 });
+    await newGame(page);
+    const r = await page.evaluate(() => {
+      closeModals(); clearTiles(); const out = {};
+      showTile('🎉', 'First toast', 'a', 'good'); showTile('🎉', 'Second toast', 'b', 'info'); showTile('🎉', 'Second toast', 'b', 'info'); showTile('🎉', 'Third toast', 'c', 'bad');
+      out.visible = document.querySelectorAll('#tiles .tile').length; out.queued = tileQ.length;
+      const hud = document.querySelector('.hud').getBoundingClientRect(), box = document.getElementById('tiles').getBoundingClientRect();
+      out.belowHud = box.top >= hud.bottom - 1;
+      out.cashVisible = (() => { const el = [...document.querySelectorAll('.hud *')].find(e => /Cash/.test(e.textContent) && e.children.length === 0); const c = el.getBoundingClientRect(); return c.bottom <= box.top + 1 })();
+      clearTiles(); modal('📞 Booking request', '<p>hello</p>', [{ l: 'OK', fn: () => {} }]);
+      showTile('📞', 'Booking request', 'x', 'info'); out.dupSkipped = document.querySelectorAll('#tiles .tile').length === 0;
+      showTile('🛞', 'Flat tire', 'x', 'bad'); out.otherShown = document.querySelectorAll('#tiles .tile').length === 1;
+      out.ms = TILE_MS; closeModals(); clearTiles();
+      return out;
+    });
+    assert.strictEqual(r.visible, 1); assert.strictEqual(r.queued, 2, 'duplicates are dropped'); assert.ok(r.belowHud, 'tiles sit under the HUD'); assert.ok(r.cashVisible);
+    assert.ok(r.dupSkipped, 'no toast that repeats an open modal'); assert.ok(r.otherShown); assert.ok(r.ms <= 4000, 'shorter than the old 6.5 s');
+    await page.evaluate(() => { clearTiles(); showTile('1', 'Alpha', '', 'info'); showTile('2', 'Beta', '', 'info') });
+    await page.waitForTimeout(4300);
+    const now = await page.evaluate(() => [...document.querySelectorAll('#tiles .tile b')].map(b => b.textContent));
+    assert.deepStrictEqual(now, ['Beta'], 'the first tile left after a few seconds and the queued one took its place');
+    noErrors(errors);
+  } },
 ];

@@ -357,21 +357,34 @@ function transition(ic,cap,cap2,done,snd){
   setTimeout(end,prefs().rm?700:2200);
 }
 
-// ---------------- event tiles (toasts at the top) ----------------
+// ---------------- event tiles (toasts) ----------------
 // showTile('🎉','Found $20','On the way to the park','good')   kind: good | bad | warn | info
-let tileQ=[];const TILE_MAX=3;
+// One tile at a time, shown just below the HUD so Cash and Rep stay readable. Extra tiles wait in a short queue (duplicates are
+// dropped, the oldest goes if it grows past TILE_QUEUE) and each stays about 3.5 seconds. A tile whose title is already in an open
+// (or queued) pop-up is skipped: the pop-up says it.
+let tileQ=[];const TILE_MAX=1,TILE_QUEUE=3,TILE_MS=3500;
+const plain=h=>String(h||'').replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim().toLowerCase();
+function modalSays(title){
+  const t=plain(withName(title));if(!t) return false;
+  const open=document.getElementById('mbg');
+  return (open&&plain(open.textContent).includes(t))||MQ.some(q=>plain(q[0]+' '+q[1]).includes(t));
+}
 function tileBox(){let el=document.getElementById('tiles');if(!el){el=document.createElement('div');el.id='tiles';el.setAttribute('role','status');el.setAttribute('aria-live','polite');document.body.appendChild(el)}return el}
 function showTile(ic,title,sub,kind,when){
   if(!S||S.over) return;
+  if(modalSays(title)) return;
   when=when||`${dayName(day()).slice(0,3)} ${fmt(S.t)}`;
   const box=tileBox();
-  if(box.children.length>=TILE_MAX){tileQ.push([ic,title,sub,kind,when]);return}
+  if(box.children.length>=TILE_MAX){
+    if(!tileQ.some(q=>q[1]===title&&q[2]===sub)){tileQ.push([ic,title,sub,kind,when]);while(tileQ.length>TILE_QUEUE)tileQ.shift()}
+    return}
+  const hud=document.querySelector('.hud');box.style.top=hud?Math.round(hud.getBoundingClientRect().bottom+6)+'px':'';
   const t=document.createElement('div');t.className='tile '+(kind||'info');
   title=withName(title);sub=withName(sub);sfx(kind==='good'?'good':kind==='bad'?'bad':'info');
   t.innerHTML=`<span class="ti">${ic}</span><span class="tt"><small>${{good:'Good news',bad:'Event',warn:'Heads up'}[kind]||'Update'} · ${when}</small><b>${title}</b>${sub?`<span>${sub}</span>`:''}</span><button class="ok" aria-label="Got it">✓</button>`;
   let gone=false;const close=()=>{if(gone)return;gone=true;t.classList.add('out');setTimeout(()=>{t.remove();if(tileQ.length){const q=tileQ.shift();showTile(...q)}},260)};
   t.querySelector('.ok').onclick=close;t.onclick=e=>{if(e.target===t)close()};
-  setTimeout(close,6500);box.appendChild(t);
+  setTimeout(close,tileQ.length>=2?TILE_MS-1200:TILE_MS);box.appendChild(t);
 }
 function clearTiles(){tileQ=[];document.querySelectorAll('#tiles .tile').forEach(t=>t.remove())}
 window.showTile=showTile;
@@ -415,10 +428,12 @@ function fireHook(hook,ctx={}){
     const nBefore=uiNarr.length,mBefore=MQ.length+(document.getElementById('mbg')?1:0);
     EV_RUNNING=e.id;let r;try{r=e.run(ctx)||{}}finally{EV_RUNNING=null}
     // events that didn't open their own modal get collected into one OK pop-up per hook call
-    if(MQ.length+(document.getElementById('mbg')?1:0)===mBefore) popItems.push({e,lines:uiNarr.slice(nBefore)});
+    const ownModal=MQ.length+(document.getElementById('mbg')?1:0)!==mBefore;
+    if(!ownModal) popItems.push({e,lines:uiNarr.slice(nBefore)});
     const [ic,title,kind]=e.tile||['📍',e.id.replace(/_/g,' '),'info'];
+    const dup=ownModal||hook==='night'||popupsOn();   // the event's own modal, the night summary or the OK pop-up already tells the player
     const cause=S.ev.cause&&S.ev.cause[e.id],ce=cause&&EV.find(x=>x.id===cause);
-    showTile(ic,title,ce?`Because of: ${ce.tile?ce.tile[1]:cause}`:(ctx.sub||HOOK_SUB[hook]||''),kind,hook==='night'?`${dayName(day()).slice(0,3)} night`:null);
+    if(!dup)showTile(ic,title,ce?`Because of: ${ce.tile?ce.tile[1]:cause}`:(ctx.sub||HOOK_SUB[hook]||''),kind,hook==='night'?`${dayName(day()).slice(0,3)} night`:null);
     if(S.ev.cause)delete S.ev.cause[e.id];
     if(ctx.notes) ctx.notes.push(...uiNarr.slice(nBefore));
     if(r.stop){res=r;break}
@@ -500,9 +515,10 @@ function endDay(where){
   const loss=checkLoss();if(loss) return gameOver(loss);
   if(d+1>=GAME.days) return finish();
   S.cur=d+1;S.t=S.cur*1440+S.alarm;uiNarr=[];
-  startDay();
+  // the night summary opens first; whatever the new morning brings (booking requests, event pop-ups, the off-season) queues behind it
   modal(`🌙 ${dayName(d)} night`,card+notes.map(n=>`<p>${n}</p>`).join(''),[{l:`☀️ Wake up: ${dayName(S.cur)}, ${fmt(S.t)}`,fn:()=>{}}]);
   sfx('info');
+  startDay();
   render();
 }
 // Travel. Long trips get the full-screen transition.
@@ -2436,7 +2452,7 @@ const CHANGELOG={
   '1.5.2':['🆕 This notice: after each update you’ll see what changed, and your progress is brought up to date automatically.'],
   '1.5.3':['⚖️ Difficulty now changes the game, not the score: Combat Season means more patrols and dearer bills, Rookie the reverse. Grades were recalibrated, so an A takes real work.'],
   '1.5.4':['🎲 Dilemma options shuffle: playing it straight costs something, bending a rule can pay cash, and repeat offenders pay steeper fines. Pay now follows the day: catch, tackle and boat shape tips, refunds and word of mouth.'],
-  '1.6.0':['💲 Higher rates now cost you: fewer bookings, pickier clients and a rep requirement that rises each step.','🔧 Boats at condition 0 are out of service until repaired; new motors burn less gas, new sleds finish sooner, and late-career money can buy an assistant guide, guest cabins or a riverfront launch.','⏳ New “Wait until…” action skips to the next launch or the 1 PM class. New games start with a 5:00 AM alarm.'],
+  '1.6.0':['💲 Higher rates now cost you: fewer bookings, pickier clients and a rep requirement that rises each step.','🔧 Boats at condition 0 are out of service until repaired; new motors burn less gas, new sleds finish sooner, and late-career money can buy an assistant guide, guest cabins or a riverfront launch.','⏳ New “Wait until…” action skips to the next launch or the 1 PM class. New games start with a 5:00 AM alarm.','🌙 The night summary now comes before the morning’s news, and pop-up toasts are fewer, shorter and sit below your Cash and Rep.'],
 };
 const CHANGELOG_GENERIC='Fixes and small improvements throughout.';
 const LASTVER_KEY=KEY('lastVersion');
