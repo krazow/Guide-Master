@@ -106,4 +106,16 @@ module.exports = [
     assert.strictEqual(await page.evaluate(() => tab), 'todo');
     noErrors(errors);
   } },
+  { name: 'coffee: optional, adds 5 minutes, not on the drift boat', fn: async ctx => {
+    const { page, errors } = await open(ctx);
+    await newGame(page);
+    const r = await page.evaluate(() => {
+      closeModals(); S.loc = 'shop'; const t0 = S.t;
+      const c = actionsHere().find(a => /Grab a cup of coffee/.test(a.l)); c.fn();
+      S.loc = 'cooper'; const d = actionsHere().find(a => /Grab a cup of coffee/.test(a.l));
+      return { dt: S.t - t0, cooperDis: !!(d && d.dis), shopDis: !!c.dis };
+    });
+    assert.deepStrictEqual(r, { dt: 5, cooperDis: true, shopDis: false });
+    noErrors(errors);
+  } },
 ];
