@@ -8,17 +8,14 @@
 //  the in-game Regs tab says so too.
 // ============================================================
 
-// ---- calendar ----
-const JUL0=13;                                           // day 0 = Monday, July 13, 2026
-const dlabel=d=>`${dayName(d).slice(0,3)} Jul ${JUL0+d}`;
-const dlong=d=>`${dayName(d)}, July ${JUL0+d}`;
-const isSunMon=d=>{const w=((d%7)+7)%7;return w===6||w===0};   // DAYS starts on Monday
-const isTueWed=d=>{const w=((d%7)+7)%7;return w===1||w===2};
+// ---- calendar: seasons, dates and rule-of-the-year helpers live in 24-career.js ----
 const OVERHEAD=75;                                       // boat payment, insurance, groceries: every night
 
 // ---- the game-specific part of the save ----
 function newState(){
-  return {money:1500,rep:50,energy:90,boat:85,cites:0,warns:0,
+  return {years:(typeof prefs==='function'&&prefs().years)||2,reg:null,up:{rate:1,value:0},citeLog:[],seasons:[],st0:null,winter:null,
+    fuel:18,hfuel:0,fuelBase:{kenai:6.19,homer:6.45},
+    money:1500,rep:50,energy:90,boat:85,cites:0,warns:0,
     cred:{fa:2},            // first-aid/CPR card valid through the end of this day index (Wed Jul 15)
     gear:3,                 // trips' worth of beads, flies, leader and lures
     prep:-1,                // day index the gear is rigged for
@@ -26,10 +23,10 @@ function newState(){
     unlogged:0,overdue:0,   // ADF&G logbook trips not yet written up / written up late
     book:[],nextId:1,trip:null,
     calls:{},diner:{},report:{},office:{},dipnet:{},walks:{},
-    run:[],cum:0,limit:3,eo:[],wx:[],
+    run:[],cum:0,limit:3,eo:[],wx:[],wxd:[],noise:[],water:.5,solo:{},pu:0,
     freezer:0,skill:0,
     visited:{shop:true},
-    stats:{trips:0,clients:0,fish:0,limits:0,earned:0,spent:0,tips:0,viol:0,fines:0,kings:0,chop:0,bear:0,noshow:0,halibut:0,checks:0,cancelled:0}};
+    stats:{trips:0,clients:0,fish:0,limits:0,earned:0,spent:0,tips:0,viol:0,fines:0,kings:0,chop:0,bear:0,noshow:0,halibut:0,checks:0,cancelled:0,tows:0,fuelGal:0,fuelCost:0}};
 }
 
 // ---- HUD ----
@@ -80,9 +77,9 @@ function travelMins(a,b){return TRAVEL[a+'|'+b]??TRAVEL[b+'|'+a]??30}
 // ---- trip types ----
 // below: fishing from a guide vessel downstream of the Skilak Lake outlet (Sun/Mon closures, 6 AM–6 PM, 5-person July cap)
 const TRIPS={
-  reds:  {n:'Sockeye trip',ic:'🐟',loc:'lower',start:360,len:360,price:275,max:5,below:true,fuel:35,energy:28,
+  reds:  {n:'Sockeye trip',ic:'🐟',loc:'lower',start:360,len:360,price:275,max:5,below:true,fuel:9,energy:28,
           long:'Lower Kenai sockeye: run the jet sled to the reds and work the seams and bank spots.'},
-  silver:{n:'Early silver trip',ic:'🎣',loc:'lower',start:780,len:300,price:300,max:4,below:true,fuel:35,energy:26,
+  silver:{n:'Early silver trip',ic:'🎣',loc:'lower',start:780,len:300,price:300,max:4,below:true,fuel:11,energy:26,
           long:'Lower Kenai back-trolling for the first coho of the year. Ends at 6 PM sharp.'},
   trout: {n:'Upper Kenai trout float',ic:'🌈',loc:'cooper',start:420,len:480,price:375,max:3,below:false,fuel:0,energy:32,
           long:'Drift boat from Cooper Landing to Jim’s Landing: catch-and-release rainbows and Dolly Varden.'},
@@ -107,7 +104,7 @@ function issueOf(b){
 }
 function addBooking(o){const b=Object.assign({id:S.nextId++,status:'booked',quirk:[]},o);S.book.push(b);S.book.sort((x,y)=>x.d-y.d||SLOT(x)[0]-SLOT(y)[0]);return b}
 const partyLine=b=>`The ${b.who} (${b.from}${b.res?', Alaska residents':''}) · ${b.n} ${b.type==='halibut'?'passengers':'clients'}`;
-const payOf=b=>TRIPS[b.type].gig||TRIPS[b.type].price*b.n;
+const payOf=b=>b.type==='halibut'?(S.up&&S.up.chp?Math.round(350*b.n*S.up.rate):TRIPS.halibut.gig):Math.round(TRIPS[b.type].price*b.n*((S.up&&S.up.rate)||1));
 
 // ---- actions ----
 const ACT_CATS={trip:'🛶 Today’s trips',work:'🧰 Business & boat',town:'🏪 Around town',fish:'🐟 On the water',rest:'🛏️ Rest'};
@@ -115,12 +112,13 @@ function canAfford(c){return S.money>=c}
 function spend(c,what){money(-c);S.stats.spent+=c}
 function actionsHere(){
   const d=day(),m=tod(),a=[];
+  if(S.winter) return [{ic:'❄️',l:'Plan the off-season',s:'Bills, forecast, upgrades. Bookings open when you’re done.',cat:'trip',cls:'primary',fn:()=>winterModal()}];
   if(S.trip) return [{ic:'🛶',l:'Back to your trip',s:`${TRIPS[(bk(S.trip.id)||{type:'reds'}).type].n} in progress`,cat:'trip',cls:'primary',fn:()=>tripNext()}];
   // today's trips that launch from here
   todays(d).filter(b=>TRIPS[b.type].loc===S.loc).forEach(b=>{
     const T=TRIPS[b.type],late=m-T.start;
     if(m<T.start-60) a.push({ic:T.ic,l:`${T.n}: launch at ${fmt(T.start)}`,s:`${partyLine(b)}. The party shows up an hour before.`,cat:'trip',dis:true,fn:()=>{}});
-    else if(late<=90) a.push({ic:T.ic,l:`Meet the ${b.who} and launch`,s:`${partyLine(b)}. ${late>0?`You’re ${late} min late.`:`On time for ${fmt(T.start)}.`} ${T.gig?`Day rate ${$(T.gig)} + tips`:`${$(payOf(b))} + tips`}.`,cat:'trip',cls:'primary',fn:()=>tripStart(b)});
+    else if(late<=90) a.push({ic:T.ic,l:`Meet the ${b.who} and launch`,s:`${partyLine(b)}. ${late>0?`You’re ${late} min late.`:`On time for ${fmt(T.start)}.`} ${b.type==='halibut'&&!S.up.chp?`Day rate ${$(payOf(b))} + tips`:`${$(payOf(b))} + tips`}.`,cat:'trip',cls:'primary',fn:()=>tripStart(b)});
     else a.push({ic:'😠',l:`The ${b.who} gave up on you`,s:'They waited 90 minutes, then left. Expect a review.',cat:'trip',dis:true,fn:()=>{}});
   });
   if(S.loc==='shop'){
@@ -129,23 +127,25 @@ function actionsHere(){
     const logs=S.unlogged+S.overdue;
     if(logs) a.push({ic:'📓',l:`Fill out your ADF&G logbook (${logs} trip${logs>1?'s':''})`,s:`${logs*10} min. Every guided trip gets an entry: anglers, licenses, hours, fish kept and released.`,cat:'work',cls:'primary',fn:()=>{pass(logs*10);say(`📓 You write up ${logs} trip${logs>1?'s':''}: license numbers, hours fished, sockeye kept, kings released.${S.overdue?' A day late, but done.':''}`);S.unlogged=0;S.overdue=0}});
     if(S.prep!==d+1&&d+1<GAME.days) a.push({ic:'🪝',l:'Rig tomorrow’s gear',s:S.gear?'45 min. Tie leaders, sharpen hooks, stage the coolers. Better trip tomorrow.':'You’re out of tackle. Restock in Soldotna first.',cat:'work',dis:!S.gear,fn:()=>{pass(45);S.prep=d+1;say('🪝 Leaders tied, hooks sharp, coolers iced, life jackets counted. Tomorrow-you says thanks.')}});
-    a.push({ic:'🔧',l:'Service the boats — $80',s:'2 hours. Boat +25: impeller, jet intake, trailer bearings, oarlocks.',cat:'work',dis:S.boat>=95||!canAfford(80),fn:()=>{spend(80);pass(120);adj('boat',25);say('🔧 New impeller, greased bearings, a cleaned-out jet intake. She purrs.')}});
+    a.push({ic:'🔧',l:'Service the boats yourself — $165 in parts',s:'3 hours. Boat +20: oil and filter, plugs, water-pump impeller, jet intake, trailer bearings, oarlocks.',cat:'work',dis:S.boat>=95||!canAfford(165),fn:()=>{spend(165);pass(180);adj('boat',20);adj('energy',-6);say('🔧 Oil, filters, plugs, a new water-pump impeller, a cleaned-out jet intake and greased bearings. Grease to the elbows; she purrs.')}});
+    a.push({ic:'🏪',l:'Dealer 100-hour service — $525',s:'1 hour to drop off and pick up. Boat +40. Alaska shop rates.',cat:'work',dis:S.boat>=95||!canAfford(525),fn:()=>{spend(525);pass(60);adj('boat',40);say('🏪 The Soldotna dealer does the 100-hour service, shims the jet impeller and finds a cracked fuel line. Money well spent.')}});
     if(!S.calls[d]) a.push({ic:'📞',l:'Return calls & emails',s:'30 min. Once a day. Booking requests come in.',cat:'work',fn:()=>{pass(30);S.calls[d]=true;const r=makeRequest();if(r)requestModal(r);else say('📞 Voicemails: two spam, one dentist, no bookings.')}});
     a.push({ic:'📊',l:'Check the ADF&G sonar count',s:'5 min. How many sockeye passed river mile 19 yesterday.',cat:'work',fn:()=>{pass(5);sonarSay()}});
     a.push({ic:'⏰',l:`Alarm: ${fmt(S.alarm)}`,s:'Tap to cycle 4:00 → 4:30 → 5:00 → 5:30 → 6:00.',cat:'rest',fn:()=>{const o=[240,270,300,330,360];S.alarm=o[(o.indexOf(S.alarm)+1)%o.length];say(`⏰ Alarm set for ${fmt(S.alarm)}.`)}});
   }
   if(S.loc==='town'){
     const open=isOpen('town');
-    a.push({ic:'🪱',l:'Restock tackle — $90',s:`Beads, flies, single-hook lures, leader. Gear +4 trips (you have ${S.gear}).`,cat:'town',cls:S.gear<=1?'primary':'',dis:!open||!canAfford(90),fn:()=>{spend(90);S.gear+=4;pass(30);say('🪱 Pegged beads in six shades of “egg,” Russian River flies, single-hook spinners. No trebles: the emergency order says one unbaited, single-hook lure below Skilak.')}});
-    const faDay=[1,3].includes(d),cls=m>=780&&m<=800;
-    if(S.cred.fa<GAME.days) a.push({ic:'⛑️',l:'First aid & CPR class — $95',s:faDay?(m<780?`Today 1:00–4:00 PM at the clinic. Opens at 1:00.`:m<=800?'Starting now. 3 hours. Renews your card for two years.':'Today’s class already started.'):'Only Tuesday and Thursday, 1:00–4:00 PM.',cat:'town',cls:faDay&&cls&&S.cred.fa<=d+1?'primary':'',dis:!faDay||!cls||!canAfford(95)||S.cred.fa>=GAME.days,
-      fn:()=>{spend(95);pass(180);S.cred.fa=99;adj('energy',-6);say('⛑️ Three hours of chest compressions on a rubber torso named Rescue Randy. New card in your wallet: guiding legally requires a current one.')}});
+    a.push({ic:'🪱',l:'Restock tackle — $120',s:`Beads, flies, single-hook lures, leader. Gear +4 trips (you have ${S.gear}).`,cat:'town',cls:S.gear<=1?'primary':'',dis:!open||!canAfford(120),fn:()=>{spend(120);S.gear+=4;pass(30);say('🪱 Pegged beads in six shades of “egg,” Russian River flies, single-hook spinners. No trebles: the emergency order says one unbaited, single-hook lure below Skilak.')}});
+    const faDay=[1,3].includes(sday(d)),cls=m>=780&&m<=800;
+    if(faDue(d)) a.push({ic:'⛑️',l:'First aid & CPR class — $95',s:faDay?(m<780?`Today 1:00–4:00 PM at the clinic. Opens at 1:00.`:m<=800?'Starting now. 3 hours. Renews your card for two years.':'Today’s class already started.'):'Only Tuesday and Thursday, 1:00–4:00 PM.',cat:'town',cls:faDay&&cls&&S.cred.fa<=d+1?'primary':'',dis:!faDay||!cls||!canAfford(95),
+      fn:()=>{spend(95);pass(180);S.cred.fa=faRenewTo(d);adj('energy',-6);say('⛑️ Three hours of chest compressions on a rubber torso named Rescue Randy. New card in your wallet, good for two years: guiding legally requires a current one.')}});
     if(!S.diner[d]) a.push({ic:'🍳',l:'Eat at the diner — $22',s:'40 min. Energy +12. Guides trade gossip at the counter.',cat:'town',dis:!open||!canAfford(22),fn:()=>{spend(22);S.diner[d]=true;pass(40);adj('energy',12);say('🍳 Reindeer sausage, eggs and hash browns. '+pick(LORE))}});
-    if(!S.office[d]) a.push({ic:'🏛️',l:'Stop by the ADF&G office',s:'20 min. Read the emergency orders posted on the board.',cat:'town',dis:!open,fn:()=>{pass(20);S.office[d]=true;S.skill++;say(`🏛️ The EO board: ${S.eo.length?S.eo.map(e=>'<b>'+e+'</b>').join(' · '):'<b>Kenai kings closed (Jun 20–Aug 15); below Skilak, one unbaited, single-hook artificial lure only.</b>'} The tech at the counter says the sonar count is ${S.run[d-1]?S.run[d-1].toLocaleString():'climbing'}.`)}});
+    if(!S.office[d]) a.push({ic:'🏛️',l:'Stop by the ADF&G office',s:'20 min. Read the emergency orders posted on the board.',cat:'town',dis:!open,fn:()=>{pass(20);S.office[d]=true;S.skill++;say(`🏛️ The EO board: ${S.eo.length?S.eo.map(e=>'<b>'+e+'</b>').join(' · '):`<b>Kenai kings: ${kingRuleTxt()}</b>`} The tech at the counter says the sonar count is ${S.run[d-1]?S.run[d-1].toLocaleString():'climbing'}.`)}});
     if(!S.report[d]) a.push({ic:'📸',l:'Post a fishing report & photos',s:'30 min. Once a day. Rep +2 after a good trip.',cat:'town',fn:()=>{pass(30);S.report[d]=true;const good=S.book.some(b=>b.d===d&&b.status==='done'&&b.res&&b.res.happy>=60);if(good){adj('rep',2);say('📸 Grip-and-grin photos (all legal fish, all kept wet when they had to be). The likes roll in.')}else say('📸 You post a moody river photo. Three likes, one from your mom.')}});
   }
+  if(S.loc==='lower'||S.loc==='cooper'){const ba=boatAction();if(ba)a.push(ba)}
   if(S.loc==='lower'){
-    if(S.scout!==d) a.push({ic:'🔭',l:'Scout the river — $15 fuel',s:'1 hour. See where the reds are holding. Better trips today and tomorrow.',cat:'fish',dis:!canAfford(15),fn:()=>{spend(15);pass(60);S.scout=d;S.skill++;adj('energy',-4);say(`🔭 You run up past the Sterling Highway bridge and back. ${S.run[Math.max(0,d-1)]>90000?'Reds are stacked in the soft water along the inside bends.':'Pods of reds, but they’re moving through fast.'}`)}});
+    if(S.scout!==d) a.push({ic:'🔭',l:`Scout the river — ~${BURN.scout} gal`,s:`1 hour. See where the reds are holding. Better trips today and tomorrow. Tank: ${Math.round(S.fuel)} gal.`,cat:'fish',fn:()=>{if(burnSolo(BURN.scout)<1)return;pass(60);S.scout=d;S.skill++;adj('energy',-4);say(`🔭 You run up past the Sterling Highway bridge and back. ${S.run[Math.max(0,d-1)]>90000?'Reds are stacked in the soft water along the inside bends.':'Pods of reds, but they’re moving through fast.'}`)}});
     a.push({ic:'🐟',l:'Flip for reds yourself from the bank',s:'1 hour. You’re off the clock, so it’s legal. Freezer fish.',cat:'fish',dis:todays(d).length&&m<TRIPS.reds.start+TRIPS.reds.len,fn:()=>{pass(60);adj('energy',-5);const n=Math.min(S.limit,Math.max(0,Math.round(Math.random()*S.limit+.3)));S.freezer+=n;say(n?`🐟 Shoulder to shoulder at the walkway, you flip ${n} red${n>1?'s':''} into the net. Hooked in the mouth, every one.`:'🐟 An hour of “flipping” and nothing but a sore wrist. Combat fishing is humbling.')}});
   }
   if(S.loc==='cooper'){
@@ -153,22 +153,26 @@ function actionsHere(){
   }
   if(S.loc==='kbeach'){
     const ok=m>=360&&m<=1200;
-    if(!S.dipnet[d]) a.push({ic:'🥅',l:'Dipnet for your freezer',s:ok?'3 hours. Personal use: Alaska residents only. Household limit 25 reds.':'Dipnetting is open 6 AM–11 PM.',cat:'fish',dis:!ok||S.freezer>=25,fn:()=>dipnetModal()});
+    if(!S.dipnet[d]) a.push({ic:'🥅',l:'Dipnet for your freezer',s:ok?`3 hours. Alaska residents only. Household limit 25 (${S.pu} so far). Tide: ${tideNow()}.`:'Dipnetting is open 6 AM–11 PM.',cat:'fish',dis:!ok||S.pu>=25,fn:()=>dipnetModal()});
     a.push({ic:'🌊',l:'Watch the tide come in',s:'30 min. Energy +4.',cat:'rest',fn:()=>{pass(30);adj('energy',4);say('🌊 Cook Inlet has some of the biggest tides on Earth. The mud flats vanish while you watch. Don’t walk out on them: the silt grabs boots.')}});
   }
   if(S.loc==='homer'){
     a.push({ic:'🍟',l:'Fish & chips on the Spit — $20',s:'40 min. Energy +10.',cat:'rest',dis:!canAfford(20),fn:()=>{spend(20);pass(40);adj('energy',10);say('🍟 Halibut and chips at a picnic table, eagles on every light pole. Homer calls itself the Halibut Fishing Capital of the World.')}});
   }
+  harborActions(a);
   return a;
 }
 
 // ---- small extras on the Here tab ----
 function statusTags(){
   const t=[],d=day();
-  t.push(`<span class="tag">${WX[S.wx[d]||'sun'].ic} ${WX[S.wx[d]||'sun'].n}</span>`);
+  {const w=wxOf(d);t.push(`<span class="tag">${WX[S.wx[d]||'sun'].ic} ${WX[S.wx[d]||'sun'].n} ${w.temp}°F · 💨 ${w.wind} kt</span>`)}
+  if(['lower','kbeach','homer'].includes(S.loc)) t.push(`<span class="tag">🌊 ${tideNow()}</span>`);
+  if(S.loc==='lower'||S.loc==='cooper') t.push(`<span class="tag">🏞️ river ${waterTxt(wxOf(d))}</span>`);
   if(isSunMon(d)) t.push('<span class="tag bad">🚫 no guide-boat fishing below Skilak</span>');
-  if(isTueWed(d)) t.push('<span class="tag">⚓ no charter halibut retention</span>');
+  if(halClosed(d)) t.push('<span class="tag">⚓ no charter halibut retention</span>');
   t.push(`<span class="tag ${S.gear<1?'bad':''}">🪱 tackle ×${S.gear}</span>`);
+  t.push(`<span class="tag ${S.fuel<BURN.reds?'bad':''}">⛽ ${Math.round(S.fuel)}/${SLED_TANK()} gal</span>`);
   if(S.unlogged+S.overdue) t.push(`<span class="tag ${S.overdue?'bad':''}">📓 ${S.unlogged+S.overdue} to log</span>`);
   if(S.cred.fa<d) t.push('<span class="tag bad">⛑️ first-aid card expired</span>');
   if(S.energy<25) t.push('<span class="tag bad">🥱 running on fumes</span>');
@@ -180,6 +184,7 @@ function alertBar(){
   for(const b of todays(d)){const T=TRIPS[b.type];
     if(m>T.start&&m<=T.start+90&&S.loc!==T.loc) return {t:`⏰ The ${b.who} are waiting at ${L[T.loc].name} (launch was ${fmt(T.start)}).`};
     if(m>=T.start-120&&m<=T.start&&S.loc!==T.loc) return {t:`🛶 ${T.n} launches at ${fmt(T.start)} from ${L[T.loc].name}: ${travelMins(S.loc,T.loc)} min away.`,kind:'info'};}
+  {const low=todays(d).find(b=>tripFuel(b)&&tripFuel(b).tank==='fuel'&&S.fuel<tripFuel(b).gal+2);if(low&&m<TRIPS[low.type].start)return {t:`⛽ ${Math.round(S.fuel)} gallons in the sled; your ${TRIPS[low.type].n.toLowerCase()} burns ~${tripFuel(low).gal}. Fuel dock: Kenai Harbor.`}}
   if(S.cred.fa===d) return {t:'⛑️ Your first-aid card expires tonight. Guiding requires a current one.',kind:'info'};
   return null;
 }
@@ -187,22 +192,22 @@ function alertBar(){
 // ---- extra tabs ----
 const EXTRA_TABS=[
   {k:'book',ic:'📅',l:'Bookings',view:()=>{
-    let h=`<div class="sect">Your two weeks · Jul 13–26</div>`;
-    for(let d=0;d<GAME.days;d++){
-      const bs=S.book.filter(b=>b.d===d),rules=[isSunMon(d)?'🚫 guide boats off below Skilak':'',isTueWed(d)?'⚓ no charter halibut kept':''].filter(Boolean).join(' · ');
+    const s0=seasonFirst();let h=`<div class="sect">Season ${seasonOf(s0)+1} of ${S.years} · ${dlabel(s0)}–${dlabel(s0+SEASON-1)}, ${yearOf(s0)}</div>`;
+    for(let d=s0;d<s0+SEASON;d++){
+      const bs=S.book.filter(b=>b.d===d),rules=[isSunMon(d)?'🚫 guide boats off below Skilak':'',halClosed(d)?'⚓ no charter halibut kept':''].filter(Boolean).join(' · ');
       const lines=bs.map(b=>{const T=TRIPS[b.type],st={booked:d<day()?'—':'',done:'✅',noshow:'❌ no-show',cancelled:'🚫 cancelled'}[b.status]||'';
         return `${T.ic} <b>${fmt(T.start)}</b> ${T.n} · ${b.who}, ${b.n} ${st}${b.res?` · ${b.res.line}`:''}`}).join('<br>');
       h+=`<div class="todo"><span class="ck">${d<day()?'✔️':d===day()?'👉':'·'}</span><div><b>${dlong(d)}</b><span>${lines||'<i>Open day</i>'}${rules?`<br><span style="color:var(--warn)">${rules}</span>`:''}</span></div></div>`;
     }
-    return h+`<div class="rules">Trips: 🐟 sockeye ${$(TRIPS.reds.price)}/angler (6 AM, lower river) · 🎣 silvers ${$(TRIPS.silver.price)}/angler (1 PM, lower river) · 🌈 trout float ${$(TRIPS.trout.price)}/angler (7 AM, Cooper Landing, 3 max) · ⚓ halibut day rate ${$(TRIPS.halibut.gig)} (6 AM, Homer). New requests come in by phone: <b>📞 Return calls</b> at the shop.</div>`}},
+    return h+`<div class="rules">Trips: 💲 rates ×${S.up.rate.toFixed(1)} · 🐟 sockeye ${$(Math.round(TRIPS.reds.price*S.up.rate))}/angler (6 AM, lower river) · 🎣 silvers ${$(Math.round(TRIPS.silver.price*S.up.rate))}/angler (1 PM, lower river) · 🌈 trout float ${$(Math.round(TRIPS.trout.price*S.up.rate))}/angler (7 AM, Cooper Landing, 3 max) · ⚓ halibut ${S.up.chp?`${$(Math.round(350*S.up.rate))}/passenger on your own boat`:`day rate ${$(TRIPS.halibut.gig)}`} (6 AM, Homer). New requests come in by phone: <b>📞 Return calls</b> at the shop.</div>`}},
   {k:'regs',ic:'📖',l:'Regs',view:()=>regsView()},
 ];
 function regsView(){
-  const d=day(),fa=S.cred.fa>=GAME.days?'current (renewed)':S.cred.fa<d?'<b style="color:var(--bad)">EXPIRED</b>':`expires ${dlong(S.cred.fa)} at midnight`;
+  const d=day(),fa=S.cred.fa<d?'<b style="color:var(--bad)">EXPIRED</b>':faDue(d)?`expires ${dlong(S.cred.fa)} at midnight`:`good through ${dlongY(S.cred.fa)}`;
   const cred=[['🪪','ADF&G sport fishing guide license + business license','current'],['⚓','USCG OUPV (“six-pack”) captain’s license','current'],['🏞️','Alaska State Parks Kenai River guide permit (KRSMA) + 3-digit boat number','current'],['🏷️','ADF&G guide-vessel decal on both sides of the boat','current'],['⛑️','First aid & CPR card',fa],['📓','ADF&G freshwater guide logbook',S.overdue?`<b style="color:var(--bad)">${S.overdue} entr${S.overdue>1?'ies':'y'} overdue</b>`:S.unlogged?`${S.unlogged} to fill in tonight`:'up to date'],['🧪','Random drug-testing program','enrolled']];
   const R=[
-    ['👑 Kenai kings','Closed in 2026 by emergency order, including catch-and-release. A king hooked by accident gets released right away, without lifting it out of the water.'],
-    ['🪝 Gear below Skilak','Jun 20–Aug 15, 2026: one unbaited, single-hook, artificial lure. No bait, no treble hooks.'],
+    ['👑 Kenai kings',kingRuleTxt()],
+    ['🪝 Gear below Skilak',gearRuleTxt()],
     ['📆 Guide-boat days','May 1–Jul 31, downstream of the Skilak Lake outlet: no fishing from a guide vessel on Sundays or Mondays (Memorial Day excepted), and only 6 AM–6 PM on other days.'],
     ['👥 Boat limits','July, below Skilak: no more than 5 people in a guide boat while fishing, guide included. You may carry 5 clients + yourself only if they all fish from shore. KRSMA: 6 people max on any motorboat, 50 hp max.'],
     ['🙅 Guides don’t fish','A guide may not sport fish while clients are present. Rods in the water can’t outnumber clients aboard.'],
@@ -212,26 +217,21 @@ function regsView(){
     ['🎣 Coho','2 per day on the Kenai. Same single-hook, no-bait rule below Skilak through Aug 15.'],
     ['🌈 Upper river','Rainbow trout are catch-and-release: keep them wet. Russian River confluence: fly-fishing only Jun 11–Aug 20. Take carcasses out or stop, chop and throw them into fast water. Bears.'],
     ['🥅 Dipnetting','Kenai personal-use fishery, Jul 10–31, 6 AM–11 PM: Alaska residents only. Household limit 25 (+10 per extra member). Clip both tail tips and record each fish on your permit before you leave the beach.'],
-    ['⚓ Charter halibut (Area 3A, 2026)','2 per day: one any size, one 27 inches or less. No retention on charters Tuesdays and Wednesdays (Jun 2–Aug 25). One charter trip per day. Captain and crew don’t keep halibut on a charter.'],
+    [`⚓ Charter halibut (Area 3A, ${REG().year})`,`2 per day: one any size, one ${halSize()} inches or less. No charter retention on ${halDaysTxt()} through late August. One charter trip per day. Captain and crew don’t keep halibut on a charter.`],
     ['🍺 Boating','Operating a boat under the influence (BUI) is a crime. You’re the captain all day.'],
   ];
   return `<div class="sect">Credentials</div>${cred.map(([i,n,s])=>`<div class="todo"><span class="ck">${i}</span><div><b>${n}</b><span>${s}</span></div></div>`).join('')}
-  <div class="sect">River conditions</div><div class="rules">📊 Kenai sockeye sonar (river mile 19): ${S.run[d-1]?`<b>${S.run[d-1].toLocaleString()}</b> yesterday · `:''}<b>${S.cum.toLocaleString()}</b> this season.<br>${S.eo.length?'📣 '+S.eo.join('<br>📣 '):'📣 No new emergency orders this week.'}</div>
-  <div class="sect">The rules you guide by</div>${R.map(([n,s])=>`<div class="todo"><span class="ck">•</span><div><b>${n}</b><span>${s}</span></div></div>`).join('')}
-  <div class="rules" style="font-size:12px">A simplified summary of 2026 rules from ADF&G, Alaska State Parks and NOAA, for a game. Real regulations change by emergency order, sometimes overnight. Before you fish, check the current regulations and emergency orders at adfg.alaska.gov.</div>`;
+  <div class="sect">River conditions</div><div class="rules">📊 Kenai sockeye sonar (river mile 19): ${S.run[d-1]?`<b>${S.run[d-1].toLocaleString()}</b> yesterday · `:''}<b>${S.cum.toLocaleString()}</b> this season.<br>${S.eo.length?'📣 '+S.eo.join('<br>📣 '):'📣 No new emergency orders this week.'}<br>🐟 Run timing, weather, tides and odds: see the <b>Fish</b> tab.</div>
+  <div class="sect">The rules you guide by · ${REG().year}</div><div class="rules" style="margin:0 0 6px">📣 ${REG().fc}</div>${R.map(([n,s])=>`<div class="todo"><span class="ck">•</span><div><b>${n}</b><span>${s}</span></div></div>`).join('')}
+  <div class="rules" style="font-size:12px">Season 1 follows a simplified summary of the real 2026 rules from ADF&G, Alaska State Parks and NOAA; later seasons invent plausible changes (king status, forecasts, halibut rules). For a game. Real regulations change by emergency order, sometimes overnight. Before you fish, check the current regulations and emergency orders at adfg.alaska.gov.</div>`;
 }
 
 // ---- weather & the run ----
 const WX={sun:{n:'Bluebird day',ic:'☀️',q:.03},cloud:{n:'Overcast',ic:'☁️',q:.04},rain:{n:'Steady rain',ic:'🌧️',q:-.02},wind:{n:'Windy',ic:'💨',q:-.04}};
 function rollDay(d){
   S.wx[d]=pick(['sun','sun','cloud','cloud','rain','wind']);
-  // late-run Kenai sockeye: builds through mid-July, peaks around Jul 21–23
-  const base=50000+150000*Math.exp(-Math.pow((d-9)/4.2,2)),n=Math.round(base*(.7+Math.random()*.6)/10)*10+Math.floor(Math.random()*10);
+  rollWeather(d);                                        // temperature, wind, rain, river level (23-fish.js)
+  const n=rollRun(d);                                    // run-timing model → today's sockeye past the sonar
   S.run[d]=n;S.cum+=n;
-}
-function runFactor(type,d=day()){
-  if(type==='reds') return clamp(((S.run[Math.max(0,d-1)]||80000)-90000)/400000,-.12,.15);
-  if(type==='silver') return clamp((d-9)*.03,-.1,.1);
-  return 0;
 }
 function sonarSay(){const d=day(),y=S.run[d-1];say(y?`📊 Kenai sonar: <b>${y.toLocaleString()}</b> sockeye passed river mile 19 yesterday; <b>${S.cum.toLocaleString()}</b> for the season. ${y>150000?'The river is paved with reds.':y>90000?'Solid push of fish.':'Slow. The commercial setnetters may be catching them first.'}`:`📊 Season count so far: <b>${S.cum.toLocaleString()}</b> sockeye past the sonar.`)}

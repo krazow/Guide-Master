@@ -24,7 +24,7 @@ const GAME={
   title:'Guide Master',
   tagline:'Two weeks guiding the Kenai',
   codePrefix:'GUIDEMASTER',   // transfer codes start with this, e.g. POCKETWEEK:eyJ…
-  version:'1.0.0',           // bump on every release: shown in Settings, stamped into saves and sw.js
+  version:'1.3.0',           // bump on every release: shown in Settings, stamped into saves and sw.js
   schema:1,                  // bump when the shape of S changes, and add a MIGRATIONS entry (21-story.js)
   days:14,                   // length of a run, in days (Mon Jul 13 – Sun Jul 26, 2026)
   wake:270,                  // default alarm, in minutes after midnight (270 = 4:30 AM: guides start early)
@@ -33,6 +33,8 @@ const GAME={
   defaultName:'Skipper',      // used until the player picks a name
   slots:3,                   // save slots
 };
+// Guide Master: a run is 2, 5 or 10 seasons of 14 days (24-career.js), so days is computed from the save.
+Object.defineProperty(GAME,'days',{get(){return 14*((typeof S!=='undefined'&&S&&S.years)||2)},configurable:true});
 const APP_VERSION=GAME.version, SAVE_SCHEMA=GAME.schema;
 const KEY=k=>GAME.id+'.'+k;  // every localStorage key goes through this
 const DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];

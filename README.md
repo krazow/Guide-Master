@@ -29,6 +29,42 @@ Every trip throws decisions at you, and the first option is always the legal one
 
 **Sources:** ADF&G 2026 Southcentral sport fishing regulations (Kenai River, Kenai Peninsula and guiding sections); ADF&G Emergency Order 2-KS-1-7-26 (Kenai late-run kings closed, gear restrictions); 11 AAC 20 (Kenai River Special Management Area); NOAA Fisheries / IPHC 2026 Area 3A charter halibut management measures; Alaska State Parks Kenai River guide permit requirements.
 
+## Careers: 2, 5 or 10 years
+
+When you start a new game you pick a **2-, 5- or 10-year career** (`src/js/24-career.js`). Each season you play the two-week July peak, Monday to Sunday, starting on the Monday nearest July 13 (2026: Jul 13; 2027: Jul 12; 2028: Jul 10…). Between seasons comes the **off-season**:
+
+- **Recap and bills:** the year's trips and earnings, then winter living costs, license and permit renewals (ADF&G guide and business licenses, KRSMA permit, decals) and insurance.
+- **Next year's rules and runs:** season 1 is the real 2026 (kings closed, single-hook/no-bait, Area 3A halibut 27-inch second fish, no retention Tue/Wed). Later seasons are invented but plausible. The sockeye and coho forecasts vary in size and timing, and kings may be closed, catch-and-release only or open (1 a day, harvest record). Bait is allowed when kings are open. The halibut size limit and closed days shift too. Weak sockeye years can bring an emergency order cutting the limit to 2; strong years raise it to 6. Pinks run only in even years.
+- **Upgrades:** rebuild the outboard (still 50 hp), a new jet sled, a new drift boat, marketing, a winter course, rate increases (need Rep 65+), or a Charter Halibut Permit so you run your own Homer charters.
+- **Bookings:** next season's bookings depend on your reputation, marketing and rates.
+- **Your record:** a first-aid/CPR card lasts two years. Citations drop off after the following season; three active citations still cost you the permit.
+
+The score covers the whole career (net cash, half the value of what you bought, rep, trips, a clean record), and the grade is per season, so careers of any length compare.
+
+## Fuel, towing and prices
+
+`src/js/25-fuel.js`:
+
+- **Fuel gauge** (HUD): the jet sled has a 30-gallon tank (40 with the new sled) and starts season 1 at 18 gallons. A sockeye trip burns about 9 gallons, a silver trip about 11 and scouting about 4. Long runs (Swiftwater, Moose Range Meadows, the Barren Islands) and wind over 12 kt burn more. Drift-boat floats burn nothing.
+- **Harbor-only fueling:** the sled fills only at the **Kenai Harbor** fuel dock (Kenai City Dock at the river mouth, 6 AM–10 PM). Your own Homer charter boat (100 gal, ~45 a day) fills at the Homer Harbor fuel dock. A low tank at launch gives you two choices: send the clients for coffee and run to the harbor (about 65 minutes; they notice), or risk it.
+- **Running dry:** the Coast Guard tows you to Kenai Harbor and the harbormaster brings you to the fuel dock for $102 (Homer's harbor tariff rate). The trip is cut short with half the fare refunded, you lose rep, and the boarding may turn up an expired flare kit. Solo outings and scouting can run dry too.
+- **Prices (approximate, 2026):** marine gas starts at $6.19/gal at Kenai and $6.45 at Homer (pump gas on the Peninsula was about $5.14–5.55) and drifts each season. DIY boat service is $165 in parts; a dealer 100-hour service is $525. Tackle is $120 for four trips; a broken rod and reel costs $165. The motorized launch fee is $15.
+- **Upgrades** at realistic prices: repower with a new 50 hp jet outboard $13,500; new 20-ft welded sled, motor and trailer $52,000; drift boat and trailer $12,500; Charter Halibut Permit plus a used 28-ft six-pack boat $165,000.
+- **The rest of the summer:** you play the July peak, and the off-season settles June, August and September. That's about 2.4× your July trip count, scaled by reputation, at your July fares minus fuel, launches and tackle, so realistic boat prices are reachable over a career.
+
+## Fish, weather and timing
+
+`src/js/23-fish.js` models when and where fish are, and drives trip quality, the daily sonar count, dipnetting and solo boat days:
+
+- **Run timing by date** for late-run sockeye (peak at the river-mile-19 sonar around Jul 20–25, reaching the upper river about two weeks later), coho (first fish late July, peak mid-August), pinks (even years only, so 2026 has them), late-run kings (closed), resident rainbows and Dolly Varden, and summer halibut. Daily run pulses vary around the curve.
+- **Weather** every morning: temperature, wind, rain and the Kenai's glacial river level (rain and warm-day melt raise it). Rising, dirty water scatters reds; overcast helps trout; wind over 18 kt sours Cook Inlet halibut trips and raises the odds of Skilak and Barren Islands blowups.
+- **Tides** at the mouth (semi-diurnal with a spring/neap cycle): reds ride the flood tide into the dipnetters; halibut bite at slack water.
+- **Time of day**: first light and long July evenings beat midday sun and crowds.
+- **🚤 Take the boat out** at the lower launch or Cooper Landing. It checks your bookings first: the boat can't go while a party is on the dock, and solo runs are capped so you're back an hour before your next launch (plus drive time). Without clients your sled is still a *registered guide vessel*, so the Sun/Mon closure and the 6 AM–6 PM hours below Skilak still apply. Pick a species with live odds, fish 2–6 hours, fill the freezer within bag limits, release any king, and get a scouting bonus for your next trip.
+- **🐟 Fish tab**: today's weather, river level, tide table, odds by place and species, and a run-timing chart with your two weeks and today marked.
+
+This is a simplified model of typical run timing, not a forecast.
+
 ## Play
 
 Open `index.html`, or deploy the folder to any static https host (GitHub Pages works: `.nojekyll` is included) and install it from the browser. `offline/guidemaster-offline.html` (from `python3 tools/build-offline.py`) runs by double-clicking.
