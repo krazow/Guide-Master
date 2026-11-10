@@ -38,10 +38,12 @@ function fireHook(hook,ctx={}){
     const nBefore=uiNarr.length,mBefore=MQ.length+(document.getElementById('mbg')?1:0);
     EV_RUNNING=e.id;let r;try{r=e.run(ctx)||{}}finally{EV_RUNNING=null}
     // events that didn't open their own modal get collected into one OK pop-up per hook call
-    if(MQ.length+(document.getElementById('mbg')?1:0)===mBefore) popItems.push({e,lines:uiNarr.slice(nBefore)});
+    const ownModal=MQ.length+(document.getElementById('mbg')?1:0)!==mBefore;
+    if(!ownModal) popItems.push({e,lines:uiNarr.slice(nBefore)});
     const [ic,title,kind]=e.tile||['📍',e.id.replace(/_/g,' '),'info'];
+    const dup=ownModal||hook==='night'||popupsOn();   // the event's own modal, the night summary or the OK pop-up already tells the player
     const cause=S.ev.cause&&S.ev.cause[e.id],ce=cause&&EV.find(x=>x.id===cause);
-    showTile(ic,title,ce?`Because of: ${ce.tile?ce.tile[1]:cause}`:(ctx.sub||HOOK_SUB[hook]||''),kind,hook==='night'?`${dayName(day()).slice(0,3)} night`:null);
+    if(!dup)showTile(ic,title,ce?`Because of: ${ce.tile?ce.tile[1]:cause}`:(ctx.sub||HOOK_SUB[hook]||''),kind,hook==='night'?`${dayName(day()).slice(0,3)} night`:null);
     if(S.ev.cause)delete S.ev.cause[e.id];
     if(ctx.notes) ctx.notes.push(...uiNarr.slice(nBefore));
     if(r.stop){res=r;break}

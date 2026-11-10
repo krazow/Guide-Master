@@ -24,17 +24,32 @@ const LORE=[
 
 // ---- booking-request parties ----
 const PARTIES=[
+  // visitors from the Lower 48 and abroad
   {who:'Kowalskis',from:'Wisconsin'},{who:'Oregon firefighters',from:'Oregon'},{who:'retired dentist and his grandson',from:'Iowa'},
   {who:'family of Vermont teachers',from:'Vermont'},{who:'college buddies',from:'Colorado'},{who:'Chicago law-firm outing',from:'Chicago'},
   {who:'anniversary couple',from:'Tennessee'},{who:'Navy vet and his brothers',from:'Virginia'},{who:'Austin startup team',from:'Austin'},
-  {who:'Nguyens',from:'Anchorage',res:true},{who:'pipeline crew on rotation',from:'Kenai',res:true},{who:'cousins from Germany',from:'Bavaria'},
-  {who:'Montana fly-shop crew',from:'Montana'},{who:'mother-and-daughter team',from:'Arizona'},{who:'Juneau bartenders',from:'Juneau',res:true},
+  {who:'cousins from Germany',from:'Bavaria'},{who:'Montana fly-shop crew',from:'Montana'},{who:'mother-and-daughter team',from:'Arizona'},
+  {who:'Patel family reunion',from:'New Jersey'},{who:'grandmother and her three grandkids',from:'Minnesota'},{who:'three retired nurses',from:'Ohio'},
+  {who:'father and daughter on her graduation trip',from:'Georgia'},{who:'Tokyo fly-fishing club',from:'Japan'},{who:'two brothers who haven’t fished together in 20 years',from:'Maine'},
+  {who:'veterans’ adaptive fishing group',from:'Washington'},{who:'newlyweds',from:'Ontario'},{who:'Boston paramedics',from:'Boston'},
+  {who:'high-school fishing team and their coaches',from:'Idaho'},{who:'book club that picked Alaska',from:'Pennsylvania'},{who:'three generations of the Okafor family',from:'Maryland'},
+  {who:'Lopez family',from:'New Mexico'},{who:'trucking company crew',from:'Indiana'},{who:'two dairy-farm couples',from:'Pennsylvania'},
+  {who:'Swiss river guides on holiday',from:'Switzerland'},{who:'mother and son on his dad’s bucket-list trip',from:'Michigan'},{who:'Marine Corps reunion',from:'North Carolina'},
+  {who:'teachers on summer break',from:'Utah'},{who:'Chen and Rivera families',from:'California'},{who:'Australian friends on a gap year',from:'Queensland'},
+  {who:'retired Texas oilfield hands',from:'Texas'},{who:'hospital night-shift crew',from:'Seattle'},{who:'Scout troop leaders',from:'Nebraska'},
+  {who:'rural mail carriers on a group trip',from:'Missouri'},{who:'sisters on their annual trip',from:'Oklahoma'},{who:'astronomy club',from:'Arizona'},
+  // Alaska residents
+  {who:'Nguyens',from:'Anchorage',res:true},{who:'pipeline crew on rotation',from:'Kenai',res:true},{who:'Juneau bartenders',from:'Juneau',res:true},
+  {who:'Coast Guard families',from:'Kodiak',res:true},{who:'Sitka school staff',from:'Sitka',res:true},{who:'Palmer farm family',from:'Palmer',res:true},
+  {who:'Soldotna high-school coaches',from:'Soldotna',res:true},{who:'Eagle River neighbors',from:'Eagle River',res:true},{who:'Seward harbor crew',from:'Seward',res:true},
+  {who:'university lab team',from:'Fairbanks',res:true},{who:'Homer artists’ co-op',from:'Homer',res:true},{who:'Ketchikan cannery crew',from:'Ketchikan',res:true},
+  {who:'Bethel clinic nurses',from:'Bethel',res:true},{who:'Anchorage rec-league hockey team',from:'Anchorage',res:true},{who:'hunter-ed instructors',from:'Wasilla',res:true},
 ];
 
 // ---- title screen ----
 const TITLE={
   start:'Start your guiding career 🛶',
-  intro:'You’re a licensed Kenai River guide working out of Soldotna, Alaska. Every July is the peak of the late sockeye run: two weeks of 4 AM alarms, full boats, bears, troopers and a rulebook thicker than your waders. Choose a 2-, 5- or 10-year career.',
+  intro:'You’re a licensed Kenai River guide working out of Soldotna, Alaska. Every July is the peak of the late sockeye run: two weeks of 5 AM alarms, full boats, bears, troopers and a rulebook thicker than your waders. Choose a 2-, 5- or 10-year career.',
   bullets:['Each season: two weeks of July guiding. Between seasons: bills, upgrades, new rules and new bookings.','Show up for every booked trip: sockeye, silvers, trout floats and a Homer halibut charter.','Know the regs. Kenai kings are closed in 2026 (later years may differ), and guide boats don’t fish below Skilak on Sundays or Mondays.','Keep your logbook, your first-aid card and your record clean. Three citations and your permit is gone.','Keep clients happy, the boat running and yourself awake.'],
   note:'Regulations simplified from 2026 ADF&G, State Parks and NOAA rules. Always check the current regs.',
   art:()=>`<svg viewBox="0 0 480 250" preserveAspectRatio="xMidYMid slice" style="width:100%;height:100%" aria-hidden="true"><defs><linearGradient id="ts" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fb9cf"/><stop offset="1" stop-color="#f0dcc0"/></linearGradient></defs><rect width="480" height="250" fill="url(#ts)"/>
@@ -55,7 +70,7 @@ function onNewGame(){
     [10,'silver',4,'fishing YouTuber and his crew','Florida',0,['photo','kingfan']],[11,'reds',4,'California doctors','California',0,['nolicense']],
     [11,'silver',2,'honeymooners','Georgia',0,[]],[12,'reds',4,'Fairbanks family','Fairbanks',1,['kid']],
     [13,'trout',2,'Guide Academy classmates','Kenai',1,[]]];
-  seed.forEach(([d,type,n,who,from,res,quirk])=>addBooking({d,type,n,who,from,res:!!res,quirk}));
+  seed.forEach(([d,type,n,who,from,res,quirk])=>{const b=addBooking({d,type,n,who,from,res:!!res,quirk});if(who==='Garza family')b.arc='garza'});
   say(`${dlong(0)}, ${fmt(S.t)}. ${WX[S.wx[0]].ic} ${WX[S.wx[0]].n}. Monday: guide boats can’t fish the Kenai below Skilak Lake today, so it’s a shop day. Your first trip is tomorrow at ${fmt(TRIPS.reds.start)}.`);
   modal('🛶 Welcome to the Kenai',`<p>You’re a licensed sport fishing guide out of <b>Soldotna</b>, with a jet sled, a drift boat and <b>${S.book.length} trips</b> booked over the next two weeks: the peak of the late sockeye run.</p>
     <p>📆 This is season 1 of a <b>${S.years}-year career</b>. Each July you guide two weeks; each winter you pay the bills, plan upgrades and see what the new season’s rules and runs look like.</p>
@@ -96,7 +111,8 @@ function onNight(where,notes,d){
   if(S.trip){S.trip=null;notes.push('🛶 You never finished the trip. The party drove off without paying.')}
   if(where==='collapsed'){S.loc='shop';notes.push('😵 You were up past midnight and fell asleep in the truck at the shop.')}
   money(-overhead());S.stats.spent+=overhead();notes.push(`💸 Boat payment, insurance and groceries: ${$(overhead())}.`);
-  S.book.filter(b=>b.d===d&&b.status==='booked').forEach(b=>{b.status='noshow';adj('rep',-15);S.stats.noshow++;
+  S.book.filter(b=>b.d===d&&b.status==='booked'&&b.asst).forEach(b=>asstSettle(b,notes));
+  S.book.filter(b=>b.d===d&&b.status==='booked'&&!b.asst).forEach(b=>{b.status='noshow';adj('rep',-15);S.stats.noshow++;
     notes.push(`😠 You never showed for the ${b.who}. They posted a one-star review from the parking lot.`)});
   if(S.unlogged){S.overdue+=S.unlogged;notes.push(`📓 ${S.unlogged} logbook entr${S.unlogged>1?'ies are':'y is'} now overdue. Write ${S.unlogged>1?'them':'it'} up before a trooper asks.`);S.unlogged=0}
   adj('energy',(where==='home'?60:30)/(where==='collapsed'?2:1));
@@ -132,8 +148,9 @@ function makeRequest(){
     if(illegalDay(type,d)) ({d,type}=roll());             // re-roll an illegal date once; the second pick stands, so some illegal requests still teach the lesson
     const p=pick(PARTIES),kind=Math.random()<.22&&type==='reds'?'king':'trip';
     const nr={reds:[2,6],silver:[2,5],trout:[2,4],halibut:[4,6]}[type],n=nr[0]+Math.floor(Math.random()*(nr[1]-nr[0]+1));
-    if(conflicts(d,type)) continue;
-    return {kind,d,type,n,who:p.who,from:p.from,res:!!p.res,quirk:Math.random()<.25?[pick(['drinker','nolicense','photo','kid'])]:[]};
+    let asst=false;
+    if(conflicts(d,type)){if(S.up.asst&&type!=='halibut'&&!conflicts(d,type,true))asst=true;else continue}
+    return {kind,asst,d,type,n,who:p.who,from:p.from,res:!!p.res,quirk:Math.random()<.25?[pick(['drinker','nolicense','photo','kid'])]:[]};
   }
   return null;
 }
@@ -149,7 +166,7 @@ function requestWarn(r){
 // nearest later day in the same season that is legal and free (null if none). Only date problems are fixed by moving the date.
 function nextLegalDay(r){
   const end=seasonFirst(seasonOf(r.d))+SEASON;
-  for(let d=r.d+1;d<end;d++) if(!illegalDay(r.type,d)&&!conflicts(d,r.type)) return d;
+  for(let d=r.d+1;d<end;d++) if(!illegalDay(r.type,d)&&!conflicts(d,r.type,!!r.asst)) return d;
   return null;
 }
 function requestModal(r){
@@ -160,8 +177,8 @@ function requestModal(r){
       {l:`Take them as your “guests” — ${$(150*r.n)}`,s:'Cash up front.',fn:()=>{money(150*r.n);S.stats.earned+=150*r.n;say('🥅 You pocket the cash and hand nonresidents dipnets on the beach.');violate(null,{p:.35,fine:500,what:'helping nonresidents in the personal-use fishery'})}}]);
     return;
   }
-  const T=TRIPS[r.type],price=T.gig?`day rate ${$(T.gig)}`:`${$(T.price)} × ${r.n} = ${$(T.price*r.n)}`;
-  const book=(n,q,d)=>{const b=addBooking({d:d??r.d,type:r.type,n,who:r.who,from:r.from,res:r.res,quirk:q||r.quirk});sfx('good');say(`📅 Booked: ${T.ic} ${T.n}, ${dlong(b.d)} at ${fmt(T.start)}, the ${b.who} (${b.n}).`)};
+  const T=TRIPS[r.type],asstNote=r.asst?`<p style="font-size:13px;color:var(--mute)">🧑‍🤝‍🧑 You’re booked then, so your assistant guide would take this party: you keep ${Math.round((1-ASST_CUT)*100)}% of the fare and tips.</p>`:'',price=T.gig?`day rate ${$(T.gig)}`:`${$(T.price)} × ${r.n} = ${$(T.price*r.n)}`;
+  const book=(n,q,d)=>{const b=addBooking({d:d??r.d,type:r.type,n,who:r.who,from:r.from,res:r.res,quirk:q||r.quirk,asst:r.asst||undefined});sfx('good');say(`📅 Booked: ${T.ic} ${T.n}, ${dlong(b.d)} at ${fmt(T.start)}, the ${b.who} (${b.n})${b.asst?', with your assistant guide':''}.`)};
   if(r.kind==='king'){
     modal('📞 Booking request',`<p>${who}, ${r.n} anglers, ${dlong(r.d)}: “We want a <b>Kenai king</b>. A big one. Like the world record.”</p>${requestWarn(r)}`,[
       ...(kingRule()==='open'?[{l:'Book it: kings are open this year',s:`1 per day, 20 in. or longer. ${$(payOf({type:'reds',n:r.n}))}.`,fn:()=>book(r.n,['kingfan'])}]:[
@@ -176,7 +193,7 @@ function requestModal(r){
   else o.push({l:`${bad?'Book it anyway':'Book it'} — ${$(payOf({type:r.type,n:r.n}))}`,s:bad?'You’ll face the rules on the water.':'',fn:()=>book(r.n)});
   if(bad&&alt!=null) o.splice(0,0,{l:`Offer ${dlong(alt)} instead`,s:`Same party, ${fmt(T.start)}. ${$(payOf({type:r.type,n:bn}))}.`,fn:()=>book(bn,null,alt)});
   o.push({l:'Decline politely',fn:()=>say('📞 You pass on that one.')});
-  modal('📞 Booking request',`<p>${who} would like a <b>${T.ic} ${T.n}</b> on <b>${dlong(r.d)}</b> at ${fmt(T.start)} for <b>${r.n}</b>.</p>${warn}<p style="font-size:13px;color:var(--mute)">${T.long} ${price}.</p>`,o);
+  modal('📞 Booking request',`<p>${who} would like a <b>${T.ic} ${T.n}</b> on <b>${dlong(r.d)}</b> at ${fmt(T.start)} for <b>${r.n}</b>.</p>${warn}<p style="font-size:13px;color:var(--mute)">${T.long} ${price}.</p>${asstNote}`,o);
 }
 
 // ---- dipnetting (you're an Alaska resident) ----
@@ -226,7 +243,7 @@ defEvent({id:'good_review',hook:'night',tile:['⭐','Five-star review','good'],c
 const TIPS=[
   {id:'welcome',when:()=>day()===0&&S.loc==='shop',t:'👋 Welcome, {{name}}! Monday is a shop day. Rig tomorrow’s gear, return calls, and check the <b>📅 Bookings</b> tab.'},
   {id:'firstaid',when:()=>faUrgent(),t:'⛑️ Your first-aid card expires <b>this week</b>. The class is in <b>Soldotna</b>, Mon, Tue & Thu 1–4 PM (join by 1:30). Guiding without a current card can get you cited.'},
-  {id:'fuel',when:()=>S.fuel<BURN.reds+2,t:'⛽ The sled is low. The only fuel is the <b>Kenai Harbor</b> fuel dock at the river mouth, 6 AM–10 PM. A sockeye trip burns about 9 gallons.'},
+  {id:'fuel',when:()=>S.fuel<bn('reds')+2,t:'⛽ The sled is low. The only fuel is the <b>Kenai Harbor</b> fuel dock at the river mouth, 6 AM–10 PM. A sockeye trip burns about 9 gallons.'},
   {id:'launch',when:()=>todays().some(b=>TRIPS[b.type].loc!==S.loc),t:'🛶 Trips launch from a set spot. Use <b>🧭 Go somewhere</b> and be there before the launch time.'},
   {id:'logbook',when:()=>S.unlogged>0,t:'📓 Every guided trip needs an ADF&G logbook entry. Fill it out at the shop <b>before bed</b>.'},
   {id:'gear',when:()=>S.gear<=1,t:'🪱 You’re low on tackle. Restock in <b>Soldotna</b>, or the next trip suffers.'},
@@ -238,7 +255,7 @@ const TIPS=[
 // ---- To-do tab ----
 function todoItems(){
   const d=day(),m=tod(),it=[];
-  S.book.filter(b=>b.d===d).forEach(b=>{const T=TRIPS[b.type];
+  S.book.filter(b=>b.d===d&&!b.asst).forEach(b=>{const T=TRIPS[b.type];
     it.push({l:`${T.ic} ${T.n}: ${b.who}`,s:`${fmt(T.start)}, ${L[T.loc].name}`,ok:b.status==='done',fail:b.status==='noshow'||b.status==='cancelled',urgent:b.status==='booked'&&m>=T.start-120})});
   if(faDue(d)) it.push({l:'Renew your first-aid card',s:'Soldotna clinic, Mon, Tue & Thu 1–4 PM (join by 1:30), $95.',ok:false,urgent:faUrgent(d)||S.cred.fa<d});
   it.push({l:'Keep your logbook current',s:S.unlogged+S.overdue?`${S.unlogged+S.overdue} trip${S.unlogged+S.overdue>1?'s':''} to write up.`:'All caught up.',ok:!(S.unlogged+S.overdue),urgent:S.overdue>0});
@@ -264,6 +281,10 @@ const ACH=[
   {id:'own_six_pack',ic:'⚓',n:'Your Own Six-Pack',d:'Buy a Charter Halibut Permit and run your own Homer charters.',test:()=>!!(S.up&&S.up.chp)},
   {id:'legal_king',ic:'👑',n:'A Legal King',d:'Put a client on a legal Kenai king in a year kings are open.',test:()=>(S.stats.legalKings||0)>0},
   {id:'bear_aware',ic:'🐻',n:'Bear Aware',d:'Give a brown bear the gravel bar.',test:()=>S.stats.bear>0},
+  {id:'regulars',ic:'⭐',n:'Regulars',d:'Have a party book you for a second July.',test:()=>S.stats.trips>0&&S.book.some(b=>b.reg&&b.status==='done')},
+  {id:'family_tradition',ic:'👨‍👩‍👦',n:'Family Tradition',d:'Guide the Garza family through four Julys.',test:()=>S.arcs&&S.arcs.garza.st>=4},
+  {id:'good_neighbor',ic:'🛟',n:'Good Neighbor',d:'Tow your rival guide in when his sled quits.',test:()=>S.arcs&&!!S.arcs.rival.ally},
+  {id:'seat_table',ic:'🏛️',n:'A Seat at the Table',d:'Serve on the local fish and game advisory committee and see it through to the Board of Fisheries.',test:()=>S.arcs&&S.arcs.board.st>=3},
   {id:'happy_camper',ic:'🏕️',n:'Happy Camper',d:'Camp 7 nights in total during winters.',test:()=>(S.stats.campNights||0)>=7},
   {id:'wild_kenai',ic:'🦌',n:'Wild Kenai',d:'See 5 different wildlife encounters while camping.',test:()=>Object.keys(S.stats.seen||{}).length>=5},
 ];

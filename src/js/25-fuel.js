@@ -14,13 +14,16 @@ const CHARTER_TANK=100;
 const LAUNCH_FEE=15;                                // Soldotna city launch, per motorized launch
 const HARBOR_TOW=102;                               // harbor assist to the fuel dock (Homer tariff: $102 / hour)
 const BURN={reds:9,silver:11,scout:4,soloHour:3,charter:45};   // gallons, typical
+// A new 50 hp jet outboard (the repower upgrade) burns about 20% less than the tired old one. The charter boat is another boat.
+const fuelMult=()=>S.up&&S.up.motor?.8:1;
+const bn=k=>Math.round(BURN[k]*(k==='charter'?1:fuelMult())*10)/10;
 L.harbor={name:'Kenai Harbor',ic:'⛽',desc:'Kenai City Dock at the river mouth: fuel dock, boat ramp and harbormaster',hours:()=>[360,1320],
   art:({night})=>`<rect y="96" width="480" height="44" fill="${night?'#1f3b48':'#5f9fb1'}"/><polygon points="320,96 380,66 420,78 480,70 480,96" fill="${K.mtn(night)}"/><rect x="40" y="104" width="230" height="10" fill="#7a5a3a"/>${[50,90,130,170,210,250].map(x=>`<rect x="${x}" y="114" width="4" height="26" fill="#5a4028"/>`).join('')}<rect x="120" y="76" width="22" height="28" rx="3" fill="#c0392b"/><rect x="124" y="81" width="14" height="8" fill="#f4f7f8"/><path d="M142 90 q12 2 10 14" stroke="#222" stroke-width="2" fill="none"/>${sled(160,134)}<path d="M300 132 h90 l12 -14 h-110 z" fill="#f2f2f2"/><rect x="330" y="104" width="34" height="14" fill="#3d4a50"/>${gull(420,40)}${gull(445,30)}`};
 Object.assign(TRAVEL,{'harbor|shop':25,'harbor|town':22,'harbor|lower':25,'harbor|kbeach':5,'harbor|cooper':82,'harbor|homer':92});
-STATS.splice(4,0,{l:'Fuel',v:()=>`${Math.round(S.fuel)}g`,m:()=>S.fuel/SLED_TANK()*100,warn:()=>S.fuel<BURN.reds,title:'Gallons in the jet sled. Fill up only at the Kenai Harbor fuel dock.'});
+STATS.splice(4,0,{l:'Fuel',v:()=>`${Math.round(S.fuel)}g`,m:()=>S.fuel/SLED_TANK()*100,warn:()=>S.fuel<bn('reds'),title:'Gallons in the jet sled. Fill up only at the Kenai Harbor fuel dock.'});
 
 // ---- prices ----
-function fuelPrice(where,d=day()){const b=(S.fuelBase||{kenai:6.19,homer:6.45})[where];const wob=Math.sin(d*1.7)*.05;return Math.round((b+wob)*DF().cost*100)/100}
+function fuelPrice(where,d=day()){const b=where==='dock'?(S.fuelBase||{kenai:6.19}).kenai-.85:(S.fuelBase||{kenai:6.19,homer:6.45})[where];const wob=Math.sin(d*1.7)*.05;return Math.round((b+wob)*DF().cost*100)/100}
 function fillUp(tank,where){
   const cap=tank==='fuel'?SLED_TANK():CHARTER_TANK,p=fuelPrice(where),want=Math.max(0,cap-S[tank]);
   const gal=Math.max(0,Math.min(want,Math.floor(S.money/p*10)/10)),cost=Math.round(gal*p*100)/100;
@@ -48,17 +51,17 @@ function burnSolo(gal,notes){
 }
 // What a booked trip will burn, and from which tank (null = no fuel needed)
 function tripFuel(b){
-  if(b.type==='reds'||b.type==='silver') return {tank:'fuel',gal:BURN[b.type],where:'kenai'};
+  if(b.type==='reds'||b.type==='silver') return {tank:'fuel',gal:bn(b.type),where:'kenai'};
   if(b.type==='halibut'&&S.up&&S.up.chp) return {tank:'hfuel',gal:BURN.charter,where:'homer'};
   return null;
 }
 const fuelShort=b=>{const f=tripFuel(b);return f&&S[f.tank]<f.gal+2};
 // STEP for the trip engine: the tank is low at launch
 STEP.fuel=(b)=>{const f=tripFuel(b),need=f.gal,have=S[f.tank],p=fuelPrice(f.where),cap=f.tank==='fuel'?SLED_TANK():CHARTER_TANK,est=Math.round((cap-have)*p);
-  const kenai=f.where==='kenai';
+  const kenai=f.where==='kenai',own=kenai&&S.up.dock;
   return {t:'⛽ Low on fuel',b:`<p>The gauge reads <b>${Math.round(have)} gallons</b>. A ${TRIPS[b.type].n.toLowerCase()} usually burns about <b>${need}</b>, more if you run far or the wind is up. The only fuel is at the ${kenai?'Kenai Harbor':'Homer Harbor'} fuel dock (${$(p)}/gal).</p>`,o:[
-    O(kenai?'Send them for coffee; trailer the sled to Kenai Harbor and fill up':'Top off at the Homer Harbor fuel dock',kenai?`About 65 minutes and ~${$(est)}. They won’t love waiting.`:`20 minutes and ~${$(est)}.`,(b,t)=>{
-      const r=fillUp(f.tank,f.where);pass(kenai?65:20);t.happy-=kenai?8:2;
+    O(own?'Top off at your own riverfront pump':kenai?'Send them for coffee; trailer the sled to Kenai Harbor and fill up':'Top off at the Homer Harbor fuel dock',own?`10 minutes and ~${$(Math.round((cap-have)*fuelPrice('dock')))}.`:kenai?`About ${S.up.sled?45:65} minutes and ~${$(est)}. They won’t love waiting.`:`20 minutes and ~${$(est)}.`,(b,t)=>{
+      const r=fillUp(f.tank,own?'dock':f.where);pass(own?10:kenai?(S.up.sled?45:65):20);t.happy-=own?0:kenai?8:2;
       t.notes.push(r?`⛽ ${r.gal.toFixed(1)} gallons at ${$(r.p)}: ${$(Math.round(r.cost))}. ${kenai?'The clients have opinions about the hour-long coffee break.':''}`:'⛽ You can’t afford fuel. You go with what’s in the tank.')}),
     O(`Risk it: ${Math.round(have)} gallons should do`,'If it doesn’t, the Coast Guard tows you in and the trip is cut short.',()=>{})]};
 };
@@ -67,9 +70,14 @@ STEP.fuel=(b)=>{const f=tripFuel(b),need=f.gal,have=S[f.tank],p=fuelPrice(f.wher
 function harborActions(a){
   if(S.loc==='harbor'){
     const open=isOpen('harbor'),cap=SLED_TANK(),p=fuelPrice('kenai'),gal=Math.max(0,cap-S.fuel);
-    a.push({ic:'⛽',l:`Fill the jet sled — ${gal.toFixed(1)} gal × ${$(p)} = ${$(Math.round(gal*p))}`,s:`${Math.round(S.fuel)}/${cap} gallons now. Fuel dock open 6 AM–10 PM.`,cat:'work',cls:S.fuel<BURN.reds+2?'primary':'',dis:!open||gal<1||S.money<p,
+    a.push({ic:'⛽',l:`Fill the jet sled — ${gal.toFixed(1)} gal × ${$(p)} = ${$(Math.round(gal*p))}`,s:`${Math.round(S.fuel)}/${cap} gallons now. Fuel dock open 6 AM–10 PM.`,cat:'work',cls:S.fuel<bn('reds')+2?'primary':'',dis:!open||gal<1||S.money<p,
       fn:()=>{const r=fillUp('fuel','kenai');pass(15);say(`⛽ ${r.gal.toFixed(1)} gallons of marine gas at ${$(r.p)}: ${$(Math.round(r.cost))}. Tank full (${Math.round(S.fuel)} gal).`)}});
     a.push({ic:'🦅',l:'Watch the eagles work the dock',s:'20 min. Energy +3.',cat:'rest',fn:()=>{pass(20);adj('energy',3);say('🦅 A dozen bald eagles squabble over fish scraps on the pilings while the tide drops out of the harbor.')}});
+  }
+  if(S.loc==='shop'&&S.up&&S.up.dock){
+    const cap=SLED_TANK(),p=fuelPrice('dock'),gal=Math.max(0,cap-S.fuel);
+    a.push({ic:'⛽',l:`Fill the sled at your own dock — ${gal.toFixed(1)} gal × ${$(p)} = ${$(Math.round(gal*p))}`,s:`${Math.round(S.fuel)}/${cap} gallons now. Your riverfront pump: no trip to the harbor.`,cat:'work',cls:S.fuel<bn('reds')+2?'primary':'',dis:gal<1||S.money<p,
+      fn:()=>{const r=fillUp('fuel','dock');pass(10);say(`⛽ ${r.gal.toFixed(1)} gallons from your own pump at ${$(r.p)}: ${$(Math.round(r.cost))}. Tank full (${Math.round(S.fuel)} gal).`)}});
   }
   if(S.loc==='homer'&&S.up&&S.up.chp){
     const p=fuelPrice('homer'),gal=Math.max(0,CHARTER_TANK-S.hfuel);
@@ -82,8 +90,10 @@ function harborActions(a){
 // You play the two-week July peak; the rest of your season is booked off your reputation.
 function restOfSeason(p){
   if(!p||!p.trips) return {trips:0,gross:0,costs:0,net:0};
-  const trips=Math.round(p.trips*2.4*DF().book*clamp(S.rep/70,.5,1.25)*(1+clamp((p.wom||0)*.005,-.06,.08))),fare=p.fares/p.trips;
-  const gross=Math.round(trips*fare),costs=Math.round(trips*(BURN.reds*fuelPrice('kenai')+LAUNCH_FEE+30));
+  const trips=Math.round(p.trips*2.4*DF().book*clamp(S.rep/70,.5,1.25)*(1+clamp((p.wom||0)*.005,-.06,.08))*rateDemand()*(S.up&&S.up.lodge?1.1:1)*(S.up&&S.up.dock?1.08:1)),fare=p.fares/p.trips;
+  let gross=Math.round(trips*fare),costs=Math.round(trips*(bn('reds')*fuelPrice('kenai')+LAUNCH_FEE+30));
+  if(S.up&&S.up.asst){const x=Math.round(trips*.2);gross+=Math.round(x*fare*(1-ASST_CUT));costs+=Math.round(x*(bn('reds')*fuelPrice('kenai')+LAUNCH_FEE+30))}   // the assistant covers the off-month overflow
+  if(S.up&&S.up.lodge){const l=lodgeSeason();gross+=l.gross;costs+=l.costs}
   return {trips,gross,costs,net:gross-costs};
 }
 function driftFuelPrices(){const r=Math.random;S.fuelBase=S.fuelBase||{kenai:6.19,homer:6.45};

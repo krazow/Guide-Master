@@ -32,21 +32,34 @@ function transition(ic,cap,cap2,done,snd){
   setTimeout(end,prefs().rm?700:2200);
 }
 
-// ---------------- event tiles (toasts at the top) ----------------
+// ---------------- event tiles (toasts) ----------------
 // showTile('🎉','Found $20','On the way to the park','good')   kind: good | bad | warn | info
-let tileQ=[];const TILE_MAX=3;
+// One tile at a time, shown just below the HUD so Cash and Rep stay readable. Extra tiles wait in a short queue (duplicates are
+// dropped, the oldest goes if it grows past TILE_QUEUE) and each stays about 3.5 seconds. A tile whose title is already in an open
+// (or queued) pop-up is skipped: the pop-up says it.
+let tileQ=[];const TILE_MAX=1,TILE_QUEUE=3,TILE_MS=3500;
+const plain=h=>String(h||'').replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim().toLowerCase();
+function modalSays(title){
+  const t=plain(withName(title));if(!t) return false;
+  const open=document.getElementById('mbg');
+  return (open&&plain(open.textContent).includes(t))||MQ.some(q=>plain(q[0]+' '+q[1]).includes(t));
+}
 function tileBox(){let el=document.getElementById('tiles');if(!el){el=document.createElement('div');el.id='tiles';el.setAttribute('role','status');el.setAttribute('aria-live','polite');document.body.appendChild(el)}return el}
 function showTile(ic,title,sub,kind,when){
   if(!S||S.over) return;
+  if(modalSays(title)) return;
   when=when||`${dayName(day()).slice(0,3)} ${fmt(S.t)}`;
   const box=tileBox();
-  if(box.children.length>=TILE_MAX){tileQ.push([ic,title,sub,kind,when]);return}
+  if(box.children.length>=TILE_MAX){
+    if(!tileQ.some(q=>q[1]===title&&q[2]===sub)){tileQ.push([ic,title,sub,kind,when]);while(tileQ.length>TILE_QUEUE)tileQ.shift()}
+    return}
+  const hud=document.querySelector('.hud');box.style.top=hud?Math.round(hud.getBoundingClientRect().bottom+6)+'px':'';
   const t=document.createElement('div');t.className='tile '+(kind||'info');
   title=withName(title);sub=withName(sub);sfx(kind==='good'?'good':kind==='bad'?'bad':'info');
   t.innerHTML=`<span class="ti">${ic}</span><span class="tt"><small>${{good:'Good news',bad:'Event',warn:'Heads up'}[kind]||'Update'} · ${when}</small><b>${title}</b>${sub?`<span>${sub}</span>`:''}</span><button class="ok" aria-label="Got it">✓</button>`;
   let gone=false;const close=()=>{if(gone)return;gone=true;t.classList.add('out');setTimeout(()=>{t.remove();if(tileQ.length){const q=tileQ.shift();showTile(...q)}},260)};
   t.querySelector('.ok').onclick=close;t.onclick=e=>{if(e.target===t)close()};
-  setTimeout(close,6500);box.appendChild(t);
+  setTimeout(close,tileQ.length>=2?TILE_MS-1200:TILE_MS);box.appendChild(t);
 }
 function clearTiles(){tileQ=[];document.querySelectorAll('#tiles .tile').forEach(t=>t.remove())}
 window.showTile=showTile;

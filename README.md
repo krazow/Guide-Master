@@ -51,8 +51,9 @@ When you start a new game you pick a **2-, 5- or 10-year career** (`src/js/24-ca
 
 - **Recap and bills:** the year's trips and earnings, then winter living costs, license and permit renewals (ADF&G guide and business licenses, KRSMA permit, decals) and insurance.
 - **Next year's rules and runs:** season 1 is the real 2026 (kings closed, single-hook/no-bait, Area 3A halibut 27-inch second fish, no retention Tue/Wed). Later seasons are invented but plausible. The sockeye and coho forecasts vary in size and timing, and kings may be closed, catch-and-release only or open (1 a day, harvest record). Bait is allowed when kings are open. The halibut size limit and closed days shift too. Weak sockeye years can bring an emergency order cutting the limit to 2; strong years raise it to 6. Pinks run only in even years.
-- **Upgrades:** rebuild the outboard (still 50 hp), a new jet sled, a new drift boat, marketing, a winter course, rate increases (need Rep 65+), or a Charter Halibut Permit so you run your own Homer charters.
+- **Upgrades:** rebuild the outboard (still 50 hp), a new jet sled, a new drift boat, marketing, a winter course, rate increases (+10% a step, three steps; see below), or a Charter Halibut Permit so you run your own Homer charters. Late-career money sinks: an **assistant guide**, **guest cabins** and a **riverfront lot with a private launch and fuel dock** (see below).
 - **Bookings:** next season's bookings depend on your reputation, marketing and rates.
+- **Rates are a trade-off:** each +10% step pays 10% more per trip but cuts bookings by about 8% (July trips and the rest-of-summer income both scale down), makes clients pickier (−3 happiness per step, so tips shrink unless the day goes well) and needs more reputation (65 for the first step, 70, then 75). In 20-career sims a by-the-book guide who raised rates to +30% scored about 2–3% *below* one who never did, instead of 16% above.
 - **Booking requests:** phone requests (📞 Return calls) get a random date in the next few days, re-rolled once if it is illegal, so some still land on Sunday/Monday (lower-river trips) or a closed halibut day. The request sheet flags the problem and can offer the nearest later legal, free day instead; "Book it anyway" keeps the on-trip dilemma. The nonresident dipnet "guests" request comes at most once per season.
 - **Your record:** a first-aid/CPR card lasts two years. Classes run Monday, Tuesday and Thursday, 1:00–4:00 PM at the Soldotna clinic; you can join from 1:00 until 1:30 PM and still sit the 3 hours. The alert bar and To-do turn urgent from the Monday of the week the card expires. Citations drop off after the following season; three active citations still cost you the permit.
 
@@ -74,6 +75,30 @@ Difficulty never changes the score. It changes the game (`DIFFS` in `src/js/00-g
 | Bad random events (`bad`) | ×0.6 | ×1 | ×1.5 |
 
 The same play grades about one step lower on Combat Season than on Licensed Guide, and about one step higher on Rookie Season. Combat Season is still winnable by a careful guide.
+
+### What the upgrades really do
+
+- **Repower** (`$13,500`): the boat goes back to 100, wear on it is halved, and the sled burns **20% less fuel** on trips, scouting and solo outings (`fuelMult()` in `25-fuel.js`; the charter boat is a different boat).
+- **New sled** (`$52,000`): sockeye and silver trips finish **30 minutes sooner** (a little less tiring), the refuel run to Kenai Harbor takes 45 minutes instead of 65, the tank holds 40 gallons, and the catch and happiness bonuses stay. It does **not** raise the party size: the July limit (5 people including the guide below Skilak) and KRSMA's 6-person cap are law, not horsepower.
+- **Boat at condition 0 = out of service.** The Boat stat is the condition of your sled and drift boat. At 0 neither can launch (the halibut charter on a buddy's boat is unaffected) and the shop's $165 and $525 services are locked: you pay a **major repair** (a jet-unit rebuild and a new drift-boat floor, `$2,400`, 4 hours, back to 50; the dealer lets it go on account). Winter wear alone never takes a boat below 10, so it takes neglect during a season to get there.
+- **Assistant guide** (`$32,000`, Rep 70, after two seasons): a used second sled and trailer, decals, permit and training. When you are already booked, a second party can take the same slot with your assistant (booking requests and season bookings both offer it). He settles overnight: you keep **60%** of fare and tips, pay the fuel and launch, and about one trip in eight goes wrong (a quarter-fare refund and rep −4, or a ticket of about $300 and rep −5: it's your name on the decal; it doesn't count toward your three citations). He also covers about 20% extra off-month trips. Winter overhead $3,000 (license, decals, insurance, drug testing).
+- **Guest cabins** (`$95,000`, Rep 60, after three seasons): four riverside cabins at about $225 a night. About +$12,000 a year at a top reputation after cleaning, staff and utilities (the cabins gross $30,000 × the same rep factor as the rest of the summer, cost $20,000 to run) and a $5,500 winter bill for taxes, insurance and winterizing, plus 10% more off-month trips from guests. Much less if your rep is poor.
+- **Riverfront lot with a private launch and pump** (`$240,000`, Rep 70, after four seasons): no $15 launch fees, no trips to Kenai Harbor (fill up at your own dock for about $0.85 a gallon less than the marine dock), +3 happiness on sockeye and silver trips and about 8% more bookings.
+
+Prices are game values in the range of 2026 Alaska costs (used sleds and trailers, cabin construction, Soldotna riverfront lots with ramp and dock permits all vary a lot); they are not quotes. Boats, cabins and the lot count at three quarters of their price in the score, like the other purchases. In 20-career 10-year sims (Licensed Guide, by-the-book) a guide who buys them all scores about **12% more** than one who stops at the old upgrade list (59,000 vs 52,900 per season) and ends with **$161,000** in cash instead of **$285,000**, with $454,000 spent on upgrades instead of $243,000; with and without rate increases they score within 1% of each other.
+
+## Long careers: regulars, more dilemmas, story arcs
+
+`src/js/30-stories.js` (plus the `PARTIES` list in `21-story.js` and the dilemma limits in `22-trips.js`) keeps a 10-year career from repeating itself.
+
+- **54 client parties** (15 Alaska residents, the rest visitors from the Lower 48 and abroad: families, retirees, club and work outings, an adaptive-fishing group, newlyweds, Coast Guard and school-staff outings and more) instead of 15. In a 10-year sim a career met about 68 different parties, up from 30.
+- **Returning regulars.** After a trip with a happy party (happiness 75+) there is a 40% chance they slip you their number and become a regular (at most 10 at a time). Each following July they rebook with odds that follow how their last trip went: about 95% after a five-star day, 85% after a good one, 55% after an OK one, 25% after a flat one and never after a bad one; two missed years or a bad trip drops them. A five-star party brings one more person. At launch they remember: +5 happiness for a five-star last trip, +3 for a good one, −4 if the last one was rough. Regulars show a ⭐ on the Bookings tab and in the off-season bookings message. In 10-year sims about 21 trips per career (roughly one in ten) were regulars.
+- **Dilemma limits.** No dilemma comes up more than **twice a season** (random picks and quirk beats; rule-forced ones like a closed halibut day, a worn-out motor or the spot's own follow-ups are exempt). The **king dilemma** is also thinned by the rules: it is offered 30% of the time it would otherwise be picked when kings are closed, 55% when catch-and-release only and always when open. In 10-year sims king fell from 4.2 to 1.8 appearances a season and "show us how it's done" from 4.5 to 2.0.
+- **Six new dilemmas** from real Kenai guiding, each with the usual shape (a legal option that costs something, a rule-breaking one that pays cash): a child's life jacket (Alaska requires kids 12 and under to wear one on boats under 26 feet underway), a humpback off Homer (stay 100 yards away), a capsized paddler (no rule: stop and help, or call it in), a client's treble-hook spinners under the single-hook emergency order, a posted private bank (state land below the ordinary high-water line, private uplands) and seasick charter clients.
+- **Three multi-season story arcs**, each scene at most once a season from the second season on, one scene a morning:
+  - *A rival guide* (Dale Voss, any rep of 55+): he parks on your seam; share or hold it. Next season he either sends you a party or runs you down on a forum depending on what you did; in the finale his sled quits and you can tow him in (a small permanent booking bonus, the Good Neighbor achievement).
+  - *The Garza family*: your season-1 Garzas become regulars if their first trip goes well (60+). Over four Julys: Mateo's first big fish, Grandpa Ray's first trip, and Mateo asking to work for you (an unlicensed person can't run a guide vessel). Family Tradition achievement.
+  - *The advisory committee* (rep 70+): a seat on the Kenai/Soldotna Fish and Game Advisory Committee, a vote on a proposal to the Board of Fisheries about the late-run escapement goal, and testimony at the Board of Fisheries. The game doesn't change any rule in response; the arc is about your standing. A Seat at the Table achievement.
 
 ## How a trip pays
 
@@ -115,15 +140,19 @@ Miles are estimates from Sterling Highway mileposts (Soldotna about MP 95.2; Qua
 
 Achievements: Happy Camper (7 nights in total) and Wild Kenai (5 different encounters). The end screen lists nights camped and encounters.
 
+## Waiting and the alarm
+
+Time only moves when you act, so skipping ahead has its own action: **⏳ Wait until…** (every place except mid-trip and the off-season screen; `waitModal()` in `20-world.js`) offers only choices that make sense right now: *until the party shows up* for a launch at your current spot (an hour before the launch), *until it's time to leave* for a launch elsewhere (launch minus the drive), *until the 1:00 PM first-aid class* on a class day when your card is due, and *30* or *60 more minutes*. It never runs past midnight. Waiting passes time like anything else (a little energy). The default alarm for **new** games is **5:00 AM** (`GAME.wake`); a saved game keeps whatever alarm it had, and the shop's alarm action still cycles 4:00–6:00.
+
 ## Fuel, towing and prices
 
 `src/js/25-fuel.js`:
 
-- **Fuel gauge** (HUD): the jet sled has a 30-gallon tank (40 with the new sled) and starts season 1 at 18 gallons. A sockeye trip burns about 9 gallons, a silver trip about 11 and scouting about 4. Long runs (Swiftwater, Moose Range Meadows, the Barren Islands) and wind over 12 kt burn more. Drift-boat floats burn nothing.
+- **Fuel gauge** (HUD): the jet sled has a 30-gallon tank (40 with the new sled) and starts season 1 at 18 gallons. A sockeye trip burns about 9 gallons, a silver trip about 11 and scouting about 4 (20% less after the repower). Long runs (Swiftwater, Moose Range Meadows, the Barren Islands) and wind over 12 kt burn more. Drift-boat floats burn nothing.
 - **Harbor-only fueling:** the sled fills only at the **Kenai Harbor** fuel dock (Kenai City Dock at the river mouth, 6 AM–10 PM). Your own Homer charter boat (100 gal, ~45 a day) fills at the Homer Harbor fuel dock. A low tank at launch gives you two choices: send the clients for coffee and run to the harbor (about 65 minutes; they notice), or risk it.
 - **Running dry:** the Coast Guard tows you to Kenai Harbor and the harbormaster brings you to the fuel dock for $102 (Homer's harbor tariff rate). The trip is cut short with half the fare refunded, you lose rep, and the boarding may turn up an expired flare kit. Solo outings and scouting can run dry too.
 - **Prices (approximate, 2026):** marine gas starts at $6.19/gal at Kenai and $6.45 at Homer (pump gas on the Peninsula was about $5.14–5.55) and drifts each season. DIY boat service is $165 in parts; a dealer 100-hour service is $525. Tackle is $120 for four trips; a broken rod and reel costs $165. The motorized launch fee is $15.
-- **Upgrades** at realistic prices: repower with a new 50 hp jet outboard $13,500; new 20-ft welded sled, motor and trailer $52,000; drift boat and trailer $12,500; Charter Halibut Permit plus a used 28-ft six-pack boat $165,000.
+- **Upgrades** at realistic prices: repower with a new 50 hp jet outboard $13,500; new 20-ft welded sled, motor and trailer $52,000; drift boat and trailer $12,500; Charter Halibut Permit plus a used 28-ft six-pack boat $165,000; assistant guide and second sled $32,000; four guest cabins $95,000; riverfront lot with private launch $240,000 (what each really does is above).
 - **The rest of the summer:** you play the July peak, and the off-season settles June, August and September. That's about 2.4× your July trip count, scaled by reputation, at your July fares minus fuel, launches and tackle, so realistic boat prices are reachable over a career.
 
 ## Fish, weather and timing
@@ -152,7 +181,7 @@ npm install && npx playwright install chromium
 npm test
 ```
 
-The game itself lives in `src/js/20-world.js` (places, trips, bookings, tabs), `src/js/21-story.js` (story, events, scoring) and `src/js/22-trips.js` (the trip runner and the regulation dilemmas).
+The game itself lives in `src/js/20-world.js` (places, trips, bookings, tabs), `src/js/21-story.js` (story, events, scoring), `src/js/22-trips.js` (the trip runner and the regulation dilemmas) and `src/js/30-stories.js` (regulars, extra dilemmas, story arcs).
 
 ## Built on the Pocket Week / Island Time PWA template
 
@@ -168,9 +197,9 @@ Guide Master is built on [krazow/framework](https://github.com/krazow/framework)
 | `say(html)` | Narrate at the top of the Here tab and add to the Log |
 | `adj('stress', 5)` / `money(-12)` | Nudge a 0–100 stat (clamped) / change cash |
 | `go('cafe')` | Travel (plays a transition for long trips; fires `travel` and `arrive`) |
-| `endDay('home')` | Sleep: runs `onNight`, the `night` hook and the summary, then the next morning |
+| `endDay('home')` | Sleep: runs `onNight`, the `night` hook and the summary, then the next morning. The night summary opens first; anything the morning brings (booking requests, event pop-ups, the off-season screen) queues behind it |
 | `modal(title, html, [{l, s, fn, dis}])` | Bottom sheet; queued if one is open |
-| `showTile(ic, title, sub, 'good'|'bad'|'warn'|'info')` | Toast at the top |
+| `showTile(ic, title, sub, 'good'|'bad'|'warn'|'info')` | Toast just below the HUD (so Cash and Rep stay visible): one at a time, about 3.5 seconds each, the rest queue briefly (duplicates dropped, at most 3 waiting), and it is skipped if an open or queued pop-up already contains its title. Events that open their own modal or show the OK pop-up (Settings → Event pop-ups) don't also toast |
 | `transition(ic, caption, sub, done)` | Full-screen interstitial, tap to skip |
 | `defEvent({...})` / `chain(id)` / `fireHook(name, ctx)` | Random events; see the header of `03-events.js` |
 | `sfx('good')` / `buzz(30)` | Sound / vibration. Add sounds to `SFX` in `01-core.js` |

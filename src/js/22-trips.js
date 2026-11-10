@@ -139,10 +139,18 @@ const STEP={
     O('No','You buy him lunch to smooth it over.',(b,t)=>{fx(t,-25,'Lunch for the sulking deckhand')}),
     O('Sure, one fish','He fuels the boat for you: $40.',(b,t)=>{fx(t,40,'Deckhand covers the fuel');violate(t.notes,{p:.25,fine:500,what:'crew retaining halibut on a charter',minor:true,who:NOAA})},1)]}),
 };
-const POOL={reds:['king','snag','over','guide_fish','anchor','combat','motor'],silver:['bait','king','extra_rod','guide_fish','motor'],trout:['bear','photo','combat','guide_fish'],halibut:['size27','crew']};
+const POOL={reds:['king','snag','over','guide_fish','anchor','combat','motor','rescue','ownrods','trespass'],silver:['bait','king','extra_rod','guide_fish','motor','rescue','ownrods'],trout:['bear','photo','combat','guide_fish','rescue','trespass'],halibut:['size27','crew','whale','seasick']};
+// ---- how often a dilemma may come up ----
+// No dilemma more than DIL_MAX times in one season (random picks and quirk beats alike; rule-forced ones like the closed halibut day are exempt),
+// and the king dilemma shows up less when kings can't be kept: it's still the story of the Kenai, but not every other trip.
+const DIL_MAX=2,KING_ODDS={closed:.3,cr:.55,open:1};
+const dilN=k=>S.dil&&S.dil.s===seasonOf(day())?(S.dil.n[k]||0):0;
+const dilUse=k=>{const s=seasonOf(day());if(!S.dil||S.dil.s!==s)S.dil={s,n:{}};S.dil.n[k]=(S.dil.n[k]||0)+1};
+const dilOK=k=>dilN(k)<DIL_MAX&&(k!=='king'||Math.random()<KING_ODDS[kingRule()]);
 
 // ---- the runner ----
 function tripStart(b){
+  if(boatDown()&&b.type!=='halibut'){say('🔧 The boat is out of service. Get a major repair at the shop first.');return}
   const T=TRIPS[b.type],late=Math.max(0,tod()-T.start),t={id:b.id,late,q:0,happy:0,notes:[],step:0,steps:[],shore:false,nofish:0,kept:0,abort:false,x:[],lost:0};
   if(late){t.happy-=late/3;t.notes.push(`⏰ You rolled in ${late} minutes late. The ${b.who} noticed.`)}
   // tackle and boat condition shape the day before you even leave the dock
@@ -158,16 +166,20 @@ function tripStart(b){
   if(b.quirk.includes('nolicense')) t.steps.push('license');
   if(S.cred.fa<day()) t.steps.push('expired');
   t.steps.push('spot');
+  regTripStart(b,t);                                      // 30-stories.js: returning parties remember last time
   const want=S.diff==='hard'?3:2,beats=[],q=b.quirk;
-  if(q.includes('drinker')) beats.push('beer');
-  if(q.includes('kingfan')&&(b.type==='reds'||b.type==='silver')) beats.push('king');
-  if(q.includes('photo')&&b.type==='trout') beats.push('photo');
+  if(b.arc==='garza'&&S.arcs.garza.st>=1&&S.arcs.garza.st<=3) beats.push('arc_garza');
+  if(q.includes('drinker')&&dilOK('beer')) beats.push('beer');
+  if(q.includes('kingfan')&&(b.type==='reds'||b.type==='silver')&&dilN('king')<DIL_MAX) beats.push('king');
+  if(q.includes('photo')&&b.type==='trout'&&dilOK('photo')) beats.push('photo');
+  if(q.includes('kid')&&b.type!=='halibut'&&dilOK('pfd')) beats.push('pfd');
   if(b.type==='halibut'&&halClosed(b.d)) beats.push('tuewed');
   if(S.boat<25&&TRIPS[b.type].fuel){beats.push('motor');t.q-=.08;t.notes.push('🔧 The neglected jet sled runs rough all day. Service the boats at the shop.')}
   if(q.includes('promised')){t.happy-=15;t.notes.push('👑 They were “promised” a shot at a king. There was never going to be one: the fishery is closed.')}
-  const pool=POOL[b.type].filter(x=>!beats.includes(x)&&!(x==='bait'&&!noBait())&&!(x==='size27'&&halClosed(b.d)));
+  const pool=POOL[b.type].filter(x=>!beats.includes(x)&&!(x==='bait'&&!noBait())&&!(x==='ownrods'&&!noBait())&&!(x==='size27'&&halClosed(b.d))&&dilOK(x));
   while(beats.length<want&&pool.length) beats.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]);
   t.steps.push(...beats.slice(0,Math.max(want,beats.length)));
+  beats.slice(0,Math.max(want,beats.length)).forEach(k=>{if(k!=='arc_garza')dilUse(k)});
   if(b.type==='silver') t.steps.push('sixpm');
   S.trip=t;sfx('whoosh');tripNext();
 }
@@ -194,7 +206,7 @@ function tripEnd(b,t){
   q=clamp(q,.05,1);
   // fuel: burn from the tank; run dry and the trip ends with a Coast Guard tow
   const ft=tripFuel(b);let towed=false;
-  if(ft){const gal=Math.round((ft.gal+(t.fuelx||0)+(r()-.3)*3)*(1+Math.max(0,wxOf(d).wind-12)/40)*10)/10;
+  if(ft){const gal=Math.round((ft.gal+(t.fuelx||0)*(ft.tank==='fuel'?fuelMult():1)+(r()-.3)*3*(ft.tank==='fuel'?fuelMult():1))*(1+Math.max(0,wxOf(d).wind-12)/40)*10)/10;
     if(S[ft.tank]>=gal) S[ft.tank]=Math.round((S[ft.tank]-gal)*10)/10;
     else{q*=Math.max(.2,S[ft.tank]/gal);t.happy-=25;towed=true;if(ft.tank==='fuel')towIn(t.notes);else{S.hfuel=0;S.stats.tows=(S.stats.tows||0)+1;money(-HARBOR_TOW);adj('rep',-4);t.notes.push('🛟 The charter boat runs dry off Anchor Point. The Coast Guard tows you into Homer Harbor and the harbormaster brings you to the fuel dock: '+$(HARBOR_TOW)+'.')}}}
   const fishers=Math.max(0,b.n-t.nofish);let fish=0,frac=0,line='',limits=0;
@@ -215,7 +227,7 @@ function tripEnd(b,t){
   // ---- what the day was worth ----
   // The booked fare is the base. A good day (fish, happy clients, a clean boat and tackle) earns bigger tips and word of mouth;
   // a bad one (skunked, out of tackle, a breakdown, grumpy clients) means a partial refund and a bad review.
-  const happy=45+frac*45+t.happy+upH(b.type)+DF().mood;
+  const happy=45+frac*45+t.happy+upH(b.type)+DF().mood-RATE_MOOD*rateSteps();
   const fare=towed?Math.round(payOf(b)*.5):payOf(b),base=b.type==='halibut'&&!S.up.chp?1200:fare;
   const tip=Math.round(base*clamp((happy-62)/130,0,.3));
   const skunk=fishers>0&&fish-t.kept<=0&&b.type!=='trout'&&!(b.type==='halibut'&&halClosed(b.d));
@@ -223,16 +235,18 @@ function tripEnd(b,t){
   const xs=(t.x||[]),xnet=xs.reduce((a,[,v])=>a+v,0),xpos=xs.reduce((a,[,v])=>a+Math.max(0,v),0),xneg=xs.reduce((a,[,v])=>a+Math.min(0,v),0);
   let dRep=clamp(Math.round((happy-50)/8),-6,8);const review=happy<35;if(review) dRep-=2;
   S.wom=(S.wom||0)+(happy>=96?2:happy>=88?1:happy<30?-2:happy<40?-1:0);
-  const costs=T.loc==='lower'?LAUNCH_FEE:0;
+  const costs=T.loc==='lower'&&!S.up.dock?LAUNCH_FEE:0;
   if(r()<.07&&b.type!=='halibut'){money(-165);S.stats.spent+=165;t.notes.push('🎣 A client high-sticks a rod into the gunwale. Snap. $165 for a new rod and reel.')}
   S.gear=Math.max(0,S.gear-1);
   const lost=t.lost||0;
-  pass((towed?T.len+120:T.len)+lost);if(towed&&ft.tank==='fuel')S.loc='harbor';adj('energy',-T.energy-Math.round(lost/20));adj('boat',-Math.round((3+Math.floor(r()*4))*(S.up.motor?.5:1)*DF().wear));adj('rep',dRep);
+  pass((towed?T.len+120:T.len-sledTimeSaved(b.type))+lost);if(towed&&ft.tank==='fuel')S.loc='harbor';adj('energy',-T.energy+(sledTimeSaved(b.type)?3:0)-Math.round(lost/20));adj('boat',-Math.round((3+Math.floor(r()*4))*(S.up.motor?.5:1)*DF().wear));adj('rep',dRep);
+  if(boatDown()&&b.type!=='halibut')t.notes.push('🔧 The boat is out of service: you can’t launch again until you pay for a major repair at the shop.');
   money(fare-refund+tip+xnet-costs);
   const st=S.stats;st.trips++;st.clients+=b.n;st.fish+=fish;st.earned+=fare-refund;st.tips+=tip+xpos;st.spent+=costs-xneg;
   S.unlogged++;S.skill++;
   const net=fare-refund+tip+xnet-costs;
   b.status='done';b.out={happy:Math.round(happy),fish,line,fare,refund,tip,net};S.trip=null;
+  storyAfterTrip(b,happy,t.notes);                      // 30-stories.js: returning parties, story arcs
   say(`${T.ic} ${T.n} with the ${b.who}: ${line}. Paid ${$(fare-refund)} + ${$(tip+xpos)} in tips.`);
   const mood=happy>=82?'😁 Five stars, and they’re already asking about next July. Word of mouth will bring you more bookings.':happy>=65?'🙂 Solid day. Handshakes at the trailer.':happy>=45?'😐 Polite thanks, small tip.':review?'😠 Tight-lipped goodbyes and a one-star review. Word gets around the Kenai.':'😕 They leave a little deflated.';
   const row=(l,v)=>`<br>${l}: <b>${v>=0?'':'−'}${$(Math.abs(v))}</b>`;
