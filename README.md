@@ -12,7 +12,7 @@ You run a small guide business out of Soldotna with a jet sled, a drift boat, a 
 
 ## The rules it models
 
-Every trip throws decisions at you, and the first option is always the legal one. Among them:
+Every trip throws decisions at you. The options are **shuffled every time** and none is highlighted, so you have to read them. Each legal choice has a real cost (time on the water, fewer fish, a smaller tip or some cash) and each illegal one can pay cash (a client slips you $100 for the king photo, an extra tip, a full limit), if nobody's watching. Each option carries `legal: true/false` in code and `data-legal` on its button, which is how tests and bots find the legal one (`legalBtn()` returns its index). Among the rules:
 
 - Kenai kings closed in 2026 by emergency order (no catch-and-release; release by accident without lifting the fish out of the water).
 - Below Skilak, Jun 20–Aug 15: one unbaited, single-hook, artificial lure.
@@ -66,7 +66,7 @@ Difficulty never changes the score. It changes the game (`DIFFS` in `src/js/00-g
 |---|---|---|---|
 | Start cash | $3,000 | $1,500 | $600 |
 | Patrol catch chance (`enforce`) | ×0.7 | ×1 | ×1.4 |
-| Fines | ×0.8 | ×1 | ×1.1, plus 25% for each active citation |
+| Fines | ×0.8, plus 10% for each active citation | ×1, plus 20% for each active citation | ×1.1, plus 30% for each active citation |
 | Fuel, nightly overhead, winter bills, repairs (`cost`) | ×0.8 | ×1 | ×1.2 |
 | Client mood (tips and rep) | +6 | 0 | −7 |
 | Off-month bookings (`book`) | ×1.08 | ×1 | ×0.88 |
@@ -74,6 +74,18 @@ Difficulty never changes the score. It changes the game (`DIFFS` in `src/js/00-g
 | Bad random events (`bad`) | ×0.6 | ×1 | ×1.5 |
 
 The same play grades about one step lower on Combat Season than on Licensed Guide, and about one step higher on Rookie Season. Combat Season is still winnable by a careful guide.
+
+## How a trip pays
+
+`tripEnd()` in `src/js/22-trips.js`. The booked fare is the base; the day moves the rest, and the trip summary shows each line.
+
+- **Tips** run from 0 to 30% of the fare and rise with client happiness: the catch against the limit (a run of fish, good weather, tide and run size), the spot, your choices, your sled or drift boat and the difficulty's mood. A full limit adds happiness.
+- **Refunds:** unhappy clients get part of the fare back (up to 25%), and a skunked trip costs another 5%. Being towed halves the fare.
+- **Tackle:** out of tackle, the fish bite worse and the clients grumble. Restock in Soldotna.
+- **Boat:** below 70 the boat can break down on a trip (more likely the lower it is): 1-2 hours lost, a 15% credit for the clients and a roadside repair bill; above 80 the clients are a little happier. Service the boats at the shop.
+- **Side deals:** the cash on dilemma options (tips for a bent rule, lunch for a sulking deckhand) shows as separate lines.
+- **Word of mouth:** very happy clients (and very unhappy ones) move your reputation, and a season of great days nudges the next off-season bookings up (down for bad days), on top of the reputation effect.
+- **Fines and warnings:** the first minor offence each season is only a warning (warnings reset every season). After that every citation costs more per active citation on your record (the percentages above), and three active citations still pull your permit.
 
 ## Winter camping
 

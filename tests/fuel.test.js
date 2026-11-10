@@ -18,7 +18,7 @@ module.exports = [
     await newGame(page);
     const r = await page.evaluate(() => {
       closeModals(); S.cur = 1; S.t = 1440 + 345; S.loc = 'lower'; S.fuel = 30;
-      const b = todays()[0]; tripStart(b); let i = 0; while (S.trip && i++ < 30) MBTN(0); closeModals();
+      const b = todays()[0]; tripStart(b); let i = 0; while (S.trip && i++ < 30) MBTN(legalBtn()); closeModals();
       return { fuel: S.fuel, tows: S.stats.tows, status: b.status };
     });
     assert.strictEqual(r.status, 'done'); assert.ok(r.fuel < 30 && r.fuel > 10, `fuel ${r.fuel}`); assert.strictEqual(r.tows, 0);
@@ -31,8 +31,8 @@ module.exports = [
       closeModals(); S.cur = 1; S.t = 1440 + 345; S.loc = 'lower'; S.fuel = 1;
       const b = todays()[0]; tripStart(b);
       const first = document.querySelector('#mbg h2').textContent;
-      MBTN(1);                                     // risk it
-      let i = 0; while (S.trip && i++ < 30) MBTN(0);
+      MBTN(MB.findIndex(b => /Risk it/.test(b.l)));   // risk it (options are shuffled)
+      let i = 0; while (S.trip && i++ < 30) MBTN(legalBtn());
       const txt = document.querySelector('#mbg').textContent; closeModals();
       return { first, tows: S.stats.tows, loc: S.loc, fuel: S.fuel, towedTxt: /Towed in/.test(txt) && /Coast Guard/.test(txt) };
     });

@@ -24,7 +24,7 @@ const GAME={
   title:'Guide Master',
   tagline:'Two weeks guiding the Kenai',
   codePrefix:'GUIDEMASTER',   // transfer codes start with this, e.g. POCKETWEEK:eyJ…
-  version:'1.5.3',           // bump on every release: shown in Settings, stamped into saves and sw.js
+  version:'1.5.4',           // bump on every release: shown in Settings, stamped into saves and sw.js
   schema:2,                  // bump when the shape of S changes, and add a MIGRATIONS entry (21-story.js)
   days:14,                   // length of a run, in days (Mon Jul 13 – Sun Jul 26, 2026)
   wake:270,                  // default alarm, in minutes after midnight (270 = 4:30 AM: guides start early)
@@ -43,8 +43,8 @@ const DIFFS={
   // money: starting cash. bad: random-event multiplier. enforce: catch-chance multiplier. fine: fine multiplier;
   // esc: extra fine per citation already on your record. cost: fuel, overhead, winter bills and repairs.
   // mood: client happiness (tips, rep). book: off-month bookings. wear: boat wear. No difficulty changes the score.
-  easy:  {n:'Rookie Season',ic:'🎣',d:'More cash, fewer troopers, cheaper bills and easygoing clients. For learning the water.',money:3000,bad:0.6,enforce:0.7,fine:0.8,esc:0,cost:0.8,mood:6,book:1.08,wear:0.85},
-  normal:{n:'Licensed Guide',ic:'🛶',d:'The Kenai as it is: busy, beautiful and well patrolled.',money:1500,bad:1,enforce:1,fine:1,esc:0,cost:1,mood:0,book:1,wear:1},
-  hard:  {n:'Combat Season',ic:'🐻',d:'Thin cash, more troopers, fines that climb with every citation, dearer fuel and bills, pickier clients, quieter off-months and more bad luck. Same score, tougher grade.',money:600,bad:1.5,enforce:1.4,fine:1.1,esc:0.25,cost:1.2,mood:-7,book:0.88,wear:1.25},
+  easy:  {n:'Rookie Season',ic:'🎣',d:'More cash, fewer troopers, cheaper bills and easygoing clients. For learning the water.',money:3000,bad:0.6,enforce:0.7,fine:0.8,esc:0.1,cost:0.8,mood:6,book:1.08,wear:0.85},
+  normal:{n:'Licensed Guide',ic:'🛶',d:'The Kenai as it is: busy, beautiful and well patrolled.',money:1500,bad:1,enforce:1,fine:1,esc:0.2,cost:1,mood:0,book:1,wear:1},
+  hard:  {n:'Combat Season',ic:'🐻',d:'Thin cash, more troopers, fines that climb steeply with every citation, dearer fuel and bills, pickier clients, quieter off-months and more bad luck. Same score, tougher grade.',money:600,bad:1.5,enforce:1.4,fine:1.1,esc:0.3,cost:1.2,mood:-7,book:0.88,wear:1.25},
 };
 const DF=()=>DIFFS[(typeof S!=='undefined'&&S&&S.diff)||'normal']||DIFFS.normal;
