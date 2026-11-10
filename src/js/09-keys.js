@@ -33,7 +33,7 @@ document.addEventListener('keydown',e=>{
   const {where,list}=keyTargets();
   if(/^[1-9]$/.test(k)){const b=list[+k-1];if(b){e.preventDefault();b.click()}return}
   if(where==='modal'){
-    if(k==='Escape'){if(document.getElementById('mbg').dataset.lock){e.preventDefault();return}const b=[...list].reverse().find(x=>KEY_CLOSE.test(((x.querySelector('.tx b')||x).textContent||'').trim()));if(b){e.preventDefault();b.click()}}
+    if(k==='Escape'){e.preventDefault();escModal()}
     return}
   if(where!=='main')return;
   const kt=keyTabs();if(kt[lk]){e.preventDefault();setTab(kt[lk])}

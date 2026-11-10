@@ -82,6 +82,7 @@ function onNewGame(){
 function onMorning(d){
   if(d===0) return;
   const sd=sday(d),newSeason=sd===0;
+  patchExpire(d);
   if(newSeason) startSeason(seasonOf(d));               // 24-career.js: bills, new rules, forecast, upgrades
   rollDay(d);
   const w=WX[S.wx[d]];
@@ -111,6 +112,7 @@ function onNight(where,notes,d){
   if(S.trip){S.trip=null;notes.push('🛶 You never finished the trip. The party drove off without paying.')}
   if(where==='collapsed'){S.loc='shop';notes.push('😵 You were up past midnight and fell asleep in the truck at the shop.')}
   money(-overhead());S.stats.spent+=overhead();notes.push(`💸 Boat payment, insurance and groceries: ${$(overhead())}.`);
+  {const fp=fuelPlan();if(fp.short&&fp.tomorrow)notes.push(`⛽ The sled has ${fp.have} gallons and tomorrow’s trips need about ${fp.need}. Fill up at Kenai Harbor (6 AM–10 PM) before you launch.`)}
   S.book.filter(b=>b.d===d&&b.status==='booked'&&b.asst).forEach(b=>asstSettle(b,notes));
   S.book.filter(b=>b.d===d&&b.status==='booked'&&!b.asst).forEach(b=>{b.status='noshow';adj('rep',-15);S.stats.noshow++;
     notes.push(`😠 You never showed for the ${b.who}. They posted a one-star review from the parking lot.`)});
@@ -258,6 +260,8 @@ function todoItems(){
   S.book.filter(b=>b.d===d&&!b.asst).forEach(b=>{const T=TRIPS[b.type];
     it.push({l:`${T.ic} ${T.n}: ${b.who}`,s:`${fmt(T.start)}, ${L[T.loc].name}`,ok:b.status==='done',fail:b.status==='noshow'||b.status==='cancelled',urgent:b.status==='booked'&&m>=T.start-120})});
   if(faDue(d)) it.push({l:'Renew your first-aid card',s:'Soldotna clinic, Mon, Tue & Thu 1–4 PM (join by 1:30), $95.',ok:false,urgent:faUrgent(d)||S.cred.fa<d});
+  if(S.boat<=40) it.push({l:S.boat<=0?'Get the boat back in service':'Service the boats',s:S.boat<=0?`Out of service: a major repair ${$(rp(MAJOR_REPAIR))}, or an emergency patch or loaner to run a trip.`:`Condition ${S.boat}. At the shop: DIY +20 or the dealer +40. Below 10 it can go out of service.`,ok:false,urgent:S.boat<=20});
+  {const fp=fuelPlan();if(fp.short&&fp.tomorrow)it.push({l:'Fuel up for tomorrow',s:`The sled has ${fp.have} gal and tomorrow’s trips need about ${fp.need}. Kenai Harbor fuel dock, ${hoursTxt('harbor').replace('Open ','')}.`,ok:false,urgent:tod()>=1020})}
   it.push({l:'Keep your logbook current',s:S.unlogged+S.overdue?`${S.unlogged+S.overdue} trip${S.unlogged+S.overdue>1?'s':''} to write up.`:'All caught up.',ok:!(S.unlogged+S.overdue),urgent:S.overdue>0});
   it.push({l:'Keep a clean record',s:`${S.cites} active citation${S.cites===1?'':'s'}, ${S.warns} warning${S.warns===1?'':'s'} this season. Three citations and your permit is gone.`,ok:S.cites===0,urgent:S.cites>=2});
   it.push({l:'Optional: fill the freezer with 25 dipnet reds',s:`${S.freezer}/25. Kenai City Beach, 6 AM–11 PM.`,ok:S.freezer>=25});
@@ -292,7 +296,15 @@ const ACH=[
 // ---- scoring and the end screen ----
 const FINISH_TEXT={h1:'{{name}}, that’s a wrap on your career',sub:()=>`${S.years} Julys on the Kenai, ${yearOf(0)}–${yearOf(day())}. The river keeps running; somebody else gets your seams now.`};
 function curSeason(){const s=S.stats,o=S.st0||{};return {year:yearOf(day()),trips:s.trips-(o.trips||0),fares:s.earned-(o.earned||0),earned:(s.earned+s.tips)-((o.earned||0)+(o.tips||0)),wom:S.wom||0}}
-function scoreOf(){return Math.round((S.money-DF().money)+restOfSeason(curSeason()).net+(S.up?S.up.value:0)*.75+S.rep*15+S.stats.trips*60-(S.stats.citesTotal||S.cites)*400+S.freezer*2+(S.stats.viol===0?300*S.years:0))}
+// The score, line by line (the end screen shows these rows and they add up to scoreOf()).
+function scoreParts(){
+  const st=S.stats,cites=st.citesTotal||S.cites,rest=restOfSeason(curSeason()).net;
+  const P=[['Net cash',S.money-DF().money,'cash now minus your start money'],['Rest of this summer',rest,'estimated: the off-season settles June, August and September'],
+    ['Boats & permits',(S.up?S.up.value:0)*.75,'three quarters of what you bought'],['Reputation',S.rep*15,`${S.rep} × 15`],['Trips',st.trips*60,`${st.trips} July trips × 60`],
+    ['Citations',-cites*400,`${cites} × −400`],['Freezer fish',S.freezer*2,`${S.freezer} × 2`],['Clean record bonus',st.viol===0?300*S.years:0,st.viol===0?`no violations: 300 × ${S.years} seasons`:'you broke a rule']];
+  return P.map(([k,v,n])=>[k,Math.round(v),n]);
+}
+function scoreOf(){return scoreParts().reduce((a,r)=>a+r[1],0)}
 const GRADE_CUTS=[66000,57000,45000,28000];            // A, B, C, D: score per season, the same on every difficulty
 function gradeOf(sc){
   sc=sc/(S.years||1);                                   // graded per season, so careers of any length compare
@@ -305,11 +317,11 @@ function gradeOf(sc){
 function endRows(){
   const s=S.stats;
   const last=curSeason();last.rest=restOfSeason(last);
-  const yrs=S.seasons.concat([last]).map(x=>`${x.year}: ${x.trips}${x.rest&&x.rest.trips?` + ${x.rest.trips}`:''} trips, ${$(x.earned+(x.rest?x.rest.net:0))}`).join('<br>');
-  return [['Difficulty',`${DF().ic} ${DF().n}: ${DF().enforce<1?'fewer patrols, cheaper bills':DF().enforce>1?'more patrols, dearer bills, pickier clients':'standard patrols and bills'}; no score bonus`],['Career',`${S.years} seasons`],['Season by season',yrs],['Cash',$(Math.round(S.money))],['Net over the career',$(Math.round(S.money-DF().money))],['Boats & permits bought',S.up&&S.up.value?$(S.up.value):'none'],['Trips / clients',`${s.trips} / ${s.clients}`],
+  const yrs=S.seasons.concat([last]).map(x=>`<b>${x.year}:</b> ${x.trips} July trips, ${$(x.earned)} earned${x.rest&&x.rest.trips?`<br><span style="color:var(--mute)">rest of summer (estimated, not played): about ${x.rest.trips} trips, ${$(x.rest.net)} net</span>`:''}`).join('<br>');
+  return [['Difficulty',`${DF().ic} ${DF().n}: ${DF().enforce<1?'fewer patrols, cheaper bills':DF().enforce>1?'more patrols, dearer bills, pickier clients':'standard patrols and bills'}; no score bonus`],['Career',`${S.years} seasons`],['Season by season',yrs],['Cash',$(Math.round(S.money))],['Net over the career',$(Math.round(S.money-DF().money))],['Boats & permits bought',S.up&&S.up.value?$(S.up.value):'none'],['July trips played / clients',`${s.trips} / ${s.clients}`],
     ['Fish landed',s.fish],['Trips where everyone limited',s.limits],['Tips',$(s.tips)],['Reputation',S.rep],
     ['Record',`${s.citesTotal||0} citation${(s.citesTotal||0)===1?'':'s'}, ${s.warnsTotal||0} warning${(s.warnsTotal||0)===1?'':'s'}, ${$(s.fines)} in fines`],
-    ['Fuel',`${Math.round(s.fuelGal||0)} gal, ${$(Math.round(s.fuelCost||0))}`],['Coast Guard tows',s.tows||0],['Winter camping',`${s.campNights||0} night${(s.campNights||0)===1?'':'s'}, ${s.encounters||0} wildlife encounter${(s.encounters||0)===1?'':'s'}`],['Kings released',s.kings],['Freezer',`${S.freezer} reds`],['Boat checks passed',s.checks]];
+    ['Fuel',`${grp(s.fuelGal||0)} gal, ${$(Math.round(s.fuelCost||0))}`],['Coast Guard tows',s.tows||0],['Winter camping',`${s.campNights||0} night${(s.campNights||0)===1?'':'s'}, ${s.encounters||0} wildlife encounter${(s.encounters||0)===1?'':'s'}`],['Kings released',s.kings],['Freezer',`${S.freezer} reds`],['Boat checks passed',s.checks]];
 }
 
 // ---- save migrations ----

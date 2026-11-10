@@ -105,13 +105,23 @@ const upQ=type=>(S.up.sled&&(type==='reds'||type==='silver')?.05:0)+(S.up.drift&
 const upH=type=>(S.up.sled&&(type==='reds'||type==='silver')?3:0)+(S.up.drift&&type==='trout'?4:0)+(S.up.dock&&(type==='reds'||type==='silver')?3:0);
 
 // ---- season rollover: runs on the first morning of each new season (from onMorning) ----
-const WINTER_COST=[['🏠 Living costs, Oct–May (after your winter job)',1800],['🪪 Guide & business licenses, KRSMA permit, vessel decals',650],['🛡️ Liability insurance & drug-testing consortium',1950]];
-const winterCosts=()=>WINTER_COST.concat(S.up&&S.up.asst?[['🧑‍🤝‍🧑 Assistant guide: license, decals, insurance, drug-testing',3000]]:[],S.up&&S.up.lodge?[['🏡 Cabins: property tax, insurance and winterizing',5500]]:[]).map(([n,c])=>[n,Math.round(c*DF().cost)]);
+const WINTER_COST=[['🏠 Living costs, Oct–May (after your winter job)',1800,'🏠 Living'],['🪪 Guide & business licenses, KRSMA permit, vessel decals',650,'🪪 Licenses & permits'],['🛡️ Liability insurance & drug-testing consortium',1950,'🛡️ Insurance']];
+const winterCosts=()=>WINTER_COST.concat(S.up&&S.up.asst?[['🧑‍🤝‍🧑 Assistant guide: license, decals, insurance, drug-testing',3000,'🧑‍🤝‍🧑 Assistant']]:[],S.up&&S.up.lodge?[['🏡 Cabins: property tax, insurance and winterizing',5500,'🏡 Cabins']]:[]).map(([n,c,sh])=>[n,Math.round(c*DF().cost),sh]);
 
 // ---- late-career money sinks (2026 Alaska prices, approximate) ----
 // A boat that has worn down to 0 is out of service until you pay for a major repair (a jet-unit rebuild or a new drift-boat floor).
 const MAJOR_REPAIR=2400;
 const boatDown=()=>S.boat<=0;
+// Never servicing the boats costs you, but it doesn't end the career: warnings as it wears, an emergency patch and a loaner for a day.
+const PATCH_COST=600,PATCH_TO=25,PATCH_MAX=10,LOANER_COST=600;   // patch: only when the boat is at 10 or less; a loaner runs every trip today
+const noBoat=()=>S.boat<=0&&S.loaner!==S.cur;                 // out of service, with no loaner rented today
+const loanerToday=()=>S.boat<=0&&S.loaner===S.cur;
+const canPatch=()=>S.boat<=PATCH_MAX;
+const boatTier=b=>b<=0?4:b<=10?3:b<=20?2:b<=40?1:0;             // 0 fine, 1 (≤40), 2 (≤20), 3 (≤10), 4 out of service
+const BOAT_WARN=['','🔧 Boat condition is down to {b}. Breakdowns get likely and clients notice. Service it at the shop when you can.','🔧 Boat condition {b}: the sled runs rough and breaks down often. Service it soon; a few more trips and it is out of service.','🔧 Boat condition {b}: one or two more trips and it is out of service. Service it now, or an emergency patch will hold it a day or two.','🔧 Your boat is out of service. Pay for a major repair, or patch it up or rent a loaner to keep today’s trip.'];
+// An emergency patch holds for two days, then it gives out and the boat falls back to where it was.
+function patchExpire(d){const P=S.patch;if(!P||d<P.d+2)return;S.patch=null;if(S.boat<=PATCH_TO&&S.boat>P.base){S.boat=P.base;say(`🩹 The emergency patch gives out overnight: the boat is back at ${S.boat}.`);}}
+function boatWatch(prev){const k=boatTier(S.boat);if(k>boatTier(prev)&&k>=1&&k<=3)showTile('🔧','Boat condition '+S.boat,BOAT_WARN[k].replace('{b}',S.boat).replace(/^🔧 /,''),'warn')}
 const sledTimeSaved=type=>S.up&&S.up.sled&&(type==='reds'||type==='silver')?30:0;
 // The cabins: about $225 a night, ~4 cabins, ~45 rented nights over the summer, minus cleaning, linens, staff and utilities.
 function lodgeSeason(){const f=DF().book*clamp(S.rep/70,.5,1.25);return {gross:Math.round(30000*f),costs:Math.round(20000*DF().cost)}}
@@ -138,7 +148,7 @@ function startSeason(s){
   const boat0=S.boat;adj('boat',-Math.round(rest.trips*(S.up.motor?.2:.4)));driftFuelPrices();
   S.seasons.push(prev);S.st0=JSON.parse(JSON.stringify(st));
   const bill=winterCosts().reduce((a,[,c])=>a+c,0);money(-bill);st.spent+=bill;
-  S.reg=genRegs(s);S.limit=3;S.eo=[];S.cum=Math.round(650000*S.reg.mult.sockeye);
+  S.reg=genRegs(s);S.loaner=-1;S.patch=null;S.limit=3;S.eo=[];S.cum=Math.round(650000*S.reg.mult.sockeye);
   S.wom=0;S.warns=0;S.prep=-1;S.scout=-1;S.trip=null;S.unlogged=0;S.overdue=0;S.energy=90;
   adj('boat',S.up.motor?-5:-12);S.boat=Math.max(S.boat,Math.min(boat0,10));   // winter wear never takes a boat out of service on its own
   S.rep=Math.round(50+(S.rep-50)*.85);
@@ -150,13 +160,13 @@ function winterModal(){
   const W=S.winter;if(!W)return;const s=W.s,p=S.seasons[S.seasons.length-1]||{};
   const fa=S.cred.fa<seasonFirst(s)?`<b style="color:var(--bad)">expired</b> (${dlongY(S.cred.fa)}). Renew it in Soldotna (Mon, Tue or Thu, 1–4 PM) before you guide`:S.cred.fa<seasonFirst(s)+SEASON?`<b style="color:var(--bad)">expires ${dlong(S.cred.fa)}</b>: renew it in Soldotna (Mon, Tue or Thu)`:`good through ${dlongY(S.cred.fa)}`;
   modal(`❄️ Off-season · ${2025+s} → ${2026+s}`,`
-    <p><b>${p.year} in review:</b> ${p.trips} trips in the July peak, ${$(p.earned||0)} in fares and tips${p.fines?`, ${$(p.fines)} in fines`:''}. Rep ${p.rep}.</p>${p.rest&&p.rest.trips?`<p>📆 <b>The rest of ${p.year}</b> (June, August, September): ${p.rest.trips} more trips booked off your reputation: ${$(p.rest.gross)} in fares, ${$(p.rest.costs)} for fuel, launches and tackle. <b>Net ${$(p.rest.net)}.</b></p>`:''}
-    <p>${winterCosts().map(([n,c])=>`${n}: <b>${$(c)}</b>`).join('<br>')}<br>Total: <b>${$(W.bill)}</b>. Cash now ${$(Math.round(S.money))}.</p>
-    <p>📣 <b>${2026+s} season:</b> ${REG().fc}<br>⚓ Charter halibut: 2 a day, the second ${halSize()} inches or less; no retention on ${halDaysTxt()}.<br>⛽ Kenai Harbor fuel: ${$(fuelPrice('kenai',seasonFirst(s)))}/gal this year.<br>${evenYear(seasonFirst(s))?'🩷 Even year: pinks arrive in August.':'Odd year: hardly any pinks.'}</p>
-    <p>⛑️ First-aid card: ${fa}.${W.expired>0?`<br>⚖️ ${W.expired} old citation${W.expired>1?'s':''} dropped off your record.`:''}${S.cites?`<br>⚖️ Active citations: ${S.cites}/3.`:''}</p>
-    <p style="font-size:13px;color:var(--mute)">Season ${s+1} of ${S.years}. Bookings fill once you’ve made your off-season plans.</p>`,[
+    <p><b>${p.year}:</b> ${p.trips} July trips, ${$(p.earned||0)} in fares and tips${p.fines?`, ${$(p.fines)} in fines`:''}. Rep ${p.rep}.${p.rest&&p.rest.trips?`<br>📆 <b>Rest of the summer</b> (estimated, not played): about ${p.rest.trips} trips, <b>${$(p.rest.net)} net</b>.`:''}</p>
+    <p>💸 <b>Winter bills ${$(W.bill)}</b>: ${winterCosts().map(([,c,sh])=>`${sh} ${$(c)}`).join(' · ')}. Cash now <b>${$(Math.round(S.money))}</b>.</p>
+    <p>📣 <b>${2026+s}:</b> ${REG().fc}<br>⚓ Halibut: 2 a day, the second ${halSize()} inches or less; no retention ${halDaysTxt()}.<br>⛽ Kenai Harbor fuel ${$(fuelPrice('kenai',seasonFirst(s)))}/gal. ${evenYear(seasonFirst(s))?'🩷 Even year: pinks in August.':'Odd year: few pinks.'}</p>
+    <p>⛑️ First-aid card: ${fa}.${W.expired>0?`<br>⚖️ ${W.expired} old citation${W.expired>1?'s':''} dropped off.`:''}${S.cites?`<br>⚖️ Active citations: ${S.cites}/3.`:''}</p>
+    <p style="font-size:13px;color:var(--mute)">Season ${s+1} of ${S.years}. Bookings open when you finish planning.</p>`,[
     {l:'🛠️ Upgrades & business',s:'Boats, marketing, rates, a Homer charter permit.',fn:()=>upgradeModal()},
-    {l:'🏕️ Go winter camping',s:campUsed()?'You’ve already been camping this winter.':'Pick a place within 100 miles and a number of nights. Wildlife, quiet and a little cash.',dis:campUsed(),fn:()=>campModal()},
+    {l:'🏕️ Go winter camping',s:campUsed()?'You’ve already been camping this winter.':'Pick a place within 100 miles and a number of nights. Wildlife and quiet rest, and a bad night can cost a little cash.',dis:campUsed(),fn:()=>campModal()},
     {l:`🛶 Open bookings for ${2026+s}`,s:'Start the season.',fn:()=>finishWinter()}]);
 }
 function upgradeModal(){

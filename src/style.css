@@ -27,15 +27,16 @@ button{font:inherit;cursor:pointer;touch-action:manipulation;-webkit-user-select
 .small-note{font-size:12px;opacity:.7}
 /* hud */
 .hud{background:var(--brand-dark);color:#fff;padding:10px 14px 10px;position:sticky;top:0;z-index:5}
-.hud-top{display:flex;justify-content:space-between;align-items:baseline}
+.hud-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.hud-right{display:flex;align-items:center;gap:8px;flex:none}
 .hud-day{font-family:"Fraunces";font-size:20px;font-weight:800}
 .hud-time{white-space:nowrap;font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
-.hud-sub{font-size:12px;opacity:.75;margin-top:1px}
-.stats{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px;margin-top:8px}
-.stat b{overflow-wrap:anywhere}
-html.fs-xl .stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+.hud-sub{font-size:12px;opacity:.75;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stats{display:grid;grid-template-columns:minmax(0,1.45fr) repeat(5,minmax(0,1fr));gap:5px;margin-top:8px}   /* Cash is the widest */
+.stat b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html.fs-xl .stats{grid-template-columns:repeat(3,minmax(0,1fr))}   /* large text: two rows of three, so no value wraps or clips */
 @media (max-width:360px){.stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
-.stat{background:rgba(255,255,255,.08);border-radius:9px;padding:5px 4px 6px;text-align:center}
+.stat{background:rgba(255,255,255,.08);border-radius:9px;padding:5px 2px 6px;text-align:center}
 .stat b{display:block;font-size:14px;font-variant-numeric:tabular-nums}
 .stat small{font-size:10px;opacity:.75;text-transform:uppercase;letter-spacing:.5px}
 .meter{height:4px;border-radius:2px;background:rgba(255,255,255,.15);margin-top:4px;overflow:hidden}
@@ -180,3 +181,13 @@ html.hc .hud :focus-visible,html.hc .title :focus-visible,html.hc nav.tabs :focu
 .end .kv span{color:var(--mute)}
 .slot-empty{color:var(--mute)}
 .alertbar.info{background:var(--brand)}
+/* tap targets: anything you press is at least 44×44 CSS px */
+.chip{min-height:44px;min-width:44px;display:inline-flex;align-items:center;justify-content:center;padding:6px 14px}
+.gear,.tile .ok{width:44px;height:44px}
+.tip button,.todo .pin,.prio-add button{min-height:44px;min-width:44px}
+.prio .pb button{min-width:44px;height:44px}
+.prio-add button{height:44px}
+.prio .pt{min-height:44px;display:flex;align-items:center}
+details.go>summary{min-height:44px;align-items:center}
+.modal:focus{outline:none}
+button.act,.ghost,.big{min-height:44px}

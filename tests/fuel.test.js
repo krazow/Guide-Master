@@ -31,12 +31,13 @@ module.exports = [
       closeModals(); S.cur = 1; S.t = 1440 + 345; S.loc = 'lower'; S.fuel = 1;
       const b = todays()[0]; tripStart(b);
       const first = document.querySelector('#mbg h2').textContent;
-      MBTN(MB.findIndex(b => /Risk it/.test(b.l)));   // risk it (options are shuffled)
+      MBTN(MB.findIndex(b => /Risk it/.test(b.l)));   // risk it (options are shuffled); the first time ever the game asks again, with the consequences
+      MBTN(MB.findIndex(b => /Risk it/.test(b.l)));
       let i = 0; while (S.trip && i++ < 30) MBTN(legalBtn());
       const txt = document.querySelector('#mbg').textContent; closeModals();
       return { first, tows: S.stats.tows, loc: S.loc, fuel: S.fuel, towedTxt: /Towed in/.test(txt) && /Coast Guard/.test(txt) };
     });
-    assert.match(r.first, /Low on fuel/); assert.strictEqual(r.tows, 1); assert.strictEqual(r.loc, 'harbor'); assert.strictEqual(r.fuel, 0); assert.ok(r.towedTxt);
+    assert.match(r.first, /Low on fuel/); assert.strictEqual(r.tows, 1); assert.strictEqual(r.loc, 'harbor'); assert.strictEqual(r.fuel, 12, 'alongside the fuel dock the harbormaster sells you 12 gallons to get going again'); assert.ok(r.towedTxt);
     noErrors(errors);
   } },
   { name: 'scouting on an empty tank gets you towed', fn: async ctx => {

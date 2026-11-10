@@ -62,7 +62,10 @@ function say(s){uiNarr.push(s);S.log.push({t:S.t,s})}              // narrate + 
 function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
 function adj(k,v,lo=0,hi=100){S[k]=clamp(Math.round(S[k]+v),lo,hi)} // nudge a 0–100 stat
 function money(v){S.money=Math.round((S.money+v)*100)/100}
-const $=x=>(x<0?'−':'')+'$'+(Math.round(Math.abs(x)*100)/100).toFixed(x%1?2:0);
+// Numbers with thousands separators; $() is the one money formatter (cents only when there are some): $47,975, −$1,200, $6.19.
+const grp=n=>String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+const $=x=>{const f=(Math.round(Math.abs(x)*100)/100).toFixed(x%1?2:0).split('.');f[0]=grp(+f[0]);return (x<0?'−':'')+'$'+f.join('.')};
+const $k=x=>Math.abs(x)>=10000?(x<0?'−':'')+'$'+Math.round(Math.abs(x)/1000)+'k':$(x);   // compact money for tight spots (the top bar): $48k
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 function isOpen(id,t=S.t){const h=L[id].hours;if(!h)return true;const r=h(Math.floor(t/1440));if(!r)return false;const m=t%1440;return m>=r[0]&&m<r[1]}
 function hoursTxt(id){const h=L[id].hours;if(!h)return '';const r=h(day());return r?`Open ${fmt(r[0])}–${fmt(r[1])}`:'Closed today'}

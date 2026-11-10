@@ -24,8 +24,9 @@ STATS.splice(4,0,{l:'Fuel',v:()=>`${Math.round(S.fuel)}g`,m:()=>S.fuel/SLED_TANK
 
 // ---- prices ----
 function fuelPrice(where,d=day()){const b=where==='dock'?(S.fuelBase||{kenai:6.19}).kenai-.85:(S.fuelBase||{kenai:6.19,homer:6.45})[where];const wob=Math.sin(d*1.7)*.05;return Math.round((b+wob)*DF().cost*100)/100}
-function fillUp(tank,where){
-  const cap=tank==='fuel'?SLED_TANK():CHARTER_TANK,p=fuelPrice(where),want=Math.max(0,cap-S[tank]);
+const TOW_FILL=12;                                   // gallons the harbormaster sells after a tow (a full tank is your own trip to the dock)
+function fillUp(tank,where,max){
+  const cap=tank==='fuel'?SLED_TANK():CHARTER_TANK,p=fuelPrice(where),want=Math.max(0,Math.min(max||cap,cap)-S[tank]);
   const gal=Math.max(0,Math.min(want,Math.floor(S.money/p*10)/10)),cost=Math.round(gal*p*100)/100;
   if(gal<=0) return 0;
   S[tank]=Math.round((S[tank]+gal)*10)/10;money(-cost);S.stats.spent+=cost;S.stats.fuelGal=(S.stats.fuelGal||0)+gal;S.stats.fuelCost=(S.stats.fuelCost||0)+cost;
@@ -39,6 +40,8 @@ function towIn(notes){
     '🚤 The Coast Guard comes up the river, takes your towline and brings you down to Kenai Harbor. Nobody on the Kenai will let you forget it.',
     `⚓ The harbormaster brings you alongside the fuel dock: ${$(HARBOR_TOW)} harbor assist.`];
   money(-HARBOR_TOW);S.stats.spent+=HARBOR_TOW;adj('rep',-4);adj('energy',-8);
+  const top=fillUp('fuel','kenai',TOW_FILL);                      // alongside the fuel dock: the harbormaster sells you enough to get going again
+  if(top)lines.push(`⛽ The harbormaster sells you ${top.gal.toFixed(1)} gallons to get going again: ${$(Math.round(top.cost))}.`);
   (notes?(l=>notes.push(l)):say)(lines.join(' '));
   if(Math.random()<.3) cite('an expired flare kit found during the Coast Guard boarding',100,true,notes,'The Coast Guard boarding officer');
   showTile('🛟','Towed in','Out of fuel','bad');
@@ -55,15 +58,31 @@ function tripFuel(b){
   if(b.type==='halibut'&&S.up&&S.up.chp) return {tank:'hfuel',gal:BURN.charter,where:'homer'};
   return null;
 }
-const fuelShort=b=>{const f=tripFuel(b);return f&&S[f.tank]<f.gal+2};
+// Wind over 12 kt burns more (the same factor tripEnd uses). For a day we haven't seen yet, guess from the forecast kind.
+const windKt=d=>{const w=S.wxd&&S.wxd[d];if(w)return w.wind;return {sun:6.5,cloud:8.5,rain:12,wind:23}[(S.wx||[])[d]||'sun']||8};
+const windFuel=d=>1+Math.max(0,windKt(d)-12)/40;
+// What a trip is likely to burn, planned for the longest run you could pick: base burn + the longest run's extra + the usual scatter, times the wind.
+// (The charter's Barren Islands run is a flagged choice of its own, so it isn't counted in the charter's check.)
+function expectBurn(b,d){const f=tripFuel(b);if(!f)return 0;d=d!=null?d:(b.d!=null?b.d:day());
+  const sled=f.tank==='fuel',longest=sled?Math.max(0,...(SPOTS[b.type]||[]).map(s=>s.fuel||0))*fuelMult():0;
+  return Math.round((f.gal+longest+1.5*(sled?fuelMult():1))*windFuel(d)*10)/10}
+const fuelShort=b=>{const f=tripFuel(b);return !!f&&S[f.tank]<expectBurn(b)};
+// Tomorrow (and what's left of today): will the sled's tank cover the sled trips that are booked?
+function fuelPlan(){const d=day(),own=x=>x.status==='booked'&&!x.asst&&tripFuel(x)&&tripFuel(x).tank==='fuel';
+  const trips=S.book.filter(x=>(x.d===d||x.d===d+1)&&own(x)&&!(x.d===d&&tod()>TRIPS[x.type].start));
+  const need=Math.round(trips.reduce((a,x)=>a+expectBurn(x),0)*10)/10;return {need,have:Math.round(S.fuel),short:need>S.fuel&&trips.length>0,n:trips.length,tomorrow:trips.some(x=>x.d===d+1)}}
 // STEP for the trip engine: the tank is low at launch
-STEP.fuel=(b)=>{const f=tripFuel(b),need=f.gal,have=S[f.tank],p=fuelPrice(f.where),cap=f.tank==='fuel'?SLED_TANK():CHARTER_TANK,est=Math.round((cap-have)*p);
-  const kenai=f.where==='kenai',own=kenai&&S.up.dock;
-  return {t:'⛽ Low on fuel',b:`<p>The gauge reads <b>${Math.round(have)} gallons</b>. A ${TRIPS[b.type].n.toLowerCase()} usually burns about <b>${need}</b>, more if you run far or the wind is up. The only fuel is at the ${kenai?'Kenai Harbor':'Homer Harbor'} fuel dock (${$(p)}/gal).</p>`,o:[
-    O(own?'Top off at your own riverfront pump':kenai?'Send them for coffee; trailer the sled to Kenai Harbor and fill up':'Top off at the Homer Harbor fuel dock',own?`10 minutes and ~${$(Math.round((cap-have)*fuelPrice('dock')))}.`:kenai?`About ${S.up.sled?45:65} minutes and ~${$(est)}. They won’t love waiting.`:`20 minutes and ~${$(est)}.`,(b,t)=>{
-      const r=fillUp(f.tank,own?'dock':f.where);pass(own?10:kenai?(S.up.sled?45:65):20);t.happy-=own?0:kenai?8:2;
-      t.notes.push(r?`⛽ ${r.gal.toFixed(1)} gallons at ${$(r.p)}: ${$(Math.round(r.cost))}. ${kenai?'The clients have opinions about the hour-long coffee break.':''}`:'⛽ You can’t afford fuel. You go with what’s in the tank.')}),
-    O(`Risk it: ${Math.round(have)} gallons should do`,'If it doesn’t, the Coast Guard tows you in and the trip is cut short.',()=>{})]};
+STEP.fuel=(b,t)=>{const f=tripFuel(b),have=S[f.tank],p=fuelPrice(f.where),cap=f.tank==='fuel'?SLED_TANK():CHARTER_TANK,est=Math.round((cap-have)*p),need=expectBurn(b),typical=f.gal;
+  const kenai=f.where==='kenai',own=kenai&&S.up.dock,wind=windKt(day()),runMins=own?10:kenai?(S.up.sled?45:65):20;
+  // the harbor fuel dock keeps hours (6 AM–10 PM): arrive early and you wait for it to open; after closing there is no fuel
+  const hr=kenai&&!own?L.harbor.hours(day()):null,arr=tod()+Math.round(runMins/2),wait=hr&&arr<hr[0]?hr[0]-arr:0,closed=!!hr&&arr+wait>=hr[1];
+  const why=[wind>12?`${wind} kt of wind`:'',f.tank==='fuel'?'a long run to a far bar':''].filter(Boolean).join(' or ');
+  return {t:'⛽ Low on fuel',b:`${t&&t.riskAsk?`<p style="background:#fbe3dc;border-radius:8px;padding:8px 10px"><b>⚠️ Think twice about running low.</b> If the tank runs dry out there, the Coast Guard tows you in: the trip is cut short and the fare halved, you pay a $${HARBOR_TOW} harbor assist, lose 4 rep and the clients leave a bad review, and the boarding can turn up a ticket. Every trip on fumes risks it.</p>`:''}<p>The gauge reads <b>${Math.round(have)} gallons</b>. A ${TRIPS[b.type].n.toLowerCase()} usually burns about <b>${typical}</b>, and up to about <b>${Math.round(need)}</b> with ${why||'the usual scatter'}. The only fuel is at the ${kenai?'Kenai Harbor':'Homer Harbor'} fuel dock (${$(p)}/gal${hr?`, open ${fmt(hr[0])}–${fmt(hr[1])}`:''}).</p>`,o:[
+    Object.assign(O(own?'Top off at your own riverfront pump':kenai?(wait?`Send them for coffee; the fuel dock opens at ${fmt(hr[0])}, then fill up`:'Send them for coffee; trailer the sled to Kenai Harbor and fill up'):'Top off at the Homer Harbor fuel dock',closed?`Kenai Harbor’s fuel dock is closed (open ${fmt(hr[0])}–${fmt(hr[1])}).`:own?`10 minutes and ~${$(Math.round((cap-have)*fuelPrice('dock')))}.`:kenai?`About ${runMins+wait} minutes${wait?' (the dock isn’t open yet)':''} and ~${$(est)}. They won’t love waiting.`:`20 minutes and ~${$(est)}.`,(b,t)=>{
+      const r=fillUp(f.tank,own?'dock':f.where);pass((own?10:kenai?runMins:20)+wait);t.happy-=own?0:kenai?8+(wait?3:0):2;
+      t.notes.push(r?`⛽ ${r.gal.toFixed(1)} gallons at ${$(r.p)}: ${$(Math.round(r.cost))}. ${kenai?'The clients have opinions about the long coffee break.':''}`:'⛽ You can’t afford fuel. You go with what’s in the tank.')}),{dis:closed}),
+    O(t&&t.riskAsk?`Risk it anyway: ${Math.round(have)} gallons`:`Risk it: ${Math.round(have)} gallons should do`,`If it doesn’t, the Coast Guard tows you in and the trip is cut short. You need about ${Math.round(need)} to be safe.`,(b,t)=>{
+      if(!S.riskWarned){S.riskWarned=true;t.riskAsk=true;t.step--}})]};   // the first time ever, ask again with the consequences spelled out
 };
 
 // ---- the fuel dock ----
