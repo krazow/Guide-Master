@@ -118,4 +118,13 @@ module.exports = [
     assert.deepStrictEqual(r, { dt: 5, cooperDis: true, shopDis: false });
     noErrors(errors);
   } },
+  { name: 'title screen has a Help! button that opens how to play', fn: async ctx => {
+    const { page, errors } = await open(ctx);
+    await page.click('.title button >> text=Help!');
+    const txt = await page.textContent('#mbg');
+    assert.match(txt, /How to play/); assert.match(txt, /Kenai Harbor fuel dock/);
+    await page.click('#mbg button.act >> text=Got it');
+    assert.ok(await page.$('.title'), 'back on the title screen');
+    noErrors(errors);
+  } },
 ];
