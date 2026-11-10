@@ -120,7 +120,7 @@ function boatAction(){
     max=Math.min(max,free);why=` Back by ${fmt(T.start-60-(here?0:travelMins(S.loc,T.loc)))} for the ${b.who}.`;
   }
   if(max<120) return {ic:'🚤',l:'Take the boat out',s:pend?`Not enough time before your ${TRIPS[pend.b.type].n} with the ${pend.b.who} at ${fmt(pend.T.start)}.`:S.loc==='lower'?'Guide-vessel fishing below Skilak ends at 6 PM.':'Too late in the day to float.',cat:'fish',dis:true,fn:()=>{}};
-  return {ic:'🚤',l:`Take the ${boat} out`,s:`No clients: fish for your freezer and scout the water. Up to ${Math.floor(max/60)} h.${why}`,cat:'fish',fn:()=>boatOut(max)};
+  return {ic:'🚤',l:`Take the ${boat} out`,s:`No clients: fish for your freezer and scout the water. Up to ${Math.floor(max/60)} h.${why}${S.loc==='lower'?` Tank: ${Math.round(S.fuel)} gal (~${BURN.soloHour}/hour).`:''}`,cat:'fish',fn:()=>boatOut(max)};
 }
 function boatOut(max){
   const d=day(),m=tod(),loc=S.loc;
@@ -143,12 +143,12 @@ function boatSpecies(max,illegal){
 }
 function boatHours(sp,max,illegal){
   const opts=[2,4,6].filter(h=>h*60<=max);
-  modal(`${SPECIES[sp].ic} How long?`,`<p>${S.loc==='lower'?`Fuel ${$(20)} plus the launch fee.`:`Drift boat, no motor on this stretch. Shuttle back from Jim’s Landing: ${$(35)}.`} You’ll learn where fish are holding for your next trips.</p>`,
+  modal(`${SPECIES[sp].ic} How long?`,`<p>${S.loc==='lower'?`About ${BURN.soloHour} gallons an hour from your tank (${Math.round(S.fuel)} gal), plus the ${$(LAUNCH_FEE)} launch fee. Run dry and the Coast Guard tows you in.`:`Drift boat, no motor on this stretch. Shuttle back from Jim’s Landing: ${$(35)}.`} You’ll learn where fish are holding for your next trips.</p>`,
     opts.map(h=>({l:`${h} hours`,s:`Back at ${fmt(S.t+h*60+20)}.`,fn:()=>boatFish(sp,h,illegal)})).concat([{l:'Never mind',fn:()=>{}}]));
 }
 function boatFish(sp,h,illegal){
-  const loc=S.loc,t0=S.t,S_=SPECIES[sp],o=avgOdds(sp,loc,t0,h*60),cost=loc==='lower'?30:35;
-  spend(cost);pass(h*60+20);adj('energy',-4*h);adj('boat',loc==='lower'?-2:-1);
+  const loc=S.loc,t0=S.t,S_=SPECIES[sp],cost=loc==='lower'?LAUNCH_FEE:35;
+  spend(cost);const got=loc==='lower'?burnSolo(BURN.soloHour*h):1;const o=avgOdds(sp,loc,t0,h*60)*got;if(got<1)h=Math.max(1,Math.round(h*got));else pass(h*60+20);adj('energy',-4*h);adj('boat',loc==='lower'?-2:-1);
   S.skill++;S.scout=day();S.solo[day()]=(S.solo[day()]||0)+1;
   const lines=[],rnd=()=>.6+Math.random()*.8;
   let n=Math.round(o*S_.rate*h*rnd());

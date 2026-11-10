@@ -26,13 +26,13 @@ function violate(notes,{p,fine,what,minor,who}){
 const SPOTS={
   reds:[
     {l:'Slip into the seams below Big Eddy at first light',s:'Classic sockeye water. Elbow-to-elbow boats by eight.',q:.08,h:0},
-    {l:'Run up to the gravel bars near Swiftwater Park',s:'Less pressure, fewer fish, happier clients.',q:.02,h:3},
+    {l:'Run up to the gravel bars near Swiftwater Park',s:'Less pressure, fewer fish, happier clients. A longer run: more fuel.',q:.02,h:3,fuel:3},
     {l:'Drop them on the empty bank by the “Habitat restoration: closed to fishing” sign',s:'Nobody’s there, and the reds hug that bank.',q:.15,h:0,viol:{p:.4,fine:300,what:'fishing a bank closed to protect riparian habitat'}},
     {l:'Use the public elevated walkway at Centennial',s:'Legal, easy footing, full-contact combat fishing.',q:0,h:4}],
   silver:[
     {l:'Back-troll single-hook plugs through the Pillars',s:'Slow and steady down the deep slots.',q:.06,h:0},
     {l:'Drift spinners past Eagle Rock',s:'Early silvers stage in the soft water.',q:.04,h:0},
-    {l:'Work the Moose Range Meadows bend',s:'Pretty, quiet, a little thin on fish.',q:.02,h:2}],
+    {l:'Work the Moose Range Meadows bend',s:'Pretty, quiet, a little thin on fish. A long run upriver: more fuel.',q:.02,h:2,fuel:4}],
   trout:[
     {l:'Beads below the Russian River confluence',s:'Rainbows stack behind spawning reds. So do anglers. So do bears.',q:.1,h:0,add:['flyonly','chop']},
     {l:'Swing streamers through the Sportsman’s Landing riffles',s:'Fewer people, fun grabs.',q:.04,h:0},
@@ -40,7 +40,7 @@ const SPOTS={
   halibut:[
     {l:'Fish the mouth of Kachemak Bay at slack tide',s:'Short run, easy ride. Cook Inlet tides rule everything.',q:.03,h:0},
     {l:'Run to the flats off Anchor Point',s:'Solid “chicken” halibut and the odd barn door.',q:.06,h:0},
-    {l:'Make the long run toward the Barren Islands',s:'The big fish are out there. So is the weather.',q:.14,h:0,risk:{p:.3,txt:'🌊 A small-craft advisory comes up on the radio. Rips at the tide change, green water over the bow, four seasick clients.',h:-15,boat:-12,energy:0}}],
+    {l:'Make the long run toward the Barren Islands',s:'The big fish are out there. So is the weather. Burns ~25 more gallons.',q:.14,fuel:25,h:0,risk:{p:.3,txt:'🌊 A small-craft advisory comes up on the radio. Rips at the tide change, green water over the bow, four seasick clients.',h:-15,boat:-12,energy:0}}],
 };
 
 // ---- dilemmas ----
@@ -65,7 +65,7 @@ const STEP={
     O('Cancel and refund','Legal. Rep −6.',(b,t)=>{adj('rep',-6);t.abort=true;tripCancel(b,`⛑️ You cancel on the ${b.who}. Get to the Tuesday/Thursday class in Soldotna.`)}),
     O('Run it anyway','Hope nobody asks for your card.',(b,t)=>violate(t.notes,{p:.3,fine:500,what:'guiding without a current first-aid certification'}))]}),
   spot:(b)=>{const T=TRIPS[b.type];return {t:`${T.ic} Where to, Captain?`,b:`<p>${T.long}</p><p>The ${b.who} are rigged and ready. Where do you take them?</p>`,o:SPOTS[b.type].map(sp=>O(sp.l,sp.s,(b,t)=>{
-    t.q+=sp.q;t.happy+=sp.h||0;t.notes.push(`📍 ${sp.l}.`);
+    t.q+=sp.q;t.happy+=sp.h||0;t.fuelx=(t.fuelx||0)+(sp.fuel||0);t.notes.push(`📍 ${sp.l}.`);
     if(sp.viol) violate(t.notes,sp.viol);
     if(sp.risk&&Math.random()<sp.risk.p*windRisk()){t.notes.push(sp.risk.txt);t.happy+=sp.risk.h;adj('boat',sp.risk.boat||0);adj('energy',sp.risk.energy||0)}
     if(sp.add) t.steps.splice(t.step+1,0,...sp.add.filter(x=>!t.steps.includes(x)));}))}},
@@ -139,6 +139,7 @@ const POOL={reds:['king','snag','over','guide_fish','anchor','combat','motor'],s
 function tripStart(b){
   const T=TRIPS[b.type],late=Math.max(0,tod()-T.start),t={id:b.id,late,q:0,happy:0,notes:[],step:0,steps:[],shore:false,nofish:0,kept:0,abort:false};
   if(late){t.happy-=late/3;t.notes.push(`⏰ You rolled in ${late} minutes late. The ${b.who} noticed.`)}
+  if(fuelShort(b)) t.steps.push('fuel');                 // 25-fuel.js
   const iss=issueOf(b);if(iss) t.steps.push('issue_'+iss);
   if(b.type==='reds'&&b.n===5) t.steps.push('five');
   if(b.quirk.includes('nolicense')) t.steps.push('license');
@@ -174,6 +175,11 @@ function tripEnd(b,t){
   let q=.5+t.q+runFactor(b.type)+(WX[S.wx[d]||'sun']||WX.sun).q+(S.prep===d?.08:0)+(S.scout>=d-1&&T.loc==='lower'?.05:0)
     +upQ(b.type)+(S.gear>0?0:-.15)+(S.boat<40?-.1:0)+(S.energy<30?-.1:0)+Math.min(.1,S.skill*.01)+(r()-.5)*.24;
   q=clamp(q,.05,1);
+  // fuel: burn from the tank; run dry and the trip ends with a Coast Guard tow
+  const ft=tripFuel(b);let towed=false;
+  if(ft){const gal=Math.round((ft.gal+(t.fuelx||0)+(r()-.3)*3)*(1+Math.max(0,wxOf(d).wind-12)/40)*10)/10;
+    if(S[ft.tank]>=gal) S[ft.tank]=Math.round((S[ft.tank]-gal)*10)/10;
+    else{q*=Math.max(.2,S[ft.tank]/gal);t.happy-=25;towed=true;if(ft.tank==='fuel')towIn(t.notes);else{S.hfuel=0;S.stats.tows=(S.stats.tows||0)+1;money(-HARBOR_TOW);adj('rep',-4);t.notes.push('🛟 The charter boat runs dry off Anchor Point. The Coast Guard tows you into Homer Harbor and the harbormaster brings you to the fuel dock: '+$(HARBOR_TOW)+'.')}}}
   const fishers=Math.max(0,b.n-t.nofish);let fish=0,frac=0,line='',limits=0;
   if(b.type==='reds'||b.type==='silver'){
     const lim=b.type==='reds'?S.limit:2,nm=b.type==='reds'?'red':'silver';
@@ -190,10 +196,11 @@ function tripEnd(b,t){
   }
   fish+=t.kept;
   const happy=45+frac*45+t.happy+upH(b.type),dRep=clamp(Math.round((happy-60)/5),-12,10);
-  const pay=payOf(b),base=b.type==='halibut'&&!S.up.chp?1200:pay,tip=Math.round(base*clamp((happy-50)/250,0,.2));
-  const costs=T.fuel+(T.loc==='lower'?10:0);
+  const pay=towed?Math.round(payOf(b)*.5):payOf(b),base=b.type==='halibut'&&!S.up.chp?1200:pay,tip=Math.round(base*clamp((happy-50)/250,0,.2));
+  const costs=T.loc==='lower'?LAUNCH_FEE:0;
+  if(r()<.07&&b.type!=='halibut'){money(-165);S.stats.spent+=165;t.notes.push('🎣 A client high-sticks a rod into the gunwale. Snap. $165 for a new rod and reel.')}
   S.gear=Math.max(0,S.gear-1);
-  pass(T.len);adj('energy',-T.energy);adj('boat',-Math.round((3+Math.floor(r()*4))*(S.up.motor?.5:1)));adj('rep',dRep);
+  pass(towed?T.len+120:T.len);if(towed&&ft.tank==='fuel')S.loc='harbor';adj('energy',-T.energy);adj('boat',-Math.round((3+Math.floor(r()*4))*(S.up.motor?.5:1)));adj('rep',dRep);
   money(pay+tip-costs);
   const st=S.stats;st.trips++;st.clients+=b.n;st.fish+=fish;st.earned+=pay;st.tips+=tip;st.spent+=costs;
   S.unlogged++;S.skill++;
@@ -202,7 +209,7 @@ function tripEnd(b,t){
   const mood=happy>=75?'😁 They’re already asking about next July.':happy>=55?'🙂 Solid day. Handshakes at the trailer.':happy>=40?'😐 Polite thanks, small tip.':'😠 Tight-lipped goodbyes. Expect a rough review online.';
   modal(`${T.ic} Back at the dock`,`${t.notes.map(n=>`<p>${n}</p>`).join('')}
     <p><b>Catch:</b> ${line}${t.kept?` (${t.kept} kept on the sly)`:''}</p>
-    <p><b>Pay:</b> ${$(pay)}${b.type==='halibut'&&!S.up.chp?' day rate':''} · <b>Tip:</b> ${$(tip)} · <b>Costs:</b> ${$(costs)}</p>
+    ${towed?'<p>🛟 <b>Towed in.</b> Half the fare refunded.</p>':''}<p><b>Pay:</b> ${$(pay)}${b.type==='halibut'&&!S.up.chp?' day rate':''} · <b>Tip:</b> ${$(tip)} · <b>Costs:</b> ${$(costs)}</p>
     <p>${mood} Rep ${dRep>=0?'+':'−'}${Math.abs(dRep)}.</p>
     <p style="font-size:13px;color:var(--mute)">📓 Log it in your ADF&amp;G logbook before bed.</p>`,[{l:'Head in',fn:()=>{}}]);
   sfx(happy>=50?'good':'bad');

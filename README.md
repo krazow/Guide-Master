@@ -41,6 +41,17 @@ When you start a new game you pick a **2-, 5- or 10-year career** (`src/js/24-ca
 
 The score covers the whole career (net cash, half the value of what you bought, rep, trips, a clean record), and the grade is per season, so careers of any length compare.
 
+## Fuel, towing and prices
+
+`src/js/25-fuel.js`:
+
+- **Fuel gauge** (HUD): the jet sled has a 30-gallon tank (40 with the new sled) and starts season 1 at 18 gallons. A sockeye trip burns about 9 gallons, a silver trip about 11 and scouting about 4. Long runs (Swiftwater, Moose Range Meadows, the Barren Islands) and wind over 12 kt burn more. Drift-boat floats burn nothing.
+- **Harbor-only fueling:** the sled fills only at the **Kenai Harbor** fuel dock (Kenai City Dock at the river mouth, 6 AM–10 PM). Your own Homer charter boat (100 gal, ~45 a day) fills at the Homer Harbor fuel dock. A low tank at launch gives you two choices: send the clients for coffee and run to the harbor (about 65 minutes; they notice), or risk it.
+- **Running dry:** the Coast Guard tows you to Kenai Harbor and the harbormaster brings you to the fuel dock for $102 (Homer's harbor tariff rate). The trip is cut short with half the fare refunded, you lose rep, and the boarding may turn up an expired flare kit. Solo outings and scouting can run dry too.
+- **Prices (approximate, 2026):** marine gas starts at $6.19/gal at Kenai and $6.45 at Homer (pump gas on the Peninsula was about $5.14–5.55) and drifts each season. DIY boat service is $165 in parts; a dealer 100-hour service is $525. Tackle is $120 for four trips; a broken rod and reel costs $165. The motorized launch fee is $15.
+- **Upgrades** at realistic prices: repower with a new 50 hp jet outboard $13,500; new 20-ft welded sled, motor and trailer $52,000; drift boat and trailer $12,500; Charter Halibut Permit plus a used 28-ft six-pack boat $165,000.
+- **The rest of the summer:** you play the July peak, and the off-season settles June, August and September. That's about 2.4× your July trip count, scaled by reputation, at your July fares minus fuel, launches and tackle, so realistic boat prices are reachable over a career.
+
 ## Fish, weather and timing
 
 `src/js/23-fish.js` models when and where fish are, and drives trip quality, the daily sonar count, dipnetting and solo boat days:

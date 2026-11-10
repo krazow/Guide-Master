@@ -57,13 +57,13 @@ const faRenewTo=(d=day())=>(seasonOf(d)+2)*SEASON+2;         // the Wednesday of
 
 // ---- off-season upgrades ----
 const UPGRADES=[
-  {id:'motor',ic:'⚙️',n:'Rebuild the jet outboard',cost:3000,once:true,d:'Boat back to 100, and wear on it halved from now on. Still 50 hp: it’s the law on the Kenai.'},
-  {id:'sled',ic:'🚤',n:'New 20-ft welded jet sled',cost:16000,once:true,d:'Drier, faster, roomier. Sockeye and silver trips go better (+catch, +happiness).'},
-  {id:'drift',ic:'🛶',n:'New drift boat',cost:7500,once:true,d:'Upper Kenai floats go better (+catch, +happiness).'},
-  {id:'web',ic:'🌐',n:'Website refresh + Anchorage sport-show booth',cost:1800,d:'More bookings this season.'},
-  {id:'course',ic:'🧯',n:'Winter course: swiftwater rescue & fly casting',cost:700,d:'Skill +4. One per winter.'},
+  {id:'motor',ic:'⚙️',n:'Repower: a new 50 hp jet outboard',cost:13500,once:true,d:'Boat back to 100, wear on it halved, better on gas. Still 50 hp: the most the Kenai allows.'},
+  {id:'sled',ic:'🚤',n:'New 20-ft welded jet sled, motor & trailer',cost:52000,once:true,d:'Drier, faster, roomier, with a 40-gallon tank. Sockeye and silver trips go better (+catch, +happiness).'},
+  {id:'drift',ic:'🛶',n:'New drift boat & trailer',cost:12500,once:true,d:'Upper Kenai floats go better (+catch, +happiness).'},
+  {id:'web',ic:'🌐',n:'Website refresh + Anchorage sport-show booth',cost:2200,d:'More bookings this season.'},
+  {id:'course',ic:'🧯',n:'Winter course: swiftwater rescue & fly casting',cost:750,d:'Skill +4. One per winter.'},
   {id:'rates',ic:'💲',n:'Raise your rates 10%',cost:0,d:'Needs Rep 65+. Pays more per trip; a few fewer bookings. Up to +30%.'},
-  {id:'chp',ic:'⚓',n:'Buy a Charter Halibut Permit + six-pack boat in Homer',cost:45000,once:true,d:'Run your own halibut charters ($350 a head) instead of captaining for a buddy, with more halibut bookings.'},
+  {id:'chp',ic:'⚓',n:'Buy a Charter Halibut Permit + used 28-ft six-pack boat',cost:165000,once:true,d:'Run your own Homer halibut charters ($350 a head, ~45 gal of fuel a day) instead of captaining for a buddy, with more halibut bookings.'},
 ];
 function upOK(u){const U=S.up,s=seasonOf(day());
   if(u.once&&U[u.id]) return 'Done';
@@ -88,7 +88,9 @@ const upH=type=>(S.up.sled&&(type==='reds'||type==='silver')?3:0)+(S.up.drift&&t
 // ---- season rollover: runs on the first morning of each new season (from onMorning) ----
 const WINTER_COST=[['🏠 Living costs, Oct–May (after your winter job)',1800],['🪪 Guide & business licenses, KRSMA permit, vessel decals',650],['🛡️ Liability insurance & drug-testing consortium',1950]];
 function startSeason(s){
-  const st=S.stats,o=S.st0||{},yr=2025+s,prev={year:yr,trips:st.trips-(o.trips||0),earned:(st.earned-(o.earned||0))+(st.tips-(o.tips||0)),fines:st.fines-(o.fines||0),rep:S.rep,cites:(st.citesTotal||0)-(o.citesTotal||0)};
+  const st=S.stats,o=S.st0||{},yr=2025+s,prev={year:yr,trips:st.trips-(o.trips||0),fares:st.earned-(o.earned||0),earned:(st.earned-(o.earned||0))+(st.tips-(o.tips||0)),fines:st.fines-(o.fines||0),rep:S.rep,cites:(st.citesTotal||0)-(o.citesTotal||0)};
+  const rest=restOfSeason(prev);prev.rest=rest;money(rest.net);st.earned+=rest.gross;st.spent+=rest.costs;st.restTrips=(st.restTrips||0)+rest.trips;
+  adj('boat',-Math.round(rest.trips*(S.up.motor?.2:.4)));driftFuelPrices();
   S.seasons.push(prev);S.st0=JSON.parse(JSON.stringify(st));
   const bill=WINTER_COST.reduce((a,[,c])=>a+c,0);money(-bill);st.spent+=bill;
   S.reg=genRegs(s);S.limit=3;S.eo=[];S.cum=Math.round(650000*S.reg.mult.sockeye);
@@ -102,9 +104,9 @@ function winterModal(){
   const W=S.winter;if(!W)return;const s=W.s,p=S.seasons[S.seasons.length-1]||{};
   const fa=S.cred.fa<seasonFirst(s)?`<b style="color:var(--bad)">expired</b> (${dlongY(S.cred.fa)}). Renew it in Soldotna (Tue/Thu, 1–4 PM) before you guide`:S.cred.fa<seasonFirst(s)+SEASON?`<b style="color:var(--bad)">expires ${dlong(S.cred.fa)}</b>: renew it in Soldotna (Tue/Thu)`:`good through ${dlongY(S.cred.fa)}`;
   modal(`❄️ Off-season · ${2025+s} → ${2026+s}`,`
-    <p><b>${p.year} in review:</b> ${p.trips} trips, ${$(p.earned||0)} in fares and tips${p.fines?`, ${$(p.fines)} in fines`:''}. Rep ${p.rep}.</p>
+    <p><b>${p.year} in review:</b> ${p.trips} trips in the July peak, ${$(p.earned||0)} in fares and tips${p.fines?`, ${$(p.fines)} in fines`:''}. Rep ${p.rep}.</p>${p.rest&&p.rest.trips?`<p>📆 <b>The rest of ${p.year}</b> (June, August, September): ${p.rest.trips} more trips booked off your reputation: ${$(p.rest.gross)} in fares, ${$(p.rest.costs)} for fuel, launches and tackle. <b>Net ${$(p.rest.net)}.</b></p>`:''}
     <p>${WINTER_COST.map(([n,c])=>`${n}: <b>${$(c)}</b>`).join('<br>')}<br>Total: <b>${$(W.bill)}</b>. Cash now ${$(Math.round(S.money))}.</p>
-    <p>📣 <b>${2026+s} season:</b> ${REG().fc}<br>⚓ Charter halibut: 2 a day, the second ${halSize()} inches or less; no retention on ${halDaysTxt()}.<br>${evenYear(seasonFirst(s))?'🩷 Even year: pinks arrive in August.':'Odd year: hardly any pinks.'}</p>
+    <p>📣 <b>${2026+s} season:</b> ${REG().fc}<br>⚓ Charter halibut: 2 a day, the second ${halSize()} inches or less; no retention on ${halDaysTxt()}.<br>⛽ Kenai Harbor fuel: ${$(fuelPrice('kenai',seasonFirst(s)))}/gal this year.<br>${evenYear(seasonFirst(s))?'🩷 Even year: pinks arrive in August.':'Odd year: hardly any pinks.'}</p>
     <p>⛑️ First-aid card: ${fa}.${W.expired>0?`<br>⚖️ ${W.expired} old citation${W.expired>1?'s':''} dropped off your record.`:''}${S.cites?`<br>⚖️ Active citations: ${S.cites}/3.`:''}</p>
     <p style="font-size:13px;color:var(--mute)">Season ${s+1} of ${S.years}. Bookings fill once you’ve made your off-season plans.</p>`,[
     {l:'🛠️ Upgrades & business',s:'Boats, marketing, rates, a Homer charter permit.',fn:()=>upgradeModal()},

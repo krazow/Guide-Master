@@ -60,6 +60,7 @@ function onNewGame(){
   modal('🛶 Welcome to the Kenai',`<p>You’re a licensed sport fishing guide out of <b>Soldotna</b>, with a jet sled, a drift boat and <b>${S.book.length} trips</b> booked over the next two weeks: the peak of the late sockeye run.</p>
     <p>📆 This is season 1 of a <b>${S.years}-year career</b>. Each July you guide two weeks; each winter you pay the bills, plan upgrades and see what the new season’s rules and runs look like.</p>
     <p>👑 <b>Kenai kings are closed in 2026</b> by emergency order. Not even catch-and-release.</p>
+    <p>⛽ The sled has <b>${S.fuel} gallons</b> in a ${SLED_TANK()}-gallon tank. The only fuel dock is at <b>Kenai Harbor</b>. Run dry and the Coast Guard tows you in.</p>
     <p>⛑️ Your <b>first-aid/CPR card expires Wednesday night</b> (a new one lasts two years). There’s a class at the clinic in Soldotna <b>Tuesday and Thursday, 1–4 PM</b>.</p>
     <p>Check the <b>📅 Bookings</b> tab for your schedule and the <b>📖 Regs</b> tab for the rules you guide by.</p>`,[{l:'Grab the coffee and go',fn:()=>{}}]);
 }
@@ -200,6 +201,7 @@ defEvent({id:'good_review',hook:'night',tile:['⭐','Five-star review','good'],c
 const TIPS=[
   {id:'welcome',when:()=>day()===0&&S.loc==='shop',t:'👋 Welcome, {{name}}! Monday is a shop day. Rig tomorrow’s gear, return calls, and check the <b>📅 Bookings</b> tab.'},
   {id:'firstaid',when:()=>faDue()&&S.cred.fa>=day()&&sday(day())<=3,t:'⛑️ Your first-aid card expires <b>Wednesday night</b>. The class is in <b>Soldotna</b>, Tue & Thu 1–4 PM. Guiding without a current card can get you cited.'},
+  {id:'fuel',when:()=>S.fuel<BURN.reds+2,t:'⛽ The sled is low. The only fuel is the <b>Kenai Harbor</b> fuel dock at the river mouth, 6 AM–10 PM. A sockeye trip burns about 9 gallons.'},
   {id:'launch',when:()=>todays().some(b=>TRIPS[b.type].loc!==S.loc),t:'🛶 Trips launch from a set spot. Use <b>🧭 Go somewhere</b> and be there before the launch time.'},
   {id:'logbook',when:()=>S.unlogged>0,t:'📓 Every guided trip needs an ADF&G logbook entry. Fill it out at the shop <b>before bed</b>.'},
   {id:'gear',when:()=>S.gear<=1,t:'🪱 You’re low on tackle. Restock in <b>Soldotna</b>, or the next trip suffers.'},
@@ -241,23 +243,24 @@ const ACH=[
 
 // ---- scoring and the end screen ----
 const FINISH_TEXT={h1:'{{name}}, that’s a wrap on your career',sub:()=>`${S.years} Julys on the Kenai, ${yearOf(0)}–${yearOf(day())}. The river keeps running; somebody else gets your seams now.`};
-function scoreOf(){return Math.round((S.money-DF().money)+(S.up?S.up.value:0)*.5+S.rep*15+S.stats.trips*60-(S.stats.citesTotal||S.cites)*400+S.freezer*2+(S.stats.viol===0?300*S.years:0))}
+function curSeason(){const s=S.stats,o=S.st0||{};return {year:yearOf(day()),trips:s.trips-(o.trips||0),fares:s.earned-(o.earned||0),earned:(s.earned+s.tips)-((o.earned||0)+(o.tips||0))}}
+function scoreOf(){return Math.round((S.money-DF().money)+restOfSeason(curSeason()).net+(S.up?S.up.value:0)*.5+S.rep*15+S.stats.trips*60-(S.stats.citesTotal||S.cites)*400+S.freezer*2+(S.stats.viol===0?300*S.years:0))}
 function gradeOf(sc){
   sc=sc/(S.years||1);                                   // graded per season, so careers of any length compare
-  if(sc>=13000) return ['A','Guide Master','Other guides watch where you anchor (legally).'];
-  if(sc>=10000)  return ['B','River Rat','You know every seam from Big Eddy to the Russian.'];
-  if(sc>=7000)  return ['C','Seasonal Hand','Booked, tired and still mostly dry.'];
-  if(sc>=4000)  return ['D','Greenhorn','You learned the regs the expensive way.'];
+  if(sc>=50000) return ['A','Guide Master','Other guides watch where you anchor (legally).'];
+  if(sc>=40000)  return ['B','River Rat','You know every seam from Big Eddy to the Russian.'];
+  if(sc>=28000)  return ['C','Seasonal Hand','Booked, tired and still mostly dry.'];
+  if(sc>=15000)  return ['D','Greenhorn','You learned the regs the expensive way.'];
   return ['F','Hang Up the Waders','Maybe the slime line is hiring.'];
 }
 function endRows(){
   const s=S.stats;
-  const last={year:yearOf(day()),trips:s.trips-((S.st0||{}).trips||0),earned:(s.earned+s.tips)-(((S.st0||{}).earned||0)+((S.st0||{}).tips||0))};
-  const yrs=S.seasons.concat([last]).map(x=>`${x.year}: ${x.trips} trips, ${$(x.earned)}`).join('<br>');
+  const last=curSeason();last.rest=restOfSeason(last);
+  const yrs=S.seasons.concat([last]).map(x=>`${x.year}: ${x.trips}${x.rest&&x.rest.trips?` + ${x.rest.trips}`:''} trips, ${$(x.earned+(x.rest?x.rest.net:0))}`).join('<br>');
   return [['Career',`${S.years} seasons`],['Season by season',yrs],['Cash',$(Math.round(S.money))],['Net over the career',$(Math.round(S.money-DF().money))],['Boats & permits bought',S.up&&S.up.value?$(S.up.value):'none'],['Trips / clients',`${s.trips} / ${s.clients}`],
     ['Fish landed',s.fish],['Trips where everyone limited',s.limits],['Tips',$(s.tips)],['Reputation',S.rep],
     ['Record',`${s.citesTotal||0} citation${(s.citesTotal||0)===1?'':'s'}, ${S.warns} warning${S.warns===1?'':'s'}, ${$(s.fines)} in fines`],
-    ['Kings released',s.kings],['Freezer',`${S.freezer} reds`],['Boat checks passed',s.checks]];
+    ['Fuel',`${Math.round(s.fuelGal||0)} gal, ${$(Math.round(s.fuelCost||0))}`],['Coast Guard tows',s.tows||0],['Kings released',s.kings],['Freezer',`${S.freezer} reds`],['Boat checks passed',s.checks]];
 }
 
 // ---- save migrations ----
