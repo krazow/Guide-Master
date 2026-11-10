@@ -10,6 +10,8 @@ const CHANGELOG={
   '1.3.2':['❓ Help! button on the title screen and in Settings explains the rules and the game.'],
   '1.4.0':['💬 Send feedback: tell the developer about ideas, bugs or a rule that looks wrong.'],
   '1.5.0':['🏕️ Winter camping in the off-season: pick a destination and how many nights.'],
+  '1.5.1':['🩹 Fixes: no more “undefined” on bookings; first-aid classes now Mon/Tue/Thu with earlier reminders; booking requests for days you can’t legally fish are flagged, with an offer to move them.'],
+  '1.5.2':['🆕 This notice: after each update you’ll see what changed, and your saved games are brought up to date.'],
 };
 const CHANGELOG_GENERIC='Fixes and small improvements throughout.';
 const LASTVER_KEY=KEY('lastVersion');
