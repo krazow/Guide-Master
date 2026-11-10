@@ -20,7 +20,7 @@ Object.assign(TRAVEL,{'harbor|shop':25,'harbor|town':22,'harbor|lower':25,'harbo
 STATS.splice(4,0,{l:'Fuel',v:()=>`${Math.round(S.fuel)}g`,m:()=>S.fuel/SLED_TANK()*100,warn:()=>S.fuel<BURN.reds,title:'Gallons in the jet sled. Fill up only at the Kenai Harbor fuel dock.'});
 
 // ---- prices ----
-function fuelPrice(where,d=day()){const b=(S.fuelBase||{kenai:6.19,homer:6.45})[where];const wob=Math.sin(d*1.7)*.05;return Math.round((b+wob)*100)/100}
+function fuelPrice(where,d=day()){const b=(S.fuelBase||{kenai:6.19,homer:6.45})[where];const wob=Math.sin(d*1.7)*.05;return Math.round((b+wob)*DF().cost*100)/100}
 function fillUp(tank,where){
   const cap=tank==='fuel'?SLED_TANK():CHARTER_TANK,p=fuelPrice(where),want=Math.max(0,cap-S[tank]);
   const gal=Math.max(0,Math.min(want,Math.floor(S.money/p*10)/10)),cost=Math.round(gal*p*100)/100;
@@ -82,7 +82,7 @@ function harborActions(a){
 // You play the two-week July peak; the rest of your season is booked off your reputation.
 function restOfSeason(p){
   if(!p||!p.trips) return {trips:0,gross:0,costs:0,net:0};
-  const trips=Math.round(p.trips*2.4*clamp(S.rep/70,.5,1.25)),fare=p.fares/p.trips;
+  const trips=Math.round(p.trips*2.4*DF().book*clamp(S.rep/70,.5,1.25)),fare=p.fares/p.trips;
   const gross=Math.round(trips*fare),costs=Math.round(trips*(BURN.reds*fuelPrice('kenai')+LAUNCH_FEE+30));
   return {trips,gross,costs,net:gross-costs};
 }
