@@ -82,6 +82,7 @@ function onNewGame(){
 function onMorning(d){
   if(d===0) return;
   const sd=sday(d),newSeason=sd===0;
+  patchExpire(d);
   if(newSeason) startSeason(seasonOf(d));               // 24-career.js: bills, new rules, forecast, upgrades
   rollDay(d);
   const w=WX[S.wx[d]];
@@ -258,6 +259,7 @@ function todoItems(){
   S.book.filter(b=>b.d===d&&!b.asst).forEach(b=>{const T=TRIPS[b.type];
     it.push({l:`${T.ic} ${T.n}: ${b.who}`,s:`${fmt(T.start)}, ${L[T.loc].name}`,ok:b.status==='done',fail:b.status==='noshow'||b.status==='cancelled',urgent:b.status==='booked'&&m>=T.start-120})});
   if(faDue(d)) it.push({l:'Renew your first-aid card',s:'Soldotna clinic, Mon, Tue & Thu 1–4 PM (join by 1:30), $95.',ok:false,urgent:faUrgent(d)||S.cred.fa<d});
+  if(S.boat<=40) it.push({l:S.boat<=0?'Get the boat back in service':'Service the boats',s:S.boat<=0?`Out of service: a major repair ${$(rp(MAJOR_REPAIR))}, or an emergency patch or loaner to run a trip.`:`Condition ${S.boat}. At the shop: DIY +20 or the dealer +40. Below 10 it can go out of service.`,ok:false,urgent:S.boat<=20});
   it.push({l:'Keep your logbook current',s:S.unlogged+S.overdue?`${S.unlogged+S.overdue} trip${S.unlogged+S.overdue>1?'s':''} to write up.`:'All caught up.',ok:!(S.unlogged+S.overdue),urgent:S.overdue>0});
   it.push({l:'Keep a clean record',s:`${S.cites} active citation${S.cites===1?'':'s'}, ${S.warns} warning${S.warns===1?'':'s'} this season. Three citations and your permit is gone.`,ok:S.cites===0,urgent:S.cites>=2});
   it.push({l:'Optional: fill the freezer with 25 dipnet reds',s:`${S.freezer}/25. Kenai City Beach, 6 AM–11 PM.`,ok:S.freezer>=25});
