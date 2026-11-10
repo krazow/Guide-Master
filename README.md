@@ -127,6 +127,10 @@ Miles are estimates from Sterling Highway mileposts (Soldotna about MP 95.2; Qua
 
 Achievements: Happy Camper (7 nights in total) and Wild Kenai (5 different encounters). The end screen lists nights camped and encounters.
 
+## Waiting and the alarm
+
+Time only moves when you act, so skipping ahead has its own action: **⏳ Wait until…** (every place except mid-trip and the off-season screen; `waitModal()` in `20-world.js`) offers only choices that make sense right now: *until the party shows up* for a launch at your current spot (an hour before the launch), *until it's time to leave* for a launch elsewhere (launch minus the drive), *until the 1:00 PM first-aid class* on a class day when your card is due, and *30* or *60 more minutes*. It never runs past midnight. Waiting passes time like anything else (a little energy). The default alarm for **new** games is **5:00 AM** (`GAME.wake`); a saved game keeps whatever alarm it had, and the shop's alarm action still cycles 4:00–6:00.
+
 ## Fuel, towing and prices
 
 `src/js/25-fuel.js`:

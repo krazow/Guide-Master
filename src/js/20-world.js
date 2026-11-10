@@ -164,9 +164,29 @@ function actionsHere(){
     a.push({ic:'🍟',l:'Fish & chips on the Spit — $20',s:'40 min. Energy +10.',cat:'rest',dis:!canAfford(20),fn:()=>{spend(20);pass(40);adj('energy',10);say('🍟 Halibut and chips at a picnic table, eagles on every light pole. Homer calls itself the Halibut Fishing Capital of the World.')}});
   }
   a.push(coffeeAction(S.loc==='cooper'));
+  a.push({ic:'⏳',l:'Wait until…',s:'Skip ahead: the next launch, the 1 PM first-aid class, or 30 or 60 minutes.',cat:'rest',fn:()=>waitModal()});
   harborActions(a);
   return a;
 }
+
+// ⏳ Wait until…: choices that make sense right now (a launch you're at, the time to leave for one, today's first-aid class, +30/+60 min).
+function waitChoices(){
+  const d=day(),m=tod(),end=(d+1)*1440-1-d*1440,o=[];          // minutes into today; waiting can't run past midnight
+  todays(d).sort((x,y)=>TRIPS[x.type].start-TRIPS[y.type].start).forEach(b=>{
+    const T=TRIPS[b.type],meet=T.start-60;
+    if(T.loc===S.loc){if(m<meet)o.push({at:meet,l:`Until the ${b.who} show up: ${fmt(meet)}`,s:`Next launch: ${T.n}, ${fmt(T.start)}. ${meet-m} min.`,say:`⏳ You wait at ${L[S.loc].name} until the ${b.who} pull in.`})}
+    else{const leave=meet-travelMins(S.loc,T.loc);if(m<leave)o.push({at:leave,l:`Until it’s time to leave for the ${T.n.toLowerCase()}: ${fmt(leave)}`,s:`${L[T.loc].name} is ${travelMins(S.loc,T.loc)} min away. ${leave-m} min.`,say:`⏳ You kill time until it’s time to head for ${L[T.loc].name}.`})}
+  });
+  if(faDue(d)&&faClassDay(d)&&m<780) o.push({at:780,l:'Until the 1:00 PM first-aid class',s:`The Soldotna clinic doors open at 1:00. ${780-m} min.`,say:'⏳ You wait for the 1:00 first-aid class.'});
+  [30,60].forEach(x=>o.push({at:m+x,l:`${x} more minutes`,s:`Until ${fmt(S.t+x)}.`,say:`⏳ You wait ${x} minutes.`}));
+  return o.filter(x=>x.at>m&&x.at<=end).sort((x,y)=>x.at-y.at).filter((x,i,a)=>i===0||x.at!==a[i-1].at);
+}
+function waitModal(){
+  const o=waitChoices();
+  modal('⏳ Wait until…',`<p style="font-size:13px;color:var(--mute)">Time passes, you get a little tired, and nothing else happens. It’s ${fmt(S.t)}.</p>`,
+    o.map(x=>({l:x.l,s:x.s,fn:()=>{pass(x.at-tod());say(x.say)}})).concat([{l:'Never mind',fn:()=>{}}]));
+}
+window.waitChoices=waitChoices;
 
 // ☕ Optional coffee break: 5 minutes on the clock, anywhere except the drift boat (Cooper Landing / a trout float).
 function coffeeAction(onDrift){

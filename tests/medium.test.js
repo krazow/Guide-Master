@@ -159,4 +159,40 @@ module.exports = [
     assert.strictEqual(r.launchFee, 0, 'no launch fee at your own ramp');
     noErrors(errors);
   } },
+
+  // ---- 3. Wait until… and the 5:00 AM alarm ----
+  { name: 'new games wake at 5:00 AM; an old save keeps its alarm', fn: async ctx => {
+    const { page, errors } = await open(ctx);
+    await newGame(page);
+    const r = await page.evaluate(() => ({ alarm: S.alarm, t: S.t, fmt: fmt(S.t) }));
+    assert.strictEqual(r.alarm, 300); assert.strictEqual(r.t, 300);
+    const old = await page.evaluate(() => { closeModals(); S.alarm = 240; S.cur = 0; S.t = 1300; S.loc = 'shop'; endDay('home'); closeModals(); return [S.alarm, S.t - 1440]; });
+    assert.deepStrictEqual(old, [240, 240], 'an existing alarm setting stays');
+    noErrors(errors);
+  } },
+  { name: 'Wait until…: next launch, the 1 PM class, +30 and +60 minutes', fn: async ctx => {
+    const { page, errors } = await open(ctx, { seed: 4 });
+    await newGame(page);
+    const r = await page.evaluate(() => {
+      closeModals(); const out = {};
+      S.book = []; S.cur = 1; S.t = 1440 + 200; S.loc = 'lower'; addBooking({ d: 1, type: 'reds', n: 3, who: 'early', from: 'X', quirk: [] });
+      out.here = waitChoices().map(x => x.l);
+      out.action = actionsHere().some(a => /Wait until/.test(a.l));
+      const w = waitChoices().find(x => /show up/.test(x.l)); const a = actionsHere().find(x => /Wait until/.test(x.l)); a.fn();
+      const btn = [...document.querySelectorAll('#mbg button.act')].findIndex(b => /show up/.test(b.textContent)); MBTN(btn);
+      out.t = tod(); out.launch = !!actionsHere().find(x => /Meet the/.test(x.l) && !x.dis);
+      // away from the launch: wait until it is time to leave
+      S.t = 1440 + 200; S.loc = 'shop'; out.away = waitChoices().map(x => x.l);
+      // the first-aid class
+      S.book = []; S.cred.fa = 1; S.cur = 0; S.t = 600; S.loc = 'town'; out.fa = waitChoices().map(x => x.l);
+      S.cur = 0; S.t = 1439 - 20; out.late = waitChoices().map(x => x.l);   // 23:39: +30 would pass midnight
+      return out;
+    });
+    assert.ok(r.action); assert.ok(r.here.some(l => /show up: 5:00 AM/.test(l)), r.here.join('|')); assert.strictEqual(r.t, 300); assert.ok(r.launch, 'the launch is open after waiting');
+    assert.ok(r.here.some(l => /30 more/.test(l)) && r.here.some(l => /60 more/.test(l)));
+    assert.ok(r.away.some(l => /time to leave for the sockeye trip/.test(l)), r.away.join('|'));
+    assert.ok(r.fa.some(l => /1:00 PM first-aid class/.test(l)), r.fa.join('|'));
+    assert.ok(!r.late.some(l => /60 more/.test(l)), 'no waiting past midnight');
+    noErrors(errors);
+  } },
 ];

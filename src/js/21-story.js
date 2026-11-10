@@ -34,7 +34,7 @@ const PARTIES=[
 // ---- title screen ----
 const TITLE={
   start:'Start your guiding career 🛶',
-  intro:'You’re a licensed Kenai River guide working out of Soldotna, Alaska. Every July is the peak of the late sockeye run: two weeks of 4 AM alarms, full boats, bears, troopers and a rulebook thicker than your waders. Choose a 2-, 5- or 10-year career.',
+  intro:'You’re a licensed Kenai River guide working out of Soldotna, Alaska. Every July is the peak of the late sockeye run: two weeks of 5 AM alarms, full boats, bears, troopers and a rulebook thicker than your waders. Choose a 2-, 5- or 10-year career.',
   bullets:['Each season: two weeks of July guiding. Between seasons: bills, upgrades, new rules and new bookings.','Show up for every booked trip: sockeye, silvers, trout floats and a Homer halibut charter.','Know the regs. Kenai kings are closed in 2026 (later years may differ), and guide boats don’t fish below Skilak on Sundays or Mondays.','Keep your logbook, your first-aid card and your record clean. Three citations and your permit is gone.','Keep clients happy, the boat running and yourself awake.'],
   note:'Regulations simplified from 2026 ADF&G, State Parks and NOAA rules. Always check the current regs.',
   art:()=>`<svg viewBox="0 0 480 250" preserveAspectRatio="xMidYMid slice" style="width:100%;height:100%" aria-hidden="true"><defs><linearGradient id="ts" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fb9cf"/><stop offset="1" stop-color="#f0dcc0"/></linearGradient></defs><rect width="480" height="250" fill="url(#ts)"/>

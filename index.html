@@ -234,7 +234,7 @@ const GAME={
   version:'1.6.0',           // bump on every release: shown in Settings, stamped into saves and sw.js
   schema:2,                  // bump when the shape of S changes, and add a MIGRATIONS entry (21-story.js)
   days:14,                   // length of a run, in days (Mon Jul 13 – Sun Jul 26, 2026)
-  wake:270,                  // default alarm, in minutes after midnight (270 = 4:30 AM: guides start early)
+  wake:300,                  // default alarm for new games, in minutes after midnight (300 = 5:00 AM: guides start early; saves keep their own S.alarm)
   startLoc:'shop',
   travelAnim:20,             // trips this many minutes or longer play the full-screen transition
   defaultName:'Skipper',      // used until the player picks a name
@@ -1060,9 +1060,29 @@ function actionsHere(){
     a.push({ic:'🍟',l:'Fish & chips on the Spit — $20',s:'40 min. Energy +10.',cat:'rest',dis:!canAfford(20),fn:()=>{spend(20);pass(40);adj('energy',10);say('🍟 Halibut and chips at a picnic table, eagles on every light pole. Homer calls itself the Halibut Fishing Capital of the World.')}});
   }
   a.push(coffeeAction(S.loc==='cooper'));
+  a.push({ic:'⏳',l:'Wait until…',s:'Skip ahead: the next launch, the 1 PM first-aid class, or 30 or 60 minutes.',cat:'rest',fn:()=>waitModal()});
   harborActions(a);
   return a;
 }
+
+// ⏳ Wait until…: choices that make sense right now (a launch you're at, the time to leave for one, today's first-aid class, +30/+60 min).
+function waitChoices(){
+  const d=day(),m=tod(),end=(d+1)*1440-1-d*1440,o=[];          // minutes into today; waiting can't run past midnight
+  todays(d).sort((x,y)=>TRIPS[x.type].start-TRIPS[y.type].start).forEach(b=>{
+    const T=TRIPS[b.type],meet=T.start-60;
+    if(T.loc===S.loc){if(m<meet)o.push({at:meet,l:`Until the ${b.who} show up: ${fmt(meet)}`,s:`Next launch: ${T.n}, ${fmt(T.start)}. ${meet-m} min.`,say:`⏳ You wait at ${L[S.loc].name} until the ${b.who} pull in.`})}
+    else{const leave=meet-travelMins(S.loc,T.loc);if(m<leave)o.push({at:leave,l:`Until it’s time to leave for the ${T.n.toLowerCase()}: ${fmt(leave)}`,s:`${L[T.loc].name} is ${travelMins(S.loc,T.loc)} min away. ${leave-m} min.`,say:`⏳ You kill time until it’s time to head for ${L[T.loc].name}.`})}
+  });
+  if(faDue(d)&&faClassDay(d)&&m<780) o.push({at:780,l:'Until the 1:00 PM first-aid class',s:`The Soldotna clinic doors open at 1:00. ${780-m} min.`,say:'⏳ You wait for the 1:00 first-aid class.'});
+  [30,60].forEach(x=>o.push({at:m+x,l:`${x} more minutes`,s:`Until ${fmt(S.t+x)}.`,say:`⏳ You wait ${x} minutes.`}));
+  return o.filter(x=>x.at>m&&x.at<=end).sort((x,y)=>x.at-y.at).filter((x,i,a)=>i===0||x.at!==a[i-1].at);
+}
+function waitModal(){
+  const o=waitChoices();
+  modal('⏳ Wait until…',`<p style="font-size:13px;color:var(--mute)">Time passes, you get a little tired, and nothing else happens. It’s ${fmt(S.t)}.</p>`,
+    o.map(x=>({l:x.l,s:x.s,fn:()=>{pass(x.at-tod());say(x.say)}})).concat([{l:'Never mind',fn:()=>{}}]));
+}
+window.waitChoices=waitChoices;
 
 // ☕ Optional coffee break: 5 minutes on the clock, anywhere except the drift boat (Cooper Landing / a trout float).
 function coffeeAction(onDrift){
@@ -1179,7 +1199,7 @@ const PARTIES=[
 // ---- title screen ----
 const TITLE={
   start:'Start your guiding career 🛶',
-  intro:'You’re a licensed Kenai River guide working out of Soldotna, Alaska. Every July is the peak of the late sockeye run: two weeks of 4 AM alarms, full boats, bears, troopers and a rulebook thicker than your waders. Choose a 2-, 5- or 10-year career.',
+  intro:'You’re a licensed Kenai River guide working out of Soldotna, Alaska. Every July is the peak of the late sockeye run: two weeks of 5 AM alarms, full boats, bears, troopers and a rulebook thicker than your waders. Choose a 2-, 5- or 10-year career.',
   bullets:['Each season: two weeks of July guiding. Between seasons: bills, upgrades, new rules and new bookings.','Show up for every booked trip: sockeye, silvers, trout floats and a Homer halibut charter.','Know the regs. Kenai kings are closed in 2026 (later years may differ), and guide boats don’t fish below Skilak on Sundays or Mondays.','Keep your logbook, your first-aid card and your record clean. Three citations and your permit is gone.','Keep clients happy, the boat running and yourself awake.'],
   note:'Regulations simplified from 2026 ADF&G, State Parks and NOAA rules. Always check the current regs.',
   art:()=>`<svg viewBox="0 0 480 250" preserveAspectRatio="xMidYMid slice" style="width:100%;height:100%" aria-hidden="true"><defs><linearGradient id="ts" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fb9cf"/><stop offset="1" stop-color="#f0dcc0"/></linearGradient></defs><rect width="480" height="250" fill="url(#ts)"/>
@@ -2196,7 +2216,7 @@ function driftFuelPrices(){const r=Math.random;S.fuelBase=S.fuelBase||{kenai:6.1
 // ============================================================
 const HELP=[
   ['🎯','The goal','Run a Kenai River guide business out of Soldotna for a <strong>2-, 5- or 10-year career</strong>. Each year you play the two-week July peak; between years the off-season handles bills, upgrades and next season’s bookings. Keep clients happy, your boat running and your record clean.'],
-  ['🕐','How a day works','Time moves only when you act. Tap an action on the <strong>🧭 Here</strong> tab, or <strong>Go somewhere</strong> to travel. Guides start early: the alarm is 4:30 AM. <strong>Go to bed</strong> at the shop to end the day; staying up past midnight costs you.'],
+  ['🕐','How a day works','Time moves only when you act. Tap an action on the <strong>🧭 Here</strong> tab, or <strong>Go somewhere</strong> to travel. Guides start early: the alarm is 5:00 AM (change it at the shop). To skip ahead, use <strong>⏳ Wait until…</strong>: the next launch, the 1 PM first-aid class, or 30 or 60 minutes. <strong>Go to bed</strong> at the shop to end the day; staying up past midnight costs you.'],
   ['🛶','Trips','Your schedule is on the <strong>📅 Bookings</strong> tab. Be at the launch spot by launch time: sockeye and silvers from the <strong>Lower Kenai launch</strong>, trout floats from <strong>Cooper Landing</strong>, halibut from the <strong>Homer Spit</strong>. On the water you pick a spot, then face a few choices, shuffled every time. Playing it straight costs something (time, fish or a smaller tip); bending a rule can pay cash, but if a trooper catches you the fine hurts.'],
   ['📖','The rules','The <strong>📖 Regs</strong> tab lists your credentials and every rule you guide by: king status, single-hook/no-bait, no guide-boat fishing below Skilak on Sundays and Mondays, 6 AM–6 PM, five people a boat in July, bag limits, halibut rules. Break one and you may get a warning (the first minor offense each season) or a citation, and every citation on your record makes the next fine bigger. <strong>Three active citations</strong> and State Parks pulls your permit.'],
   ['📓','Paperwork','Fill out your <strong>ADF&G logbook</strong> at the shop after every trip, before bed. Keep your <strong>first-aid/CPR card</strong> current: classes are in Soldotna, Monday, Tuesday and Thursday, 1–4 PM (join by 1:30), and a card lasts two years.'],
@@ -2416,7 +2436,7 @@ const CHANGELOG={
   '1.5.2':['🆕 This notice: after each update you’ll see what changed, and your progress is brought up to date automatically.'],
   '1.5.3':['⚖️ Difficulty now changes the game, not the score: Combat Season means more patrols and dearer bills, Rookie the reverse. Grades were recalibrated, so an A takes real work.'],
   '1.5.4':['🎲 Dilemma options shuffle: playing it straight costs something, bending a rule can pay cash, and repeat offenders pay steeper fines. Pay now follows the day: catch, tackle and boat shape tips, refunds and word of mouth.'],
-  '1.6.0':['💲 Higher rates now cost you: fewer bookings, pickier clients and a rep requirement that rises each step.','🔧 Boats at condition 0 are out of service until repaired. New motors burn less gas and new sleds finish trips sooner.','🧑‍🤝‍🧑 Late-career money sinks: hire an assistant guide, build guest cabins, or buy a riverfront lot with your own launch.'],
+  '1.6.0':['💲 Higher rates now cost you: fewer bookings, pickier clients and a rep requirement that rises each step.','🔧 Boats at condition 0 are out of service until repaired; new motors burn less gas, new sleds finish sooner, and late-career money can buy an assistant guide, guest cabins or a riverfront launch.','⏳ New “Wait until…” action skips to the next launch or the 1 PM class. New games start with a 5:00 AM alarm.'],
 };
 const CHANGELOG_GENERIC='Fixes and small improvements throughout.';
 const LASTVER_KEY=KEY('lastVersion');
