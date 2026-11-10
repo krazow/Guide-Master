@@ -144,11 +144,11 @@ function requestModal(r){
 
 // ---- dipnetting (you're an Alaska resident) ----
 function dipnetModal(){
-  const d=day(),n=clamp(Math.round(Math.random()*10+(S.run[d-1]||80000)/20000),2,25-S.freezer);
+  const d=day(),o=avgOdds('sockeye','kbeach',S.t,180),n=clamp(Math.round((2+13*o)*(.7+Math.random()*.6)),1,Math.max(1,25-S.pu));
   S.dipnet[d]=true;
-  modal('🥅 Dipnetting at the mouth',`<p>Three hours in chest waders at the mouth of the Kenai, a five-foot hoop net and a few hundred of your neighbors. You bonk <b>${n} reds</b>.</p><p style="font-size:13px;color:var(--mute)">Personal use is for Alaska residents only. Household limit: 25. Before you leave the beach, clip both tips of each fish’s tail and record it on your permit.</p>`,[
-    {l:'Clip both tail tips & record them on your permit',s:'10 more minutes.',fn:()=>{pass(190);S.freezer+=n;adj('energy',-10);say(`🥅 ${n} reds clipped, recorded and iced. Freezer: ${S.freezer}/25.`)}},
-    {l:'Skip the paperwork, beat the traffic',fn:()=>{pass(180);S.freezer+=n;adj('energy',-10);say(`🥅 You toss ${n} reds in the cooler and hit the road.`);violate(null,{p:.3,fine:150,minor:true,what:'unmarked, unrecorded personal-use salmon'})}}]);
+  modal('🥅 Dipnetting at the mouth',`<p>Three hours in chest waders at the mouth of the Kenai, a five-foot hoop net and a few hundred of your neighbors. You bonk <b>${n} reds</b>.</p><p style="font-size:13px">🌊 Tide: ${tideNow()}. Reds ride the incoming tide in; ${o>.75?'you timed it right.':o>.45?'decent timing.':'next time, come on the flood tide.'}</p><p style="font-size:13px;color:var(--mute)">Personal use is for Alaska residents only. Household limit: 25. Before you leave the beach, clip both tips of each fish’s tail and record it on your permit.</p>`,[
+    {l:'Clip both tail tips & record them on your permit',s:'10 more minutes.',fn:()=>{pass(190);S.freezer+=n;S.pu+=n;adj('energy',-10);say(`🥅 ${n} reds clipped, recorded and iced. Freezer: ${S.freezer}/25.`)}},
+    {l:'Skip the paperwork, beat the traffic',fn:()=>{pass(180);S.freezer+=n;S.pu+=n;adj('energy',-10);say(`🥅 You toss ${n} reds in the cooler and hit the road.`);violate(null,{p:.3,fine:150,minor:true,what:'unmarked, unrecorded personal-use salmon'})}}]);
 }
 
 // ---- enforcement: boat & credential checks ----
