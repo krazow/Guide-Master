@@ -17,6 +17,6 @@ const HELP=[
 function helpModal(){
   modal('❓ Help! How to play Guide Master',HELP.map(([ic,h,t])=>`<div class="todo"><span class="ck">${ic}</span><div><b>${h}</b><span style="font-size:13.5px;line-height:1.45;color:var(--ink)">${t}</span></div></div>`).join('')+
     '<p style="font-size:12px;color:var(--mute);margin-top:10px">Season 1 follows a simplified version of the real 2026 Kenai rules; later seasons invent plausible changes. This is a game: always check the current regulations and emergency orders at adfg.alaska.gov before you fish.</p>',
-    [{l:'Got it',fn:()=>{}}]);
+    [{l:'Got it',fn:()=>{}},{l:'💬 Send feedback',s:'Questions, ideas or bugs: tell the developer.',fn:()=>feedbackModal(helpModal)}]);
 }
 window.helpModal=helpModal;

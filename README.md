@@ -29,6 +29,18 @@ Every trip throws decisions at you, and the first option is always the legal one
 
 **Sources:** ADF&G 2026 Southcentral sport fishing regulations (Kenai River, Kenai Peninsula and guiding sections); ADF&G Emergency Order 2-KS-1-7-26 (Kenai late-run kings closed, gear restrictions); 11 AAC 20 (Kenai River Special Management Area); NOAA Fisheries / IPHC 2026 Area 3A charter halibut management measures; Alaska State Parks Kenai River guide permit requirements.
 
+## Player feedback
+
+`src/js/27-feedback.js` adds **💬 Send feedback** to the title screen, the ⚙️ Settings menu and the Help! sheet. The player picks a kind (idea, bug, a rule or fact is wrong, love it, other), writes a message and can add an email address if they want a reply. The game POSTs it as JSON to the Formspree form `mdeeqzbq`, and Formspree emails it to the developer with the subject **"Guide Master Feedback"**:
+
+- **Reply-to:** set to the player's email when they give one, so you can answer straight from your inbox.
+- **Context:** the game version, installed app vs browser, device, and career, day, location, cash, rep and trips when a game is running.
+- **Spam:** a hidden `_gotcha` field drops bot posts.
+- **Offline:** a message that can't be sent (offline, or Formspree busy) waits on the device and is sent automatically when the game is next online.
+- **Privacy:** only the form ID is in the public code, never an email address. Formspree's free plan covers 50 submissions a month.
+
+To change the form, edit `FEEDBACK.formId` in `27-feedback.js` and rebuild.
+
 ## Careers: 2, 5 or 10 years
 
 When you start a new game you pick a **2-, 5- or 10-year career** (`src/js/24-career.js`). Each season you play the two-week July peak, Monday to Sunday, starting on the Monday nearest July 13 (2026: Jul 13; 2027: Jul 12; 2028: Jul 10…). Between seasons comes the **off-season**:

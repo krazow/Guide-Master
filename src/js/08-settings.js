@@ -28,6 +28,7 @@ function titleScreen(){clearTiles();
   ${d?`<button class="big" onclick="resumeGame()">Continue as ${esc(d.S.name||currentName())}: ${dayName(d.S.cur)} ${fmt(d.S.t)}${multi||curSlot()>1?` (slot ${curSlot()})`:''}</button><button class="ghost" onclick="startNewGame()">Start a new game</button>`:`<button class="big" onclick="startNewGame()">${TITLE.start}</button>`}
   ${GAME.slots>1?'<button class="ghost" onclick="slotsModal()">💾 Save slots</button>':''}
   ${typeof helpModal==='function'?'<button class="ghost" onclick="helpModal()">❓ Help!</button>':''}
+  ${typeof feedbackModal==='function'?'<button class="ghost" onclick="feedbackModal()">💬 Send feedback</button>':''}
   <button class="ghost" onclick="openTransfer()">🔁 Transfer a saved game</button>
   ${saveNotice?`<div class="hint">⚠️ ${saveNotice}</div>`:''}${exitNotice?`<div class="hint">${exitNotice}</div>`:''}
   <button id="installBtn" class="ghost" style="display:${deferredInstall&&!isStandalone()?'block':'none'}" onclick="doInstall()">📲 Install as an app</button>
@@ -74,6 +75,7 @@ window.openSettings=()=>{
     {l:'♿ Accessibility',s:`Text size: ${{n:'Normal',l:'Large',xl:'Extra large'}[prefs().fs]} · High contrast: ${prefs().hc?'On':'Off'} · Reduce motion: ${prefs().rm?'On':'Off'}`,fn:()=>accessModal()},
     {l:`💡 Tips: ${prefs().tips?'On':'Off'}`,s:'One short tip at a time while you learn.',fn:()=>{setPref('tips',!prefs().tips);openSettings()}},
     {l:`🔔 Event pop-ups: ${popupsOn()?'On':'Off'}`,s:popupsOn()?'An OK window for each random event. Tap to turn off (the tiles still show).':'Only the small tiles show. Tap to turn pop-ups back on.',fn:()=>{try{localStorage.setItem(POPUP_KEY,popupsOn()?'off':'on')}catch(e){}openSettings()}},
+    ...(typeof feedbackModal==='function'?[{l:'💬 Send feedback',s:'Ideas, bugs, a rule we got wrong: it goes straight to the developer.',fn:()=>feedbackModal(openSettings)}]:[]),
     {l:'⌨️ Keyboard shortcuts',s:'On a computer: numbers press buttons, ? for the list.',fn:()=>keysModal(openSettings)},
     {l:`🏆 Achievements (${achCount()}/${ACH.length})`,s:'Earned on this device, across all your games.',fn:()=>achModal(openSettings)},
     ...(GAME.slots>1?[{l:`💾 Save slots (current: ${curSlot()})`,s:'Continue, start or delete games in each slot.',fn:()=>slotsModal()}]:[]),
