@@ -9,7 +9,7 @@
 // ============================================================
 
 // ---- calendar: seasons, dates and rule-of-the-year helpers live in 24-career.js ----
-const OVERHEAD=75;                                       // boat payment, insurance, groceries: every night
+const OVERHEAD=75, overhead=()=>Math.round(OVERHEAD*DF().cost), rp=c=>Math.round(c*DF().cost);                                       // boat payment, insurance, groceries: every night
 
 // ---- the game-specific part of the save ----
 function newState(){
@@ -123,13 +123,13 @@ function actionsHere(){
     else a.push({ic:'😠',l:`The ${b.who} gave up on you`,s:'They waited 90 minutes, then left. Expect a review.',cat:'trip',dis:true,fn:()=>{}});
   });
   if(S.loc==='shop'){
-    a.push({ic:'🛏️',l:'Go to bed',s:`Ends the day. Overhead ${$(OVERHEAD)} tonight. Alarm ${fmt(S.alarm)}. The sun won’t fully set.`,cat:'rest',cls:m>=1260?'primary':'',fn:()=>endDay('home')});
+    a.push({ic:'🛏️',l:'Go to bed',s:`Ends the day. Overhead ${$(overhead())} tonight. Alarm ${fmt(S.alarm)}. The sun won’t fully set.`,cat:'rest',cls:m>=1260?'primary':'',fn:()=>endDay('home')});
     a.push({ic:'😴',l:'Nap for an hour',s:'Energy +10.',cat:'rest',fn:()=>{pass(60);adj('energy',10);say('😴 Blackout curtains, earplugs, one glorious hour.')}});
     const logs=S.unlogged+S.overdue;
     if(logs) a.push({ic:'📓',l:`Fill out your ADF&G logbook (${logs} trip${logs>1?'s':''})`,s:`${logs*10} min. Every guided trip gets an entry: anglers, licenses, hours, fish kept and released.`,cat:'work',cls:'primary',fn:()=>{pass(logs*10);say(`📓 You write up ${logs} trip${logs>1?'s':''}: license numbers, hours fished, sockeye kept, kings released.${S.overdue?' A day late, but done.':''}`);S.unlogged=0;S.overdue=0}});
     if(S.prep!==d+1&&d+1<GAME.days) a.push({ic:'🪝',l:'Rig tomorrow’s gear',s:S.gear?'45 min. Tie leaders, sharpen hooks, stage the coolers. Better trip tomorrow.':'You’re out of tackle. Restock in Soldotna first.',cat:'work',dis:!S.gear,fn:()=>{pass(45);S.prep=d+1;say('🪝 Leaders tied, hooks sharp, coolers iced, life jackets counted. Tomorrow-you says thanks.')}});
-    a.push({ic:'🔧',l:'Service the boats yourself — $165 in parts',s:'3 hours. Boat +20: oil and filter, plugs, water-pump impeller, jet intake, trailer bearings, oarlocks.',cat:'work',dis:S.boat>=95||!canAfford(165),fn:()=>{spend(165);pass(180);adj('boat',20);adj('energy',-6);say('🔧 Oil, filters, plugs, a new water-pump impeller, a cleaned-out jet intake and greased bearings. Grease to the elbows; she purrs.')}});
-    a.push({ic:'🏪',l:'Dealer 100-hour service — $525',s:'1 hour to drop off and pick up. Boat +40. Alaska shop rates.',cat:'work',dis:S.boat>=95||!canAfford(525),fn:()=>{spend(525);pass(60);adj('boat',40);say('🏪 The Soldotna dealer does the 100-hour service, shims the jet impeller and finds a cracked fuel line. Money well spent.')}});
+    a.push({ic:'🔧',l:`Service the boats yourself — ${$(rp(165))} in parts`,s:'3 hours. Boat +20: oil and filter, plugs, water-pump impeller, jet intake, trailer bearings, oarlocks.',cat:'work',dis:S.boat>=95||!canAfford(rp(165)),fn:()=>{spend(rp(165));pass(180);adj('boat',20);adj('energy',-6);say('🔧 Oil, filters, plugs, a new water-pump impeller, a cleaned-out jet intake and greased bearings. Grease to the elbows; she purrs.')}});
+    a.push({ic:'🏪',l:`Dealer 100-hour service — ${$(rp(525))}`,s:'1 hour to drop off and pick up. Boat +40. Alaska shop rates.',cat:'work',dis:S.boat>=95||!canAfford(rp(525)),fn:()=>{spend(rp(525));pass(60);adj('boat',40);say('🏪 The Soldotna dealer does the 100-hour service, shims the jet impeller and finds a cracked fuel line. Money well spent.')}});
     if(!S.calls[d]) a.push({ic:'📞',l:'Return calls & emails',s:'30 min. Once a day. Booking requests come in.',cat:'work',fn:()=>{pass(30);S.calls[d]=true;const r=makeRequest();if(r)requestModal(r);else say('📞 Voicemails: two spam, one dentist, no bookings.')}});
     a.push({ic:'📊',l:'Check the ADF&G sonar count',s:'5 min. How many sockeye passed river mile 19 yesterday.',cat:'work',fn:()=>{pass(5);sonarSay()}});
     a.push({ic:'⏰',l:`Alarm: ${fmt(S.alarm)}`,s:'Tap to cycle 4:00 → 4:30 → 5:00 → 5:30 → 6:00.',cat:'rest',fn:()=>{const o=[240,270,300,330,360];S.alarm=o[(o.indexOf(S.alarm)+1)%o.length];say(`⏰ Alarm set for ${fmt(S.alarm)}.`)}});

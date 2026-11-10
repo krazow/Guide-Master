@@ -95,7 +95,7 @@ function onMorning(d){
 function onNight(where,notes,d){
   if(S.trip){S.trip=null;notes.push('🛶 You never finished the trip. The party drove off without paying.')}
   if(where==='collapsed'){S.loc='shop';notes.push('😵 You were up past midnight and fell asleep in the truck at the shop.')}
-  money(-OVERHEAD);S.stats.spent+=OVERHEAD;notes.push(`💸 Boat payment, insurance and groceries: ${$(OVERHEAD)}.`);
+  money(-overhead());S.stats.spent+=overhead();notes.push(`💸 Boat payment, insurance and groceries: ${$(overhead())}.`);
   S.book.filter(b=>b.d===d&&b.status==='booked').forEach(b=>{b.status='noshow';adj('rep',-15);S.stats.noshow++;
     notes.push(`😠 You never showed for the ${b.who}. They posted a one-star review from the parking lot.`)});
   if(S.unlogged){S.overdue+=S.unlogged;notes.push(`📓 ${S.unlogged} logbook entr${S.unlogged>1?'ies are':'y is'} now overdue. Write ${S.unlogged>1?'them':'it'} up before a trooper asks.`);S.unlogged=0}
@@ -246,7 +246,7 @@ function todoItems(){
   it.push({l:'Optional: fill the freezer with 25 dipnet reds',s:`${S.freezer}/25. Kenai City Beach, 6 AM–11 PM.`,ok:S.freezer>=25});
   return it;
 }
-const RULES_HTML='<p>Guide every July of a 2-, 5- or 10-year career. You lose if you get 3 active citations (permit pulled; citations drop off after the next season), your reputation hits 0, or you fall $2,000 in debt.</p><p>Score: net cash + half the value of boats and permits you bought + reputation ×15 + 60 per trip − 400 per citation + 2 per freezer fish, plus 300 a season for a career without a violation. The grade is per season, so careers of any length compare.</p>';
+const RULES_HTML='<p>Guide every July of a 2-, 5- or 10-year career. You lose if you get 3 active citations (permit pulled; citations drop off after the next season), your reputation hits 0, or you fall $2,000 in debt.</p><p>Score: net cash + three quarters of the value of boats and permits you bought + reputation ×15 + 60 per trip − 400 per citation + 2 per freezer fish, plus 300 a season for a career without a violation. The grade is per season, so careers of any length compare: A at 66,000 a season, B 57,000, C 45,000, D 28,000.</p><p>Difficulty gives no score bonus. It changes the game instead: <b>Rookie</b> has fewer patrols, gentler fines, cheaper fuel and bills, friendlier clients and a bit more off-month work; <b>Licensed</b> is the baseline; <b>Combat</b> has more patrols, fines that climb with every citation, dearer fuel, bills and repairs, pickier clients, less off-month work and more bad luck. The same play grades about a step lower on Combat and a step higher on Rookie.</p>';
 
 // ---- achievements ----
 const ACH=[
@@ -271,20 +271,21 @@ const ACH=[
 // ---- scoring and the end screen ----
 const FINISH_TEXT={h1:'{{name}}, that’s a wrap on your career',sub:()=>`${S.years} Julys on the Kenai, ${yearOf(0)}–${yearOf(day())}. The river keeps running; somebody else gets your seams now.`};
 function curSeason(){const s=S.stats,o=S.st0||{};return {year:yearOf(day()),trips:s.trips-(o.trips||0),fares:s.earned-(o.earned||0),earned:(s.earned+s.tips)-((o.earned||0)+(o.tips||0))}}
-function scoreOf(){return Math.round((S.money-DF().money)+restOfSeason(curSeason()).net+(S.up?S.up.value:0)*.5+S.rep*15+S.stats.trips*60-(S.stats.citesTotal||S.cites)*400+S.freezer*2+(S.stats.viol===0?300*S.years:0))}
+function scoreOf(){return Math.round((S.money-DF().money)+restOfSeason(curSeason()).net+(S.up?S.up.value:0)*.75+S.rep*15+S.stats.trips*60-(S.stats.citesTotal||S.cites)*400+S.freezer*2+(S.stats.viol===0?300*S.years:0))}
+const GRADE_CUTS=[66000,57000,45000,28000];            // A, B, C, D: score per season, the same on every difficulty
 function gradeOf(sc){
   sc=sc/(S.years||1);                                   // graded per season, so careers of any length compare
-  if(sc>=50000) return ['A','Guide Master','Other guides watch where you anchor (legally).'];
-  if(sc>=40000)  return ['B','River Rat','You know every seam from Big Eddy to the Russian.'];
-  if(sc>=28000)  return ['C','Seasonal Hand','Booked, tired and still mostly dry.'];
-  if(sc>=15000)  return ['D','Greenhorn','You learned the regs the expensive way.'];
+  if(sc>=GRADE_CUTS[0]) return ['A','Guide Master','Other guides watch where you anchor (legally).'];
+  if(sc>=GRADE_CUTS[1])  return ['B','River Rat','You know every seam from Big Eddy to the Russian.'];
+  if(sc>=GRADE_CUTS[2])  return ['C','Seasonal Hand','Booked, tired and still mostly dry.'];
+  if(sc>=GRADE_CUTS[3])  return ['D','Greenhorn','You learned the regs the expensive way.'];
   return ['F','Hang Up the Waders','Maybe the slime line is hiring.'];
 }
 function endRows(){
   const s=S.stats;
   const last=curSeason();last.rest=restOfSeason(last);
   const yrs=S.seasons.concat([last]).map(x=>`${x.year}: ${x.trips}${x.rest&&x.rest.trips?` + ${x.rest.trips}`:''} trips, ${$(x.earned+(x.rest?x.rest.net:0))}`).join('<br>');
-  return [['Career',`${S.years} seasons`],['Season by season',yrs],['Cash',$(Math.round(S.money))],['Net over the career',$(Math.round(S.money-DF().money))],['Boats & permits bought',S.up&&S.up.value?$(S.up.value):'none'],['Trips / clients',`${s.trips} / ${s.clients}`],
+  return [['Difficulty',`${DF().ic} ${DF().n}: ${DF().enforce<1?'fewer patrols, cheaper bills':DF().enforce>1?'more patrols, dearer bills, pickier clients':'standard patrols and bills'}; no score bonus`],['Career',`${S.years} seasons`],['Season by season',yrs],['Cash',$(Math.round(S.money))],['Net over the career',$(Math.round(S.money-DF().money))],['Boats & permits bought',S.up&&S.up.value?$(S.up.value):'none'],['Trips / clients',`${s.trips} / ${s.clients}`],
     ['Fish landed',s.fish],['Trips where everyone limited',s.limits],['Tips',$(s.tips)],['Reputation',S.rep],
     ['Record',`${s.citesTotal||0} citation${(s.citesTotal||0)===1?'':'s'}, ${S.warns} warning${S.warns===1?'':'s'}, ${$(s.fines)} in fines`],
     ['Fuel',`${Math.round(s.fuelGal||0)} gal, ${$(Math.round(s.fuelCost||0))}`],['Coast Guard tows',s.tows||0],['Winter camping',`${s.campNights||0} night${(s.campNights||0)===1?'':'s'}, ${s.encounters||0} wildlife encounter${(s.encounters||0)===1?'':'s'}`],['Kings released',s.kings],['Freezer',`${S.freezer} reds`],['Boat checks passed',s.checks]];

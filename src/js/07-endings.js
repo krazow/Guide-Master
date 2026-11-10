@@ -7,13 +7,12 @@ function gameOver(why){S.over=true;clearTiles();closeModals();sfx('bad');
   const T=LOSSES[why]||['Game over','It’s over.'];endScreen(T[0],T[1],true)}
 function endScreen(h1,sub,lost){
   achCheck({end:true,lost});const achNew=(S.achGame||[]).map(id=>ACH.find(a=>a.id===id)).filter(Boolean);
-  const sc=Math.round(scoreOf()*DF().score),g=lost?['F',h1,sub]:gradeOf(sc);
+  const sc=Math.round(scoreOf()),g=lost?['F',h1,sub]:gradeOf(sc);
   saveGame(); // S.over is set, so this deletes the save
   let best=null,newBest=false;const ls=store();
   try{const b=ls?Number(ls.getItem(BEST_KEY)||'NaN'):NaN;best=isNaN(b)?null:b;if(!lost&&(best==null||sc>best)){ls&&ls.setItem(BEST_KEY,String(sc));newBest=true}}catch(e){}
   app.innerHTML=withName(`<div class="end"><div style="display:flex;justify-content:space-between;align-items:center"><div class="small-note" style="color:var(--mute)">${lost?'GAME OVER':'COMPLETE'} · {{name}}</div><button class="gear" style="background:var(--surface);color:var(--ink)" onclick="openSettings()" aria-label="Settings">⚙️</button></div><h1>${h1}</h1><p>${sub}</p>
   <div style="display:flex;gap:16px;align-items:center;margin:16px 0"><div class="grade">${g[0]}</div><div><b style="font-family:Fraunces;font-size:20px">${g[1]}</b><div style="color:var(--mute);font-size:14px">${g[2]}</div></div></div>
-  <div class="kv"><span>Difficulty</span><b>${DF().ic} ${DF().n}</b></div>
   <div class="kv"><span>Score</span><b>${sc}${newBest?' 🏆 new best':''}</b></div>${best!=null?`<div class="kv"><span>Previous best</span><b>${best}</b></div>`:''}
   <div class="kv"><span>🏆 Achievements this game</span><b style="text-align:right">${achNew.length?achNew.map(a=>a.ic+' '+a.n).join(', '):'none new'}</b></div>
   ${endRows().map(([k,v])=>`<div class="kv"><span>${k}</span><b>${v}</b></div>`).join('')}

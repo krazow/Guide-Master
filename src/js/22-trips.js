@@ -10,14 +10,14 @@ const NOAA='a NOAA Fisheries enforcement officer at the harbor';
 function cite(what,fine,minor,notes,who){
   who=who||pick(COPS);let line;
   if(minor&&S.warns<1){S.warns++;line=`⚠️ ${who} writes you a warning for ${what}.`}
-  else{S.cites++;S.citeLog.push(day());S.stats.citesTotal=(S.stats.citesTotal||0)+1;money(-fine);S.stats.fines+=fine;adj('rep',-6);
+  else{fine=Math.round(fine*DF().fine*(1+DF().esc*S.cites));S.cites++;S.citeLog.push(day());S.stats.citesTotal=(S.stats.citesTotal||0)+1;money(-fine);S.stats.fines+=fine;adj('rep',-6);
     line=`🚨 ${who} cites you for ${what}: ${$(fine)} fine. That’s ${S.cites} active citation${S.cites>1?'s':''} of 3 before State Parks pulls your Kenai River guide permit. (Citations drop off after the next season.)`}
   showTile('🚨',minor&&line.startsWith('⚠️')?'Warning':'Citation',what,'bad');
   if(notes) notes.push(line); else say(line);
 }
 function violate(notes,{p,fine,what,minor,who}){
   S.stats.viol++;
-  if(Math.random()<p*DF().bad){cite(what,fine,minor,notes,who);return true}
+  if(Math.random()<Math.min(.95,p*DF().enforce)){cite(what,fine,minor,notes,who);return true}
   if(Math.random()<.3){adj('rep',-2);const l='👀 Another guide saw it. Word travels fast on the Kenai.';if(notes)notes.push(l);else say(l)}
   return false;
 }
@@ -195,12 +195,12 @@ function tripEnd(b,t){
     else{for(let i=0;i<fishers;i++)fish+=clamp(Math.round(2*q+(r()-.5)*1.2),0,2);S.stats.halibut+=fish;line=`${fish} halibut`}
   }
   fish+=t.kept;
-  const happy=45+frac*45+t.happy+upH(b.type),dRep=clamp(Math.round((happy-60)/5),-12,10);
+  const happy=45+frac*45+t.happy+upH(b.type)+DF().mood,dRep=clamp(Math.round((happy-60)/5),-12,10);
   const pay=towed?Math.round(payOf(b)*.5):payOf(b),base=b.type==='halibut'&&!S.up.chp?1200:pay,tip=Math.round(base*clamp((happy-50)/250,0,.2));
   const costs=T.loc==='lower'?LAUNCH_FEE:0;
   if(r()<.07&&b.type!=='halibut'){money(-165);S.stats.spent+=165;t.notes.push('🎣 A client high-sticks a rod into the gunwale. Snap. $165 for a new rod and reel.')}
   S.gear=Math.max(0,S.gear-1);
-  pass(towed?T.len+120:T.len);if(towed&&ft.tank==='fuel')S.loc='harbor';adj('energy',-T.energy);adj('boat',-Math.round((3+Math.floor(r()*4))*(S.up.motor?.5:1)));adj('rep',dRep);
+  pass(towed?T.len+120:T.len);if(towed&&ft.tank==='fuel')S.loc='harbor';adj('energy',-T.energy);adj('boat',-Math.round((3+Math.floor(r()*4))*(S.up.motor?.5:1)*DF().wear));adj('rep',dRep);
   money(pay+tip-costs);
   const st=S.stats;st.trips++;st.clients+=b.n;st.fish+=fish;st.earned+=pay;st.tips+=tip;st.spent+=costs;
   S.unlogged++;S.skill++;

@@ -12,6 +12,7 @@ const CHANGELOG={
   '1.5.0':['🏕️ Winter camping in the off-season: pick a destination and how many nights.'],
   '1.5.1':['🩹 Fixes: no more “undefined” on bookings; first-aid classes now Mon/Tue/Thu with earlier reminders; booking requests for days you can’t legally fish are flagged, with an offer to move them.'],
   '1.5.2':['🆕 This notice: after each update you’ll see what changed, and your progress is brought up to date automatically.'],
+  '1.5.3':['⚖️ Difficulty now changes the game, not the score: Combat Season means more patrols and dearer bills, Rookie the reverse. Grades were recalibrated, so an A takes real work.'],
 };
 const CHANGELOG_GENERIC='Fixes and small improvements throughout.';
 const LASTVER_KEY=KEY('lastVersion');

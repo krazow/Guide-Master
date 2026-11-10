@@ -56,7 +56,24 @@ When you start a new game you pick a **2-, 5- or 10-year career** (`src/js/24-ca
 - **Booking requests:** phone requests (📞 Return calls) get a random date in the next few days, re-rolled once if it is illegal, so some still land on Sunday/Monday (lower-river trips) or a closed halibut day. The request sheet flags the problem and can offer the nearest later legal, free day instead; "Book it anyway" keeps the on-trip dilemma. The nonresident dipnet "guests" request comes at most once per season.
 - **Your record:** a first-aid/CPR card lasts two years. Classes run Monday, Tuesday and Thursday, 1:00–4:00 PM at the Soldotna clinic; you can join from 1:00 until 1:30 PM and still sit the 3 hours. The alert bar and To-do turn urgent from the Monday of the week the card expires. Citations drop off after the following season; three active citations still cost you the permit.
 
-The score covers the whole career (net cash, half the value of what you bought, rep, trips, a clean record), and the grade is per season, so careers of any length compare.
+The score covers the whole career (net cash, three quarters of the value of what you bought, rep, trips, a clean record), and the grade is per season, so careers of any length compare. Per-season cutoffs are the same on every difficulty: **A ≥ 66,000, B ≥ 57,000, C ≥ 45,000, D ≥ 28,000**, F below (a loss is always F). On Licensed Guide a by-the-book career lands mostly on B with some A, an attentive career that takes every request mostly on A, and a passive one (no upgrades, no camping) on B or C.
+
+### Difficulty
+
+Difficulty never changes the score. It changes the game (`DIFFS` in `src/js/00-game.js`, read as `DF().field`):
+
+| | Rookie Season | Licensed Guide | Combat Season |
+|---|---|---|---|
+| Start cash | $3,000 | $1,500 | $600 |
+| Patrol catch chance (`enforce`) | ×0.7 | ×1 | ×1.4 |
+| Fines | ×0.8 | ×1 | ×1.1, plus 25% for each active citation |
+| Fuel, nightly overhead, winter bills, repairs (`cost`) | ×0.8 | ×1 | ×1.2 |
+| Client mood (tips and rep) | +6 | 0 | −7 |
+| Off-month bookings (`book`) | ×1.08 | ×1 | ×0.88 |
+| Boat wear per trip | ×0.85 | ×1 | ×1.25 |
+| Bad random events (`bad`) | ×0.6 | ×1 | ×1.5 |
+
+The same play grades about one step lower on Combat Season than on Licensed Guide, and about one step higher on Rookie Season. Combat Season is still winnable by a careful guide.
 
 ## Winter camping
 
