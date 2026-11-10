@@ -35,7 +35,7 @@ const STATS=[
   {l:'Cash',  v:()=>$(Math.round(S.money)),warn:()=>S.money<0},
   {l:'Rep',   v:()=>S.rep,m:()=>S.rep,warn:()=>S.rep<20,title:'Reputation: reviews and word of mouth. At 0, nobody books you.'},
   {l:'Energy',v:()=>S.energy,m:()=>S.energy},
-  {l:'Boat',  v:()=>S.boat,m:()=>S.boat,title:'Your jet sled and drift boat'},
+  {l:'Boat',  v:()=>S.boat,m:()=>S.boat,warn:()=>S.boat<20,title:'Your jet sled and drift boat. At 0 they are out of service until you pay for a major repair.'},
   {l:'Record',v:()=>S.cites?`${S.cites}/3`:'Clean',warn:()=>S.cites>0,title:'Citations. Three and State Parks pulls your Kenai River guide permit.'},
 ];
 
@@ -89,10 +89,10 @@ const TRIPS={
 };
 const SLOT=b=>{const T=TRIPS[b.type];return [T.start,T.start+T.len]};
 const bk=id=>S.book.find(b=>b.id===id);
-const todays=(d=day())=>S.book.filter(b=>b.d===d&&b.status==='booked');
-function conflicts(d,type){
+const todays=(d=day())=>S.book.filter(b=>b.d===d&&b.status==='booked'&&!b.asst);   // your own trips (an assistant's are b.asst)
+function conflicts(d,type,asst){           // asst: is the slot free for the assistant guide (his trips only clash with each other)
   const T=TRIPS[type],a=[T.start,T.start+T.len];
-  return S.book.some(b=>{if(b.d!==d||b.status!=='booked')return false;const B=SLOT(b),gap=TRIPS[b.type].loc===T.loc?30:travelMins(TRIPS[b.type].loc,T.loc)+20;
+  return S.book.some(b=>{if(b.d!==d||b.status!=='booked'||!!b.asst!==!!asst)return false;const B=SLOT(b),gap=TRIPS[b.type].loc===T.loc?30:travelMins(TRIPS[b.type].loc,T.loc)+20;
     return a[0]<B[1]+gap&&B[0]<a[1]+gap});
 }
 // What's wrong with a booking under the rules (null = nothing)
@@ -119,6 +119,7 @@ function actionsHere(){
   todays(d).filter(b=>TRIPS[b.type].loc===S.loc).forEach(b=>{
     const T=TRIPS[b.type],late=m-T.start;
     if(m<T.start-60) a.push({ic:T.ic,l:`${T.n}: launch at ${fmt(T.start)}`,s:`${partyLine(b)}. The party shows up an hour before.`,cat:'trip',dis:true,fn:()=>{}});
+    else if(boatDown()&&b.type!=='halibut'&&late<=90) a.push({ic:'🔧',l:`Your ${b.type==='trout'?'drift boat':'jet sled'} is out of service`,s:`Condition 0. The ${b.who} are waiting. Get a major repair at the shop first (${$(rp(MAJOR_REPAIR))}, 4 hours).`,cat:'trip',dis:true,fn:()=>{}});
     else if(late<=90) a.push({ic:T.ic,l:`Meet the ${b.who} and launch`,s:`${partyLine(b)}. ${late>0?`You’re ${late} min late.`:`On time for ${fmt(T.start)}.`} ${b.type==='halibut'&&!S.up.chp?`Day rate ${$(payOf(b))} + tips`:`${$(payOf(b))} + tips`}.`,cat:'trip',cls:'primary',fn:()=>tripStart(b)});
     else a.push({ic:'😠',l:`The ${b.who} gave up on you`,s:'They waited 90 minutes, then left. Expect a review.',cat:'trip',dis:true,fn:()=>{}});
   });
@@ -128,8 +129,9 @@ function actionsHere(){
     const logs=S.unlogged+S.overdue;
     if(logs) a.push({ic:'📓',l:`Fill out your ADF&G logbook (${logs} trip${logs>1?'s':''})`,s:`${logs*10} min. Every guided trip gets an entry: anglers, licenses, hours, fish kept and released.`,cat:'work',cls:'primary',fn:()=>{pass(logs*10);say(`📓 You write up ${logs} trip${logs>1?'s':''}: license numbers, hours fished, sockeye kept, kings released.${S.overdue?' A day late, but done.':''}`);S.unlogged=0;S.overdue=0}});
     if(S.prep!==d+1&&d+1<GAME.days) a.push({ic:'🪝',l:'Rig tomorrow’s gear',s:S.gear?'45 min. Tie leaders, sharpen hooks, stage the coolers. Better trip tomorrow.':'You’re out of tackle. Restock in Soldotna first.',cat:'work',dis:!S.gear,fn:()=>{pass(45);S.prep=d+1;say('🪝 Leaders tied, hooks sharp, coolers iced, life jackets counted. Tomorrow-you says thanks.')}});
-    a.push({ic:'🔧',l:`Service the boats yourself — ${$(rp(165))} in parts`,s:'3 hours. Boat +20: oil and filter, plugs, water-pump impeller, jet intake, trailer bearings, oarlocks.',cat:'work',dis:S.boat>=95||!canAfford(rp(165)),fn:()=>{spend(rp(165));pass(180);adj('boat',20);adj('energy',-6);say('🔧 Oil, filters, plugs, a new water-pump impeller, a cleaned-out jet intake and greased bearings. Grease to the elbows; she purrs.')}});
-    a.push({ic:'🏪',l:`Dealer 100-hour service — ${$(rp(525))}`,s:'1 hour to drop off and pick up. Boat +40. Alaska shop rates.',cat:'work',dis:S.boat>=95||!canAfford(rp(525)),fn:()=>{spend(rp(525));pass(60);adj('boat',40);say('🏪 The Soldotna dealer does the 100-hour service, shims the jet impeller and finds a cracked fuel line. Money well spent.')}});
+    if(boatDown()) a.push({ic:'🛠️',l:`Major repair — ${$(rp(MAJOR_REPAIR))}`,s:'Out of service at condition 0: rebuild the jet unit and replace the drift-boat floor and oarlocks. 4 hours; boat back to 50. The dealer puts it on your account if you’re short.',cat:'work',cls:'primary',fn:()=>{spend(rp(MAJOR_REPAIR));pass(240);S.boat=50;adj('energy',-8);say(`🛠️ The dealer rebuilds the jet unit and you replace the drift-boat floor: ${$(rp(MAJOR_REPAIR))}. Back in service at 50.`)}});
+    a.push({ic:'🔧',l:`Service the boats yourself — ${$(rp(165))} in parts`,s:boatDown()?'Out of service: it needs a major repair first.':'3 hours. Boat +20: oil and filter, plugs, water-pump impeller, jet intake, trailer bearings, oarlocks.',cat:'work',dis:boatDown()||S.boat>=95||!canAfford(rp(165)),fn:()=>{spend(rp(165));pass(180);adj('boat',20);adj('energy',-6);say('🔧 Oil, filters, plugs, a new water-pump impeller, a cleaned-out jet intake and greased bearings. Grease to the elbows; she purrs.')}});
+    a.push({ic:'🏪',l:`Dealer 100-hour service — ${$(rp(525))}`,s:boatDown()?'Out of service: it needs a major repair first.':'1 hour to drop off and pick up. Boat +40. Alaska shop rates.',cat:'work',dis:boatDown()||S.boat>=95||!canAfford(rp(525)),fn:()=>{spend(rp(525));pass(60);adj('boat',40);say('🏪 The Soldotna dealer does the 100-hour service, shims the jet impeller and finds a cracked fuel line. Money well spent.')}});
     if(!S.calls[d]) a.push({ic:'📞',l:'Return calls & emails',s:'30 min. Once a day. Booking requests come in.',cat:'work',fn:()=>{pass(30);S.calls[d]=true;const r=makeRequest();if(r)requestModal(r);else say('📞 Voicemails: two spam, one dentist, no bookings.')}});
     a.push({ic:'📊',l:'Check the ADF&G sonar count',s:'5 min. How many sockeye passed river mile 19 yesterday.',cat:'work',fn:()=>{pass(5);sonarSay()}});
     a.push({ic:'⏰',l:`Alarm: ${fmt(S.alarm)}`,s:'Tap to cycle 4:00 → 4:30 → 5:00 → 5:30 → 6:00.',cat:'rest',fn:()=>{const o=[240,270,300,330,360];S.alarm=o[(o.indexOf(S.alarm)+1)%o.length];say(`⏰ Alarm set for ${fmt(S.alarm)}.`)}});
@@ -147,7 +149,7 @@ function actionsHere(){
   }
   if(S.loc==='lower'||S.loc==='cooper'){const ba=boatAction();if(ba)a.push(ba)}
   if(S.loc==='lower'){
-    if(S.scout!==d) a.push({ic:'🔭',l:`Scout the river — ~${BURN.scout} gal`,s:`1 hour. See where the reds are holding. Better trips today and tomorrow. Tank: ${Math.round(S.fuel)} gal.`,cat:'fish',fn:()=>{if(burnSolo(BURN.scout)<1)return;pass(60);S.scout=d;S.skill++;adj('energy',-4);say(`🔭 You run up past the Sterling Highway bridge and back. ${S.run[Math.max(0,d-1)]>90000?'Reds are stacked in the soft water along the inside bends.':'Pods of reds, but they’re moving through fast.'}`)}});
+    if(S.scout!==d) a.push({ic:'🔭',l:`Scout the river — ~${bn('scout')} gal`,s:`1 hour. See where the reds are holding. Better trips today and tomorrow. Tank: ${Math.round(S.fuel)} gal.`,cat:'fish',fn:()=>{if(burnSolo(bn('scout'))<1)return;pass(60);S.scout=d;S.skill++;adj('energy',-4);say(`🔭 You run up past the Sterling Highway bridge and back. ${S.run[Math.max(0,d-1)]>90000?'Reds are stacked in the soft water along the inside bends.':'Pods of reds, but they’re moving through fast.'}`)}});
     a.push({ic:'🐟',l:'Flip for reds yourself from the bank',s:'1 hour. You’re off the clock, so it’s legal. Freezer fish.',cat:'fish',dis:todays(d).length&&m<TRIPS.reds.start+TRIPS.reds.len,fn:()=>{pass(60);adj('energy',-5);const n=Math.min(S.limit,Math.max(0,Math.round(Math.random()*S.limit+.3)));S.freezer+=n;say(n?`🐟 Shoulder to shoulder at the walkway, you flip ${n} red${n>1?'s':''} into the net. Hooked in the mouth, every one.`:'🐟 An hour of “flipping” and nothing but a sore wrist. Combat fishing is humbling.')}});
   }
   if(S.loc==='cooper'){
@@ -181,7 +183,7 @@ function statusTags(){
   if(isSunMon(d)) t.push('<span class="tag bad">🚫 no guide-boat fishing below Skilak</span>');
   if(halClosed(d)) t.push('<span class="tag">⚓ no charter halibut retention</span>');
   t.push(`<span class="tag ${S.gear<1?'bad':''}">🪱 tackle ×${S.gear}</span>`);
-  t.push(`<span class="tag ${S.fuel<BURN.reds?'bad':''}">⛽ ${Math.round(S.fuel)}/${SLED_TANK()} gal</span>`);
+  t.push(`<span class="tag ${S.fuel<bn('reds')?'bad':''}">⛽ ${Math.round(S.fuel)}/${SLED_TANK()} gal</span>`);
   if(S.unlogged+S.overdue) t.push(`<span class="tag ${S.overdue?'bad':''}">📓 ${S.unlogged+S.overdue} to log</span>`);
   if(S.cred.fa<d) t.push('<span class="tag bad">⛑️ first-aid card expired</span>');
   if(S.energy<25) t.push('<span class="tag bad">🥱 running on fumes</span>');
@@ -190,6 +192,7 @@ function statusTags(){
 }
 function alertBar(){
   const d=day(),m=tod();
+  if(boatDown()&&todays(d).some(b=>b.type!=='halibut')) return {t:`🔧 Your boat is out of service (condition 0). Pay for a major repair at the shop before your next launch.`};
   for(const b of todays(d)){const T=TRIPS[b.type];
     if(m>T.start&&m<=T.start+90&&S.loc!==T.loc) return {t:`⏰ The ${b.who} are waiting at ${L[T.loc].name} (launch was ${fmt(T.start)}).`};
     if(m>=T.start-120&&m<=T.start&&S.loc!==T.loc) return {t:`🛶 ${T.n} launches at ${fmt(T.start)} from ${L[T.loc].name}: ${travelMins(S.loc,T.loc)} min away.`,kind:'info'};}
@@ -205,7 +208,7 @@ const EXTRA_TABS=[
     for(let d=s0;d<s0+SEASON;d++){
       const bs=S.book.filter(b=>b.d===d),rules=[isSunMon(d)?'🚫 guide boats off below Skilak':'',halClosed(d)?'⚓ no charter halibut kept':''].filter(Boolean).join(' · ');
       const lines=bs.map(b=>{const T=TRIPS[b.type],st={booked:d<day()?'—':'',done:'✅',noshow:'❌ no-show',cancelled:'🚫 cancelled'}[b.status]||'';
-        return `${T.ic} <b>${fmt(T.start)}</b> ${T.n} · ${b.who}, ${b.n} ${st}${b.out?` · ${b.out.line}`:''}`}).join('<br>');
+        return `${T.ic} <b>${fmt(T.start)}</b> ${T.n} · ${b.who}, ${b.n} ${b.asst?'🧑‍🤝‍🧑 (assistant) ':''}${st}${b.out?` · ${b.out.line}`:''}`}).join('<br>');
       h+=`<div class="todo"><span class="ck">${d<day()?'✔️':d===day()?'👉':'·'}</span><div><b>${dlong(d)}</b><span>${lines||'<i>Open day</i>'}${rules?`<br><span style="color:var(--warn)">${rules}</span>`:''}</span></div></div>`;
     }
     return h+`<div class="rules">Trips: 💲 rates ×${S.up.rate.toFixed(1)} · 🐟 sockeye ${$(Math.round(TRIPS.reds.price*S.up.rate))}/angler (6 AM, lower river) · 🎣 silvers ${$(Math.round(TRIPS.silver.price*S.up.rate))}/angler (1 PM, lower river) · 🌈 trout float ${$(Math.round(TRIPS.trout.price*S.up.rate))}/angler (7 AM, Cooper Landing, 3 max) · ⚓ halibut ${S.up.chp?`${$(Math.round(350*S.up.rate))}/passenger on your own boat`:`day rate ${$(TRIPS.halibut.gig)}`} (6 AM, Homer). New requests come in by phone: <b>📞 Return calls</b> at the shop.</div>`}},

@@ -143,6 +143,7 @@ const POOL={reds:['king','snag','over','guide_fish','anchor','combat','motor'],s
 
 // ---- the runner ----
 function tripStart(b){
+  if(boatDown()&&b.type!=='halibut'){say('🔧 The boat is out of service. Get a major repair at the shop first.');return}
   const T=TRIPS[b.type],late=Math.max(0,tod()-T.start),t={id:b.id,late,q:0,happy:0,notes:[],step:0,steps:[],shore:false,nofish:0,kept:0,abort:false,x:[],lost:0};
   if(late){t.happy-=late/3;t.notes.push(`⏰ You rolled in ${late} minutes late. The ${b.who} noticed.`)}
   // tackle and boat condition shape the day before you even leave the dock
@@ -194,7 +195,7 @@ function tripEnd(b,t){
   q=clamp(q,.05,1);
   // fuel: burn from the tank; run dry and the trip ends with a Coast Guard tow
   const ft=tripFuel(b);let towed=false;
-  if(ft){const gal=Math.round((ft.gal+(t.fuelx||0)+(r()-.3)*3)*(1+Math.max(0,wxOf(d).wind-12)/40)*10)/10;
+  if(ft){const gal=Math.round((ft.gal+(t.fuelx||0)*(ft.tank==='fuel'?fuelMult():1)+(r()-.3)*3*(ft.tank==='fuel'?fuelMult():1))*(1+Math.max(0,wxOf(d).wind-12)/40)*10)/10;
     if(S[ft.tank]>=gal) S[ft.tank]=Math.round((S[ft.tank]-gal)*10)/10;
     else{q*=Math.max(.2,S[ft.tank]/gal);t.happy-=25;towed=true;if(ft.tank==='fuel')towIn(t.notes);else{S.hfuel=0;S.stats.tows=(S.stats.tows||0)+1;money(-HARBOR_TOW);adj('rep',-4);t.notes.push('🛟 The charter boat runs dry off Anchor Point. The Coast Guard tows you into Homer Harbor and the harbormaster brings you to the fuel dock: '+$(HARBOR_TOW)+'.')}}}
   const fishers=Math.max(0,b.n-t.nofish);let fish=0,frac=0,line='',limits=0;
@@ -223,11 +224,12 @@ function tripEnd(b,t){
   const xs=(t.x||[]),xnet=xs.reduce((a,[,v])=>a+v,0),xpos=xs.reduce((a,[,v])=>a+Math.max(0,v),0),xneg=xs.reduce((a,[,v])=>a+Math.min(0,v),0);
   let dRep=clamp(Math.round((happy-50)/8),-6,8);const review=happy<35;if(review) dRep-=2;
   S.wom=(S.wom||0)+(happy>=96?2:happy>=88?1:happy<30?-2:happy<40?-1:0);
-  const costs=T.loc==='lower'?LAUNCH_FEE:0;
+  const costs=T.loc==='lower'&&!S.up.dock?LAUNCH_FEE:0;
   if(r()<.07&&b.type!=='halibut'){money(-165);S.stats.spent+=165;t.notes.push('🎣 A client high-sticks a rod into the gunwale. Snap. $165 for a new rod and reel.')}
   S.gear=Math.max(0,S.gear-1);
   const lost=t.lost||0;
-  pass((towed?T.len+120:T.len)+lost);if(towed&&ft.tank==='fuel')S.loc='harbor';adj('energy',-T.energy-Math.round(lost/20));adj('boat',-Math.round((3+Math.floor(r()*4))*(S.up.motor?.5:1)*DF().wear));adj('rep',dRep);
+  pass((towed?T.len+120:T.len-sledTimeSaved(b.type))+lost);if(towed&&ft.tank==='fuel')S.loc='harbor';adj('energy',-T.energy+(sledTimeSaved(b.type)?3:0)-Math.round(lost/20));adj('boat',-Math.round((3+Math.floor(r()*4))*(S.up.motor?.5:1)*DF().wear));adj('rep',dRep);
+  if(boatDown()&&b.type!=='halibut')t.notes.push('🔧 The boat is out of service: you can’t launch again until you pay for a major repair at the shop.');
   money(fare-refund+tip+xnet-costs);
   const st=S.stats;st.trips++;st.clients+=b.n;st.fish+=fish;st.earned+=fare-refund;st.tips+=tip+xpos;st.spent+=costs-xneg;
   S.unlogged++;S.skill++;

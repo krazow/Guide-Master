@@ -96,7 +96,8 @@ function onNight(where,notes,d){
   if(S.trip){S.trip=null;notes.push('🛶 You never finished the trip. The party drove off without paying.')}
   if(where==='collapsed'){S.loc='shop';notes.push('😵 You were up past midnight and fell asleep in the truck at the shop.')}
   money(-overhead());S.stats.spent+=overhead();notes.push(`💸 Boat payment, insurance and groceries: ${$(overhead())}.`);
-  S.book.filter(b=>b.d===d&&b.status==='booked').forEach(b=>{b.status='noshow';adj('rep',-15);S.stats.noshow++;
+  S.book.filter(b=>b.d===d&&b.status==='booked'&&b.asst).forEach(b=>asstSettle(b,notes));
+  S.book.filter(b=>b.d===d&&b.status==='booked'&&!b.asst).forEach(b=>{b.status='noshow';adj('rep',-15);S.stats.noshow++;
     notes.push(`😠 You never showed for the ${b.who}. They posted a one-star review from the parking lot.`)});
   if(S.unlogged){S.overdue+=S.unlogged;notes.push(`📓 ${S.unlogged} logbook entr${S.unlogged>1?'ies are':'y is'} now overdue. Write ${S.unlogged>1?'them':'it'} up before a trooper asks.`);S.unlogged=0}
   adj('energy',(where==='home'?60:30)/(where==='collapsed'?2:1));
@@ -132,8 +133,9 @@ function makeRequest(){
     if(illegalDay(type,d)) ({d,type}=roll());             // re-roll an illegal date once; the second pick stands, so some illegal requests still teach the lesson
     const p=pick(PARTIES),kind=Math.random()<.22&&type==='reds'?'king':'trip';
     const nr={reds:[2,6],silver:[2,5],trout:[2,4],halibut:[4,6]}[type],n=nr[0]+Math.floor(Math.random()*(nr[1]-nr[0]+1));
-    if(conflicts(d,type)) continue;
-    return {kind,d,type,n,who:p.who,from:p.from,res:!!p.res,quirk:Math.random()<.25?[pick(['drinker','nolicense','photo','kid'])]:[]};
+    let asst=false;
+    if(conflicts(d,type)){if(S.up.asst&&type!=='halibut'&&!conflicts(d,type,true))asst=true;else continue}
+    return {kind,asst,d,type,n,who:p.who,from:p.from,res:!!p.res,quirk:Math.random()<.25?[pick(['drinker','nolicense','photo','kid'])]:[]};
   }
   return null;
 }
@@ -149,7 +151,7 @@ function requestWarn(r){
 // nearest later day in the same season that is legal and free (null if none). Only date problems are fixed by moving the date.
 function nextLegalDay(r){
   const end=seasonFirst(seasonOf(r.d))+SEASON;
-  for(let d=r.d+1;d<end;d++) if(!illegalDay(r.type,d)&&!conflicts(d,r.type)) return d;
+  for(let d=r.d+1;d<end;d++) if(!illegalDay(r.type,d)&&!conflicts(d,r.type,!!r.asst)) return d;
   return null;
 }
 function requestModal(r){
@@ -160,8 +162,8 @@ function requestModal(r){
       {l:`Take them as your “guests” — ${$(150*r.n)}`,s:'Cash up front.',fn:()=>{money(150*r.n);S.stats.earned+=150*r.n;say('🥅 You pocket the cash and hand nonresidents dipnets on the beach.');violate(null,{p:.35,fine:500,what:'helping nonresidents in the personal-use fishery'})}}]);
     return;
   }
-  const T=TRIPS[r.type],price=T.gig?`day rate ${$(T.gig)}`:`${$(T.price)} × ${r.n} = ${$(T.price*r.n)}`;
-  const book=(n,q,d)=>{const b=addBooking({d:d??r.d,type:r.type,n,who:r.who,from:r.from,res:r.res,quirk:q||r.quirk});sfx('good');say(`📅 Booked: ${T.ic} ${T.n}, ${dlong(b.d)} at ${fmt(T.start)}, the ${b.who} (${b.n}).`)};
+  const T=TRIPS[r.type],asstNote=r.asst?`<p style="font-size:13px;color:var(--mute)">🧑‍🤝‍🧑 You’re booked then, so your assistant guide would take this party: you keep ${Math.round((1-ASST_CUT)*100)}% of the fare and tips.</p>`:'',price=T.gig?`day rate ${$(T.gig)}`:`${$(T.price)} × ${r.n} = ${$(T.price*r.n)}`;
+  const book=(n,q,d)=>{const b=addBooking({d:d??r.d,type:r.type,n,who:r.who,from:r.from,res:r.res,quirk:q||r.quirk,asst:r.asst||undefined});sfx('good');say(`📅 Booked: ${T.ic} ${T.n}, ${dlong(b.d)} at ${fmt(T.start)}, the ${b.who} (${b.n})${b.asst?', with your assistant guide':''}.`)};
   if(r.kind==='king'){
     modal('📞 Booking request',`<p>${who}, ${r.n} anglers, ${dlong(r.d)}: “We want a <b>Kenai king</b>. A big one. Like the world record.”</p>${requestWarn(r)}`,[
       ...(kingRule()==='open'?[{l:'Book it: kings are open this year',s:`1 per day, 20 in. or longer. ${$(payOf({type:'reds',n:r.n}))}.`,fn:()=>book(r.n,['kingfan'])}]:[
@@ -176,7 +178,7 @@ function requestModal(r){
   else o.push({l:`${bad?'Book it anyway':'Book it'} — ${$(payOf({type:r.type,n:r.n}))}`,s:bad?'You’ll face the rules on the water.':'',fn:()=>book(r.n)});
   if(bad&&alt!=null) o.splice(0,0,{l:`Offer ${dlong(alt)} instead`,s:`Same party, ${fmt(T.start)}. ${$(payOf({type:r.type,n:bn}))}.`,fn:()=>book(bn,null,alt)});
   o.push({l:'Decline politely',fn:()=>say('📞 You pass on that one.')});
-  modal('📞 Booking request',`<p>${who} would like a <b>${T.ic} ${T.n}</b> on <b>${dlong(r.d)}</b> at ${fmt(T.start)} for <b>${r.n}</b>.</p>${warn}<p style="font-size:13px;color:var(--mute)">${T.long} ${price}.</p>`,o);
+  modal('📞 Booking request',`<p>${who} would like a <b>${T.ic} ${T.n}</b> on <b>${dlong(r.d)}</b> at ${fmt(T.start)} for <b>${r.n}</b>.</p>${warn}<p style="font-size:13px;color:var(--mute)">${T.long} ${price}.</p>${asstNote}`,o);
 }
 
 // ---- dipnetting (you're an Alaska resident) ----
@@ -226,7 +228,7 @@ defEvent({id:'good_review',hook:'night',tile:['⭐','Five-star review','good'],c
 const TIPS=[
   {id:'welcome',when:()=>day()===0&&S.loc==='shop',t:'👋 Welcome, {{name}}! Monday is a shop day. Rig tomorrow’s gear, return calls, and check the <b>📅 Bookings</b> tab.'},
   {id:'firstaid',when:()=>faUrgent(),t:'⛑️ Your first-aid card expires <b>this week</b>. The class is in <b>Soldotna</b>, Mon, Tue & Thu 1–4 PM (join by 1:30). Guiding without a current card can get you cited.'},
-  {id:'fuel',when:()=>S.fuel<BURN.reds+2,t:'⛽ The sled is low. The only fuel is the <b>Kenai Harbor</b> fuel dock at the river mouth, 6 AM–10 PM. A sockeye trip burns about 9 gallons.'},
+  {id:'fuel',when:()=>S.fuel<bn('reds')+2,t:'⛽ The sled is low. The only fuel is the <b>Kenai Harbor</b> fuel dock at the river mouth, 6 AM–10 PM. A sockeye trip burns about 9 gallons.'},
   {id:'launch',when:()=>todays().some(b=>TRIPS[b.type].loc!==S.loc),t:'🛶 Trips launch from a set spot. Use <b>🧭 Go somewhere</b> and be there before the launch time.'},
   {id:'logbook',when:()=>S.unlogged>0,t:'📓 Every guided trip needs an ADF&G logbook entry. Fill it out at the shop <b>before bed</b>.'},
   {id:'gear',when:()=>S.gear<=1,t:'🪱 You’re low on tackle. Restock in <b>Soldotna</b>, or the next trip suffers.'},
@@ -238,7 +240,7 @@ const TIPS=[
 // ---- To-do tab ----
 function todoItems(){
   const d=day(),m=tod(),it=[];
-  S.book.filter(b=>b.d===d).forEach(b=>{const T=TRIPS[b.type];
+  S.book.filter(b=>b.d===d&&!b.asst).forEach(b=>{const T=TRIPS[b.type];
     it.push({l:`${T.ic} ${T.n}: ${b.who}`,s:`${fmt(T.start)}, ${L[T.loc].name}`,ok:b.status==='done',fail:b.status==='noshow'||b.status==='cancelled',urgent:b.status==='booked'&&m>=T.start-120})});
   if(faDue(d)) it.push({l:'Renew your first-aid card',s:'Soldotna clinic, Mon, Tue & Thu 1–4 PM (join by 1:30), $95.',ok:false,urgent:faUrgent(d)||S.cred.fa<d});
   it.push({l:'Keep your logbook current',s:S.unlogged+S.overdue?`${S.unlogged+S.overdue} trip${S.unlogged+S.overdue>1?'s':''} to write up.`:'All caught up.',ok:!(S.unlogged+S.overdue),urgent:S.overdue>0});

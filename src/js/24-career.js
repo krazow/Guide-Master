@@ -63,12 +63,15 @@ const FA_CLASS_TXT='Mon/Tue/Thu 1 PM at the Soldotna clinic';
 
 // ---- off-season upgrades ----
 const UPGRADES=[
-  {id:'motor',ic:'⚙️',n:'Repower: a new 50 hp jet outboard',cost:13500,once:true,d:'Boat back to 100, wear on it halved, better on gas. Still 50 hp: the most the Kenai allows.'},
-  {id:'sled',ic:'🚤',n:'New 20-ft welded jet sled, motor & trailer',cost:52000,once:true,d:'Drier, faster, roomier, with a 40-gallon tank. Sockeye and silver trips go better (+catch, +happiness).'},
+  {id:'motor',ic:'⚙️',n:'Repower: a new 50 hp jet outboard',cost:13500,once:true,d:'Boat back to 100, wear on it halved, and about 20% less gas on every run. Still 50 hp: the most the Kenai allows.'},
+  {id:'sled',ic:'🚤',n:'New 20-ft welded jet sled, motor & trailer',cost:52000,once:true,d:'Drier and faster: sockeye and silver trips finish 30 minutes sooner (a little less tiring), the fuel run takes 45 minutes instead of 65, and you get a 40-gallon tank and a better catch and happier clients. The July five-person limit doesn’t change.'},
   {id:'drift',ic:'🛶',n:'New drift boat & trailer',cost:12500,once:true,d:'Upper Kenai floats go better (+catch, +happiness).'},
   {id:'web',ic:'🌐',n:'Website refresh + Anchorage sport-show booth',cost:2200,d:'More bookings this season.'},
   {id:'course',ic:'🧯',n:'Winter course: swiftwater rescue & fly casting',cost:750,d:'Skill +4. One per winter.'},
   {id:'rates',ic:'💲',n:'Raise your rates 10%',cost:0,d:'Pays 10% more per trip, but bookings drop (about 8% fewer trips a step, in July and the rest of the summer) and clients expect more: tips shrink unless the day goes well. Each step needs more reputation (65, 70, 75). Up to +30%.'},
+  {id:'asst',ic:'🧑‍🤝‍🧑',n:'Hire an assistant guide (second sled, decals, training)',cost:32000,once:true,d:'A used second sled and trailer, decals, permit and training for an assistant guide. When you are booked, a second party can take the same slot with your assistant: you keep 60% of the fare and tips, they cost fuel and a $3,000 winter overhead, and their day can go wrong (a refund, a fine, your name on the decal). Needs Rep 70 and two seasons under your belt.'},
+  {id:'lodge',ic:'🏡',n:'Build four riverside guest cabins',cost:95000,once:true,d:'Four cabins on a Soldotna river lot, rented at about $225 a night over the summer, and their guests book trips: roughly +$12,000 a year at a top reputation after cleaning, staff, utilities and a $5,500 winter bill (much less if your rep is poor), and 10% more off-month trips. Needs Rep 60 and three seasons behind you.'},
+  {id:'dock',ic:'⚓',n:'Buy a riverfront lot with a private launch and fuel dock',cost:240000,once:true,d:'Your own ramp and pump on the Kenai: no $15 launch fees, no trips to Kenai Harbor (fill up at your dock for about $0.85 a gallon less), clients love the quiet put-in (+3 happiness on sockeye and silver trips) and about 8% more bookings. Needs Rep 70 and four seasons behind you.'},
   {id:'chp',ic:'⚓',n:'Buy a Charter Halibut Permit + used 28-ft six-pack boat',cost:165000,once:true,d:'Run your own Homer halibut charters ($350 a head, ~45 gal of fuel a day) instead of captaining for a buddy, with more halibut bookings.'},
 ];
 function upOK(u){const U=S.up,s=seasonOf(day());
@@ -76,6 +79,9 @@ function upOK(u){const U=S.up,s=seasonOf(day());
   if(u.id==='web'&&U.web===s) return 'Done this winter';
   if(u.id==='course'&&U.course===s) return 'Done this winter';
   if(u.id==='rates'){if(U.rate>=1.3)return 'Maxed out';const need=rateRep();if(S.rep<need)return `Needs Rep ${need}`}
+  if(u.id==='asst'){if(S.rep<70)return 'Needs Rep 70';if(S.seasons.length<2)return 'Needs two seasons first'}
+  if(u.id==='lodge'){if(S.rep<60)return 'Needs Rep 60';if(S.seasons.length<3)return 'Needs three seasons first'}
+  if(u.id==='dock'){if(S.rep<70)return 'Needs Rep 70';if(S.seasons.length<4)return 'Needs four seasons first'}
   if(S.money<u.cost) return 'Can’t afford it';
   return null}
 function buyUp(u){const U=S.up,s=seasonOf(day());money(-u.cost);S.stats.spent+=u.cost;
@@ -83,6 +89,7 @@ function buyUp(u){const U=S.up,s=seasonOf(day());money(-u.cost);S.stats.spent+=u
   if(u.id==='sled'){U.sled=true;U.value+=u.cost}
   if(u.id==='drift'){U.drift=true;U.value+=u.cost}
   if(u.id==='chp'){U.chp=true;U.value+=u.cost}
+  if(u.id==='asst'||u.id==='lodge'||u.id==='dock'){U[u.id]=true;U.value+=u.cost}
   if(u.id==='web')U.web=s;
   if(u.id==='course'){U.course=s;S.skill+=4}
   if(u.id==='rates')U.rate=Math.round((U.rate+.1)*10)/10;
@@ -95,20 +102,46 @@ const rateRep=()=>65+5*rateSteps();                          // rep needed to bu
 const rateDemand=()=>Math.max(.4,1-RATE_BOOK*rateSteps());   // share of bookings that survive the price
 // effects used by the trip engine and payOf()
 const upQ=type=>(S.up.sled&&(type==='reds'||type==='silver')?.05:0)+(S.up.drift&&type==='trout'?.05:0);
-const upH=type=>(S.up.sled&&(type==='reds'||type==='silver')?3:0)+(S.up.drift&&type==='trout'?4:0);
+const upH=type=>(S.up.sled&&(type==='reds'||type==='silver')?3:0)+(S.up.drift&&type==='trout'?4:0)+(S.up.dock&&(type==='reds'||type==='silver')?3:0);
 
 // ---- season rollover: runs on the first morning of each new season (from onMorning) ----
 const WINTER_COST=[['🏠 Living costs, Oct–May (after your winter job)',1800],['🪪 Guide & business licenses, KRSMA permit, vessel decals',650],['🛡️ Liability insurance & drug-testing consortium',1950]];
-const winterCosts=()=>WINTER_COST.map(([n,c])=>[n,Math.round(c*DF().cost)]);
+const winterCosts=()=>WINTER_COST.concat(S.up&&S.up.asst?[['🧑‍🤝‍🧑 Assistant guide: license, decals, insurance, drug-testing',3000]]:[],S.up&&S.up.lodge?[['🏡 Cabins: property tax, insurance and winterizing',5500]]:[]).map(([n,c])=>[n,Math.round(c*DF().cost)]);
+
+// ---- late-career money sinks (2026 Alaska prices, approximate) ----
+// A boat that has worn down to 0 is out of service until you pay for a major repair (a jet-unit rebuild or a new drift-boat floor).
+const MAJOR_REPAIR=2400;
+const boatDown=()=>S.boat<=0;
+const sledTimeSaved=type=>S.up&&S.up.sled&&(type==='reds'||type==='silver')?30:0;
+// The cabins: about $225 a night, ~4 cabins, ~45 rented nights over the summer, minus cleaning, linens, staff and utilities.
+function lodgeSeason(){const f=DF().book*clamp(S.rep/70,.5,1.25);return {gross:Math.round(30000*f),costs:Math.round(20000*DF().cost)}}
+// The assistant guide's day. His trips fill the slot you're already booked in; he keeps 40% of fare and tips.
+const ASST_CUT=.4;
+function asstSettle(b,notes){
+  const T=TRIPS[b.type],r=Math.random,fare=payOf(b);
+  const bad=r()<.12+(S.boat<40?.08:0)+(S.rep<50?.05:0);
+  let refund=0,fine=0,dRep=0,line;
+  if(bad){
+    if(r()<.5){refund=Math.round(fare*.25);dRep=-4;line=`your assistant’s ${T.n.toLowerCase()} with the ${b.who} goes badly: the fish don’t bite and the clients want money back (${$(refund)} refunded).`}
+    else{fine=Math.round(300*DF().fine);dRep=-5;line=`a trooper writes your assistant a ticket on the ${b.who}’s ${T.n.toLowerCase()} (${$(fine)}). It’s your name on the decal.`}
+  }else line=`your assistant runs the ${b.who}’s ${T.n.toLowerCase()} and it goes well.`;
+  const tip=bad?0:Math.round(fare*(.08+r()*.1)),costs=(T.fuel?Math.round(bn(b.type)*fuelPrice('kenai')):0)+(T.loc==='lower'?LAUNCH_FEE:0)+25;
+  const mine=Math.round((fare-refund+tip)*(1-ASST_CUT))-fine-costs;
+  money(mine);S.stats.spent+=fine+costs;S.stats.fines+=fine;adj('rep',bad?dRep:1);
+  S.stats.asstTrips=(S.stats.asstTrips||0)+1;S.stats.asstNet=(S.stats.asstNet||0)+mine;
+  b.status='done';b.out={happy:bad?35:70,fish:0,line:'run by your assistant',fare,refund,tip,net:mine};
+  notes.push(`🧑‍🤝‍🧑 ${line.charAt(0).toUpperCase()+line.slice(1)} Your share, after his cut, fuel and fees: <b>${mine<0?'−':''}${$(Math.abs(mine))}</b>.`);
+}
 function startSeason(s){
   const st=S.stats,o=S.st0||{},yr=2025+s,prev={year:yr,trips:st.trips-(o.trips||0),fares:st.earned-(o.earned||0),earned:(st.earned-(o.earned||0))+(st.tips-(o.tips||0)),fines:st.fines-(o.fines||0),rep:S.rep,cites:(st.citesTotal||0)-(o.citesTotal||0),wom:S.wom||0};
   const rest=restOfSeason(prev);prev.rest=rest;money(rest.net);st.earned+=rest.gross;st.spent+=rest.costs;st.restTrips=(st.restTrips||0)+rest.trips;
-  adj('boat',-Math.round(rest.trips*(S.up.motor?.2:.4)));driftFuelPrices();
+  const boat0=S.boat;adj('boat',-Math.round(rest.trips*(S.up.motor?.2:.4)));driftFuelPrices();
   S.seasons.push(prev);S.st0=JSON.parse(JSON.stringify(st));
   const bill=winterCosts().reduce((a,[,c])=>a+c,0);money(-bill);st.spent+=bill;
   S.reg=genRegs(s);S.limit=3;S.eo=[];S.cum=Math.round(650000*S.reg.mult.sockeye);
   S.wom=0;S.warns=0;S.prep=-1;S.scout=-1;S.trip=null;S.unlogged=0;S.overdue=0;S.energy=90;
-  adj('boat',S.up.motor?-5:-12);S.rep=Math.round(50+(S.rep-50)*.85);
+  adj('boat',S.up.motor?-5:-12);S.boat=Math.max(S.boat,Math.min(boat0,10));   // winter wear never takes a boat out of service on its own
+  S.rep=Math.round(50+(S.rep-50)*.85);
   const before=S.cites;S.cites=S.citeLog.filter(x=>seasonOf(x)>=s-1).length;
   S.winter={s,bill,expired:before-S.cites};
   setTimeout(()=>{if(S&&S.winter&&!S.over)winterModal()},0);   // after the night summary
@@ -139,7 +172,7 @@ function finishWinter(){
 }
 function genSeasonBookings(s){
   const base=s*SEASON,web=S.up.web===s?.15:0,r=Math.random;
-  const p0=clamp((.35+S.rep/200+web)*rateDemand(),.12,.95);
+  const p0=clamp((.35+S.rep/200+web)*rateDemand()*(S.up.dock?1.08:1),.12,.95);
   const q=()=>r()<.3?[pick(['drinker','nolicense','kingfan','photo','kid'])]:[];
   const party=()=>pick(PARTIES);
   for(let i=0;i<SEASON;i++){const d=base+i,w=i%7;
@@ -151,6 +184,11 @@ function genSeasonBookings(s){
       else if(r()<p0*.7){const p=party();addBooking({d,type:'trout',n:pick([2,3,3]),who:p.who,from:p.from,res:!!p.res,quirk:q()})}
     }
   }
+  if(S.up.asst) for(let i=1;i<SEASON;i++){const d=base+i,w=i%7;           // your assistant takes a second party when you are booked
+    if(w<1||w>5||r()>p0*.9) continue;
+    const types=['reds','reds','trout'].concat(i>=7?['silver']:[]).filter(t=>conflicts(d,t)&&!conflicts(d,t,true));
+    if(!types.length) continue;const type=pick(types),p=party();
+    addBooking({d,type,n:type==='trout'?pick([2,3]):pick([2,3,4]),who:p.who,from:p.from,res:!!p.res,quirk:[],asst:true})}
   if(!S.up.chp){const d=base+pick([6,13]);if(!S.book.some(b=>b.d===d&&b.status==='booked')){const p=party();addBooking({d,type:'halibut',n:6,who:p.who,from:p.from,res:!!p.res,quirk:[]})}}
 }
 
