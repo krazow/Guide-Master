@@ -95,13 +95,13 @@ const upH=type=>(S.up.sled&&(type==='reds'||type==='silver')?3:0)+(S.up.drift&&t
 const WINTER_COST=[['🏠 Living costs, Oct–May (after your winter job)',1800],['🪪 Guide & business licenses, KRSMA permit, vessel decals',650],['🛡️ Liability insurance & drug-testing consortium',1950]];
 const winterCosts=()=>WINTER_COST.map(([n,c])=>[n,Math.round(c*DF().cost)]);
 function startSeason(s){
-  const st=S.stats,o=S.st0||{},yr=2025+s,prev={year:yr,trips:st.trips-(o.trips||0),fares:st.earned-(o.earned||0),earned:(st.earned-(o.earned||0))+(st.tips-(o.tips||0)),fines:st.fines-(o.fines||0),rep:S.rep,cites:(st.citesTotal||0)-(o.citesTotal||0)};
+  const st=S.stats,o=S.st0||{},yr=2025+s,prev={year:yr,trips:st.trips-(o.trips||0),fares:st.earned-(o.earned||0),earned:(st.earned-(o.earned||0))+(st.tips-(o.tips||0)),fines:st.fines-(o.fines||0),rep:S.rep,cites:(st.citesTotal||0)-(o.citesTotal||0),wom:S.wom||0};
   const rest=restOfSeason(prev);prev.rest=rest;money(rest.net);st.earned+=rest.gross;st.spent+=rest.costs;st.restTrips=(st.restTrips||0)+rest.trips;
   adj('boat',-Math.round(rest.trips*(S.up.motor?.2:.4)));driftFuelPrices();
   S.seasons.push(prev);S.st0=JSON.parse(JSON.stringify(st));
   const bill=winterCosts().reduce((a,[,c])=>a+c,0);money(-bill);st.spent+=bill;
   S.reg=genRegs(s);S.limit=3;S.eo=[];S.cum=Math.round(650000*S.reg.mult.sockeye);
-  S.prep=-1;S.scout=-1;S.trip=null;S.unlogged=0;S.overdue=0;S.energy=90;
+  S.wom=0;S.warns=0;S.prep=-1;S.scout=-1;S.trip=null;S.unlogged=0;S.overdue=0;S.energy=90;
   adj('boat',S.up.motor?-5:-12);S.rep=Math.round(50+(S.rep-50)*.85);
   const before=S.cites;S.cites=S.citeLog.filter(x=>seasonOf(x)>=s-1).length;
   S.winter={s,bill,expired:before-S.cites};

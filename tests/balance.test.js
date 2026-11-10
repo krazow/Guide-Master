@@ -33,7 +33,7 @@ module.exports = [
       return out;
     });
     assert.ok(r.hard > r.normal * 1.2 && r.normal > r.easy * 1.2, JSON.stringify(r));
-    assert.strictEqual(r.fn, 400); assert.strictEqual(r.fn2, 400);
+    assert.strictEqual(r.fn, 400); assert.strictEqual(r.fn2, 560, 'normal: +20% per active citation');
     assert.ok(r.fh >= 400 && r.fh2 > r.fh * 1.3, JSON.stringify(r));
     noErrors(errors);
   } },

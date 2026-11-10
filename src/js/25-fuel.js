@@ -82,7 +82,7 @@ function harborActions(a){
 // You play the two-week July peak; the rest of your season is booked off your reputation.
 function restOfSeason(p){
   if(!p||!p.trips) return {trips:0,gross:0,costs:0,net:0};
-  const trips=Math.round(p.trips*2.4*DF().book*clamp(S.rep/70,.5,1.25)),fare=p.fares/p.trips;
+  const trips=Math.round(p.trips*2.4*DF().book*clamp(S.rep/70,.5,1.25)*(1+clamp((p.wom||0)*.005,-.06,.08))),fare=p.fares/p.trips;
   const gross=Math.round(trips*fare),costs=Math.round(trips*(BURN.reds*fuelPrice('kenai')+LAUNCH_FEE+30));
   return {trips,gross,costs,net:gross-costs};
 }

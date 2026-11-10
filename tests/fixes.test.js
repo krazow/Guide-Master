@@ -12,7 +12,7 @@ module.exports = [
       const b = S.book.find(x => x.res && x.type === 'reds');
       const before = view();
       S.cred.fa = 999; S.cur = b.d; S.t = b.d * 1440 + TRIPS[b.type].start - 30; S.loc = TRIPS[b.type].loc;
-      tripStart(b); let i = 0; while (S.trip && i++ < 40) MBTN(0); closeModals();
+      tripStart(b); let i = 0; while (S.trip && i++ < 40) MBTN(legalBtn()); closeModals();
       return { before, after: view(), res: b.res, out: b.out, status: b.status, line: partyLine(b) };
     }, bookingsText.toString());
     assert.ok(!/undefined/.test(r.before), 'upcoming resident bookings show no undefined');
