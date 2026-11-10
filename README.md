@@ -98,7 +98,7 @@ Prices are game values in the range of 2026 Alaska costs (used sleds and trailer
 - **Three multi-season story arcs**, each scene at most once a season from the second season on, one scene a morning:
   - *A rival guide* (Dale Voss, any rep of 55+): he parks on your seam; share or hold it. Next season he either sends you a party or runs you down on a forum depending on what you did; in the finale his sled quits and you can tow him in (a small permanent booking bonus, the Good Neighbor achievement).
   - *The Garza family*: your season-1 Garzas become regulars if their first trip goes well (60+). Over four Julys: Mateo's first big fish, Grandpa Ray's first trip, and Mateo asking to work for you (an unlicensed person can't run a guide vessel). Family Tradition achievement.
-  - *The advisory committee* (rep 70+): a seat on the Kenai/Soldotna Fish and Game Advisory Committee, a vote on a proposal to the Board of Fisheries about the late-run escapement goal, and testimony at the Board of Fisheries. The game doesn't change any rule in response; the arc is about your standing. A Seat at the Table achievement.
+  - *The advisory committee* (rep 70+): a seat on the Kenai/Soldotna Fish and Game Advisory Committee, a vote on a proposal to the Board of Fisheries about the late-run escapement goal, and testimony at the Board of Fisheries (a three-hour hearing, so it only comes on a day with no trips booked: an earlier version ate the morning's trips and cost a 15-point no-show review). The game doesn't change any rule in response; the arc is about your standing. A Seat at the Table achievement.
 
 ## How a trip pays
 

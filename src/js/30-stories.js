@@ -117,7 +117,7 @@ defEvent({id:'arc_rival',hook:'wake',tile:['🚤','A rival on your seam','info']
       {l:'Tow him in',s:'Energy −8, boat −3, rep +4. Whatever you two were, you’re something else now.',fn:()=>{A.st=4;A.ally=true;adj('energy',-8);adj('boat',-3);adj('rep',4);say('🛟 You throw him a line and tow the whole rig to the ramp. Dale shakes your hand with both of his. “I owe you one.”')}},
       {l:'Radio the Coast Guard and keep moving',s:'Quick and cold.',fn:()=>{A.st=4;say('📻 You relay his call and keep your clients on the water. Dale gets in fine. He doesn’t wave.')}}]);
   }});
-defEvent({id:'arc_board',hook:'wake',tile:['🏛️','A seat at the table','info'],chance:.35,cond:()=>{const A=S.arcs.board;return arcFree(A)&&(A.st===0&&S.rep>=70||A.st===1||A.st===2)},
+defEvent({id:'arc_board',hook:'wake',tile:['🏛️','A seat at the table','info'],chance:.35,cond:()=>{const A=S.arcs.board;return arcFree(A)&&(A.st===0&&S.rep>=70||A.st===1||A.st===2&&!todays(day()).length)},   // the hearing is a daytime, three-hour trip to the Board: it only comes on a day with no trips booked, so it never costs you a no-show
   run:()=>{const A=S.arcs.board;arcDone(A);
     if(A.st===0) return modal('🏛️ A seat on the advisory committee',`<p>The Kenai/Soldotna Fish and Game Advisory Committee has an open seat and somebody put your name forward. Advisory committees take local input and send proposals to the Alaska Board of Fisheries. The evening meetings are long.</p>`,[
       {l:'Take the seat',s:'Energy −8, skill +1.',fn:()=>{A.st=1;adj('energy',-8);S.skill++;say('🏛️ You’re sworn in at the Soldotna sportsmen’s hall. The coffee is terrible and the room is full of people who care.')}},
@@ -126,7 +126,7 @@ defEvent({id:'arc_board',hook:'wake',tile:['🏛️','A seat at the table','info
       {l:'Back the more cautious goal',s:'Rep +3. A few guides grumble.',fn:()=>{A.st=2;adj('rep',3);S.wom=(S.wom||0)-1;say('🗳️ You vote with the biologists’ cautious numbers. Some guides take it personally. Many more thank you.')}},
       {l:'Back more room for harvest',s:'Rep −2, but the guides’ association sends $250.',fn:()=>{A.st=2;adj('rep',-2);money(250);say('🗳️ You side with the harvest. The association sends a thank-you check, and a few biologists stop returning your calls.')}},
       {l:'Abstain',s:'Nothing gained, nothing lost.',fn:()=>{A.st=2;say('🗳️ You abstain. Nobody is thrilled.')}}]);
-    return modal('🏛️ Board of Fisheries meeting',`<p>The Board of Fisheries meets and your committee’s proposal is up. They want somebody from the river to testify.</p>`,[
-      {l:'Testify with your logbook data',s:'Three hours and $120 for the trip. Rep +5, skill +2.',fn:()=>{A.st=3;pass(180);money(-120);S.stats.spent+=120;adj('rep',5);S.skill+=2;say('🎤 Three minutes at the microphone, your own numbers on the screen. Afterward a biologist asks for a copy.')}},
+    return modal('🏛️ Board of Fisheries meeting',`<p>The Board of Fisheries meets and your committee’s proposal is up. They want somebody from the river to testify. You have a free day.</p>`,[
+      {l:'Testify with your logbook data',s:'Three hours and $120 for the trip (a day with no trips booked). Rep +5, skill +2.',fn:()=>{A.st=3;pass(180);money(-120);S.stats.spent+=120;adj('rep',5);S.skill+=2;say('🎤 Three minutes at the microphone, your own numbers on the screen. Afterward a biologist asks for a copy.')}},
       {l:'Send a written comment',s:'Rep +1.',fn:()=>{A.st=3;adj('rep',1);say('📄 You send your comment by email. It goes into the record.')}}]);
   }});

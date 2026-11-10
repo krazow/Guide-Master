@@ -71,4 +71,22 @@ module.exports = [
     assert.strictEqual(r.boat, 0, 'a loaner trip does not wear your boat'); assert.ok(r.nextOut, 'out of service again the next day');
     noErrors(errors);
   } },
+
+  // ---- 2. long careers: nothing at the wake hook may cost a booked trip ----
+  { name: 'rep: the Board of Fisheries hearing only comes on a day with no trips (it used to cause a no-show)', fn: async ctx => {
+    const { page, errors } = await open(ctx, { seed: 5 });
+    await page.evaluate(() => setPref('years', 10));
+    await newGame(page);
+    const r = await page.evaluate(() => {
+      closeModals(); S.cur = 14 * 3 + 4; S.t = S.cur * 1440 + 300; S.rep = 80; S.arcs.board = { st: 2, s: 1 }; S.arcs.day = -1; S.book = [];
+      const ev = EV.find(e => e.id === 'arc_board'), o = {};
+      o.free = !!ev.cond();
+      addBooking({ d: S.cur, type: 'reds', n: 3, who: 'x', from: 'Y', quirk: [] });
+      o.busy = !!ev.cond();
+      S.arcs.board = { st: 1, s: 1 }; o.vote = !!ev.cond();   // the committee vote takes no time, so it can still come on a trip day
+      return o;
+    });
+    assert.ok(r.free, 'testimony is possible on a free day'); assert.ok(!r.busy, 'but not on a day with a trip booked'); assert.ok(r.vote);
+    noErrors(errors);
+  } },
 ];
