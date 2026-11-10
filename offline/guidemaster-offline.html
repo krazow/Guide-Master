@@ -229,7 +229,7 @@ const GAME={
   title:'Guide Master',
   tagline:'Two weeks guiding the Kenai',
   codePrefix:'GUIDEMASTER',   // transfer codes start with this, e.g. POCKETWEEK:eyJ…
-  version:'1.5.4',           // bump on every release: shown in Settings, stamped into saves and sw.js
+  version:'1.6.0',           // bump on every release: shown in Settings, stamped into saves and sw.js
   schema:2,                  // bump when the shape of S changes, and add a MIGRATIONS entry (21-story.js)
   days:14,                   // length of a run, in days (Mon Jul 13 – Sun Jul 26, 2026)
   wake:270,                  // default alarm, in minutes after midnight (270 = 4:30 AM: guides start early)
@@ -1653,7 +1653,7 @@ function tripEnd(b,t){
   // ---- what the day was worth ----
   // The booked fare is the base. A good day (fish, happy clients, a clean boat and tackle) earns bigger tips and word of mouth;
   // a bad one (skunked, out of tackle, a breakdown, grumpy clients) means a partial refund and a bad review.
-  const happy=45+frac*45+t.happy+upH(b.type)+DF().mood;
+  const happy=45+frac*45+t.happy+upH(b.type)+DF().mood-RATE_MOOD*rateSteps();
   const fare=towed?Math.round(payOf(b)*.5):payOf(b),base=b.type==='halibut'&&!S.up.chp?1200:fare;
   const tip=Math.round(base*clamp((happy-62)/130,0,.3));
   const skunk=fishers>0&&fish-t.kept<=0&&b.type!=='trout'&&!(b.type==='halibut'&&halClosed(b.d));
@@ -1949,14 +1949,14 @@ const UPGRADES=[
   {id:'drift',ic:'🛶',n:'New drift boat & trailer',cost:12500,once:true,d:'Upper Kenai floats go better (+catch, +happiness).'},
   {id:'web',ic:'🌐',n:'Website refresh + Anchorage sport-show booth',cost:2200,d:'More bookings this season.'},
   {id:'course',ic:'🧯',n:'Winter course: swiftwater rescue & fly casting',cost:750,d:'Skill +4. One per winter.'},
-  {id:'rates',ic:'💲',n:'Raise your rates 10%',cost:0,d:'Needs Rep 65+. Pays more per trip; a few fewer bookings. Up to +30%.'},
+  {id:'rates',ic:'💲',n:'Raise your rates 10%',cost:0,d:'Pays 10% more per trip, but bookings drop (about 8% fewer trips a step, in July and the rest of the summer) and clients expect more: tips shrink unless the day goes well. Each step needs more reputation (65, 70, 75). Up to +30%.'},
   {id:'chp',ic:'⚓',n:'Buy a Charter Halibut Permit + used 28-ft six-pack boat',cost:165000,once:true,d:'Run your own Homer halibut charters ($350 a head, ~45 gal of fuel a day) instead of captaining for a buddy, with more halibut bookings.'},
 ];
 function upOK(u){const U=S.up,s=seasonOf(day());
   if(u.once&&U[u.id]) return 'Done';
   if(u.id==='web'&&U.web===s) return 'Done this winter';
   if(u.id==='course'&&U.course===s) return 'Done this winter';
-  if(u.id==='rates'){if(U.rate>=1.3)return 'Maxed out';if(S.rep<65)return 'Needs Rep 65';}
+  if(u.id==='rates'){if(U.rate>=1.3)return 'Maxed out';const need=rateRep();if(S.rep<need)return `Needs Rep ${need}`}
   if(S.money<u.cost) return 'Can’t afford it';
   return null}
 function buyUp(u){const U=S.up,s=seasonOf(day());money(-u.cost);S.stats.spent+=u.cost;
@@ -1968,6 +1968,12 @@ function buyUp(u){const U=S.up,s=seasonOf(day());money(-u.cost);S.stats.spent+=u
   if(u.id==='course'){U.course=s;S.skill+=4}
   if(u.id==='rates')U.rate=Math.round((U.rate+.1)*10)/10;
   sfx('good');say(`${u.ic} ${u.n}${u.cost?` (${$(u.cost)})`:''}.`)}
+// Rates: each +10% step costs something. Bookings fall with price (RATE_BOOK per step, in July and across the rest of the
+// summer), clients expect more (RATE_MOOD happiness per step: smaller tips on an average day) and the next step needs more rep.
+const RATE_BOOK=.08,RATE_MOOD=3;
+const rateSteps=()=>Math.round((((S.up&&S.up.rate)||1)-1)*10);
+const rateRep=()=>65+5*rateSteps();                          // rep needed to buy the NEXT step
+const rateDemand=()=>Math.max(.4,1-RATE_BOOK*rateSteps());   // share of bookings that survive the price
 // effects used by the trip engine and payOf()
 const upQ=type=>(S.up.sled&&(type==='reds'||type==='silver')?.05:0)+(S.up.drift&&type==='trout'?.05:0);
 const upH=type=>(S.up.sled&&(type==='reds'||type==='silver')?3:0)+(S.up.drift&&type==='trout'?4:0);
@@ -2013,8 +2019,8 @@ function finishWinter(){
   showTile('📅',`${n} trips booked`,`Season ${s+1} of ${S.years}`,'good');
 }
 function genSeasonBookings(s){
-  const base=s*SEASON,web=S.up.web===s?.15:0,rate=(S.up.rate-1)*.5,r=Math.random;
-  const p0=clamp(.35+S.rep/200+web-rate,.15,.95);
+  const base=s*SEASON,web=S.up.web===s?.15:0,r=Math.random;
+  const p0=clamp((.35+S.rep/200+web)*rateDemand(),.12,.95);
   const q=()=>r()<.3?[pick(['drinker','nolicense','kingfan','photo','kid'])]:[];
   const party=()=>pick(PARTIES);
   for(let i=0;i<SEASON;i++){const d=base+i,w=i%7;
@@ -2120,7 +2126,7 @@ function harborActions(a){
 // You play the two-week July peak; the rest of your season is booked off your reputation.
 function restOfSeason(p){
   if(!p||!p.trips) return {trips:0,gross:0,costs:0,net:0};
-  const trips=Math.round(p.trips*2.4*DF().book*clamp(S.rep/70,.5,1.25)*(1+clamp((p.wom||0)*.005,-.06,.08))),fare=p.fares/p.trips;
+  const trips=Math.round(p.trips*2.4*DF().book*clamp(S.rep/70,.5,1.25)*(1+clamp((p.wom||0)*.005,-.06,.08))*rateDemand()),fare=p.fares/p.trips;
   const gross=Math.round(trips*fare),costs=Math.round(trips*(BURN.reds*fuelPrice('kenai')+LAUNCH_FEE+30));
   return {trips,gross,costs,net:gross-costs};
 }
@@ -2138,7 +2144,7 @@ const HELP=[
   ['📓','Paperwork','Fill out your <strong>ADF&G logbook</strong> at the shop after every trip, before bed. Keep your <strong>first-aid/CPR card</strong> current: classes are in Soldotna, Monday, Tuesday and Thursday, 1–4 PM (join by 1:30), and a card lasts two years.'],
   ['⛽','Fuel','The jet sled burns about 9 gallons on a sockeye trip and 11 on a silver trip. You can fill up <strong>only at the Kenai Harbor fuel dock</strong> (6 AM–10 PM). Run dry and the Coast Guard tows you in: half the fare refunded and a hit to your reputation. Watch the <strong>Fuel</strong> gauge in the top bar.'],
   ['🐟','Fish & weather','The <strong>🐟 Fish</strong> tab shows today’s weather, river level, tides, the odds by place and species, and when each run arrives. Reds bite best at first light; silvers build late July; pinks run in even years. With no clients booked, <strong>Take the boat out</strong> to fill your freezer and scout.'],
-  ['🔧','Money & gear','The booked fare is your base pay; tips, refunds and word of mouth follow how the day went: the catch, happy clients, tackle and a boat in good shape. Run out of tackle or let the boat wear down and you’ll see smaller tips, refunds and breakdowns. Restock tackle in Soldotna, service the boats at the shop, buy fuel at the harbor. Overhead is charged every night. In the off-season you can buy upgrades: a new motor, sled or drift boat, marketing, higher rates, even your own Homer charter permit.'],
+  ['🔧','Money & gear','The booked fare is your base pay; tips, refunds and word of mouth follow how the day went: the catch, happy clients, tackle and a boat in good shape. Run out of tackle or let the boat wear down and you’ll see smaller tips, refunds and breakdowns. Restock tackle in Soldotna, service the boats at the shop, buy fuel at the harbor. Overhead is charged every night. In the off-season you can buy upgrades: a new motor, sled or drift boat, marketing, higher rates (more per trip, fewer bookings, pickier clients), even your own Homer charter permit.'],
   ['🏕️','Winter camping','In the off-season you can <strong>go winter camping</strong> once per winter: pick one of ten real Kenai Peninsula spots within 100 road miles of Soldotna and 1–7 nights. You pay gas, campsite fees (most places are unserviced in winter) and supplies. Each night has a <strong>50% chance of a wildlife encounter</strong>, good or bad, that nudges your energy, skill, rep or cash going into the new season.'],
   ['💀','How you lose','Three active citations (permit pulled), reputation down to 0 (nobody books you), or $2,000 in debt (the bank takes the sled).'],
   ['💡','Tips','Rig tomorrow’s gear and scout the river for better trips. Tips (💡) appear as you play; turn them on or off in ⚙️ Settings. On a computer, number keys press buttons and <strong>?</strong> lists the shortcuts.'],
@@ -2352,6 +2358,7 @@ const CHANGELOG={
   '1.5.2':['🆕 This notice: after each update you’ll see what changed, and your progress is brought up to date automatically.'],
   '1.5.3':['⚖️ Difficulty now changes the game, not the score: Combat Season means more patrols and dearer bills, Rookie the reverse. Grades were recalibrated, so an A takes real work.'],
   '1.5.4':['🎲 Dilemma options shuffle: playing it straight costs something, bending a rule can pay cash, and repeat offenders pay steeper fines. Pay now follows the day: catch, tackle and boat shape tips, refunds and word of mouth.'],
+  '1.6.0':['💲 Higher rates now cost you: fewer bookings, pickier clients and a rep requirement that rises each step.'],
 };
 const CHANGELOG_GENERIC='Fixes and small improvements throughout.';
 const LASTVER_KEY=KEY('lastVersion');

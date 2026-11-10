@@ -68,14 +68,14 @@ const UPGRADES=[
   {id:'drift',ic:'🛶',n:'New drift boat & trailer',cost:12500,once:true,d:'Upper Kenai floats go better (+catch, +happiness).'},
   {id:'web',ic:'🌐',n:'Website refresh + Anchorage sport-show booth',cost:2200,d:'More bookings this season.'},
   {id:'course',ic:'🧯',n:'Winter course: swiftwater rescue & fly casting',cost:750,d:'Skill +4. One per winter.'},
-  {id:'rates',ic:'💲',n:'Raise your rates 10%',cost:0,d:'Needs Rep 65+. Pays more per trip; a few fewer bookings. Up to +30%.'},
+  {id:'rates',ic:'💲',n:'Raise your rates 10%',cost:0,d:'Pays 10% more per trip, but bookings drop (about 8% fewer trips a step, in July and the rest of the summer) and clients expect more: tips shrink unless the day goes well. Each step needs more reputation (65, 70, 75). Up to +30%.'},
   {id:'chp',ic:'⚓',n:'Buy a Charter Halibut Permit + used 28-ft six-pack boat',cost:165000,once:true,d:'Run your own Homer halibut charters ($350 a head, ~45 gal of fuel a day) instead of captaining for a buddy, with more halibut bookings.'},
 ];
 function upOK(u){const U=S.up,s=seasonOf(day());
   if(u.once&&U[u.id]) return 'Done';
   if(u.id==='web'&&U.web===s) return 'Done this winter';
   if(u.id==='course'&&U.course===s) return 'Done this winter';
-  if(u.id==='rates'){if(U.rate>=1.3)return 'Maxed out';if(S.rep<65)return 'Needs Rep 65';}
+  if(u.id==='rates'){if(U.rate>=1.3)return 'Maxed out';const need=rateRep();if(S.rep<need)return `Needs Rep ${need}`}
   if(S.money<u.cost) return 'Can’t afford it';
   return null}
 function buyUp(u){const U=S.up,s=seasonOf(day());money(-u.cost);S.stats.spent+=u.cost;
@@ -87,6 +87,12 @@ function buyUp(u){const U=S.up,s=seasonOf(day());money(-u.cost);S.stats.spent+=u
   if(u.id==='course'){U.course=s;S.skill+=4}
   if(u.id==='rates')U.rate=Math.round((U.rate+.1)*10)/10;
   sfx('good');say(`${u.ic} ${u.n}${u.cost?` (${$(u.cost)})`:''}.`)}
+// Rates: each +10% step costs something. Bookings fall with price (RATE_BOOK per step, in July and across the rest of the
+// summer), clients expect more (RATE_MOOD happiness per step: smaller tips on an average day) and the next step needs more rep.
+const RATE_BOOK=.08,RATE_MOOD=3;
+const rateSteps=()=>Math.round((((S.up&&S.up.rate)||1)-1)*10);
+const rateRep=()=>65+5*rateSteps();                          // rep needed to buy the NEXT step
+const rateDemand=()=>Math.max(.4,1-RATE_BOOK*rateSteps());   // share of bookings that survive the price
 // effects used by the trip engine and payOf()
 const upQ=type=>(S.up.sled&&(type==='reds'||type==='silver')?.05:0)+(S.up.drift&&type==='trout'?.05:0);
 const upH=type=>(S.up.sled&&(type==='reds'||type==='silver')?3:0)+(S.up.drift&&type==='trout'?4:0);
@@ -132,8 +138,8 @@ function finishWinter(){
   showTile('📅',`${n} trips booked`,`Season ${s+1} of ${S.years}`,'good');
 }
 function genSeasonBookings(s){
-  const base=s*SEASON,web=S.up.web===s?.15:0,rate=(S.up.rate-1)*.5,r=Math.random;
-  const p0=clamp(.35+S.rep/200+web-rate,.15,.95);
+  const base=s*SEASON,web=S.up.web===s?.15:0,r=Math.random;
+  const p0=clamp((.35+S.rep/200+web)*rateDemand(),.12,.95);
   const q=()=>r()<.3?[pick(['drinker','nolicense','kingfan','photo','kid'])]:[];
   const party=()=>pick(PARTIES);
   for(let i=0;i<SEASON;i++){const d=base+i,w=i%7;
