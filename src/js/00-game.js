@@ -24,7 +24,7 @@ const GAME={
   title:'Guide Master',
   tagline:'Two weeks guiding the Kenai',
   codePrefix:'GUIDEMASTER',   // transfer codes start with this, e.g. POCKETWEEK:eyJ…
-  version:'1.3.0',           // bump on every release: shown in Settings, stamped into saves and sw.js
+  version:'1.3.1',           // bump on every release: shown in Settings, stamped into saves and sw.js
   schema:1,                  // bump when the shape of S changes, and add a MIGRATIONS entry (21-story.js)
   days:14,                   // length of a run, in days (Mon Jul 13 – Sun Jul 26, 2026)
   wake:270,                  // default alarm, in minutes after midnight (270 = 4:30 AM: guides start early)

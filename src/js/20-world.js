@@ -113,7 +113,7 @@ function spend(c,what){money(-c);S.stats.spent+=c}
 function actionsHere(){
   const d=day(),m=tod(),a=[];
   if(S.winter) return [{ic:'❄️',l:'Plan the off-season',s:'Bills, forecast, upgrades. Bookings open when you’re done.',cat:'trip',cls:'primary',fn:()=>winterModal()}];
-  if(S.trip) return [{ic:'🛶',l:'Back to your trip',s:`${TRIPS[(bk(S.trip.id)||{type:'reds'}).type].n} in progress`,cat:'trip',cls:'primary',fn:()=>tripNext()}];
+  if(S.trip){const tb=bk(S.trip.id)||{type:'reds'};return [{ic:'🛶',l:'Back to your trip',s:`${TRIPS[tb.type].n} in progress`,cat:'trip',cls:'primary',fn:()=>tripNext()},coffeeAction(tb.type==='trout')]}
   // today's trips that launch from here
   todays(d).filter(b=>TRIPS[b.type].loc===S.loc).forEach(b=>{
     const T=TRIPS[b.type],late=m-T.start;
@@ -159,8 +159,15 @@ function actionsHere(){
   if(S.loc==='homer'){
     a.push({ic:'🍟',l:'Fish & chips on the Spit — $20',s:'40 min. Energy +10.',cat:'rest',dis:!canAfford(20),fn:()=>{spend(20);pass(40);adj('energy',10);say('🍟 Halibut and chips at a picnic table, eagles on every light pole. Homer calls itself the Halibut Fishing Capital of the World.')}});
   }
+  a.push(coffeeAction(S.loc==='cooper'));
   harborActions(a);
   return a;
+}
+
+// ☕ Optional coffee break: 5 minutes on the clock, anywhere except the drift boat (Cooper Landing / a trout float).
+function coffeeAction(onDrift){
+  return {ic:'☕',l:'Grab a cup of coffee, it will take 5 minutes',s:onDrift?'Not on the drift boat: both hands are on the oars and there’s nowhere to set a cup.':'Optional. Adds 5 minutes to the clock.',cat:'rest',dis:onDrift,
+    fn:()=>{pass(5);say(pick(['☕ Thermos coffee, black, steaming in the cold river air. Five minutes well spent.','☕ You pour a cup and watch the river slide by for five minutes.','☕ A quick cup. The world sharpens a little.']))}};
 }
 
 // ---- small extras on the Here tab ----
