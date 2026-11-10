@@ -239,6 +239,8 @@ const ACH=[
   {id:'own_six_pack',ic:'⚓',n:'Your Own Six-Pack',d:'Buy a Charter Halibut Permit and run your own Homer charters.',test:()=>!!(S.up&&S.up.chp)},
   {id:'legal_king',ic:'👑',n:'A Legal King',d:'Put a client on a legal Kenai king in a year kings are open.',test:()=>(S.stats.legalKings||0)>0},
   {id:'bear_aware',ic:'🐻',n:'Bear Aware',d:'Give a brown bear the gravel bar.',test:()=>S.stats.bear>0},
+  {id:'happy_camper',ic:'🏕️',n:'Happy Camper',d:'Camp 7 nights in total during winters.',test:()=>(S.stats.campNights||0)>=7},
+  {id:'wild_kenai',ic:'🦌',n:'Wild Kenai',d:'See 5 different wildlife encounters while camping.',test:()=>Object.keys(S.stats.seen||{}).length>=5},
 ];
 
 // ---- scoring and the end screen ----
@@ -260,7 +262,7 @@ function endRows(){
   return [['Career',`${S.years} seasons`],['Season by season',yrs],['Cash',$(Math.round(S.money))],['Net over the career',$(Math.round(S.money-DF().money))],['Boats & permits bought',S.up&&S.up.value?$(S.up.value):'none'],['Trips / clients',`${s.trips} / ${s.clients}`],
     ['Fish landed',s.fish],['Trips where everyone limited',s.limits],['Tips',$(s.tips)],['Reputation',S.rep],
     ['Record',`${s.citesTotal||0} citation${(s.citesTotal||0)===1?'':'s'}, ${S.warns} warning${S.warns===1?'':'s'}, ${$(s.fines)} in fines`],
-    ['Fuel',`${Math.round(s.fuelGal||0)} gal, ${$(Math.round(s.fuelCost||0))}`],['Coast Guard tows',s.tows||0],['Kings released',s.kings],['Freezer',`${S.freezer} reds`],['Boat checks passed',s.checks]];
+    ['Fuel',`${Math.round(s.fuelGal||0)} gal, ${$(Math.round(s.fuelCost||0))}`],['Coast Guard tows',s.tows||0],['Winter camping',`${s.campNights||0} night${(s.campNights||0)===1?'':'s'}, ${s.encounters||0} wildlife encounter${(s.encounters||0)===1?'':'s'}`],['Kings released',s.kings],['Freezer',`${S.freezer} reds`],['Boat checks passed',s.checks]];
 }
 
 // ---- save migrations ----

@@ -26,7 +26,7 @@ function newState(){
     run:[],cum:0,limit:3,eo:[],wx:[],wxd:[],noise:[],water:.5,solo:{},pu:0,
     freezer:0,skill:0,
     visited:{shop:true},
-    stats:{trips:0,clients:0,fish:0,limits:0,earned:0,spent:0,tips:0,viol:0,fines:0,kings:0,chop:0,bear:0,noshow:0,halibut:0,checks:0,cancelled:0,tows:0,fuelGal:0,fuelCost:0}};
+    stats:{trips:0,clients:0,fish:0,limits:0,earned:0,spent:0,tips:0,viol:0,fines:0,kings:0,chop:0,bear:0,noshow:0,halibut:0,checks:0,cancelled:0,tows:0,fuelGal:0,fuelCost:0,campNights:0,encounters:0,seen:{}},camp:null};
 }
 
 // ---- HUD ----

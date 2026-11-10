@@ -53,6 +53,34 @@ When you start a new game you pick a **2-, 5- or 10-year career** (`src/js/24-ca
 
 The score covers the whole career (net cash, half the value of what you bought, rep, trips, a clean record), and the grade is per season, so careers of any length compare.
 
+## Winter camping
+
+`src/js/28-camping.js`. During the off-season, **🏕️ Go winter camping** opens a destination picker, then a nights picker (1, 2, 3, 5 or 7) and a cost breakdown before you confirm. It is available once per off-season (a second trip would crowd out your winter job) and never moves the game clock: the trip happens between seasons.
+
+| Destination | One-way road miles from Soldotna | Fee per night in the game |
+|---|---|---|
+| Johnson Lake (Kasilof) | 16 | free in winter ($20 in season) |
+| Clam Gulch beach | 22 | free ($20 in season) |
+| Hidden Lake (Kenai Refuge) | 24 | free ($15 in season) |
+| Swanson River Rd & Swan Lake canoe area | 29 | free |
+| Lower Skilak Lake Campground | 33 | free |
+| Captain Cook State Rec Area | 36 | free ($20 in season) |
+| Deep Creek State Rec Area | 42 | free ($20 in season) |
+| Quartz Creek (Kenai Lake) | 51 | free |
+| Anchor River State Rec Area | 66 | $20/night |
+| Homer Spit | 83 | free (city sites open Apr–Oct only) |
+
+Miles are estimates from Sterling Highway mileposts (Soldotna about MP 95.2; Quartz Creek MP 44.9, Swanson River Rd MP 83.5 plus 17 miles, Skilak Lake Rd west end MP 75.2 plus 3.5 to Hidden Lake and 13.3 to Lower Skilak, Johnson Lake Rd MP 110, Clam Gulch MP 117.4, Deep Creek MP 137.3, Anchor River MP 161, Homer MP 173 plus the Spit road). Sources: [Bells Alaska Sterling Highway road log](https://www.bellsalaska.com/roadlogs/sterling-highway-log.pdf), [Alaska State Parks fees](https://dnr.alaska.gov/parks/asp/unitfees.htm) ($20/site at Johnson Lake, Clam Gulch, Deep Creek, Captain Cook and Anchor River), [Kenai NWR camping fees](https://www.fws.gov/refuge/kenai/visit-us/activities/camping), [Swanson River Rd](https://dnr.alaska.gov/parks/aspunits/kenai/swansonrvld.htm), [Captain Cook SRA](https://dnr.alaska.gov/parks/aspunits/kenai/captcook.htm), [ADF&G Skilak Lake Road](https://www.adfg.alaska.gov/index.cfm%3Fadfg%3Dviewinglocations.skilaklakeroad) and [City of Homer campgrounds](https://www.cityofhomer-ak.gov/node/7456). Most campgrounds are not serviced in winter, so the game charges no site fee there; I could not confirm winter service for the refuge sites, Quartz Creek or Anchor River, and Captain Cook's distance (about 11 miles to Kenai plus 25) is approximate.
+
+**Costs:** gas = round-trip miles ÷ 15 mpg × winter pump price (the Kenai dock price minus the roughly $0.85 marine premium, about $5.34 at the start and drifting each season) + site fees × nights + $25 a night in supplies. Trips you can't afford are disabled.
+
+**Encounters:** each night camped rolls once: 50% chance of one wildlife encounter, weighted by the habitat of the place (lake, forest, coast, river, mountain). Quiet nights give a little rest (+2 energy). Energy carries into the new season; skill, rep and cash change too.
+
+- Good: cow moose and calf (approach her and it turns bad), wolves howling across the lake, a lynx on the trail, trumpeter swans on open water, bald eagles on the beach, Dall sheep on the slope.
+- Bad: a red fox raids the food bag, ravens open the cooler, a porcupine chews the truck and axe handle, a brown bear out of its den in a warm spell.
+
+Achievements: Happy Camper (7 nights in total) and Wild Kenai (5 different encounters). The end screen lists nights camped and encounters.
+
 ## Fuel, towing and prices
 
 `src/js/25-fuel.js`:
