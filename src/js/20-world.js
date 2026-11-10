@@ -16,6 +16,7 @@ function newState(){
   return {years:(typeof prefs==='function'&&prefs().years)||2,reg:null,up:{rate:1,value:0},citeLog:[],seasons:[],st0:null,winter:null,
     fuel:18,hfuel:0,fuelBase:{kenai:6.19,homer:6.45},
     money:1500,rep:50,energy:90,boat:85,cites:0,warns:0,
+    dipnetAsk:-1,         // season index of the last dipnet-scam request (at most one per season)
     cred:{fa:2},            // first-aid/CPR card valid through the end of this day index (Wed Jul 15)
     gear:3,                 // trips' worth of beads, flies, leader and lures
     prep:-1,                // day index the gear is rigged for
@@ -136,12 +137,13 @@ function actionsHere(){
   if(S.loc==='town'){
     const open=isOpen('town');
     a.push({ic:'🪱',l:'Restock tackle — $120',s:`Beads, flies, single-hook lures, leader. Gear +4 trips (you have ${S.gear}).`,cat:'town',cls:S.gear<=1?'primary':'',dis:!open||!canAfford(120),fn:()=>{spend(120);S.gear+=4;pass(30);say('🪱 Pegged beads in six shades of “egg,” Russian River flies, single-hook spinners. No trebles: the emergency order says one unbaited, single-hook lure below Skilak.')}});
-    const faDay=[1,3].includes(sday(d)),cls=m>=780&&m<=800;
-    if(faDue(d)) a.push({ic:'⛑️',l:'First aid & CPR class — $95',s:faDay?(m<780?`Today 1:00–4:00 PM at the clinic. Opens at 1:00.`:m<=800?'Starting now. 3 hours. Renews your card for two years.':'Today’s class already started.'):'Only Tuesday and Thursday, 1:00–4:00 PM.',cat:'town',cls:faDay&&cls&&S.cred.fa<=d+1?'primary':'',dis:!faDay||!cls||!canAfford(95),
+    const faDay=faClassDay(d),cls=faJoinable(m);
+    if(faDue(d)&&faDay&&m<780&&open) a.push({ic:'⏳',l:'Wait at the clinic until 1:00 PM',s:`${780-m} min. Today’s first-aid class starts at 1:00.`,cat:'town',fn:()=>{pass(780-tod());say('⏳ You sit in the clinic waiting room with a stale coffee and a poster about tourniquets until the instructor unlocks the door.')}});
+    if(faDue(d)) a.push({ic:'⛑️',l:'First aid & CPR class — $95',s:faDay?(m<780?`Today 1:00–4:00 PM at the clinic. You can join until 1:30.`:m<=810?'Open for late arrivals until 1:30. 3 hours. Renews your card for two years.':'Today’s class already started.'):'Only Monday, Tuesday and Thursday, 1:00–4:00 PM.',cat:'town',cls:faDay&&cls&&S.cred.fa<=d+1?'primary':'',dis:!faDay||!cls||!canAfford(95),
       fn:()=>{spend(95);pass(180);S.cred.fa=faRenewTo(d);adj('energy',-6);say('⛑️ Three hours of chest compressions on a rubber torso named Rescue Randy. New card in your wallet, good for two years: guiding legally requires a current one.')}});
     if(!S.diner[d]) a.push({ic:'🍳',l:'Eat at the diner — $22',s:'40 min. Energy +12. Guides trade gossip at the counter.',cat:'town',dis:!open||!canAfford(22),fn:()=>{spend(22);S.diner[d]=true;pass(40);adj('energy',12);say('🍳 Reindeer sausage, eggs and hash browns. '+pick(LORE))}});
     if(!S.office[d]) a.push({ic:'🏛️',l:'Stop by the ADF&G office',s:'20 min. Read the emergency orders posted on the board.',cat:'town',dis:!open,fn:()=>{pass(20);S.office[d]=true;S.skill++;say(`🏛️ The EO board: ${S.eo.length?S.eo.map(e=>'<b>'+e+'</b>').join(' · '):`<b>Kenai kings: ${kingRuleTxt()}</b>`} The tech at the counter says the sonar count is ${S.run[d-1]?S.run[d-1].toLocaleString():'climbing'}.`)}});
-    if(!S.report[d]) a.push({ic:'📸',l:'Post a fishing report & photos',s:'30 min. Once a day. Rep +2 after a good trip.',cat:'town',fn:()=>{pass(30);S.report[d]=true;const good=S.book.some(b=>b.d===d&&b.status==='done'&&b.res&&b.res.happy>=60);if(good){adj('rep',2);say('📸 Grip-and-grin photos (all legal fish, all kept wet when they had to be). The likes roll in.')}else say('📸 You post a moody river photo. Three likes, one from your mom.')}});
+    if(!S.report[d]) a.push({ic:'📸',l:'Post a fishing report & photos',s:'30 min. Once a day. Rep +2 after a good trip.',cat:'town',fn:()=>{pass(30);S.report[d]=true;const good=S.book.some(b=>b.d===d&&b.status==='done'&&b.out&&b.out.happy>=60);if(good){adj('rep',2);say('📸 Grip-and-grin photos (all legal fish, all kept wet when they had to be). The likes roll in.')}else say('📸 You post a moody river photo. Three likes, one from your mom.')}});
   }
   if(S.loc==='lower'||S.loc==='cooper'){const ba=boatAction();if(ba)a.push(ba)}
   if(S.loc==='lower'){
@@ -192,7 +194,7 @@ function alertBar(){
     if(m>T.start&&m<=T.start+90&&S.loc!==T.loc) return {t:`⏰ The ${b.who} are waiting at ${L[T.loc].name} (launch was ${fmt(T.start)}).`};
     if(m>=T.start-120&&m<=T.start&&S.loc!==T.loc) return {t:`🛶 ${T.n} launches at ${fmt(T.start)} from ${L[T.loc].name}: ${travelMins(S.loc,T.loc)} min away.`,kind:'info'};}
   {const low=todays(d).find(b=>tripFuel(b)&&tripFuel(b).tank==='fuel'&&S.fuel<tripFuel(b).gal+2);if(low&&m<TRIPS[low.type].start)return {t:`⛽ ${Math.round(S.fuel)} gallons in the sled; your ${TRIPS[low.type].n.toLowerCase()} burns ~${tripFuel(low).gal}. Fuel dock: Kenai Harbor.`}}
-  if(S.cred.fa===d) return {t:'⛑️ Your first-aid card expires tonight. Guiding requires a current one.',kind:'info'};
+  if(faUrgent(d)) return {t:`⛑️ First-aid card expires ${dayName(S.cred.fa)} night: classes ${FA_CLASS_TXT}`,kind:'info'};
   return null;
 }
 
@@ -203,7 +205,7 @@ const EXTRA_TABS=[
     for(let d=s0;d<s0+SEASON;d++){
       const bs=S.book.filter(b=>b.d===d),rules=[isSunMon(d)?'🚫 guide boats off below Skilak':'',halClosed(d)?'⚓ no charter halibut kept':''].filter(Boolean).join(' · ');
       const lines=bs.map(b=>{const T=TRIPS[b.type],st={booked:d<day()?'—':'',done:'✅',noshow:'❌ no-show',cancelled:'🚫 cancelled'}[b.status]||'';
-        return `${T.ic} <b>${fmt(T.start)}</b> ${T.n} · ${b.who}, ${b.n} ${st}${b.res?` · ${b.res.line}`:''}`}).join('<br>');
+        return `${T.ic} <b>${fmt(T.start)}</b> ${T.n} · ${b.who}, ${b.n} ${st}${b.out?` · ${b.out.line}`:''}`}).join('<br>');
       h+=`<div class="todo"><span class="ck">${d<day()?'✔️':d===day()?'👉':'·'}</span><div><b>${dlong(d)}</b><span>${lines||'<i>Open day</i>'}${rules?`<br><span style="color:var(--warn)">${rules}</span>`:''}</span></div></div>`;
     }
     return h+`<div class="rules">Trips: 💲 rates ×${S.up.rate.toFixed(1)} · 🐟 sockeye ${$(Math.round(TRIPS.reds.price*S.up.rate))}/angler (6 AM, lower river) · 🎣 silvers ${$(Math.round(TRIPS.silver.price*S.up.rate))}/angler (1 PM, lower river) · 🌈 trout float ${$(Math.round(TRIPS.trout.price*S.up.rate))}/angler (7 AM, Cooper Landing, 3 max) · ⚓ halibut ${S.up.chp?`${$(Math.round(350*S.up.rate))}/passenger on your own boat`:`day rate ${$(TRIPS.halibut.gig)}`} (6 AM, Homer). New requests come in by phone: <b>📞 Return calls</b> at the shop.</div>`}},

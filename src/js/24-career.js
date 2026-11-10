@@ -54,6 +54,12 @@ function gearRuleTxt(){return noBait()?'Below Skilak, Jun 20–Aug 15: one unbai
 // first-aid/CPR: a card lasts two years
 const faDue=(d=day())=>S.cred.fa<(seasonOf(d)+1)*SEASON;     // expires before this season ends
 const faRenewTo=(d=day())=>(seasonOf(d)+2)*SEASON+2;         // the Wednesday of the season two years on
+// Classes: Monday, Tuesday and Thursday, 1:00-4:00 PM at the Soldotna clinic; you can join up to 1:30 PM (late arrivals still sit the 3 hours)
+const faClassDay=d=>[0,1,3].includes(sday(d));
+const faJoinable=m=>m>=780&&m<=810;
+// the card runs out this season and today is on or before the expiry day, from the Monday of that week
+const faUrgent=(d=day())=>faDue(d)&&S.cred.fa>=d&&d>=S.cred.fa-(((S.cred.fa%7)+7)%7);
+const FA_CLASS_TXT='Mon/Tue/Thu 1 PM at the Soldotna clinic';
 
 // ---- off-season upgrades ----
 const UPGRADES=[
@@ -102,7 +108,7 @@ function startSeason(s){
 }
 function winterModal(){
   const W=S.winter;if(!W)return;const s=W.s,p=S.seasons[S.seasons.length-1]||{};
-  const fa=S.cred.fa<seasonFirst(s)?`<b style="color:var(--bad)">expired</b> (${dlongY(S.cred.fa)}). Renew it in Soldotna (Tue/Thu, 1–4 PM) before you guide`:S.cred.fa<seasonFirst(s)+SEASON?`<b style="color:var(--bad)">expires ${dlong(S.cred.fa)}</b>: renew it in Soldotna (Tue/Thu)`:`good through ${dlongY(S.cred.fa)}`;
+  const fa=S.cred.fa<seasonFirst(s)?`<b style="color:var(--bad)">expired</b> (${dlongY(S.cred.fa)}). Renew it in Soldotna (Mon, Tue or Thu, 1–4 PM) before you guide`:S.cred.fa<seasonFirst(s)+SEASON?`<b style="color:var(--bad)">expires ${dlong(S.cred.fa)}</b>: renew it in Soldotna (Mon, Tue or Thu)`:`good through ${dlongY(S.cred.fa)}`;
   modal(`❄️ Off-season · ${2025+s} → ${2026+s}`,`
     <p><b>${p.year} in review:</b> ${p.trips} trips in the July peak, ${$(p.earned||0)} in fares and tips${p.fines?`, ${$(p.fines)} in fines`:''}. Rep ${p.rep}.</p>${p.rest&&p.rest.trips?`<p>📆 <b>The rest of ${p.year}</b> (June, August, September): ${p.rest.trips} more trips booked off your reputation: ${$(p.rest.gross)} in fares, ${$(p.rest.costs)} for fuel, launches and tackle. <b>Net ${$(p.rest.net)}.</b></p>`:''}
     <p>${WINTER_COST.map(([n,c])=>`${n}: <b>${$(c)}</b>`).join('<br>')}<br>Total: <b>${$(W.bill)}</b>. Cash now ${$(Math.round(S.money))}.</p>

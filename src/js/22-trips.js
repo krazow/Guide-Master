@@ -62,7 +62,7 @@ const STEP={
     O('He can ride along but not fish','Legal. He sulks.',(b,t)=>{t.nofish++;t.happy-=8}),
     O('Let it slide. Who’s checking?','Everybody fishes.',(b,t)=>violate(t.notes,{p:.3,fine:300,what:'guiding an unlicensed angler'}))]}),
   expired:(b)=>({t:'⛑️ Your first-aid card expired',b:'<p>A current first-aid and CPR certification is a condition of your guide license. As of today yours is expired.</p>',o:[
-    O('Cancel and refund','Legal. Rep −6.',(b,t)=>{adj('rep',-6);t.abort=true;tripCancel(b,`⛑️ You cancel on the ${b.who}. Get to the Tuesday/Thursday class in Soldotna.`)}),
+    O('Cancel and refund','Legal. Rep −6.',(b,t)=>{adj('rep',-6);t.abort=true;tripCancel(b,`⛑️ You cancel on the ${b.who}. Get to the Monday, Tuesday or Thursday class in Soldotna.`)}),
     O('Run it anyway','Hope nobody asks for your card.',(b,t)=>violate(t.notes,{p:.3,fine:500,what:'guiding without a current first-aid certification'}))]}),
   spot:(b)=>{const T=TRIPS[b.type];return {t:`${T.ic} Where to, Captain?`,b:`<p>${T.long}</p><p>The ${b.who} are rigged and ready. Where do you take them?</p>`,o:SPOTS[b.type].map(sp=>O(sp.l,sp.s,(b,t)=>{
     t.q+=sp.q;t.happy+=sp.h||0;t.fuelx=(t.fuelx||0)+(sp.fuel||0);t.notes.push(`📍 ${sp.l}.`);
@@ -204,7 +204,7 @@ function tripEnd(b,t){
   money(pay+tip-costs);
   const st=S.stats;st.trips++;st.clients+=b.n;st.fish+=fish;st.earned+=pay;st.tips+=tip;st.spent+=costs;
   S.unlogged++;S.skill++;
-  b.status='done';b.res={happy:Math.round(happy),fish,line};S.trip=null;
+  b.status='done';b.out={happy:Math.round(happy),fish,line};S.trip=null;
   say(`${T.ic} ${T.n} with the ${b.who}: ${line}. Paid ${$(pay)} + ${$(tip)} tip.`);
   const mood=happy>=75?'😁 They’re already asking about next July.':happy>=55?'🙂 Solid day. Handshakes at the trailer.':happy>=40?'😐 Polite thanks, small tip.':'😠 Tight-lipped goodbyes. Expect a rough review online.';
   modal(`${T.ic} Back at the dock`,`${t.notes.map(n=>`<p>${n}</p>`).join('')}
