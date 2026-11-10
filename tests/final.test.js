@@ -89,4 +89,36 @@ module.exports = [
     assert.ok(r.free, 'testimony is possible on a free day'); assert.ok(!r.busy, 'but not on a day with a trip booked'); assert.ok(r.vote);
     noErrors(errors);
   } },
+
+  // ---- 3. stale text ----
+  { name: 'text: title, To-do header, camping blurb and upgrade descriptions match the code', fn: async ctx => {
+    const { page, errors } = await open(ctx, { seed: 9 });
+    const t = await page.evaluate(() => ({ sub: document.querySelector('.title h1 span').textContent, tag: GAME.tagline, intro: TITLE.intro }));
+    assert.ok(!/two weeks guiding/i.test(t.sub) && /career/i.test(t.sub), t.sub);
+    await page.evaluate(() => setPref('years', 5));
+    await newGame(page);
+    const r = await page.evaluate(() => {
+      const o = {}; tab = 'todo'; render(); o.todo = document.querySelector('.content .sect').textContent; tab = 'act'; render();
+      const U = id => UPGRADES.find(u => u.id === id);
+      // sled: 30 minutes sooner, a 40-gallon tank and a 45-minute fuel run
+      S.up.sled = true; o.saved = sledTimeSaved('reds'); o.tank = SLED_TANK(); delete S.up.sled; o.savedNo = sledTimeSaved('reds');
+      o.sledTxt = U('sled').d;
+      // repower: 20% less gas
+      S.up.motor = true; o.burn = bn('reds') / BURN.reds; delete S.up.motor; o.motorTxt = U('motor').d;
+      // rates: 8% fewer bookings a step
+      o.rate = RATE_BOOK; o.ratesTxt = U('rates').d; o.dockTxt = U('dock').d;
+      // the camping blurb: encounters never pay cash, so the off-season text mustn't promise any
+      S.winter = { s: 0, bill: 0, expired: 0 }; S.seasons = [{ year: 2026, trips: 1, earned: 1, rep: 50 }]; winterModal(); o.camp = MB.find(b => /winter camping/.test(b.l)).s; closeModals(); S.winter = null;
+      // the motor dilemma says 30 minutes lost: it must lose them
+      const t = { lost: 0, q: 0, happy: 0, notes: [], x: [] }; const v = STEP.motor(S.book[0] || { who: 'x' }); const opt = v.o.find(x => /30 minutes lost/.test(x.s)); opt.fn(null, t); o.lost = t.lost;
+      return o;
+    });
+    assert.strictEqual(r.todo, 'Today'); assert.ok(!/This run/.test(r.todo));
+    assert.strictEqual(r.saved, 30); assert.strictEqual(r.savedNo, 0); assert.strictEqual(r.tank, 40); assert.ok(/30 minutes sooner/.test(r.sledTxt) && /40-gallon/.test(r.sledTxt));
+    assert.ok(Math.abs(r.burn - .8) < .01 && /20% less gas/.test(r.motorTxt));
+    assert.strictEqual(r.rate, .08); assert.ok(/8% fewer/.test(r.ratesTxt)); assert.ok(/8% more bookings/.test(r.dockTxt));
+    assert.ok(!/and a little cash/.test(r.camp) && /can cost a little cash/.test(r.camp), r.camp);
+    assert.strictEqual(r.lost, 30, 'the “30 minutes lost” option loses 30 minutes');
+    noErrors(errors);
+  } },
 ];

@@ -22,11 +22,11 @@
 const GAME={
   id:'guidemaster',           // storage-key prefix and service-worker cache prefix (lowercase, no spaces)
   title:'Guide Master',
-  tagline:'Two weeks guiding the Kenai',
+  tagline:'A guide’s career on the Kenai',
   codePrefix:'GUIDEMASTER',   // transfer codes start with this, e.g. POCKETWEEK:eyJ…
   version:'1.6.1',           // bump on every release: shown in Settings, stamped into saves and sw.js
   schema:2,                  // bump when the shape of S changes, and add a MIGRATIONS entry (21-story.js)
-  days:14,                   // length of a run, in days (Mon Jul 13 – Sun Jul 26, 2026)
+  days:14,                   // days in ONE season (the July peak, Mon–Sun twice; season 1 is Jul 13–26, 2026). A career is 14 × years: see the getter below
   wake:300,                  // default alarm for new games, in minutes after midnight (300 = 5:00 AM: guides start early; saves keep their own S.alarm)
   startLoc:'shop',
   travelAnim:20,             // trips this many minutes or longer play the full-screen transition

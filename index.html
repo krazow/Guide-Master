@@ -229,11 +229,11 @@ html.hc .hud :focus-visible,html.hc .title :focus-visible,html.hc nav.tabs :focu
 const GAME={
   id:'guidemaster',           // storage-key prefix and service-worker cache prefix (lowercase, no spaces)
   title:'Guide Master',
-  tagline:'Two weeks guiding the Kenai',
+  tagline:'A guide’s career on the Kenai',
   codePrefix:'GUIDEMASTER',   // transfer codes start with this, e.g. POCKETWEEK:eyJ…
   version:'1.6.1',           // bump on every release: shown in Settings, stamped into saves and sw.js
   schema:2,                  // bump when the shape of S changes, and add a MIGRATIONS entry (21-story.js)
-  days:14,                   // length of a run, in days (Mon Jul 13 – Sun Jul 26, 2026)
+  days:14,                   // days in ONE season (the July peak, Mon–Sun twice; season 1 is Jul 13–26, 2026). A career is 14 × years: see the getter below
   wake:300,                  // default alarm for new games, in minutes after midnight (300 = 5:00 AM: guides start early; saves keep their own S.alarm)
   startLoc:'shop',
   travelAnim:20,             // trips this many minutes or longer play the full-screen transition
@@ -632,7 +632,7 @@ window.prioEdit=i=>{const q=S.prios[i];if(!q)return;PRIO_ED=q.t;
   setTimeout(()=>{const e=document.getElementById('prioEd');if(e){e.focus();e.select()}},60)};
 function todoView(){
   const P=S.prios;
-  return `<div class="sect">This ${GAME.days===7?'week':'run'}</div>`+todoItems().map(x=>`<div class="todo"><span class="ck">${x.ok?'✅':x.fail?'❌':x.urgent?'⚠️':'⬜'}</span><div><b>${x.l}</b><span>${x.s||''}</span></div>${!x.ok&&!x.fail&&!P.some(q=>q.t===x.l&&!q.done)&&P.length<PRIO_MAX?`<button class="pin" title="Add to my priorities" aria-label="Add to my priorities" onclick="prioAdd(${esc(JSON.stringify(x.l))})">📌</button>`:''}</div>`).join('')+
+  return `<div class="sect">Today</div>`+todoItems().map(x=>`<div class="todo"><span class="ck">${x.ok?'✅':x.fail?'❌':x.urgent?'⚠️':'⬜'}</span><div><b>${x.l}</b><span>${x.s||''}</span></div>${!x.ok&&!x.fail&&!P.some(q=>q.t===x.l&&!q.done)&&P.length<PRIO_MAX?`<button class="pin" title="Add to my priorities" aria-label="Add to my priorities" onclick="prioAdd(${esc(JSON.stringify(x.l))})">📌</button>`:''}</div>`).join('')+
     prioView()+(typeof RULES_HTML==='string'&&RULES_HTML?`<div class="sect">How it works</div><div class="rules">${RULES_HTML}</div>`:'');
 }
 function logView(){return `<div class="log">${S.log.slice().reverse().map(e=>`<p><em>${dayName(Math.floor(e.t/1440)).slice(0,3)} ${fmt(e.t)}</em>${e.s}</p>`).join('')||'<p>Nothing yet.</p>'}</div>`}
@@ -912,7 +912,8 @@ document.addEventListener('keydown',e=>{
     .observe(document.body,{childList:true,subtree:true})}catch(e){}}
 // ============================================================
 //  GUIDE MASTER, part 1: the world.
-//  Two weeks (Mon Jul 13 – Sun Jul 26, 2026) running a guide business out of Soldotna, Alaska.
+//  A 2-, 5- or 10-year career running a guide business out of Soldotna, Alaska; each year you play the two-week July peak
+//  (season 1 is Mon Jul 13 – Sun Jul 26, 2026).
 //  Places, trip types, bookings, actions, scenery and the two extra tabs (Bookings, Regs).
 //
 //  The regulations in this game are a simplified summary of the real 2026 rules for the Kenai
@@ -2144,7 +2145,7 @@ function winterModal(){
     <p>⛑️ First-aid card: ${fa}.${W.expired>0?`<br>⚖️ ${W.expired} old citation${W.expired>1?'s':''} dropped off your record.`:''}${S.cites?`<br>⚖️ Active citations: ${S.cites}/3.`:''}</p>
     <p style="font-size:13px;color:var(--mute)">Season ${s+1} of ${S.years}. Bookings fill once you’ve made your off-season plans.</p>`,[
     {l:'🛠️ Upgrades & business',s:'Boats, marketing, rates, a Homer charter permit.',fn:()=>upgradeModal()},
-    {l:'🏕️ Go winter camping',s:campUsed()?'You’ve already been camping this winter.':'Pick a place within 100 miles and a number of nights. Wildlife, quiet and a little cash.',dis:campUsed(),fn:()=>campModal()},
+    {l:'🏕️ Go winter camping',s:campUsed()?'You’ve already been camping this winter.':'Pick a place within 100 miles and a number of nights. Wildlife and quiet rest, and a bad night can cost a little cash.',dis:campUsed(),fn:()=>campModal()},
     {l:`🛶 Open bookings for ${2026+s}`,s:'Start the season.',fn:()=>finishWinter()}]);
 }
 function upgradeModal(){

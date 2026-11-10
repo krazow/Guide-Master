@@ -1,6 +1,6 @@
 # Guide Master
 
-**Two weeks guiding the Kenai.** A mobile game (installable PWA, works offline) about life as a charter fishing guide on Alaska's Kenai Peninsula, built for July 13–26, 2026: the peak of the late sockeye run.
+**A guide's career on the Kenai.** A mobile game (installable PWA, works offline) about life as a charter fishing guide on Alaska's Kenai Peninsula: a 2-, 5- or 10-year career, each year the two-week July peak of the late sockeye run (season 1 is the real July 13–26, 2026).
 
 You run a small guide business out of Soldotna with a jet sled, a drift boat, a stack of credentials and a phone that won't stop ringing. Meet your clients at the launch by 6 AM, find them fish, keep them happy, fill out your logbook, and stay on the right side of the rules. Three citations and Alaska State Parks pulls your Kenai River guide permit.
 

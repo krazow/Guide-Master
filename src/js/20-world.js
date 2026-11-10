@@ -1,6 +1,7 @@
 // ============================================================
 //  GUIDE MASTER, part 1: the world.
-//  Two weeks (Mon Jul 13 – Sun Jul 26, 2026) running a guide business out of Soldotna, Alaska.
+//  A 2-, 5- or 10-year career running a guide business out of Soldotna, Alaska; each year you play the two-week July peak
+//  (season 1 is Mon Jul 13 – Sun Jul 26, 2026).
 //  Places, trip types, bookings, actions, scenery and the two extra tabs (Bookings, Regs).
 //
 //  The regulations in this game are a simplified summary of the real 2026 rules for the Kenai
