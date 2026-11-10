@@ -165,14 +165,14 @@ function upgradeModal(){
       .concat([{l:'Done',s:'Back to the off-season summary.',fn:()=>setTimeout(winterModal,0)}]));
 }
 function finishWinter(){
-  const s=S.winter.s;S.winter=null;genSeasonBookings(s);
+  const s=S.winter.s;S.winter=null;const reg=genSeasonBookings(s);
   const n=S.book.filter(b=>seasonOf(b.d)===s).length;
-  say(`📅 ${2026+s} bookings are in: <b>${n} trips</b> for the season. ${REG().fc}`);
+  say(`📅 ${2026+s} bookings are in: <b>${n} trips</b> for the season. ${REG().fc}${reg.length?'<br>'+reg.join('<br>'):''}`);
   showTile('📅',`${n} trips booked`,`Season ${s+1} of ${S.years}`,'good');
 }
 function genSeasonBookings(s){
   const base=s*SEASON,web=S.up.web===s?.15:0,r=Math.random;
-  const p0=clamp((.35+S.rep/200+web)*rateDemand()*(S.up.dock?1.08:1),.12,.95);
+  const p0=clamp((.35+S.rep/200+web+(S.arcs.rival.ally?.03:0))*rateDemand()*(S.up.dock?1.08:1),.12,.95);
   const q=()=>r()<.3?[pick(['drinker','nolicense','kingfan','photo','kid'])]:[];
   const party=()=>pick(PARTIES);
   for(let i=0;i<SEASON;i++){const d=base+i,w=i%7;
@@ -184,12 +184,14 @@ function genSeasonBookings(s){
       else if(r()<p0*.7){const p=party();addBooking({d,type:'trout',n:pick([2,3,3]),who:p.who,from:p.from,res:!!p.res,quirk:q()})}
     }
   }
+  const regLines=regsRebook(base,r);                      // 30-stories.js: returning parties
   if(S.up.asst) for(let i=1;i<SEASON;i++){const d=base+i,w=i%7;           // your assistant takes a second party when you are booked
     if(w<1||w>5||r()>p0*.9) continue;
     const types=['reds','reds','trout'].concat(i>=7?['silver']:[]).filter(t=>conflicts(d,t)&&!conflicts(d,t,true));
     if(!types.length) continue;const type=pick(types),p=party();
     addBooking({d,type,n:type==='trout'?pick([2,3]):pick([2,3,4]),who:p.who,from:p.from,res:!!p.res,quirk:[],asst:true})}
   if(!S.up.chp){const d=base+pick([6,13]);if(!S.book.some(b=>b.d===d&&b.status==='booked')){const p=party();addBooking({d,type:'halibut',n:6,who:p.who,from:p.from,res:!!p.res,quirk:[]})}}
+  return regLines;
 }
 
 // ---- picking a career length (new-game chain: name → difficulty → career) ----

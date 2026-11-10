@@ -24,11 +24,26 @@ const LORE=[
 
 // ---- booking-request parties ----
 const PARTIES=[
+  // visitors from the Lower 48 and abroad
   {who:'Kowalskis',from:'Wisconsin'},{who:'Oregon firefighters',from:'Oregon'},{who:'retired dentist and his grandson',from:'Iowa'},
   {who:'family of Vermont teachers',from:'Vermont'},{who:'college buddies',from:'Colorado'},{who:'Chicago law-firm outing',from:'Chicago'},
   {who:'anniversary couple',from:'Tennessee'},{who:'Navy vet and his brothers',from:'Virginia'},{who:'Austin startup team',from:'Austin'},
-  {who:'Nguyens',from:'Anchorage',res:true},{who:'pipeline crew on rotation',from:'Kenai',res:true},{who:'cousins from Germany',from:'Bavaria'},
-  {who:'Montana fly-shop crew',from:'Montana'},{who:'mother-and-daughter team',from:'Arizona'},{who:'Juneau bartenders',from:'Juneau',res:true},
+  {who:'cousins from Germany',from:'Bavaria'},{who:'Montana fly-shop crew',from:'Montana'},{who:'mother-and-daughter team',from:'Arizona'},
+  {who:'Patel family reunion',from:'New Jersey'},{who:'grandmother and her three grandkids',from:'Minnesota'},{who:'three retired nurses',from:'Ohio'},
+  {who:'father and daughter on her graduation trip',from:'Georgia'},{who:'Tokyo fly-fishing club',from:'Japan'},{who:'two brothers who haven’t fished together in 20 years',from:'Maine'},
+  {who:'veterans’ adaptive fishing group',from:'Washington'},{who:'newlyweds',from:'Ontario'},{who:'Boston paramedics',from:'Boston'},
+  {who:'high-school fishing team and their coaches',from:'Idaho'},{who:'book club that picked Alaska',from:'Pennsylvania'},{who:'three generations of the Okafor family',from:'Maryland'},
+  {who:'Lopez family',from:'New Mexico'},{who:'trucking company crew',from:'Indiana'},{who:'two dairy-farm couples',from:'Pennsylvania'},
+  {who:'Swiss river guides on holiday',from:'Switzerland'},{who:'mother and son on his dad’s bucket-list trip',from:'Michigan'},{who:'Marine Corps reunion',from:'North Carolina'},
+  {who:'teachers on summer break',from:'Utah'},{who:'Chen and Rivera families',from:'California'},{who:'Australian friends on a gap year',from:'Queensland'},
+  {who:'retired Texas oilfield hands',from:'Texas'},{who:'hospital night-shift crew',from:'Seattle'},{who:'Scout troop leaders',from:'Nebraska'},
+  {who:'rural mail carriers on a group trip',from:'Missouri'},{who:'sisters on their annual trip',from:'Oklahoma'},{who:'astronomy club',from:'Arizona'},
+  // Alaska residents
+  {who:'Nguyens',from:'Anchorage',res:true},{who:'pipeline crew on rotation',from:'Kenai',res:true},{who:'Juneau bartenders',from:'Juneau',res:true},
+  {who:'Coast Guard families',from:'Kodiak',res:true},{who:'Sitka school staff',from:'Sitka',res:true},{who:'Palmer farm family',from:'Palmer',res:true},
+  {who:'Soldotna high-school coaches',from:'Soldotna',res:true},{who:'Eagle River neighbors',from:'Eagle River',res:true},{who:'Seward harbor crew',from:'Seward',res:true},
+  {who:'university lab team',from:'Fairbanks',res:true},{who:'Homer artists’ co-op',from:'Homer',res:true},{who:'Ketchikan cannery crew',from:'Ketchikan',res:true},
+  {who:'Bethel clinic nurses',from:'Bethel',res:true},{who:'Anchorage rec-league hockey team',from:'Anchorage',res:true},{who:'hunter-ed instructors',from:'Wasilla',res:true},
 ];
 
 // ---- title screen ----
@@ -55,7 +70,7 @@ function onNewGame(){
     [10,'silver',4,'fishing YouTuber and his crew','Florida',0,['photo','kingfan']],[11,'reds',4,'California doctors','California',0,['nolicense']],
     [11,'silver',2,'honeymooners','Georgia',0,[]],[12,'reds',4,'Fairbanks family','Fairbanks',1,['kid']],
     [13,'trout',2,'Guide Academy classmates','Kenai',1,[]]];
-  seed.forEach(([d,type,n,who,from,res,quirk])=>addBooking({d,type,n,who,from,res:!!res,quirk}));
+  seed.forEach(([d,type,n,who,from,res,quirk])=>{const b=addBooking({d,type,n,who,from,res:!!res,quirk});if(who==='Garza family')b.arc='garza'});
   say(`${dlong(0)}, ${fmt(S.t)}. ${WX[S.wx[0]].ic} ${WX[S.wx[0]].n}. Monday: guide boats can’t fish the Kenai below Skilak Lake today, so it’s a shop day. Your first trip is tomorrow at ${fmt(TRIPS.reds.start)}.`);
   modal('🛶 Welcome to the Kenai',`<p>You’re a licensed sport fishing guide out of <b>Soldotna</b>, with a jet sled, a drift boat and <b>${S.book.length} trips</b> booked over the next two weeks: the peak of the late sockeye run.</p>
     <p>📆 This is season 1 of a <b>${S.years}-year career</b>. Each July you guide two weeks; each winter you pay the bills, plan upgrades and see what the new season’s rules and runs look like.</p>
@@ -266,6 +281,10 @@ const ACH=[
   {id:'own_six_pack',ic:'⚓',n:'Your Own Six-Pack',d:'Buy a Charter Halibut Permit and run your own Homer charters.',test:()=>!!(S.up&&S.up.chp)},
   {id:'legal_king',ic:'👑',n:'A Legal King',d:'Put a client on a legal Kenai king in a year kings are open.',test:()=>(S.stats.legalKings||0)>0},
   {id:'bear_aware',ic:'🐻',n:'Bear Aware',d:'Give a brown bear the gravel bar.',test:()=>S.stats.bear>0},
+  {id:'regulars',ic:'⭐',n:'Regulars',d:'Have a party book you for a second July.',test:()=>S.stats.trips>0&&S.book.some(b=>b.reg&&b.status==='done')},
+  {id:'family_tradition',ic:'👨‍👩‍👦',n:'Family Tradition',d:'Guide the Garza family through four Julys.',test:()=>S.arcs&&S.arcs.garza.st>=4},
+  {id:'good_neighbor',ic:'🛟',n:'Good Neighbor',d:'Tow your rival guide in when his sled quits.',test:()=>S.arcs&&!!S.arcs.rival.ally},
+  {id:'seat_table',ic:'🏛️',n:'A Seat at the Table',d:'Serve on the local fish and game advisory committee and see it through to the Board of Fisheries.',test:()=>S.arcs&&S.arcs.board.st>=3},
   {id:'happy_camper',ic:'🏕️',n:'Happy Camper',d:'Camp 7 nights in total during winters.',test:()=>(S.stats.campNights||0)>=7},
   {id:'wild_kenai',ic:'🦌',n:'Wild Kenai',d:'See 5 different wildlife encounters while camping.',test:()=>Object.keys(S.stats.seen||{}).length>=5},
 ];

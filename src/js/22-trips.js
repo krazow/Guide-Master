@@ -139,7 +139,14 @@ const STEP={
     O('No','You buy him lunch to smooth it over.',(b,t)=>{fx(t,-25,'Lunch for the sulking deckhand')}),
     O('Sure, one fish','He fuels the boat for you: $40.',(b,t)=>{fx(t,40,'Deckhand covers the fuel');violate(t.notes,{p:.25,fine:500,what:'crew retaining halibut on a charter',minor:true,who:NOAA})},1)]}),
 };
-const POOL={reds:['king','snag','over','guide_fish','anchor','combat','motor'],silver:['bait','king','extra_rod','guide_fish','motor'],trout:['bear','photo','combat','guide_fish'],halibut:['size27','crew']};
+const POOL={reds:['king','snag','over','guide_fish','anchor','combat','motor','rescue','ownrods','trespass'],silver:['bait','king','extra_rod','guide_fish','motor','rescue','ownrods'],trout:['bear','photo','combat','guide_fish','rescue','trespass'],halibut:['size27','crew','whale','seasick']};
+// ---- how often a dilemma may come up ----
+// No dilemma more than DIL_MAX times in one season (random picks and quirk beats alike; rule-forced ones like the closed halibut day are exempt),
+// and the king dilemma shows up less when kings can't be kept: it's still the story of the Kenai, but not every other trip.
+const DIL_MAX=2,KING_ODDS={closed:.3,cr:.55,open:1};
+const dilN=k=>S.dil&&S.dil.s===seasonOf(day())?(S.dil.n[k]||0):0;
+const dilUse=k=>{const s=seasonOf(day());if(!S.dil||S.dil.s!==s)S.dil={s,n:{}};S.dil.n[k]=(S.dil.n[k]||0)+1};
+const dilOK=k=>dilN(k)<DIL_MAX&&(k!=='king'||Math.random()<KING_ODDS[kingRule()]);
 
 // ---- the runner ----
 function tripStart(b){
@@ -159,16 +166,20 @@ function tripStart(b){
   if(b.quirk.includes('nolicense')) t.steps.push('license');
   if(S.cred.fa<day()) t.steps.push('expired');
   t.steps.push('spot');
+  regTripStart(b,t);                                      // 30-stories.js: returning parties remember last time
   const want=S.diff==='hard'?3:2,beats=[],q=b.quirk;
-  if(q.includes('drinker')) beats.push('beer');
-  if(q.includes('kingfan')&&(b.type==='reds'||b.type==='silver')) beats.push('king');
-  if(q.includes('photo')&&b.type==='trout') beats.push('photo');
+  if(b.arc==='garza'&&S.arcs.garza.st>=1&&S.arcs.garza.st<=3) beats.push('arc_garza');
+  if(q.includes('drinker')&&dilOK('beer')) beats.push('beer');
+  if(q.includes('kingfan')&&(b.type==='reds'||b.type==='silver')&&dilN('king')<DIL_MAX) beats.push('king');
+  if(q.includes('photo')&&b.type==='trout'&&dilOK('photo')) beats.push('photo');
+  if(q.includes('kid')&&b.type!=='halibut'&&dilOK('pfd')) beats.push('pfd');
   if(b.type==='halibut'&&halClosed(b.d)) beats.push('tuewed');
   if(S.boat<25&&TRIPS[b.type].fuel){beats.push('motor');t.q-=.08;t.notes.push('🔧 The neglected jet sled runs rough all day. Service the boats at the shop.')}
   if(q.includes('promised')){t.happy-=15;t.notes.push('👑 They were “promised” a shot at a king. There was never going to be one: the fishery is closed.')}
-  const pool=POOL[b.type].filter(x=>!beats.includes(x)&&!(x==='bait'&&!noBait())&&!(x==='size27'&&halClosed(b.d)));
+  const pool=POOL[b.type].filter(x=>!beats.includes(x)&&!(x==='bait'&&!noBait())&&!(x==='ownrods'&&!noBait())&&!(x==='size27'&&halClosed(b.d))&&dilOK(x));
   while(beats.length<want&&pool.length) beats.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]);
   t.steps.push(...beats.slice(0,Math.max(want,beats.length)));
+  beats.slice(0,Math.max(want,beats.length)).forEach(k=>{if(k!=='arc_garza')dilUse(k)});
   if(b.type==='silver') t.steps.push('sixpm');
   S.trip=t;sfx('whoosh');tripNext();
 }
@@ -235,6 +246,7 @@ function tripEnd(b,t){
   S.unlogged++;S.skill++;
   const net=fare-refund+tip+xnet-costs;
   b.status='done';b.out={happy:Math.round(happy),fish,line,fare,refund,tip,net};S.trip=null;
+  storyAfterTrip(b,happy,t.notes);                      // 30-stories.js: returning parties, story arcs
   say(`${T.ic} ${T.n} with the ${b.who}: ${line}. Paid ${$(fare-refund)} + ${$(tip+xpos)} in tips.`);
   const mood=happy>=82?'😁 Five stars, and they’re already asking about next July. Word of mouth will bring you more bookings.':happy>=65?'🙂 Solid day. Handshakes at the trailer.':happy>=45?'😐 Polite thanks, small tip.':review?'😠 Tight-lipped goodbyes and a one-star review. Word gets around the Kenai.':'😕 They leave a little deflated.';
   const row=(l,v)=>`<br>${l}: <b>${v>=0?'':'−'}${$(Math.abs(v))}</b>`;

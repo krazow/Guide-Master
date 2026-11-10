@@ -933,6 +933,10 @@ function newState(){
     scout:-1,               // day index you scouted the lower river
     unlogged:0,overdue:0,   // ADF&G logbook trips not yet written up / written up late
     book:[],nextId:1,trip:null,
+    regs:[],                // returning parties (30-stories.js): who they are and how their last trip went
+    arcs:{rival:{st:0,s:-1,mood:0},garza:{st:0},board:{st:0,s:-1},day:-1},   // multi-season story arcs
+    dil:{s:-1,n:{}},        // dilemmas shown this season, by key (no dilemma more than twice a season)
+
     calls:{},diner:{},report:{},office:{},dipnet:{},walks:{},
     run:[],cum:0,limit:3,eo:[],wx:[],wxd:[],noise:[],water:.5,solo:{},pu:0,
     freezer:0,skill:0,
@@ -1138,7 +1142,7 @@ const EXTRA_TABS=[
     for(let d=s0;d<s0+SEASON;d++){
       const bs=S.book.filter(b=>b.d===d),rules=[isSunMon(d)?'🚫 guide boats off below Skilak':'',halClosed(d)?'⚓ no charter halibut kept':''].filter(Boolean).join(' · ');
       const lines=bs.map(b=>{const T=TRIPS[b.type],st={booked:d<day()?'—':'',done:'✅',noshow:'❌ no-show',cancelled:'🚫 cancelled'}[b.status]||'';
-        return `${T.ic} <b>${fmt(T.start)}</b> ${T.n} · ${b.who}, ${b.n} ${b.asst?'🧑‍🤝‍🧑 (assistant) ':''}${st}${b.out?` · ${b.out.line}`:''}`}).join('<br>');
+        return `${T.ic} <b>${fmt(T.start)}</b> ${T.n} · ${b.who}, ${b.n} ${b.reg?'⭐ ':''}${b.asst?'🧑‍🤝‍🧑 (assistant) ':''}${st}${b.out?` · ${b.out.line}`:''}`}).join('<br>');
       h+=`<div class="todo"><span class="ck">${d<day()?'✔️':d===day()?'👉':'·'}</span><div><b>${dlong(d)}</b><span>${lines||'<i>Open day</i>'}${rules?`<br><span style="color:var(--warn)">${rules}</span>`:''}</span></div></div>`;
     }
     return h+`<div class="rules">Trips: 💲 rates ×${S.up.rate.toFixed(1)} · 🐟 sockeye ${$(Math.round(TRIPS.reds.price*S.up.rate))}/angler (6 AM, lower river) · 🎣 silvers ${$(Math.round(TRIPS.silver.price*S.up.rate))}/angler (1 PM, lower river) · 🌈 trout float ${$(Math.round(TRIPS.trout.price*S.up.rate))}/angler (7 AM, Cooper Landing, 3 max) · ⚓ halibut ${S.up.chp?`${$(Math.round(350*S.up.rate))}/passenger on your own boat`:`day rate ${$(TRIPS.halibut.gig)}`} (6 AM, Homer). New requests come in by phone: <b>📞 Return calls</b> at the shop.</div>`}},
@@ -1203,11 +1207,26 @@ const LORE=[
 
 // ---- booking-request parties ----
 const PARTIES=[
+  // visitors from the Lower 48 and abroad
   {who:'Kowalskis',from:'Wisconsin'},{who:'Oregon firefighters',from:'Oregon'},{who:'retired dentist and his grandson',from:'Iowa'},
   {who:'family of Vermont teachers',from:'Vermont'},{who:'college buddies',from:'Colorado'},{who:'Chicago law-firm outing',from:'Chicago'},
   {who:'anniversary couple',from:'Tennessee'},{who:'Navy vet and his brothers',from:'Virginia'},{who:'Austin startup team',from:'Austin'},
-  {who:'Nguyens',from:'Anchorage',res:true},{who:'pipeline crew on rotation',from:'Kenai',res:true},{who:'cousins from Germany',from:'Bavaria'},
-  {who:'Montana fly-shop crew',from:'Montana'},{who:'mother-and-daughter team',from:'Arizona'},{who:'Juneau bartenders',from:'Juneau',res:true},
+  {who:'cousins from Germany',from:'Bavaria'},{who:'Montana fly-shop crew',from:'Montana'},{who:'mother-and-daughter team',from:'Arizona'},
+  {who:'Patel family reunion',from:'New Jersey'},{who:'grandmother and her three grandkids',from:'Minnesota'},{who:'three retired nurses',from:'Ohio'},
+  {who:'father and daughter on her graduation trip',from:'Georgia'},{who:'Tokyo fly-fishing club',from:'Japan'},{who:'two brothers who haven’t fished together in 20 years',from:'Maine'},
+  {who:'veterans’ adaptive fishing group',from:'Washington'},{who:'newlyweds',from:'Ontario'},{who:'Boston paramedics',from:'Boston'},
+  {who:'high-school fishing team and their coaches',from:'Idaho'},{who:'book club that picked Alaska',from:'Pennsylvania'},{who:'three generations of the Okafor family',from:'Maryland'},
+  {who:'Lopez family',from:'New Mexico'},{who:'trucking company crew',from:'Indiana'},{who:'two dairy-farm couples',from:'Pennsylvania'},
+  {who:'Swiss river guides on holiday',from:'Switzerland'},{who:'mother and son on his dad’s bucket-list trip',from:'Michigan'},{who:'Marine Corps reunion',from:'North Carolina'},
+  {who:'teachers on summer break',from:'Utah'},{who:'Chen and Rivera families',from:'California'},{who:'Australian friends on a gap year',from:'Queensland'},
+  {who:'retired Texas oilfield hands',from:'Texas'},{who:'hospital night-shift crew',from:'Seattle'},{who:'Scout troop leaders',from:'Nebraska'},
+  {who:'rural mail carriers on a group trip',from:'Missouri'},{who:'sisters on their annual trip',from:'Oklahoma'},{who:'astronomy club',from:'Arizona'},
+  // Alaska residents
+  {who:'Nguyens',from:'Anchorage',res:true},{who:'pipeline crew on rotation',from:'Kenai',res:true},{who:'Juneau bartenders',from:'Juneau',res:true},
+  {who:'Coast Guard families',from:'Kodiak',res:true},{who:'Sitka school staff',from:'Sitka',res:true},{who:'Palmer farm family',from:'Palmer',res:true},
+  {who:'Soldotna high-school coaches',from:'Soldotna',res:true},{who:'Eagle River neighbors',from:'Eagle River',res:true},{who:'Seward harbor crew',from:'Seward',res:true},
+  {who:'university lab team',from:'Fairbanks',res:true},{who:'Homer artists’ co-op',from:'Homer',res:true},{who:'Ketchikan cannery crew',from:'Ketchikan',res:true},
+  {who:'Bethel clinic nurses',from:'Bethel',res:true},{who:'Anchorage rec-league hockey team',from:'Anchorage',res:true},{who:'hunter-ed instructors',from:'Wasilla',res:true},
 ];
 
 // ---- title screen ----
@@ -1234,7 +1253,7 @@ function onNewGame(){
     [10,'silver',4,'fishing YouTuber and his crew','Florida',0,['photo','kingfan']],[11,'reds',4,'California doctors','California',0,['nolicense']],
     [11,'silver',2,'honeymooners','Georgia',0,[]],[12,'reds',4,'Fairbanks family','Fairbanks',1,['kid']],
     [13,'trout',2,'Guide Academy classmates','Kenai',1,[]]];
-  seed.forEach(([d,type,n,who,from,res,quirk])=>addBooking({d,type,n,who,from,res:!!res,quirk}));
+  seed.forEach(([d,type,n,who,from,res,quirk])=>{const b=addBooking({d,type,n,who,from,res:!!res,quirk});if(who==='Garza family')b.arc='garza'});
   say(`${dlong(0)}, ${fmt(S.t)}. ${WX[S.wx[0]].ic} ${WX[S.wx[0]].n}. Monday: guide boats can’t fish the Kenai below Skilak Lake today, so it’s a shop day. Your first trip is tomorrow at ${fmt(TRIPS.reds.start)}.`);
   modal('🛶 Welcome to the Kenai',`<p>You’re a licensed sport fishing guide out of <b>Soldotna</b>, with a jet sled, a drift boat and <b>${S.book.length} trips</b> booked over the next two weeks: the peak of the late sockeye run.</p>
     <p>📆 This is season 1 of a <b>${S.years}-year career</b>. Each July you guide two weeks; each winter you pay the bills, plan upgrades and see what the new season’s rules and runs look like.</p>
@@ -1445,6 +1464,10 @@ const ACH=[
   {id:'own_six_pack',ic:'⚓',n:'Your Own Six-Pack',d:'Buy a Charter Halibut Permit and run your own Homer charters.',test:()=>!!(S.up&&S.up.chp)},
   {id:'legal_king',ic:'👑',n:'A Legal King',d:'Put a client on a legal Kenai king in a year kings are open.',test:()=>(S.stats.legalKings||0)>0},
   {id:'bear_aware',ic:'🐻',n:'Bear Aware',d:'Give a brown bear the gravel bar.',test:()=>S.stats.bear>0},
+  {id:'regulars',ic:'⭐',n:'Regulars',d:'Have a party book you for a second July.',test:()=>S.stats.trips>0&&S.book.some(b=>b.reg&&b.status==='done')},
+  {id:'family_tradition',ic:'👨‍👩‍👦',n:'Family Tradition',d:'Guide the Garza family through four Julys.',test:()=>S.arcs&&S.arcs.garza.st>=4},
+  {id:'good_neighbor',ic:'🛟',n:'Good Neighbor',d:'Tow your rival guide in when his sled quits.',test:()=>S.arcs&&!!S.arcs.rival.ally},
+  {id:'seat_table',ic:'🏛️',n:'A Seat at the Table',d:'Serve on the local fish and game advisory committee and see it through to the Board of Fisheries.',test:()=>S.arcs&&S.arcs.board.st>=3},
   {id:'happy_camper',ic:'🏕️',n:'Happy Camper',d:'Camp 7 nights in total during winters.',test:()=>(S.stats.campNights||0)>=7},
   {id:'wild_kenai',ic:'🦌',n:'Wild Kenai',d:'See 5 different wildlife encounters while camping.',test:()=>Object.keys(S.stats.seen||{}).length>=5},
 ];
@@ -1618,7 +1641,14 @@ const STEP={
     O('No','You buy him lunch to smooth it over.',(b,t)=>{fx(t,-25,'Lunch for the sulking deckhand')}),
     O('Sure, one fish','He fuels the boat for you: $40.',(b,t)=>{fx(t,40,'Deckhand covers the fuel');violate(t.notes,{p:.25,fine:500,what:'crew retaining halibut on a charter',minor:true,who:NOAA})},1)]}),
 };
-const POOL={reds:['king','snag','over','guide_fish','anchor','combat','motor'],silver:['bait','king','extra_rod','guide_fish','motor'],trout:['bear','photo','combat','guide_fish'],halibut:['size27','crew']};
+const POOL={reds:['king','snag','over','guide_fish','anchor','combat','motor','rescue','ownrods','trespass'],silver:['bait','king','extra_rod','guide_fish','motor','rescue','ownrods'],trout:['bear','photo','combat','guide_fish','rescue','trespass'],halibut:['size27','crew','whale','seasick']};
+// ---- how often a dilemma may come up ----
+// No dilemma more than DIL_MAX times in one season (random picks and quirk beats alike; rule-forced ones like the closed halibut day are exempt),
+// and the king dilemma shows up less when kings can't be kept: it's still the story of the Kenai, but not every other trip.
+const DIL_MAX=2,KING_ODDS={closed:.3,cr:.55,open:1};
+const dilN=k=>S.dil&&S.dil.s===seasonOf(day())?(S.dil.n[k]||0):0;
+const dilUse=k=>{const s=seasonOf(day());if(!S.dil||S.dil.s!==s)S.dil={s,n:{}};S.dil.n[k]=(S.dil.n[k]||0)+1};
+const dilOK=k=>dilN(k)<DIL_MAX&&(k!=='king'||Math.random()<KING_ODDS[kingRule()]);
 
 // ---- the runner ----
 function tripStart(b){
@@ -1638,16 +1668,20 @@ function tripStart(b){
   if(b.quirk.includes('nolicense')) t.steps.push('license');
   if(S.cred.fa<day()) t.steps.push('expired');
   t.steps.push('spot');
+  regTripStart(b,t);                                      // 30-stories.js: returning parties remember last time
   const want=S.diff==='hard'?3:2,beats=[],q=b.quirk;
-  if(q.includes('drinker')) beats.push('beer');
-  if(q.includes('kingfan')&&(b.type==='reds'||b.type==='silver')) beats.push('king');
-  if(q.includes('photo')&&b.type==='trout') beats.push('photo');
+  if(b.arc==='garza'&&S.arcs.garza.st>=1&&S.arcs.garza.st<=3) beats.push('arc_garza');
+  if(q.includes('drinker')&&dilOK('beer')) beats.push('beer');
+  if(q.includes('kingfan')&&(b.type==='reds'||b.type==='silver')&&dilN('king')<DIL_MAX) beats.push('king');
+  if(q.includes('photo')&&b.type==='trout'&&dilOK('photo')) beats.push('photo');
+  if(q.includes('kid')&&b.type!=='halibut'&&dilOK('pfd')) beats.push('pfd');
   if(b.type==='halibut'&&halClosed(b.d)) beats.push('tuewed');
   if(S.boat<25&&TRIPS[b.type].fuel){beats.push('motor');t.q-=.08;t.notes.push('🔧 The neglected jet sled runs rough all day. Service the boats at the shop.')}
   if(q.includes('promised')){t.happy-=15;t.notes.push('👑 They were “promised” a shot at a king. There was never going to be one: the fishery is closed.')}
-  const pool=POOL[b.type].filter(x=>!beats.includes(x)&&!(x==='bait'&&!noBait())&&!(x==='size27'&&halClosed(b.d)));
+  const pool=POOL[b.type].filter(x=>!beats.includes(x)&&!(x==='bait'&&!noBait())&&!(x==='ownrods'&&!noBait())&&!(x==='size27'&&halClosed(b.d))&&dilOK(x));
   while(beats.length<want&&pool.length) beats.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]);
   t.steps.push(...beats.slice(0,Math.max(want,beats.length)));
+  beats.slice(0,Math.max(want,beats.length)).forEach(k=>{if(k!=='arc_garza')dilUse(k)});
   if(b.type==='silver') t.steps.push('sixpm');
   S.trip=t;sfx('whoosh');tripNext();
 }
@@ -1714,6 +1748,7 @@ function tripEnd(b,t){
   S.unlogged++;S.skill++;
   const net=fare-refund+tip+xnet-costs;
   b.status='done';b.out={happy:Math.round(happy),fish,line,fare,refund,tip,net};S.trip=null;
+  storyAfterTrip(b,happy,t.notes);                      // 30-stories.js: returning parties, story arcs
   say(`${T.ic} ${T.n} with the ${b.who}: ${line}. Paid ${$(fare-refund)} + ${$(tip+xpos)} in tips.`);
   const mood=happy>=82?'😁 Five stars, and they’re already asking about next July. Word of mouth will bring you more bookings.':happy>=65?'🙂 Solid day. Handshakes at the trailer.':happy>=45?'😐 Polite thanks, small tip.':review?'😠 Tight-lipped goodbyes and a one-star review. Word gets around the Kenai.':'😕 They leave a little deflated.';
   const row=(l,v)=>`<br>${l}: <b>${v>=0?'':'−'}${$(Math.abs(v))}</b>`;
@@ -2090,14 +2125,14 @@ function upgradeModal(){
       .concat([{l:'Done',s:'Back to the off-season summary.',fn:()=>setTimeout(winterModal,0)}]));
 }
 function finishWinter(){
-  const s=S.winter.s;S.winter=null;genSeasonBookings(s);
+  const s=S.winter.s;S.winter=null;const reg=genSeasonBookings(s);
   const n=S.book.filter(b=>seasonOf(b.d)===s).length;
-  say(`📅 ${2026+s} bookings are in: <b>${n} trips</b> for the season. ${REG().fc}`);
+  say(`📅 ${2026+s} bookings are in: <b>${n} trips</b> for the season. ${REG().fc}${reg.length?'<br>'+reg.join('<br>'):''}`);
   showTile('📅',`${n} trips booked`,`Season ${s+1} of ${S.years}`,'good');
 }
 function genSeasonBookings(s){
   const base=s*SEASON,web=S.up.web===s?.15:0,r=Math.random;
-  const p0=clamp((.35+S.rep/200+web)*rateDemand()*(S.up.dock?1.08:1),.12,.95);
+  const p0=clamp((.35+S.rep/200+web+(S.arcs.rival.ally?.03:0))*rateDemand()*(S.up.dock?1.08:1),.12,.95);
   const q=()=>r()<.3?[pick(['drinker','nolicense','kingfan','photo','kid'])]:[];
   const party=()=>pick(PARTIES);
   for(let i=0;i<SEASON;i++){const d=base+i,w=i%7;
@@ -2109,12 +2144,14 @@ function genSeasonBookings(s){
       else if(r()<p0*.7){const p=party();addBooking({d,type:'trout',n:pick([2,3,3]),who:p.who,from:p.from,res:!!p.res,quirk:q()})}
     }
   }
+  const regLines=regsRebook(base,r);                      // 30-stories.js: returning parties
   if(S.up.asst) for(let i=1;i<SEASON;i++){const d=base+i,w=i%7;           // your assistant takes a second party when you are booked
     if(w<1||w>5||r()>p0*.9) continue;
     const types=['reds','reds','trout'].concat(i>=7?['silver']:[]).filter(t=>conflicts(d,t)&&!conflicts(d,t,true));
     if(!types.length) continue;const type=pick(types),p=party();
     addBooking({d,type,n:type==='trout'?pick([2,3]):pick([2,3,4]),who:p.who,from:p.from,res:!!p.res,quirk:[],asst:true})}
   if(!S.up.chp){const d=base+pick([6,13]);if(!S.book.some(b=>b.d===d&&b.status==='booked')){const p=party();addBooking({d,type:'halibut',n:6,who:p.who,from:p.from,res:!!p.res,quirk:[]})}}
+  return regLines;
 }
 
 // ---- picking a career length (new-game chain: name → difficulty → career) ----
@@ -2232,6 +2269,7 @@ const HELP=[
   ['🎯','The goal','Run a Kenai River guide business out of Soldotna for a <strong>2-, 5- or 10-year career</strong>. Each year you play the two-week July peak; between years the off-season handles bills, upgrades and next season’s bookings. Keep clients happy, your boat running and your record clean.'],
   ['🕐','How a day works','Time moves only when you act. Tap an action on the <strong>🧭 Here</strong> tab, or <strong>Go somewhere</strong> to travel. Guides start early: the alarm is 5:00 AM (change it at the shop). To skip ahead, use <strong>⏳ Wait until…</strong>: the next launch, the 1 PM first-aid class, or 30 or 60 minutes. <strong>Go to bed</strong> at the shop to end the day; staying up past midnight costs you.'],
   ['🛶','Trips','Your schedule is on the <strong>📅 Bookings</strong> tab. Be at the launch spot by launch time: sockeye and silvers from the <strong>Lower Kenai launch</strong>, trout floats from <strong>Cooper Landing</strong>, halibut from the <strong>Homer Spit</strong>. On the water you pick a spot, then face a few choices, shuffled every time. Playing it straight costs something (time, fish or a smaller tip); bending a rule can pay cash, but if a trooper catches you the fine hurts.'],
+  ['⭐','Regulars & stories','Clients who have a great day may come back next July, and they remember how it went. Over the years you may also meet a rival guide, a family that returns every summer and an invitation to the local fish and game advisory committee. No dilemma comes up more than twice a season.'],
   ['📖','The rules','The <strong>📖 Regs</strong> tab lists your credentials and every rule you guide by: king status, single-hook/no-bait, no guide-boat fishing below Skilak on Sundays and Mondays, 6 AM–6 PM, five people a boat in July, bag limits, halibut rules. Break one and you may get a warning (the first minor offense each season) or a citation, and every citation on your record makes the next fine bigger. <strong>Three active citations</strong> and State Parks pulls your permit.'],
   ['📓','Paperwork','Fill out your <strong>ADF&G logbook</strong> at the shop after every trip, before bed. Keep your <strong>first-aid/CPR card</strong> current: classes are in Soldotna, Monday, Tuesday and Thursday, 1–4 PM (join by 1:30), and a card lasts two years.'],
   ['⛽','Fuel','The jet sled burns about 9 gallons on a sockeye trip and 11 on a silver trip. You can fill up <strong>only at the Kenai Harbor fuel dock</strong> (6 AM–10 PM). Run dry and the Coast Guard tows you in: half the fare refunded and a hit to your reputation. Watch the <strong>Fuel</strong> gauge in the top bar.'],
@@ -2450,7 +2488,7 @@ const CHANGELOG={
   '1.5.2':['🆕 This notice: after each update you’ll see what changed, and your progress is brought up to date automatically.'],
   '1.5.3':['⚖️ Difficulty now changes the game, not the score: Combat Season means more patrols and dearer bills, Rookie the reverse. Grades were recalibrated, so an A takes real work.'],
   '1.5.4':['🎲 Dilemma options shuffle: playing it straight costs something, bending a rule can pay cash, and repeat offenders pay steeper fines. Pay now follows the day: catch, tackle and boat shape tips, refunds and word of mouth.'],
-  '1.6.0':['💲 Higher rates now cost you: fewer bookings, pickier clients and a rep requirement that rises each step.','🔧 Boats at condition 0 are out of service until repaired; new motors burn less gas, new sleds finish sooner, and late-career money can buy an assistant guide, guest cabins or a riverfront launch.','⏳ New “Wait until…” action skips to the next launch or the 1 PM class. New games start with a 5:00 AM alarm.','🌙 The night summary now comes before the morning’s news, and pop-up toasts are fewer, shorter and sit below your Cash and Rep.'],
+  '1.6.0':['💲 Higher rates now cost you: fewer bookings, pickier clients and a rep requirement that rises each step.','🔧 Boats at condition 0 are out of service until repaired; new motors burn less gas, new sleds finish sooner, and late-career money can buy an assistant guide, guest cabins or a riverfront launch.','⏳ New “Wait until…” action skips to the next launch or the 1 PM class. New games start with a 5:00 AM alarm.','🌙 The night summary now comes before the morning’s news, and pop-up toasts are fewer, shorter and sit below your Cash and Rep.','⭐ Longer careers: 54 client parties, regulars who come back (or don’t), six new river dilemmas, fewer repeats and three multi-season stories.'],
 };
 const CHANGELOG_GENERIC='Fixes and small improvements throughout.';
 const LASTVER_KEY=KEY('lastVersion');
@@ -2493,6 +2531,138 @@ function maybeUpdateNotice(){
       [{l:'Got it',fn:rememberVersion}],true);
   }catch(e){}
 }
+// ============================================================
+//  GUIDE MASTER, part 9: more to find on the river.
+//  1. Returning parties: a party that has a great day may become a regular. It rebooks next July in proportion to how
+//     the last trip went and remembers it when it comes back (S.regs).
+//  2. Six more dilemmas from real Kenai guiding (life jackets for kids, whales off Homer, a capsized paddler, a client's own
+//     treble hooks, posted private banks, seasick charter clients). Same rules as the others: the legal option costs something,
+//     the rule-breaking one pays cash if nobody's watching.
+//  3. Three story arcs that run across seasons (S.arcs): a rival guide, a returning family and a seat on the local fish and game
+//     advisory committee.
+//  Rules cited here are real: Alaska requires kids 12 and under to wear a life jacket on boats under 26 feet while underway;
+//  vessels are to stay 100 yards from humpback whales in Alaska waters; riverbed below the ordinary high-water line is state land
+//  while the uplands are often private; local advisory committees send proposals to the Alaska Board of Fisheries.
+// ============================================================
+
+// ---- returning parties ----
+const ORD=['','first','second','third','fourth','fifth','sixth','seventh','eighth','ninth','tenth'];
+function regAfterTrip(b,happy,notes){
+  const h=Math.round(happy),s=seasonOf(day());let g=S.regs.find(x=>x.who===b.who);
+  const arc=b.arc==='garza';
+  if(g){
+    g.last={h,s};g.trips=(g.trips||1)+1;
+    if(h>=88) notes.push(`⭐ The ${b.who} are already talking about July ${yearOf(day())+1}.`);
+  }else{
+    const join=arc?h>=60:(h>=75&&S.regs.length<10&&Math.random()<.4);
+    if(join){S.regs.push({who:b.who,from:b.from,res:!!b.res,type:b.type==='halibut'?'reds':b.type,n:Math.min(b.n,b.type==='trout'?3:b.type==='silver'?4:5),trips:1,last:{h,s},arc:arc?'garza':null});
+      if(arc)S.arcs.garza.st=1;
+      notes.push(`⭐ The ${b.who} slip you a card with their number: “Same time next July?” If you treat them right, they will be back.`)}
+    else if(arc)S.arcs.garza.st=-1;
+  }
+}
+// next season's bookings from the regulars; returns report lines for the off-season
+function regsRebook(base,r){
+  const lines=[];
+  S.regs.slice().forEach(g=>{
+    const h=g.last?g.last.h:0,p=h>=88?.95:h>=75?.85:h>=60?.55:h>=45?.25:0,type=g.type;
+    if(r()<p){
+      for(let k=0;k<12;k++){
+        const i=1+Math.floor(r()*13),w=i%7;
+        if(w<1||w>5||(type==='silver'&&i<7)) continue;
+        const d=base+i;if(conflicts(d,type)) continue;
+        const n=Math.min(g.n+(h>=88&&g.n<(type==='trout'?3:type==='silver'?4:5)?1:0),type==='trout'?3:type==='silver'?4:5);
+        addBooking({d,type,n,who:g.who,from:g.from,res:g.res,quirk:[],reg:true,arc:g.arc||undefined});g.miss=0;
+        lines.push(`⭐ The ${g.who} (${g.from}) are back for their ${ORD[Math.min(10,(g.trips||1)+1)]} July${h>=88?': last time was a five-star day':''}.`);break}
+    }else{
+      g.miss=(g.miss||0)+1;
+      if(h<45||g.miss>=2){S.regs=S.regs.filter(x=>x!==g);if(g.arc==='garza')S.arcs.garza.st=-1;lines.push(`🪧 The ${g.who} didn’t rebook${h<45?': last year’s trip left a bad taste':''}.`)}
+    }
+  });
+  return lines;
+}
+// at launch: they remember last time
+function regTripStart(b,t){
+  const g=b.reg&&S.regs.find(x=>x.who===b.who);if(!g||!g.last) return;
+  const h=g.last.h,nth=ORD[Math.min(10,(g.trips||1)+1)];
+  if(h>=88){t.happy+=5;t.notes.push(`⭐ The ${b.who} are back for their ${nth} July. They’ve talked about last year’s day all winter and trust you with this one.`)}
+  else if(h>=75){t.happy+=3;t.notes.push(`⭐ The ${b.who} are back for their ${nth} July and glad to see you.`)}
+  else if(h<62){t.happy-=4;t.notes.push(`😬 The ${b.who} came back, but they remember last year’s rough day. They’re watching.`)}
+}
+// after a trip: returning parties and arcs
+function storyAfterTrip(b,happy,notes){
+  regAfterTrip(b,happy,notes);
+  if(b.arc==='garza'&&b.reg){const A=S.arcs.garza;if(A.st>=1&&A.st<=3){A.st++;if(A.st===4)say('👨‍👩‍👦 The Garzas’ fourth July. Some families become part of the river.')}}
+}
+
+// ---- six more dilemmas ----
+Object.assign(STEP,{
+  pfd:(b)=>({t:'🦺 The life jacket',b:'<p>The 9-year-old in the party is hot and fussing about the life jacket. Alaska requires children 12 and under to wear one on a boat under 26 feet while it is underway.</p>',o:[
+    O('Keep it on; pull in for a snack and a break','10 minutes and a sulky kid.',(b,t)=>{lose(t,10);t.happy-=3}),
+    O('Loosen the straps a notch and keep going','Still on, still legal, and a little grumbling.',(b,t)=>{t.happy-=2}),
+    O('Let him take it off “just for a minute”','His dad slips you $40 and the kid beams.',(b,t)=>{fx(t,40,'Tip from the grateful dad');violate(t.notes,{p:.25,fine:200,what:'a child without a life jacket on a boat under 26 feet',minor:true})},1)]}),
+  whale:(b)=>({t:'🐋 A humpback off the bow',b:'<p>A humpback blows a hundred yards off the bow and the whole boat goes quiet. In Alaska waters vessels are to stay <b>100 yards</b> from humpback whales.</p>',o:[
+    O('Idle down and let it come to you','You drift for 20 minutes and nobody minds.',(b,t)=>{lose(t,20);t.q-=.03;t.happy+=6}),
+    O('Motor in for the photo','Everybody has their phones out and a client tips $80.',(b,t)=>{t.happy+=6;fx(t,80,'Tip for the whale photos');violate(t.notes,{p:.3,fine:1000,what:'approaching a humpback whale closer than 100 yards',who:NOAA})},1)]}),
+  rescue:(b)=>({t:'🛟 A capsized paddler',b:'<p>Rounding the bend you see a rafter’s dry bag floating by, then the raft itself, upside down, with its owner clinging to a root wad.</p>',o:[
+    O('Drop everything, pull him aboard and run him to shore','40 minutes lost and a little water in the boat.',(b,t)=>{lose(t,40);adj('boat',-2);adj('rep',4);t.happy+=3;t.notes.push('🛟 You pull him in shivering, wrap him in a rain jacket and get him to the ramp. By evening the story is all over the Kenai.')}),
+    O('Call it in on VHF 16 and stand by','15 minutes and a lot of awkward silence.',(b,t)=>{lose(t,15);adj('rep',1);t.happy-=2;t.notes.push('📻 The Coast Guard and a local sled get there in minutes. He’s fine.')})]}),
+  ownrods:(b)=>({t:'🎣 “We brought our own spinners”',b:`<p>The ${b.who} unpack a tackle bag of big-box-store spinners, every one with treble hooks. Below Skilak through Aug 15 the emergency order allows <b>one unbaited, single-hook artificial lure</b>.</p>`,o:[
+    O('Swap in single-hook lures from your box','15 minutes and some muttering.',(b,t)=>{lose(t,15);t.q-=.02;t.happy-=2}),
+    O('Let them fish what they brought','More hookups and a $35 tip.',(b,t)=>{t.q+=.04;fx(t,35,'Tip for the hookups');violate(t.notes,{p:.25,fine:200,what:'fishing treble hooks under the emergency order',minor:true})},1)]}),
+  trespass:(b)=>({t:'🚧 The perfect gravel bar',b:'<p>The best-looking bank is a mowed lawn above the high-water line, with a “Private property” sign. The riverbed below the ordinary high-water line is state land, but the uplands are somebody’s, and public access is limited to the designated spots.</p>',o:[
+    O('Stay below the high-water line or use the public access','A longer walk and a smaller bite.',(b,t)=>{lose(t,15);t.q-=.02}),
+    O('Land on the lawn; the owner’s not home','A great spot and a $40 tip.',(b,t)=>{t.q+=.04;fx(t,40,'Tip for the secret spot');violate(t.notes,{p:.2,fine:150,what:'trespassing on a posted private bank',minor:true})},1)]}),
+  seasick:(b)=>({t:'🤢 Green faces on deck',b:'<p>The swell is up and three of the passengers are hanging over the rail. The tide is running against a rising wind.</p>',o:[
+    O('Run for the lee of the Spit and fish the slack','40 minutes lost and fewer fish.',(b,t)=>{lose(t,40);t.q-=.03;t.happy-=2}),
+    O('Push on: they’ll feel better when a fish bites','They don’t, and they say so.',(b,t)=>{t.happy-=9;adj('energy',-4)})]}),
+  arc_garza:(b)=>{const st=S.arcs.garza.st;
+    if(st===1) return {t:'👦 Mateo’s big fish',b:`<p>The Garzas are back for their second July. Mateo, now 11, has a bent rod and a look of fierce concentration. “I’ll do it myself!”</p>`,o:[
+      O('Coach him through it, hand off the rod when he asks','It takes 20 minutes, and you’ll remember his face.',(b,t)=>{lose(t,20);t.happy+=8;S.skill++;t.notes.push('🎣 Mateo lands his first red on his own. His mother cries a little. His father films the whole thing.')}),
+      O('Take the rod and net it quick','The fish is in the boat, and he is a little crushed.',(b,t)=>{t.happy-=3;t.notes.push('🎣 The fish comes in fast. Mateo says it’s fine.')})]};
+    if(st===2) return {t:'🧓 Grandpa Ray’s first July',b:'<p>The Garzas have brought Mateo’s grandfather, Ray, 78, on his first Alaska trip. He wants to stand in the bow “like the guides on TV.”</p>',o:[
+      O('Give him the seat with the armrests and a short rod','Safe, slower, and he pretends not to mind.',(b,t)=>{t.happy-=2;t.notes.push('🧓 Ray hooks a big red from the cushioned seat and tells everyone at the dock about it for twenty minutes.')}),
+      O('Let him stand in the bow, life jacket buckled, hand on the rail','A gamble with a great payoff, and a fall would be bad.',(b,t)=>{if(Math.random()<.25){t.happy-=10;adj('rep',-3);adj('boat',-3);t.notes.push('🌊 A wake from a passing boat rocks the bow and Ray sits down hard. He’s fine, but the family is shaken.')}else{t.happy+=9;t.notes.push('🧓 Ray stands in the bow with his chin up. The whole boat cheers when the fish takes.')}})]};
+    return {t:'🧑 “Can I work for you?”',b:'<p>Mateo, 14 now, has asked his parents to let him spend next summer guiding. He wants to know if you’ll teach him. The Garzas look on, hoping.</p>',o:[
+      O('Tell him to finish school, then take the Guide Academy and the USCG license at 18-plus','Honest advice and a smaller tip today.',(b,t)=>{t.happy+=2;adj('rep',3);S.skill++;t.notes.push('🎓 “Come see me when you’ve got the paperwork,” you say. Mateo nods very seriously.')}),
+      O('Let him run the sled for a stretch “to see what it’s like”','He grins ear to ear and his dad tips $100.',(b,t)=>{t.happy+=8;fx(t,100,'Tip from the delighted dad');violate(t.notes,{p:.3,fine:600,what:'an unlicensed person operating a guide vessel'})},1)]};
+  },
+});
+
+// ---- story arcs ----
+// One arc scene at most per morning, and each arc at most once a season, from the second season on.
+const arcFree=a=>!S.winter&&S.arcs.day!==day()&&seasonOf(day())>=1&&sday(day())>=2&&sday(day())<=11&&a.s!==seasonOf(day());
+const arcDone=a=>{a.s=seasonOf(day());S.arcs.day=day()};
+defEvent({id:'arc_rival',hook:'wake',tile:['🚤','A rival on your seam','info'],chance:.4,cond:()=>{const A=S.arcs.rival;return arcFree(A)&&(A.st===0&&S.rep>=55||A.st===2||A.st===3)},
+  run:()=>{const A=S.arcs.rival;arcDone(A);
+    if(A.st===0) return modal('🚤 A new outfit on the river',`<p>A new outfit, Voss Guide Service, has put a second sled in at Centennial and its owner, <b>Dale Voss</b>, has started parking on the seam you’ve worked for years. He tips his cap. He doesn’t move.</p>`,[
+      {l:'Wave, share the water and trade spot reports',s:'Rep +1.',fn:()=>{A.st=2;A.mood=1;adj('rep',1);say('🤝 You nod, then wave him in. By lunch you’re trading notes over the VHF.')}},
+      {l:'Hold your seam and make him earn it',s:'Rep −2. You were here first.',fn:()=>{A.st=2;A.mood=-1;adj('rep',-2);say('😤 You nose in and fish the seam hard. Dale says nothing, and you can feel it.')}}]);
+    if(A.st===2&&A.mood>0) return modal('📞 Dale calls',`<p>Dale Voss is overbooked this week and has a party he can’t take. “Thought of you first. You’d do the same.”</p>`,[
+      {l:'Take the party',s:'A free booking, and he’ll owe you.',fn:()=>{A.st=3;adj('rep',1);let dd=null;for(let d=seasonFirst()+3;d<seasonFirst()+SEASON&&dd==null;d++)if(!isSunMon(d)&&!conflicts(d,'reds')&&d>day())dd=d;
+        if(dd!=null){addBooking({d:dd,type:'reds',n:4,who:'party Dale sent over',from:'Oregon',res:false,quirk:[]});say(`📅 Booked: a party Dale sent over, ${dlong(dd)}.`)}else say('📞 You’d like to, but your calendar’s full.')}},
+      {l:'Pass politely',s:'Keep your calendar clear.',fn:()=>{A.st=3;say('📞 You tell Dale thanks, but no. He says he understands.')}}]);
+    if(A.st===2) return modal('📱 A thread about you',`<p>Somebody forwards you a river-forum thread: Voss Guide Service is telling people your seam is overcrowded and your prices are high.</p>`,[
+      {l:'Let your logbook speak for itself',s:'Rep −1 and a tight jaw.',fn:()=>{A.st=3;adj('rep',-1);say('📓 You keep fishing and keep your mouth shut. It’s not easy.')}},
+      {l:'Reply politely with your own season’s numbers',s:'30 minutes. Energy −4, rep +1.',fn:()=>{A.st=3;pass(30);adj('energy',-4);adj('rep',1);say('📱 You post your trip counts and your last three reviews. No drama. It works, mostly.')}}]);
+    // st 3: the finale, a call for help
+    return modal('🛟 Dale’s sled has quit',`<p>Dale Voss’s sled has quit in the middle of the channel with a full party aboard. His radio crackles: “Anybody close?” You are.</p>`,[
+      {l:'Tow him in',s:'Energy −8, boat −3, rep +4. Whatever you two were, you’re something else now.',fn:()=>{A.st=4;A.ally=true;adj('energy',-8);adj('boat',-3);adj('rep',4);say('🛟 You throw him a line and tow the whole rig to the ramp. Dale shakes your hand with both of his. “I owe you one.”')}},
+      {l:'Radio the Coast Guard and keep moving',s:'Quick and cold.',fn:()=>{A.st=4;say('📻 You relay his call and keep your clients on the water. Dale gets in fine. He doesn’t wave.')}}]);
+  }});
+defEvent({id:'arc_board',hook:'wake',tile:['🏛️','A seat at the table','info'],chance:.35,cond:()=>{const A=S.arcs.board;return arcFree(A)&&(A.st===0&&S.rep>=70||A.st===1||A.st===2)},
+  run:()=>{const A=S.arcs.board;arcDone(A);
+    if(A.st===0) return modal('🏛️ A seat on the advisory committee',`<p>The Kenai/Soldotna Fish and Game Advisory Committee has an open seat and somebody put your name forward. Advisory committees take local input and send proposals to the Alaska Board of Fisheries. The evening meetings are long.</p>`,[
+      {l:'Take the seat',s:'Energy −8, skill +1.',fn:()=>{A.st=1;adj('energy',-8);S.skill++;say('🏛️ You’re sworn in at the Soldotna sportsmen’s hall. The coffee is terrible and the room is full of people who care.')}},
+      {l:'Decline politely',s:'Nobody will ask again.',fn:()=>{A.st=-1;say('🏛️ You thank them and say you’re too busy. They understand. They also don’t ask again.')}}]);
+    if(A.st===1) return modal('🏛️ The committee splits',`<p>The committee is split on a proposal to the Board of Fisheries about the late-run sockeye escapement goal. Some members want a more cautious goal for the river, others want more room for harvest. You hold a vote.</p>`,[
+      {l:'Back the more cautious goal',s:'Rep +3. A few guides grumble.',fn:()=>{A.st=2;adj('rep',3);S.wom=(S.wom||0)-1;say('🗳️ You vote with the biologists’ cautious numbers. Some guides take it personally. Many more thank you.')}},
+      {l:'Back more room for harvest',s:'Rep −2, but the guides’ association sends $250.',fn:()=>{A.st=2;adj('rep',-2);money(250);say('🗳️ You side with the harvest. The association sends a thank-you check, and a few biologists stop returning your calls.')}},
+      {l:'Abstain',s:'Nothing gained, nothing lost.',fn:()=>{A.st=2;say('🗳️ You abstain. Nobody is thrilled.')}}]);
+    return modal('🏛️ Board of Fisheries meeting',`<p>The Board of Fisheries meets and your committee’s proposal is up. They want somebody from the river to testify.</p>`,[
+      {l:'Testify with your logbook data',s:'Three hours and $120 for the trip. Rep +5, skill +2.',fn:()=>{A.st=3;pass(180);money(-120);S.stats.spent+=120;adj('rep',5);S.skill+=2;say('🎤 Three minutes at the microphone, your own numbers on the screen. Afterward a biologist asks for a copy.')}},
+      {l:'Send a written comment',s:'Rep +1.',fn:()=>{A.st=3;adj('rep',1);say('📄 You send your comment by email. It goes into the record.')}}]);
+  }});
 // ---------------- boot ----------------
 applyPrefs();
 titleScreen();

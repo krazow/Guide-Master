@@ -236,4 +236,129 @@ module.exports = [
     assert.deepStrictEqual(now, ['Beta'], 'the first tile left after a few seconds and the queued one took its place');
     noErrors(errors);
   } },
+
+  // ---- 5. more content for long careers ----
+  { name: 'at least 40 varied parties: residents and visitors, no duplicates', fn: async ctx => {
+    const { page, errors } = await open(ctx);
+    await newGame(page);
+    const r = await page.evaluate(() => ({ n: PARTIES.length, uniq: new Set(PARTIES.map(p => p.who)).size, res: PARTIES.filter(p => p.res).length, from: new Set(PARTIES.map(p => p.from)).size, bad: PARTIES.filter(p => !p.who || !p.from).length }));
+    assert.ok(r.n >= 40 && r.uniq === r.n, JSON.stringify(r)); assert.ok(r.res >= 10 && r.n - r.res >= 25, 'a mix of Alaskans and visitors'); assert.ok(r.from >= 30); assert.strictEqual(r.bad, 0);
+    noErrors(errors);
+  } },
+  { name: 'returning parties: a great day can make a regular, who rebook by how it went and remember it', fn: async ctx => {
+    const { page, errors } = await open(ctx, { seed: 8 });
+    await page.evaluate(() => setPref('years', 5));
+    await newGame(page);
+    const r = await page.evaluate(() => {
+      closeModals(); const out = {}; const saveR = Math.random;
+      const mk = who => addBooking({ d: 3, type: 'reds', n: 3, who, from: 'Ohio', quirk: [] });
+      Math.random = () => 0; const notes = [];
+      storyAfterTrip(mk('Smiths'), 92, notes); storyAfterTrip(mk('Joneses'), 50, []); storyAfterTrip(mk('Browns'), 90, []);
+      out.regs = S.regs.map(g => g.who); out.note = notes.some(n => /same time next July/i.test(n));
+      S.regs.find(g => g.who === 'Browns').last.h = 30;                  // a bad last trip
+      S.book = []; const lines = regsRebook(14, () => 0.2);
+      out.booked = S.book.filter(b => b.reg).map(b => b.who); out.lines = lines.length; out.dropped = !S.regs.some(g => g.who === 'Browns') || lines.some(l => /Browns/.test(l)) || !out.booked.includes('Browns');
+      out.nSmith = S.book.find(b => b.who === 'Smiths').n;
+      // at the launch they remember: a five-star last trip is a happier start; a rough one is not
+      const t1 = { happy: 0, notes: [] }; regTripStart(S.book.find(b => b.who === 'Smiths'), t1); out.h1 = t1.happy;
+      S.regs.push({ who: 'Grumps', from: 'X', type: 'reds', n: 3, trips: 1, last: { h: 40, s: 0 } }); const t2 = { happy: 0, notes: [] }; regTripStart({ reg: true, who: 'Grumps' }, t2); out.h2 = t2.happy;
+      Math.random = saveR;
+      // rebooking chance rises with the last result
+      const rate = h => { let n = 0; for (let i = 0; i < 300; i++) { S.regs = [{ who: 'Z', from: 'X', type: 'reds', n: 3, trips: 1, last: { h, s: 0 } }]; S.book = []; regsRebook(14, Math.random); if (S.book.length) n++ } return n / 300 };
+      out.p95 = rate(95); out.p65 = rate(65); out.p30 = rate(30);
+      return out;
+    });
+    assert.deepStrictEqual(r.regs, ['Smiths', 'Browns']); assert.ok(r.note);
+    assert.ok(r.booked.includes('Smiths') && r.dropped, JSON.stringify(r)); assert.strictEqual(r.nSmith, 3 + 1, 'a five-star party brings one more');
+    assert.strictEqual(r.h1, 5); assert.strictEqual(r.h2, -4);
+    assert.ok(r.p95 > r.p65 && r.p65 > r.p30 && r.p30 === 0, `rebooking odds ${r.p95} > ${r.p65} > ${r.p30}`);
+    noErrors(errors);
+  } },
+  { name: 'no dilemma more than twice a season; the king dilemma is rarer when kings are closed', fn: async ctx => {
+    const { page, errors } = await open(ctx, { seed: 31 });
+    await page.evaluate(() => setPref('years', 5));
+    await newGame(page);
+    const r = await page.evaluate(() => {
+      closeModals(); const out = { max: {}, kings: {} };
+      S.cur = 3; S.t = 3 * 1440 + 330; S.loc = 'lower'; S.fuel = 40; S.gear = 3; S.boat = 95; S.book = [];
+      const count = {};
+      for (let i = 0; i < 40; i++) {
+        S.fuel = 40; S.boat = 95; S.trip = null; closeModals();
+        const type = ['reds', 'silver', 'trout'][i % 3]; const b = addBooking({ d: 3, type, n: 3, who: 'p' + i, from: 'X', quirk: [] }); S.cur = 3; S.t = 3 * 1440 + 330;
+        tripStart(b); (S.trip ? S.trip.steps : []).forEach(k => { if (new Set([...Object.values(POOL).flat(), 'beer', 'photo', 'pfd']).has(k) && k !== 'motor') count[k] = (count[k] || 0) + 1 });
+        S.trip = null; b.status = 'cancelled'; closeModals();
+      }
+      out.max = count; out.seasonN = S.dil.n; out.s = S.dil.s;
+      // king odds by regulation
+      const odds = rule => { REG().king = rule; let n = 0; for (let i = 0; i < 600; i++) { S.dil = { s: seasonOf(day()), n: {} }; if (dilOK('king')) n++ } return n / 600 };
+      out.kings = { closed: odds('closed'), cr: odds('cr'), open: odds('open') };
+      return out;
+    });
+    Object.entries(r.max).forEach(([k, n]) => assert.ok(n <= 2, `${k} came up ${n} times in one season`));
+    assert.ok(Object.keys(r.max).length >= 8, 'the pool is wide: ' + Object.keys(r.max).join(','));
+    assert.ok(r.kings.closed < .45 && r.kings.cr < r.kings.open && r.kings.open === 1, JSON.stringify(r.kings));
+    noErrors(errors);
+  } },
+  { name: 'new dilemmas follow the same rules: a legal option that costs, rule-breakers pay cash', fn: async ctx => {
+    const { page, errors } = await open(ctx, { seed: 17 });
+    await newGame(page);
+    const r = await page.evaluate(() => {
+      const out = { missing: [], noLegal: [], mismatch: [], noPay: [], free: [] };
+      const oldV = window.violate; let called = 0; window.violate = () => { called++; return false };
+      const keys = ['pfd', 'whale', 'rescue', 'ownrods', 'trespass', 'seasick'];
+      S.arcs.garza.st = 1; const arcKeys = [1, 2, 3];
+      const list = keys.map(k => [k, k, null]).concat(arcKeys.map(st => ['arc_garza', 'arc_garza#' + st, st]));
+      for (const [k, label, st] of list) {
+        if (!STEP[k]) { out.missing.push(k); continue }
+        if (st) S.arcs.garza.st = st;
+        const b = { id: 999, d: 1, type: k === 'whale' || k === 'seasick' ? 'halibut' : 'reds', n: 3, who: 'test party', from: 'Ohio', quirk: [], status: 'booked' };
+        const v = STEP[k](b, { x: [], notes: [], steps: [] });
+        if (!v.o.some(o => o.legal === true)) out.noLegal.push(label);
+        v.o.forEach((o, i) => {
+          const t = { q: 0, happy: 0, notes: [], x: [], lost: 0, steps: [], step: 0 }; S.trip = t; called = 0; S.cur = 1; S.t = 1440 + 400; S.book = [b]; S.money = 3000;
+          try { o.fn(b, t) } catch (e) { out.mismatch.push(label + ' threw ' + e); return }
+          if ((called > 0) !== (o.legal === false)) out.mismatch.push(label + '#' + i);
+          const sum = (t.x || []).reduce((a, [, v2]) => a + v2, 0);
+          if (o.legal === false && sum <= 0) out.noPay.push(label + '#' + i);
+          if (o.legal === true && sum === 0 && !(t.lost > 0) && t.happy >= 0 && t.q >= 0 && !(S.rep < 50) && !(S.rep > 50) && !(S.skill > 0)) out.free.push(label + '#' + i);
+        });
+      }
+      window.violate = oldV; S.trip = null; closeModals(); return out;
+    });
+    assert.deepStrictEqual(r.missing, []); assert.deepStrictEqual(r.noLegal, []); assert.deepStrictEqual(r.mismatch, []); assert.deepStrictEqual(r.noPay, []);
+    noErrors(errors);
+  } },
+  { name: 'story arcs: a rival guide, a returning family and an advisory-committee seat run across seasons', fn: async ctx => {
+    const { page, errors } = await open(ctx, { seed: 6 });
+    await page.evaluate(() => setPref('years', 10));
+    await newGame(page);
+    const r = await page.evaluate(async () => {
+      const out = { rival: [], board: [] }; closeModals(); S.rep = 80;
+      const ev = id => EV.find(e => e.id === id);
+      const play = (id, season, pick) => { closeModals(); S.cur = season * 14 + 4; S.t = S.cur * 1440 + 300; S.winter = null; S.arcs.day = -1; ev(id).run(); const btn = [...document.querySelectorAll('#mbg button.act')]; const i = pick == null ? 0 : btn.findIndex(b => b.textContent.includes(pick)); MBTN(i < 0 ? 0 : i) };
+      // rival: needs the second season or later, once a season, three scenes and a finale
+      S.cur = 4; out.early = ev('arc_rival').cond(); S.cur = 14 + 4; S.t = S.cur * 1440; out.s1 = ev('arc_rival').cond();
+      play('arc_rival', 1, 'Wave'); out.rival.push(S.arcs.rival.st); out.sameSeason = (() => { S.cur = 14 + 5; return ev('arc_rival').cond() })();
+      S.cur = 28 + 4; out.s2 = ev('arc_rival').cond(); play('arc_rival', 2, 'Take the party'); out.rival.push(S.arcs.rival.st); out.dale = S.book.some(b => /Dale/.test(b.who));
+      play('arc_rival', 3, 'Tow him'); out.rival.push(S.arcs.rival.st); out.ally = S.arcs.rival.ally; out.achRival = ACH.find(a => a.id === 'good_neighbor').test({});
+      // board
+      play('arc_board', 2, 'Take the seat'); out.board.push(S.arcs.board.st); play('arc_board', 3, 'cautious'); out.board.push(S.arcs.board.st); play('arc_board', 4, 'Testify'); out.board.push(S.arcs.board.st);
+      out.achBoard = ACH.find(a => a.id === 'seat_table').test({});
+      // the Garza family
+      const g = S.book.find(b => b.arc === 'garza'); out.seed = !!g; S.arcs.garza.st = 0;
+      const notes = []; Math.random = () => 0; storyAfterTrip(Object.assign({}, g, { status: 'done' }), 85, notes); out.g1 = S.arcs.garza.st; out.reg = S.regs.some(x => x.who === 'Garza family' && x.arc === 'garza');
+      S.book = []; regsRebook(14 * 3, () => 0); const gb = S.book.find(b => b.who === 'Garza family'); out.garzaBack = !!gb && gb.arc === 'garza' && gb.reg;
+      S.cur = 14 * 3 + 2; S.t = S.cur * 1440 + 400; S.loc = 'lower'; S.gear = 3; S.fuel = 30; S.boat = 90; closeModals(); S.trip = null; S.book = [gb]; gb.d = S.cur;
+      tripStart(gb); out.steps = S.trip.steps.slice(); closeModals();
+      for (let st = 1; st <= 3; st++) { S.arcs.garza.st = st; storyAfterTrip(gb, 80, []); }
+      out.gEnd = S.arcs.garza.st; out.achG = ACH.find(a => a.id === 'family_tradition').test({});
+      return out;
+    });
+    assert.ok(!r.early && r.s1 && !r.sameSeason && r.s2, JSON.stringify(r));
+    assert.deepStrictEqual(r.rival, [2, 3, 4]); assert.ok(r.dale && r.ally && r.achRival);
+    assert.deepStrictEqual(r.board, [1, 2, 3]); assert.ok(r.achBoard);
+    assert.ok(r.seed && r.g1 === 1 && r.reg && r.garzaBack, JSON.stringify(r)); assert.ok(r.steps.includes('arc_garza'), 'the family scene is on the trip: ' + r.steps.join(','));
+    assert.strictEqual(r.gEnd, 4); assert.ok(r.achG);
+    noErrors(errors);
+  } },
 ];

@@ -23,6 +23,10 @@ function newState(){
     scout:-1,               // day index you scouted the lower river
     unlogged:0,overdue:0,   // ADF&G logbook trips not yet written up / written up late
     book:[],nextId:1,trip:null,
+    regs:[],                // returning parties (30-stories.js): who they are and how their last trip went
+    arcs:{rival:{st:0,s:-1,mood:0},garza:{st:0},board:{st:0,s:-1},day:-1},   // multi-season story arcs
+    dil:{s:-1,n:{}},        // dilemmas shown this season, by key (no dilemma more than twice a season)
+
     calls:{},diner:{},report:{},office:{},dipnet:{},walks:{},
     run:[],cum:0,limit:3,eo:[],wx:[],wxd:[],noise:[],water:.5,solo:{},pu:0,
     freezer:0,skill:0,
@@ -228,7 +232,7 @@ const EXTRA_TABS=[
     for(let d=s0;d<s0+SEASON;d++){
       const bs=S.book.filter(b=>b.d===d),rules=[isSunMon(d)?'🚫 guide boats off below Skilak':'',halClosed(d)?'⚓ no charter halibut kept':''].filter(Boolean).join(' · ');
       const lines=bs.map(b=>{const T=TRIPS[b.type],st={booked:d<day()?'—':'',done:'✅',noshow:'❌ no-show',cancelled:'🚫 cancelled'}[b.status]||'';
-        return `${T.ic} <b>${fmt(T.start)}</b> ${T.n} · ${b.who}, ${b.n} ${b.asst?'🧑‍🤝‍🧑 (assistant) ':''}${st}${b.out?` · ${b.out.line}`:''}`}).join('<br>');
+        return `${T.ic} <b>${fmt(T.start)}</b> ${T.n} · ${b.who}, ${b.n} ${b.reg?'⭐ ':''}${b.asst?'🧑‍🤝‍🧑 (assistant) ':''}${st}${b.out?` · ${b.out.line}`:''}`}).join('<br>');
       h+=`<div class="todo"><span class="ck">${d<day()?'✔️':d===day()?'👉':'·'}</span><div><b>${dlong(d)}</b><span>${lines||'<i>Open day</i>'}${rules?`<br><span style="color:var(--warn)">${rules}</span>`:''}</span></div></div>`;
     }
     return h+`<div class="rules">Trips: 💲 rates ×${S.up.rate.toFixed(1)} · 🐟 sockeye ${$(Math.round(TRIPS.reds.price*S.up.rate))}/angler (6 AM, lower river) · 🎣 silvers ${$(Math.round(TRIPS.silver.price*S.up.rate))}/angler (1 PM, lower river) · 🌈 trout float ${$(Math.round(TRIPS.trout.price*S.up.rate))}/angler (7 AM, Cooper Landing, 3 max) · ⚓ halibut ${S.up.chp?`${$(Math.round(350*S.up.rate))}/passenger on your own boat`:`day rate ${$(TRIPS.halibut.gig)}`} (6 AM, Homer). New requests come in by phone: <b>📞 Return calls</b> at the shop.</div>`}},

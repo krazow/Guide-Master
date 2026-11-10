@@ -87,6 +87,19 @@ The same play grades about one step lower on Combat Season than on Licensed Guid
 
 Prices are game values in the range of 2026 Alaska costs (used sleds and trailers, cabin construction, Soldotna riverfront lots with ramp and dock permits all vary a lot); they are not quotes. Boats, cabins and the lot count at three quarters of their price in the score, like the other purchases. In 20-career 10-year sims (Licensed Guide, by-the-book) a guide who buys them all scores about **12% more** than one who stops at the old upgrade list (59,000 vs 52,900 per season) and ends with **$161,000** in cash instead of **$285,000**, with $454,000 spent on upgrades instead of $243,000; with and without rate increases they score within 1% of each other.
 
+## Long careers: regulars, more dilemmas, story arcs
+
+`src/js/30-stories.js` (plus the `PARTIES` list in `21-story.js` and the dilemma limits in `22-trips.js`) keeps a 10-year career from repeating itself.
+
+- **54 client parties** (15 Alaska residents, the rest visitors from the Lower 48 and abroad: families, retirees, club and work outings, an adaptive-fishing group, newlyweds, Coast Guard and school-staff outings and more) instead of 15. In a 10-year sim a career met about 68 different parties, up from 30.
+- **Returning regulars.** After a trip with a happy party (happiness 75+) there is a 40% chance they slip you their number and become a regular (at most 10 at a time). Each following July they rebook with odds that follow how their last trip went: about 95% after a five-star day, 85% after a good one, 55% after an OK one, 25% after a flat one and never after a bad one; two missed years or a bad trip drops them. A five-star party brings one more person. At launch they remember: +5 happiness for a five-star last trip, +3 for a good one, −4 if the last one was rough. Regulars show a ⭐ on the Bookings tab and in the off-season bookings message. In 10-year sims about 21 trips per career (roughly one in ten) were regulars.
+- **Dilemma limits.** No dilemma comes up more than **twice a season** (random picks and quirk beats; rule-forced ones like a closed halibut day, a worn-out motor or the spot's own follow-ups are exempt). The **king dilemma** is also thinned by the rules: it is offered 30% of the time it would otherwise be picked when kings are closed, 55% when catch-and-release only and always when open. In 10-year sims king fell from 4.2 to 1.8 appearances a season and "show us how it's done" from 4.5 to 2.0.
+- **Six new dilemmas** from real Kenai guiding, each with the usual shape (a legal option that costs something, a rule-breaking one that pays cash): a child's life jacket (Alaska requires kids 12 and under to wear one on boats under 26 feet underway), a humpback off Homer (stay 100 yards away), a capsized paddler (no rule: stop and help, or call it in), a client's treble-hook spinners under the single-hook emergency order, a posted private bank (state land below the ordinary high-water line, private uplands) and seasick charter clients.
+- **Three multi-season story arcs**, each scene at most once a season from the second season on, one scene a morning:
+  - *A rival guide* (Dale Voss, any rep of 55+): he parks on your seam; share or hold it. Next season he either sends you a party or runs you down on a forum depending on what you did; in the finale his sled quits and you can tow him in (a small permanent booking bonus, the Good Neighbor achievement).
+  - *The Garza family*: your season-1 Garzas become regulars if their first trip goes well (60+). Over four Julys: Mateo's first big fish, Grandpa Ray's first trip, and Mateo asking to work for you (an unlicensed person can't run a guide vessel). Family Tradition achievement.
+  - *The advisory committee* (rep 70+): a seat on the Kenai/Soldotna Fish and Game Advisory Committee, a vote on a proposal to the Board of Fisheries about the late-run escapement goal, and testimony at the Board of Fisheries. The game doesn't change any rule in response; the arc is about your standing. A Seat at the Table achievement.
+
 ## How a trip pays
 
 `tripEnd()` in `src/js/22-trips.js`. The booked fare is the base; the day moves the rest, and the trip summary shows each line.
@@ -168,7 +181,7 @@ npm install && npx playwright install chromium
 npm test
 ```
 
-The game itself lives in `src/js/20-world.js` (places, trips, bookings, tabs), `src/js/21-story.js` (story, events, scoring) and `src/js/22-trips.js` (the trip runner and the regulation dilemmas).
+The game itself lives in `src/js/20-world.js` (places, trips, bookings, tabs), `src/js/21-story.js` (story, events, scoring), `src/js/22-trips.js` (the trip runner and the regulation dilemmas) and `src/js/30-stories.js` (regulars, extra dilemmas, story arcs).
 
 ## Built on the Pocket Week / Island Time PWA template
 
