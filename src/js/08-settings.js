@@ -35,6 +35,7 @@ function titleScreen(){clearTiles();
   ${!isStandalone()&&isIOS()?'<div class="hint">📲 <b>Play it like an app:</b> tap the Share button in Safari, then <b>Add to Home Screen</b>. It works offline, too.</div>':''}
   <div class="small-note">Version ${APP_VERSION}. ${TITLE.note||''}</div></div></div>`);
   exitNotice='';saveNotice='';
+  if(typeof maybeUpdateNotice==='function')maybeUpdateNotice();
 }
 
 // ---------------- save slots ----------------

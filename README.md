@@ -41,6 +41,10 @@ Every trip throws decisions at you, and the first option is always the legal one
 
 To change the form, edit `FEEDBACK.formId` in `27-feedback.js` and rebuild.
 
+## Update notice
+
+`src/js/29-update-notice.js`. The game remembers the last version it showed on this device (`guidemaster.lastVersion`). When the title screen appears with a different version (including after the service worker brings in an update and the app reloads), a **🆕 Updated to version X.Y.Z** pop-up lists what's new (from the `CHANGELOG` object; unknown versions get a generic line) and, if there are saved games, says they were updated. Every slot's save is run through `migrate()` and re-saved first, keeping its timestamp. It is required: Esc and shortcut keys don't dismiss it (`modal(…, true)`), and only **Got it** stores the new version, so a reload before that shows it again. New players with no saves see nothing. When you release, add a `CHANGELOG` entry for the new version.
+
 ## Careers: 2, 5 or 10 years
 
 When you start a new game you pick a **2-, 5- or 10-year career** (`src/js/24-career.js`). Each season you play the two-week July peak, Monday to Sunday, starting on the Monday nearest July 13 (2026: Jul 13; 2027: Jul 12; 2028: Jul 10…). Between seasons comes the **off-season**:

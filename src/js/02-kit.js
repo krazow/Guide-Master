@@ -1,12 +1,13 @@
 // ---------------- bottom-sheet modal ----------------
 // modal(title, bodyHtml, [{l:'Label', s:'subtitle', fn:()=>{}, dis:false}, …])
 // The first enabled button is highlighted. Modals opened while one is showing are queued and shown in order.
+// A 4th argument true makes the pop-up required: Esc doesn't close it, only its own button does (no backdrop-tap close exists).
 // After any button, the game re-renders (unless you're on the title or end screen).
 let MB=[], MQ=[];
 function modal(title,body,btns,noClose){
   if(document.getElementById('mbg')){MQ.push([title,body,btns,noClose]);return}
   MB=btns;
-  const el=document.createElement('div');el.className='modal-bg';el.id='mbg';
+  const el=document.createElement('div');el.className='modal-bg';el.id='mbg';if(noClose)el.dataset.lock='1';
   el.innerHTML=withName(`<div class="modal" role="dialog" aria-modal="true" aria-label="${esc(title.replace(/<[^>]+>/g,''))}"><h2>${title}</h2><div class="mb">${body}</div>${btns.map((b,i)=>`<button class="act ${i===0&&!b.dis?'primary':''}" ${b.dis?'disabled':''} onclick="MBTN(${i})"><span class="tx"><b>${b.l}</b>${b.s?'<span>'+b.s+'</span>':''}</span></button>`).join('')}</div>`);
   document.body.appendChild(el);
   setTimeout(()=>{const b=el.querySelector('button.act:not([disabled])');if(b&&!el.querySelector('input,textarea'))b.focus({preventScroll:true})},30);
