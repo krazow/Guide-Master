@@ -1,0 +1,1578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Guide Master</title>
+<meta name="description" content="Run a charter fishing guide business on Alaska's Kenai Peninsula: clients, combat fishing, bears and the regulations.">
+<meta name="theme-color" content="#0f3b3f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Guide Master">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>@font-face{font-family:"Fraunces";src:url("fonts/fraunces-latin-600-normal.woff2") format("woff2");font-weight:600 800;font-style:normal;font-display:swap}</style>
+<style>
+/* ============================================================
+   THEME: change these to re-skin the whole app.
+   tools/new-game.py rewrites --brand-dark (also the PWA theme color).
+   ============================================================ */
+:root{
+  --brand:#1f5d63; --brand-dark:#0f3b3f; --accent:#2f6d5a; --accent-soft:#6f8f5a; --surface:#f3ecdc; --paper:#fbf8f1;
+  --cta:#e3642e; --cta-dark:#a9441b; --ink:#1b2326; --mute:#6b7478; --line:#ddd4c0; --good:#2f7d4f; --bad:#b8402a; --warn:#c98a12;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{overscroll-behavior:none;margin:0;background:var(--brand-dark);color:var(--ink);font-family:"DM Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:16px}
+#app{max-width:480px;margin:0 auto;min-height:100vh;background:var(--paper);display:flex;flex-direction:column;
+  padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+h1,h2,h3{font-family:"Fraunces",Georgia,serif;margin:0}
+button{font:inherit;cursor:pointer;touch-action:manipulation;-webkit-user-select:none;user-select:none}
+.ghost{background:rgba(255,255,255,.12);color:#fff;border:1.5px solid rgba(255,255,255,.35);border-radius:14px;padding:13px;font-weight:700;font-size:16px}
+.hint{font-size:13px;background:rgba(255,255,255,.1);border-radius:10px;padding:10px 12px;line-height:1.45}
+/* title */
+.title{flex:1;display:flex;flex-direction:column;background:linear-gradient(var(--brand),var(--brand-dark));color:#fff}
+.title .art{height:250px}
+.title .body{padding:18px 22px 28px;display:flex;flex-direction:column;gap:14px}
+.title h1{font-size:40px;line-height:1;letter-spacing:-.5px}
+.title h1 span{display:block;font-size:17px;font-family:"DM Sans";font-weight:500;letter-spacing:.3px;opacity:.85;margin-top:8px}
+.title p{margin:0;line-height:1.5;opacity:.92;font-size:15px}
+.title ul{margin:0;padding-left:18px;line-height:1.55;font-size:14.5px;opacity:.92}
+.big{background:var(--cta);color:#fff;border:0;border-radius:14px;padding:16px;font-weight:700;font-size:18px;box-shadow:0 4px 0 var(--cta-dark)}
+.big:active{transform:translateY(2px);box-shadow:0 2px 0 var(--cta-dark)}
+.small-note{font-size:12px;opacity:.7}
+/* hud */
+.hud{background:var(--brand-dark);color:#fff;padding:10px 14px 10px;position:sticky;top:0;z-index:5}
+.hud-top{display:flex;justify-content:space-between;align-items:baseline}
+.hud-day{font-family:"Fraunces";font-size:20px;font-weight:800}
+.hud-time{white-space:nowrap;font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+.hud-sub{font-size:12px;opacity:.75;margin-top:1px}
+.stats{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px;margin-top:8px}
+.stat b{overflow-wrap:anywhere}
+html.fs-xl .stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:360px){.stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.stat{background:rgba(255,255,255,.08);border-radius:9px;padding:5px 4px 6px;text-align:center}
+.stat b{display:block;font-size:14px;font-variant-numeric:tabular-nums}
+.stat small{font-size:10px;opacity:.75;text-transform:uppercase;letter-spacing:.5px}
+.meter{height:4px;border-radius:2px;background:rgba(255,255,255,.15);margin-top:4px;overflow:hidden}
+.meter i{display:block;height:100%}
+/* scene */
+.scene{position:relative;height:170px;overflow:hidden}
+.scene svg{display:block;width:100%;height:100%}
+.place{position:absolute;left:12px;bottom:10px;background:rgba(251,248,241,.94);border-radius:10px;padding:6px 10px;max-width:80%}
+.place h2{font-size:18px}
+.place div{font-size:12px;color:var(--mute)}
+.alertbar{background:var(--bad);color:#fff;font-size:13px;padding:8px 14px;font-weight:500}
+.alertbar.fog{background:#6c7a80}
+/* content */
+.content{flex:1;padding:12px 14px 90px}
+.narr{background:var(--surface);border-left:4px solid var(--accent);border-radius:8px;padding:10px 12px;font-size:14.5px;line-height:1.45;margin-bottom:12px}
+.narr p{margin:0 0 6px}.narr p:last-child{margin:0}
+.sect{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--mute);margin:14px 2px 6px;font-weight:700}
+.act{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:11px 12px;margin-bottom:8px;color:var(--ink)}
+.act:active{background:var(--surface)}
+.act .ic{font-size:22px;width:30px;text-align:center;flex:none}
+.act .tx{flex:1;min-width:0}
+.act .tx b{display:block;font-weight:700;font-size:15px}
+.act .tx span{display:block;font-size:12.5px;color:var(--mute);margin-top:1px}
+.act.primary{border-color:var(--accent);background:#eef4ee}
+.act.danger{border-color:#e2b3a7}
+.act[disabled]{opacity:.45}
+.dest{background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px}
+.dest .dn{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.dest .dn b{font-size:15px}.dest .dn span{font-size:11.5px;color:var(--mute);text-align:right}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{border:1.5px solid var(--accent);color:var(--accent);background:#fff;border-radius:999px;padding:6px 11px;font-size:13px;font-weight:700}
+.chip:active{background:#e3eee5}
+.chip[disabled]{border-color:var(--line);color:#aaa}
+/* tabs */
+.tabs{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(4,1fr);padding-bottom:env(safe-area-inset-bottom);z-index:6}
+.tabs button{background:none;border:0;padding:9px 0 10px;font-size:11px;color:var(--mute);font-weight:700;display:flex;flex-direction:column;align-items:center;gap:2px}
+.tabs button .ti{font-size:20px}
+.tabs button.on{color:var(--brand)}
+.tabs .dot{display:inline-block;width:7px;height:7px;background:var(--bad);border-radius:50%;margin-left:3px;vertical-align:top}
+/* to-do, priorities, log */
+.rules{font-size:13px;line-height:1.5;color:var(--ink);background:var(--surface);border-radius:10px;padding:10px 12px;margin-top:12px}
+.rules p{margin:0 0 6px}
+.todo{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line)}
+.todo .ck{font-size:20px;width:26px;flex:none;text-align:center}
+.todo b{display:block;font-size:15px}.todo span{font-size:12.5px;color:var(--mute)}
+.todo .pin{margin-left:auto;flex:none;border:1px solid var(--line);background:none;border-radius:8px;padding:4px 7px;font-size:13px;color:var(--mute);cursor:pointer}
+.prio{display:flex;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.prio .rk{flex:none;width:24px;height:24px;border-radius:50%;background:var(--ink,#2a3d45);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.prio.done .rk{background:var(--line);color:var(--mute)}
+.prio .pt{flex:1;min-width:0;font-size:15px;overflow-wrap:anywhere;cursor:pointer}
+.prio.done .pt{text-decoration:line-through;color:var(--mute)}
+.prio .pb{display:flex;gap:4px;flex:none}
+.prio .pb button,.prio-add button{border:1px solid var(--line);background:none;border-radius:8px;min-width:32px;height:32px;font-size:14px;cursor:pointer;color:inherit}
+.prio .pb button:disabled{opacity:.3;cursor:default}
+.prio-add{display:flex;gap:6px;margin:8px 0 2px}
+.prio-add input{flex:1;min-width:0;font:inherit;font-size:15px;padding:7px 10px;border:1px solid var(--line);border-radius:10px;background:transparent;color:inherit}
+.prio-add button{padding:0 12px;font-weight:700}
+.prio-empty{font-size:13px;color:var(--mute);padding:6px 2px}
+.log p{margin:0;padding:7px 0;border-bottom:1px solid var(--line);font-size:13.5px;line-height:1.4}
+.log p em{font-style:normal;color:var(--mute);font-variant-numeric:tabular-nums;margin-right:6px;font-size:12px}
+/* event tiles (toasts) */
+#tiles{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top) + 8px);width:calc(100% - 20px);max-width:460px;z-index:60;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.tile{pointer-events:auto;display:flex;align-items:center;gap:11px;background:#fffdf8;border-radius:14px;padding:10px 10px 10px 12px;box-shadow:0 8px 24px rgba(8,25,30,.28),0 1px 0 rgba(0,0,0,.05);border-left:6px solid #6b7478;animation:tileIn .32s cubic-bezier(.2,.9,.3,1.2)}
+.tile.good{border-left-color:var(--good)}.tile.bad{border-left-color:var(--bad)}.tile.info{border-left-color:var(--brand)}.tile.warn{border-left-color:var(--warn)}
+.tile .ti{font-size:26px;width:32px;text-align:center;flex:none}
+.tile .tt{flex:1;min-width:0}
+.tile .tt small{display:block;font-size:10.5px;letter-spacing:.7px;text-transform:uppercase;font-weight:700;color:var(--mute)}
+.tile .tt b{display:block;font-size:15px;line-height:1.25}
+.tile .tt span{display:block;font-size:12px;color:var(--mute);margin-top:1px}
+.tile .ok{flex:none;width:38px;height:38px;border-radius:50%;border:1.5px solid var(--line);background:#fff;font-size:17px;color:var(--accent);font-weight:700}
+.tile.out{animation:tileOut .25s ease-in forwards}
+@keyframes tileIn{from{transform:translateY(-16px) scale(.96);opacity:0}}
+@keyframes tileOut{to{transform:translateY(-12px);opacity:0;height:0;margin:0;padding-top:0;padding-bottom:0}}
+.gear{background:rgba(255,255,255,.12);border:0;border-radius:10px;width:38px;height:38px;font-size:19px;color:#fff;flex:none}
+.title{position:relative}.tgear{position:absolute;top:calc(env(safe-area-inset-top) + 12px);right:12px;background:rgba(18,49,59,.55);border:0;border-radius:12px;width:44px;height:44px;font-size:21px;z-index:2}
+.nm-in{width:100%;font:inherit;font-size:18px;padding:12px;border-radius:10px;border:1.5px solid var(--line);background:#fff}
+.nm-in:focus{outline:2px solid var(--accent);border-color:var(--accent)}
+/* grouped actions, collapsible destinations, tips */
+details.go{margin-top:14px}
+details.go>summary{list-style:none;cursor:pointer;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--mute);font-weight:700;padding:8px 2px;display:flex;justify-content:space-between}
+details.go>summary::-webkit-details-marker{display:none}
+details.go>summary::after{content:'▸ show';letter-spacing:.3px;text-transform:none}
+details.go[open]>summary::after{content:'▾ hide'}
+.dest.compact{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 10px}
+.dest.compact .dn{flex:1 1 150px;display:block}
+.dest.compact .dn span{display:block;text-align:left}
+.dest.compact .chips{margin-top:0}
+.tip{background:#fff5d6;border:1.5px solid #e6c97a;border-radius:12px;padding:10px 12px;margin-bottom:12px;font-size:14px;line-height:1.45}
+.tip .tb{display:flex;gap:8px;margin-top:8px}
+.tip button{border:1.5px solid #c9a24a;background:#fff;border-radius:9px;padding:6px 10px;font-weight:700;font-size:13px;color:#6b4e0e}
+/* accessibility */
+html.fs-l{zoom:1.12}html.fs-xl{zoom:1.25}
+html.hc{--mute:#2b3336;--line:#7d7462;--paper:#ffffff;--surface:#efe5cc}
+html.hc .hud-sub,html.hc .stat small{opacity:1}html.hc .act,html.hc .dest{border-width:2px}
+html.rm *,html.rm *::before,html.rm *::after{animation:none!important;transition:none!important}
+.today{background:#eef3f4;border-radius:10px;padding:9px 11px;margin-bottom:10px;font-size:13.5px;line-height:1.55}
+.today b{display:block;font-family:Fraunces;font-size:15px;margin-bottom:2px}
+/* modal */
+.modal-bg{position:fixed;inset:0;background:rgba(10,25,30,.6);display:flex;align-items:flex-end;justify-content:center;z-index:20}
+.modal{background:var(--paper);width:100%;max-width:480px;border-radius:18px 18px 0 0;padding:20px 18px calc(18px + env(safe-area-inset-bottom));max-height:88vh;overflow:auto;animation:up .22s ease-out}
+@keyframes up{from{transform:translateY(40px);opacity:0}}
+.modal h2{font-size:22px;margin-bottom:8px}
+.modal .mb{font-size:15px;line-height:1.5;margin-bottom:14px}
+.modal .mb p{margin:0 0 8px}
+.modal .act{margin-bottom:8px}
+.tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;background:var(--surface);color:var(--ink);margin:0 4px 4px 0}
+.tag.bad{background:#f6ddd5;color:var(--bad)}.tag.good{background:#dcefe2;color:var(--good)}
+/* full-screen transition (travel, sleep…) */
+.cross{position:fixed;inset:0;z-index:30;background:var(--brand-dark);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff}
+.cross svg{width:100%;max-width:480px;height:260px}
+.cross .cap{font-family:"Fraunces";font-size:22px;margin-top:6px;text-align:center;padding:0 20px}
+.cross .cap2{font-size:13px;opacity:.75;margin-top:6px}
+.bob{animation:bob 1.2s ease-in-out infinite alternate}
+@keyframes bob{to{transform:translateY(3px)}}
+/* end */
+.end{padding:22px 18px 40px}
+.end h1{font-size:30px;margin:6px 0 4px}
+.grade{font-family:"Fraunces";font-size:58px;font-weight:800;color:var(--cta);line-height:1}
+.kv{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:15px}
+.kv b{font-variant-numeric:tabular-nums}
+/* polish */
+.sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}
+:focus-visible{outline:3px solid var(--cta);outline-offset:2px}
+[tabindex="-1"]:focus{outline:none}
+html.hc :focus-visible{outline:3px solid #000;outline-offset:0;box-shadow:0 0 0 7px #ffd400}
+html.hc .hud :focus-visible,html.hc .title :focus-visible,html.hc nav.tabs :focus-visible{outline-color:#ffd400;box-shadow:0 0 0 7px #000}
+.cross:focus-visible{outline:4px solid var(--cta);outline-offset:-8px}
+.prio .pt[role="button"]{cursor:pointer;border-radius:6px}
+/* ⌨️ keyboard shortcut hints (desktop only) */
+.kn{display:none}
+@media (hover:hover) and (pointer:fine){
+  button.act{position:relative}
+  .kn{display:block;position:absolute;top:6px;right:8px;font:600 10px/1 ui-monospace,Menlo,Consolas,monospace;font-style:normal;color:var(--mute);border:1px solid currentColor;border-radius:4px;padding:2px 4px;opacity:.55;pointer-events:none}
+  button.act:hover .kn{opacity:.9}
+}
+.keys{display:grid;gap:6px;margin:4px 0 10px}
+.keys-row{display:flex;gap:12px;align-items:baseline}
+.keys-row kbd{min-width:84px;font:600 12px ui-monospace,Menlo,Consolas,monospace;background:var(--card,#f4f1ea);border:1px solid var(--line,#ccc);border-bottom-width:2px;border-radius:5px;padding:2px 6px;text-align:center}
+
+/* sample-game extras */
+.status{margin-bottom:6px}
+.end .kv span{color:var(--mute)}
+.slot-empty{color:var(--mute)}
+.alertbar.info{background:var(--brand)}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<noscript><p style="color:#fff;padding:20px;font-family:sans-serif">This game needs JavaScript.</p></noscript>
+<script>
+// ============================================================
+//  GAME CONFIG: start here when you make a new game.
+//  tools/new-game.py rewrites id / title / codePrefix / colors for you
+//  (in this file, src/shell.html, the web manifest and sw.js).
+//
+//  Files, in build order (tools/build.py concatenates src/js/*.js by name):
+//    00-game.js      this config
+//    01-core.js      state, preferences, sound, player name, time + stat helpers
+//    02-kit.js       bottom-sheet modals, event tiles, full-screen transitions
+//    03-events.js    random-event engine (hooks, chances, cooldowns, chains)
+//    04-loop.js      new game, days, nights, travel, the passing of time
+//    05-ui.js        HUD, scene, tabs, action list, to-do + priorities, log, tips
+//    06-save.js      autosave, 3 slots, migrations, transfer codes, install, service worker
+//    07-endings.js   end screen, score, best score, achievements
+//    08-settings.js  title screen, name/difficulty pickers, settings, accessibility, slots
+//    09-keys.js      keyboard shortcuts for desktop
+//    20-world.js     ← YOUR GAME: stats, starting state, places, actions, scenery
+//    21-story.js     ← YOUR GAME: events, tips, to-do, achievements, scoring, migrations
+//    99-boot.js      starts the app
+//  Engine files (00–09) shouldn't need much editing; your game lives in 20+.
+// ============================================================
+const GAME={
+  id:'guidemaster',           // storage-key prefix and service-worker cache prefix (lowercase, no spaces)
+  title:'Guide Master',
+  tagline:'Two weeks guiding the Kenai',
+  codePrefix:'GUIDEMASTER',   // transfer codes start with this, e.g. POCKETWEEK:eyJ…
+  version:'1.0.0',           // bump on every release: shown in Settings, stamped into saves and sw.js
+  schema:1,                  // bump when the shape of S changes, and add a MIGRATIONS entry (21-story.js)
+  days:14,                   // length of a run, in days (Mon Jul 13 – Sun Jul 26, 2026)
+  wake:270,                  // default alarm, in minutes after midnight (270 = 4:30 AM: guides start early)
+  startLoc:'shop',
+  travelAnim:20,             // trips this many minutes or longer play the full-screen transition
+  defaultName:'Skipper',      // used until the player picks a name
+  slots:3,                   // save slots
+};
+const APP_VERSION=GAME.version, SAVE_SCHEMA=GAME.schema;
+const KEY=k=>GAME.id+'.'+k;  // every localStorage key goes through this
+const DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+// Difficulties: anything here is readable in your content as DF().something.
+const DIFFS={
+  easy:  {n:'Rookie Season',ic:'🎣',d:'A fatter bank account and fewer troopers on the river. For learning the water.',money:3000,bad:0.6,score:1},
+  normal:{n:'Licensed Guide',ic:'🛶',d:'The Kenai as it is: busy, beautiful and well patrolled.',money:1500,bad:1,score:1},
+  hard:  {n:'Combat Season',ic:'🐻',d:'Thin margins, picky clients, more enforcement and more bears. Score ×1.25.',money:600,bad:1.5,score:1.25},
+};
+const DF=()=>DIFFS[(typeof S!=='undefined'&&S&&S.diff)||'normal']||DIFFS.normal;
+// ---------------- state ----------------
+// S is the whole saved game. Anything you put in S is saved, loaded and transferred automatically.
+// tab is the open tab; uiNarr is the narration shown at the top of the Here tab (cleared on each tap).
+let S, tab='act', uiNarr=[];
+
+// ---------------- preferences (device-wide, not per save) ----------------
+const PREF_KEY=KEY('prefs');
+const PREF_DEF={fs:'n',hc:false,rm:(()=>{try{return matchMedia('(prefers-reduced-motion: reduce)').matches}catch(e){return false}})(),sound:true,tips:true,diff:'normal',goOpen:null};
+function prefs(){try{return Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem(PREF_KEY)||'{}'))}catch(e){return Object.assign({},PREF_DEF)}}
+function setPref(k,v){const p=prefs();p[k]=v;try{localStorage.setItem(PREF_KEY,JSON.stringify(p))}catch(e){}applyPrefs()}
+function applyPrefs(){const p=prefs(),c=document.documentElement.classList;c.toggle('fs-l',p.fs==='l');c.toggle('fs-xl',p.fs==='xl');c.toggle('hc',!!p.hc);c.toggle('rm',!!p.rm)}
+
+// ---------------- sound (synthesized with Web Audio: no files to ship) ----------------
+let AC=null;
+function audio(){if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)()}catch(e){return null}}if(AC.state==='suspended')AC.resume().catch(()=>{});return AC}
+function tone(f,dur,type,vol,when,slide){const a=audio();if(!a)return;const t=a.currentTime+(when||0);const o=a.createOscillator(),g=a.createGain();o.type=type||'sine';o.frequency.setValueAtTime(f,t);if(slide)o.frequency.exponentialRampToValueAtTime(slide,t+dur);
+  g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(vol||0.1,t+0.03);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);o.connect(g).connect(a.destination);o.start(t);o.stop(t+dur+0.05)}
+// Add your own named sounds here.
+const SFX={
+  good:()=>{tone(784,0.18,'sine',0.09);tone(1175,0.28,'sine',0.07,0.12)},
+  bad: ()=>{tone(233,0.22,'triangle',0.12);tone(175,0.35,'triangle',0.1,0.15)},
+  info:()=>tone(660,0.16,'sine',0.06),
+  win: ()=>[523,659,784,1046].forEach((f,i)=>tone(f,0.28,'sine',0.09,i*0.1)),
+  tap: ()=>tone(520,0.05,'sine',0.03),
+  whoosh:()=>tone(300,0.6,'triangle',0.05,0,900),
+  horn:()=>{tone(110,1.5,'triangle',0.16);tone(138.6,1.5,'triangle',0.12);tone(220,1.5,'sine',0.04)},
+};
+function sfx(n){if(!prefs().sound||!SFX[n])return;try{SFX[n]()}catch(e){}}
+function buzz(p){try{navigator.vibrate&&navigator.vibrate(p)}catch(e){}}
+
+// ---------------- player name ----------------
+// Any text can contain {{name}}. It's swapped in only when shown, so renaming updates every line already in the log.
+const NAME_KEY=KEY('name');
+function esc(t){return String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function profileName(){try{return localStorage.getItem(NAME_KEY)||''}catch(e){return ''}}
+function currentName(){return (typeof S!=='undefined'&&S&&S.name)||profileName()||GAME.defaultName}
+function withName(t){return typeof t==='string'?t.replace(/\{\{name\}\}/g,esc(currentName())):t}
+function cleanName(raw){const n=String(raw||'').replace(/\s+/g,' ').trim();
+  if(!n) return {err:'Please enter a name.'};
+  if(n.length>20) return {err:'Keep it to 20 characters or fewer.'};
+  if(!/^[\p{L}\p{N}][\p{L}\p{N} '’.\-]*$/u.test(n)) return {err:'Letters, numbers, spaces, apostrophes, periods and hyphens only.'};
+  return {name:n}}
+function setPlayerName(n){
+  const old=currentName();
+  try{localStorage.setItem(NAME_KEY,n)}catch(e){}
+  if(S&&!S.over){S.name=n;if(old!==n)say('✏️ From now on, everyone calls you {{name}}.');saveGame()}
+  else{ // on the title screen: rename the saved game too, so Continue uses the new name
+    const ls=store();if(ls)try{for(const k of slotKeys()){const v=ls.getItem(k);if(!v)continue;const d=JSON.parse(v);if(d&&d.S){d.S.name=n;ls.setItem(k,JSON.stringify(d))}}}catch(e){}
+    if(S&&S.over) S.name=n}
+}
+
+// ---------------- time ----------------
+// S.t is minutes since the start of the run (day 0, midnight). S.cur is the current day index.
+const day=()=>S.cur;
+const tod=()=>S.t-S.cur*1440;                       // minutes since midnight today
+const dayName=d=>DAYS[((d%7)+7)%7];
+function fmt(m){m=((m%1440)+1440)%1440;let h=Math.floor(m/60),mi=m%60;const ap=h<12?'AM':'PM';h=h%12||12;return h+':'+String(mi).padStart(2,'0')+' '+ap}
+function fmtAbs(a){const d=Math.floor(a/1440);return (d!==day()?dayName(d).slice(0,3)+' ':'')+fmt(a)}
+
+// ---------------- helpers for content ----------------
+function say(s){uiNarr.push(s);S.log.push({t:S.t,s})}              // narrate + log
+function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+function adj(k,v,lo=0,hi=100){S[k]=clamp(Math.round(S[k]+v),lo,hi)} // nudge a 0–100 stat
+function money(v){S.money=Math.round((S.money+v)*100)/100}
+const $=x=>(x<0?'−':'')+'$'+(Math.round(Math.abs(x)*100)/100).toFixed(x%1?2:0);
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+function isOpen(id,t=S.t){const h=L[id].hours;if(!h)return true;const r=h(Math.floor(t/1440));if(!r)return false;const m=t%1440;return m>=r[0]&&m<r[1]}
+function hoursTxt(id){const h=L[id].hours;if(!h)return '';const r=h(day());return r?`Open ${fmt(r[0])}–${fmt(r[1])}`:'Closed today'}
+// ---------------- bottom-sheet modal ----------------
+// modal(title, bodyHtml, [{l:'Label', s:'subtitle', fn:()=>{}, dis:false}, …])
+// The first enabled button is highlighted. Modals opened while one is showing are queued and shown in order.
+// After any button, the game re-renders (unless you're on the title or end screen).
+let MB=[], MQ=[];
+function modal(title,body,btns,noClose){
+  if(document.getElementById('mbg')){MQ.push([title,body,btns,noClose]);return}
+  MB=btns;
+  const el=document.createElement('div');el.className='modal-bg';el.id='mbg';
+  el.innerHTML=withName(`<div class="modal" role="dialog" aria-modal="true" aria-label="${esc(title.replace(/<[^>]+>/g,''))}"><h2>${title}</h2><div class="mb">${body}</div>${btns.map((b,i)=>`<button class="act ${i===0&&!b.dis?'primary':''}" ${b.dis?'disabled':''} onclick="MBTN(${i})"><span class="tx"><b>${b.l}</b>${b.s?'<span>'+b.s+'</span>':''}</span></button>`).join('')}</div>`);
+  document.body.appendChild(el);
+  setTimeout(()=>{const b=el.querySelector('button.act:not([disabled])');if(b&&!el.querySelector('input,textarea'))b.focus({preventScroll:true})},30);
+}
+window.MBTN=i=>{if(MB[i]&&MB[i].dis)return;const el=document.getElementById('mbg');el&&el.remove();const f=MB[i]&&MB[i].fn;f&&f();
+  if(!document.getElementById('mbg')&&MQ.length&&S&&!S.over){const q=MQ.shift();modal(...q)}
+  if(S&&!S.over&&!document.querySelector('.title,.end'))render()};
+function closeModals(){MQ=[];document.querySelectorAll('.modal-bg').forEach(e=>e.remove())}
+
+// ---------------- full-screen transition ----------------
+// transition('🚌','Off to work','20 minutes', done)  plays a short animation, then calls done().
+// Tap to skip. Reduce-motion shortens it.
+function transition(ic,cap,cap2,done,snd){
+  const el=document.createElement('div');el.className='cross';el.tabIndex=0;sfx(snd||'whoosh');
+  el.innerHTML=`<svg viewBox="0 0 480 260" aria-hidden="true"><rect width="480" height="260" fill="none"/><path d="M0 200 h480 M0 222 h480" stroke="#fff" stroke-opacity=".1"/>
+    <text class="bob" x="240" y="150" text-anchor="middle" font-size="84">${ic}</text></svg>
+    <div class="cap">${withName(cap)}</div><div class="cap2">${withName(cap2||'')}</div><div class="cap2" style="margin-top:18px">tap to skip</div>`;
+  document.body.appendChild(el);el.focus();
+  let fin=false;const end=()=>{if(fin)return;fin=true;el.remove();done&&done()};
+  el.onclick=end;el.onkeydown=e=>{if(e.key==='Escape'||e.key==='Enter'||e.key===' '){e.preventDefault();end()}};
+  setTimeout(end,prefs().rm?700:2200);
+}
+
+// ---------------- event tiles (toasts at the top) ----------------
+// showTile('🎉','Found $20','On the way to the park','good')   kind: good | bad | warn | info
+let tileQ=[];const TILE_MAX=3;
+function tileBox(){let el=document.getElementById('tiles');if(!el){el=document.createElement('div');el.id='tiles';el.setAttribute('role','status');el.setAttribute('aria-live','polite');document.body.appendChild(el)}return el}
+function showTile(ic,title,sub,kind,when){
+  if(!S||S.over) return;
+  when=when||`${dayName(day()).slice(0,3)} ${fmt(S.t)}`;
+  const box=tileBox();
+  if(box.children.length>=TILE_MAX){tileQ.push([ic,title,sub,kind,when]);return}
+  const t=document.createElement('div');t.className='tile '+(kind||'info');
+  title=withName(title);sub=withName(sub);sfx(kind==='good'?'good':kind==='bad'?'bad':'info');
+  t.innerHTML=`<span class="ti">${ic}</span><span class="tt"><small>${{good:'Good news',bad:'Event',warn:'Heads up'}[kind]||'Update'} · ${when}</small><b>${title}</b>${sub?`<span>${sub}</span>`:''}</span><button class="ok" aria-label="Got it">✓</button>`;
+  let gone=false;const close=()=>{if(gone)return;gone=true;t.classList.add('out');setTimeout(()=>{t.remove();if(tileQ.length){const q=tileQ.shift();showTile(...q)}},260)};
+  t.querySelector('.ok').onclick=close;t.onclick=e=>{if(e.target===t)close()};
+  setTimeout(close,6500);box.appendChild(t);
+}
+function clearTiles(){tileQ=[];document.querySelectorAll('#tiles .tile').forEach(t=>t.remove())}
+window.showTile=showTile;
+// ---------------- random events ----------------
+// defEvent({
+//   id:'found_cash',             unique id (saved in S.ev, so don't rename casually: see MIGRATIONS)
+//   hook:'arrive',               when it can fire: 'wake' | 'arrive' | 'travel' | 'night' | any name you fireHook() yourself
+//                                (or an array of hooks)
+//   tile:['💵','Found $20','good'],  icon, title, kind for the toast
+//   chance:0.1,                  0–1, or a function (ctx)=>number
+//   bad:true,                    scale chance by the difficulty's "bad" multiplier
+//   cond:ctx=>S.loc==='park',    must be true to fire
+//   cooldown:2,                  days before it can fire again
+//   max:1,                       times per game
+//   priority:0,                  higher runs first
+//   run:ctx=>{ money(20); say('…'); return {stop:true} }  return {stop:true} to stop later events on this hook
+// })
+// chain('id') forces an event to fire the next time its hook runs (one event can set up another).
+const EV=[];
+function defEvent(e){EV.push(Object.assign({chance:0,priority:0,cooldown:0,max:99},e))}
+let EV_RUNNING=null;
+function chain(id,cause){if(!S.ev.force.includes(id))S.ev.force.push(id);S.ev.cause=S.ev.cause||{};S.ev.cause[id]=cause||EV_RUNNING||null}
+window.forceEvent=id=>chain(id);
+const HOOK_SCALE={wake:0.85}; // chance that a hook call lets any event through at all (15% of mornings stay quiet)
+const HOOK_SUB={wake:'This morning',night:'Overnight'};
+function fireHook(hook,ctx={}){
+  ctx.hook=hook;let res=null;const popItems=[];
+  const scale=HOOK_SCALE[hook]??1,open=scale>=1||Math.random()<scale;
+  const list=EV.filter(e=>e.hook===hook||(Array.isArray(e.hook)&&e.hook.includes(hook))).sort((a,b)=>b.priority-a.priority);
+  for(const e of list){
+    const forced=S.ev.force.includes(e.id);
+    if(e.cond){let ok=false;try{ok=e.cond(ctx)}catch(err){ok=false}if(!ok)continue}
+    if(!open&&!forced) continue;
+    if(!forced){
+      if((S.ev.count[e.id]||0)>=e.max) continue;
+      if(S.ev.last[e.id]!=null&&day()-S.ev.last[e.id]<e.cooldown) continue;
+      const p=(typeof e.chance==='function'?e.chance(ctx):e.chance)*(e.bad?DF().bad:1);
+      if(!(Math.random()<p)) continue;
+    } else S.ev.force=S.ev.force.filter(x=>x!==e.id);
+    S.ev.last[e.id]=day();S.ev.count[e.id]=(S.ev.count[e.id]||0)+1;S.ev.history.push({id:e.id,t:S.t});
+    const nBefore=uiNarr.length,mBefore=MQ.length+(document.getElementById('mbg')?1:0);
+    EV_RUNNING=e.id;let r;try{r=e.run(ctx)||{}}finally{EV_RUNNING=null}
+    // events that didn't open their own modal get collected into one OK pop-up per hook call
+    if(MQ.length+(document.getElementById('mbg')?1:0)===mBefore) popItems.push({e,lines:uiNarr.slice(nBefore)});
+    const [ic,title,kind]=e.tile||['📍',e.id.replace(/_/g,' '),'info'];
+    const cause=S.ev.cause&&S.ev.cause[e.id],ce=cause&&EV.find(x=>x.id===cause);
+    showTile(ic,title,ce?`Because of: ${ce.tile?ce.tile[1]:cause}`:(ctx.sub||HOOK_SUB[hook]||''),kind,hook==='night'?`${dayName(day()).slice(0,3)} night`:null);
+    if(S.ev.cause)delete S.ev.cause[e.id];
+    if(ctx.notes) ctx.notes.push(...uiNarr.slice(nBefore));
+    if(r.stop){res=r;break}
+    res=res||r;
+  }
+  eventPopup(hook,popItems);
+  return res;
+}
+// ---- OK pop-up for events (on by default; Settings → Event pop-ups) ----
+const POPUP_KEY=KEY('popups');
+function popupsOn(){try{return localStorage.getItem(POPUP_KEY)!=='off'}catch(e){return true}}
+function eventPopup(hook,items){
+  if(!items.length||hook==='night'||!popupsOn()||!S||S.over) return; // night events go in the "Good night" summary
+  const meta=e=>e.tile||['📍',e.id.replace(/_/g,' ')];
+  const body=items.map(it=>{const m=meta(it.e);const txt=it.lines.map(l=>`<p style="margin:4px 0 0">${l}</p>`).join('');
+    return items.length>1?`<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)"><span style="font-size:24px">${m[0]}</span><div><b>${m[1]}</b>${txt}</div></div>`:txt}).join('');
+  const one=items.length===1?meta(items[0].e):null;
+  modal(one?`${one[0]} ${one[1]}`:'📍 Meanwhile…',body||'<p></p>',[{l:'OK',fn:()=>{}}]);
+}
+// ---------------- the game loop ----------------
+// Time only moves when the player does something. An action calls pass(minutes); travel calls go(dest);
+// sleeping calls endDay(where). After every tap the engine checks for a loss and for staying up past midnight.
+//
+// Your content (20-world.js, 21-story.js) provides these functions:
+//   newState()            the game-specific part of S (stats, inventory…)
+//   onNewGame()           intro narration / welcome modal
+//   onMorning(d)          start of each day
+//   onNight(where,notes,d)  end of each day: eat, pay, recover… push lines to notes for the night summary
+//   onTime(min)           (optional) runs every time minutes pass: hunger, timers, deliveries
+//   onArrive(dest,from)   (optional) after travel
+//   travelMins(from,to)   minutes between two places
+//   checkLoss()           return a LOSSES key to end the game, or null
+
+// The engine's half of S. Content fields from newState() are merged on top.
+function baseState(){
+  return Object.assign({name:profileName()||GAME.defaultName,diff:'normal',t:GAME.wake,cur:0,loc:GAME.startLoc,alarm:GAME.wake,
+    log:[],prios:[],tips:{seen:[]},over:false,daily:null,achGame:[],stats:{},
+    ev:{last:{},count:{},history:[],force:[],flags:{}}},newState());
+}
+function newGame(diff){
+  clearTiles();closeModals();
+  S=baseState();S.diff=DIFFS[diff]?diff:'normal';
+  if(typeof DF().money==='number'&&'money' in S) S.money=DF().money;
+  uiNarr=[];tab='act';
+  onNewGame();
+  startDay();
+}
+// Let time pass. Content actions call this: pass(60) is one hour.
+function pass(min){min=Math.max(0,Math.round(min||0));S.t+=min;if(typeof onTime==='function')onTime(min)}
+// Runs after every player action (the ACT dispatcher calls it).
+function afterAction(){
+  if(!S||S.over) return;
+  const loss=checkLoss();if(loss) return gameOver(loss);
+  if(S.t>=(S.cur+1)*1440-1){S.t=(S.cur+1)*1440-1;endDay('collapsed')} // stayed up all night
+}
+function startDay(){
+  const d=day();
+  S.daily={money:S.money,ev:S.ev.history.length,day:d};
+  onMorning(d);
+  fireHook('wake',{});
+}
+function dayCard(d){
+  const D=S.daily;if(!D||D.day!==d) return '';
+  const dm=Math.round(S.money-D.money);
+  const evs=S.ev.history.slice(D.ev).map(h=>{const e=EV.find(x=>x.id===h.id);return e&&e.tile?e.tile[0]:'📍'});
+  const parts=['money' in S?`💵 ${dm>=0?'+':'−'}$${Math.abs(dm)}`:'',...(typeof daySummary==='function'?daySummary(d):[])].filter(Boolean);
+  return `<div class="today"><b>${dayName(d)} in review</b>${parts.join(' · ')}${evs.length?`<br>Events: ${evs.join(' ')}`:''}</div>`;
+}
+// End the day. where: 'home' (went to bed), 'collapsed' (stayed up past midnight), or any string your content uses.
+function endDay(where){
+  if(!S||S.over) return;
+  const d=day(),notes=[];
+  closeModals();
+  onNight(where,notes,d);
+  fireHook('night',{where,notes});
+  const card=dayCard(d);
+  achCheck({night:true,where});
+  if(S.over) return;
+  const loss=checkLoss();if(loss) return gameOver(loss);
+  if(d+1>=GAME.days) return finish();
+  S.cur=d+1;S.t=S.cur*1440+S.alarm;uiNarr=[];
+  startDay();
+  modal(`🌙 ${dayName(d)} night`,card+notes.map(n=>`<p>${n}</p>`).join(''),[{l:`☀️ Wake up: ${dayName(S.cur)}, ${fmt(S.t)}`,fn:()=>{}}]);
+  sfx('info');
+  render();
+}
+// Travel. Long trips get the full-screen transition.
+function go(dest){
+  if(!L[dest]||dest===S.loc) return;
+  const from=S.loc,m=travelMins(from,dest);
+  const arrive=()=>{
+    pass(m);S.loc=dest;uiNarr=[];
+    say(`${L[dest].ic} You get to ${L[dest].name}${m?` (${m} min)`:''}.`);
+    fireHook('travel',{from,to:dest,sub:`On the way to ${L[dest].name}`});
+    fireHook('arrive',{at:dest,from,sub:`At ${L[dest].name}`});
+    if(typeof onArrive==='function') onArrive(dest,from);
+    afterAction();if(S&&!S.over)render();
+  };
+  if(m>=GAME.travelAnim) transition(L[dest].ic,`Heading to ${L[dest].name}`,`${m} minutes`,arrive); else arrive();
+}
+// ---------------- UI ----------------
+// Everything is plain template strings rendered into #app. render() rebuilds the screen from S after every tap,
+// and autosaves. Content supplies: STATS, SCENE, L (places), actionsHere(), ACT_CATS, statusTags(), alertBar(),
+// todoItems(), RULES_HTML, TIPS, EXTRA_TABS. See 20-world.js and 21-story.js.
+const app=document.getElementById('app');
+function meter(v,good){v=clamp(Math.round(v),0,100);const c=good?(v>60?'#8fd19e':v>30?'#f4d27a':'#ff8a70'):(v<40?'#8fd19e':v<70?'#f4d27a':'#ff8a70');return `<div class="meter"><i style="width:${v}%;background:${c}"></i></div>`}
+
+// ---- scene: sky by time of day + the place's own art (L[loc].art) ----
+function sceneSVG(){
+  const m=tod(),[rise,set]=SCENE.sun,night=m<rise||m>set,dusk=(m>=set-90&&m<=set+30)||(m>=rise-30&&m<=rise+60);
+  const sky=night?SCENE.skyNight:dusk?SCENE.skyDusk:SCENE.skyDay;
+  const f=clamp((m-rise)/(set-rise),0,1);
+  const sun=night?`<circle cx="400" cy="34" r="12" fill="#f3efe0"/>`:`<circle cx="${80+f*320}" cy="${50-Math.sin(f*Math.PI)*25}" r="16" fill="#fbeaa8" opacity=".9"/>`;
+  const art=L[S.loc].art?L[S.loc].art({night,dusk,m}):'';
+  return `<svg viewBox="0 0 480 170" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="sk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${sky[0]}"/><stop offset="1" stop-color="${sky[1]}"/></linearGradient></defs>
+  <rect width="480" height="170" fill="url(#sk)"/>${sun}<rect y="140" width="480" height="30" fill="${night?SCENE.groundNight:SCENE.ground}"/>${art}</svg>`;
+}
+function hud(){
+  const d=day(),n=STATS.length;
+  return `<div class="hud"><div class="hud-top"><div><div class="hud-day">${dayName(d)}</div><div class="hud-sub">{{name}} · ${DF().ic} ${DF().n} · Day ${d+1} of ${GAME.days}</div></div><div style="display:flex;align-items:center;gap:10px"><div class="hud-time">${fmt(S.t)}</div><button class="gear" onclick="openSettings()" aria-label="Settings">⚙️</button></div></div>
+  <div class="stats" style="grid-template-columns:repeat(${Math.min(n,6)},minmax(0,1fr))">${STATS.map(s=>`<div class="stat"${s.title?` title="${esc(s.title)}"`:''}><small>${s.l}</small><b${s.warn&&s.warn()?' style="color:#ff8a70"':''}>${s.v()}</b>${s.m?meter(s.m(),s.good!==false):''}</div>`).join('')}</div></div>`;
+}
+function allTabs(){return [['act','🧭','Here'],...(EXTRA_TABS||[]).map(t=>[t.k,t.ic,t.l]),['todo','📋','To-do'],['log','📜','Log']]}
+function render(){
+  if(!S||S.over) return;
+  const loc=L[S.loc];
+  let h=hud();
+  const al=typeof alertBar==='function'?alertBar():null;
+  if(al) h+=`<div class="alertbar ${al.kind||''}">${al.t}</div>`;
+  h+=`<div class="scene">${sceneSVG()}<div class="place"><h2>${loc.ic} ${loc.name}</h2><div>${loc.desc||''}${loc.hours?' · '+hoursTxt(S.loc):''}</div></div></div>`;
+  const xt=(EXTRA_TABS||[]).find(t=>t.k===tab);
+  h+=`<div class="content">${tab==='act'?actView():tab==='todo'?todoView():tab==='log'?logView():xt?xt.view():actView()}</div>`;
+  const pending=todoItems().filter(x=>x.urgent&&!x.ok).length,tabs=allTabs();
+  h+=`<nav class="tabs" style="grid-template-columns:repeat(${tabs.length},1fr)">${tabs.map(([k,i,l])=>`<button class="${tab===k?'on':''}" onclick="setTab('${k}')"${tab===k?' aria-current="page"':''}><span class="ti">${i}</span>${l}${k==='todo'&&pending?'<span class="dot"></span>':''}</button>`).join('')}</nav>`;
+  app.innerHTML=withName(h);
+  achCheck();
+  saveGame();
+}
+window.setTab=k=>{tab=k;render();window.scrollTo(0,0)};
+
+// ---- Here tab: narration, status, tip, actions, places ----
+let ACTS=[];
+function actView(){
+  ACTS=[];
+  let h=tipView();
+  if(uiNarr.length) h+=`<div class="narr">${uiNarr.slice(-4).map(s=>'<p>'+s+'</p>').join('')}</div>`;
+  const tags=typeof statusTags==='function'?statusTags():[];
+  if(tags.length) h+=`<div class="status">${tags.join('')}</div>`;
+  const acts=actionsHere().filter(Boolean);
+  const btn=a=>{const i=ACTS.push(a.fn)-1;return `<button class="act ${a.cls||''}" ${a.dis?'disabled':''} onclick="ACT(${i})"><span class="ic">${a.ic}</span><span class="tx"><b>${a.l}</b>${a.s?'<span>'+a.s+'</span>':''}</span></button>`};
+  if(acts.length>4){ // group into sections; the section holding a primary action goes first
+    const groups={};acts.forEach(a=>{const c=ACT_CATS[a.cat]?a.cat:'here';(groups[c]=groups[c]||[]).push(a)});
+    Object.keys(ACT_CATS).filter(c=>groups[c]).sort((x,y)=>(groups[y].some(a=>a.cls==='primary')?1:0)-(groups[x].some(a=>a.cls==='primary')?1:0))
+      .forEach(c=>{h+=`<div class="sect">${ACT_CATS[c]}</div>`+groups[c].map(btn).join('')});
+  } else if(acts.length) h+='<div class="sect">Do something</div>'+acts.map(btn).join('');
+  const dests=Object.keys(L).filter(k=>k!==S.loc&&!L[k].hidden);
+  const p=prefs().goOpen,open=p===null||p===undefined?acts.length<=5:p;
+  h+=`<details class="go" ${open?'open':''} ontoggle="setPref('goOpen',this.open)"><summary>🧭 Go somewhere (${dests.length})</summary>`;
+  dests.forEach(k=>{const m=travelMins(S.loc,k),i=ACTS.push(()=>go(k))-1;
+    h+=`<div class="dest compact"><div class="dn"><b>${L[k].ic} ${L[k].name}</b><span>${L[k].hours?hoursTxt(k):L[k].desc||''}</span></div><div class="chips"><button class="chip" onclick="ACT(${i})">Go · ${m} min</button></div></div>`});
+  return h+'</details>';
+}
+window.ACT=i=>{uiNarr=[];sfx('tap');const f=ACTS[i];f&&f();afterAction();if(S&&!S.over&&!document.querySelector('.title,.end'))render()};
+
+// ---- tips: one at a time, each shown once per game (TIPS in 21-story.js) ----
+function tipView(){
+  if(!prefs().tips||!S) return '';
+  const t=TIPS.find(x=>!S.tips.seen.includes(x.id)&&(()=>{try{return x.when()}catch(e){return false}})());
+  if(!t) return '';
+  return `<div class="tip">💡 ${t.t}<div class="tb"><button onclick="tipSeen('${t.id}')">Got it</button><button onclick="setPref('tips',false);render()">Turn off tips</button></div></div>`;
+}
+window.tipSeen=id=>{if(!S.tips.seen.includes(id))S.tips.seen.push(id);render()};
+
+// ---- To-do tab: your goals + the player's own priority list ----
+const PRIO_MAX=15,PRIO_LEN=80;let PRIO_ED='';
+function prioView(){
+  const P=S.prios,open=P.filter(q=>!q.done).length;let rank=0;
+  const rows=P.map((q,i)=>{const r=q.done?'✓':++rank;return `<div class="prio ${q.done?'done':''}"><span class="rk">${r}</span><span class="pt" role="button" tabindex="0" onclick="prioToggle(${i})" title="Tap to mark done">${esc(q.t)}</span><span class="pb">
+    <button aria-label="Move up" ${i===0?'disabled':''} onclick="prioMove(${i},-1)">▲</button><button aria-label="Move down" ${i===P.length-1?'disabled':''} onclick="prioMove(${i},1)">▼</button><button aria-label="Edit" onclick="prioEdit(${i})">✏️</button><button aria-label="Delete" onclick="prioDel(${i})">🗑️</button></span></div>`}).join('');
+  return `<div class="sect">My priorities${P.length?` · ${open} open`:''}</div>`+
+    (rows||'<div class="prio-empty">Your own list, in your order. Add anything, or tap 📌 on a goal above. Tap an item to check it off.</div>')+
+    (P.length<PRIO_MAX?`<div class="prio-add"><input id="prioIn" maxlength="${PRIO_LEN}" placeholder="Add a priority…" autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();prioAdd(this.value,true)}"><button onclick="prioAdd(document.getElementById('prioIn').value,true)">Add</button></div>`:`<div class="prio-empty">That’s ${PRIO_MAX}: the most the list holds.</div>`)+
+    (P.some(q=>q.done)?`<div class="prio-add"><button onclick="prioClear()">Clear checked-off items</button></div>`:'');
+}
+function prioSave(focus){render();if(focus)setTimeout(()=>{const i=document.getElementById('prioIn');i&&i.focus()},0)}
+window.prioAdd=(t,focus)=>{t=String(t||'').replace(/\s+/g,' ').trim().slice(0,PRIO_LEN);if(!t||S.prios.length>=PRIO_MAX)return;S.prios.push({t,done:false});sfx('info');prioSave(focus)};
+window.prioToggle=i=>{const q=S.prios[i];if(!q)return;q.done=!q.done;S.prios.splice(i,1);
+  if(q.done)S.prios.push(q);else{const k=S.prios.findIndex(x=>x.done);S.prios.splice(k<0?S.prios.length:k,0,q)}prioSave()};
+window.prioMove=(i,dir)=>{const P=S.prios,j=i+dir;if(j<0||j>=P.length)return;[P[i],P[j]]=[P[j],P[i]];prioSave()};
+window.prioDel=i=>{S.prios.splice(i,1);prioSave()};
+window.prioClear=()=>{S.prios=S.prios.filter(q=>!q.done);prioSave()};
+window.prioEdit=i=>{const q=S.prios[i];if(!q)return;PRIO_ED=q.t;
+  modal('✏️ Edit priority',`<input class="nm-in" id="prioEd" maxlength="${PRIO_LEN}" autocomplete="off" value="${esc(q.t)}" oninput="PRIO_ED=this.value" onkeydown="if(event.key==='Enter'){event.preventDefault();MBTN(0)}">`,[
+    {l:'Save',fn:()=>{const v=String(PRIO_ED).replace(/\s+/g,' ').trim().slice(0,PRIO_LEN);if(v)q.t=v}},{l:'Cancel',fn:()=>{}}]);
+  setTimeout(()=>{const e=document.getElementById('prioEd');if(e){e.focus();e.select()}},60)};
+function todoView(){
+  const P=S.prios;
+  return `<div class="sect">This ${GAME.days===7?'week':'run'}</div>`+todoItems().map(x=>`<div class="todo"><span class="ck">${x.ok?'✅':x.fail?'❌':x.urgent?'⚠️':'⬜'}</span><div><b>${x.l}</b><span>${x.s||''}</span></div>${!x.ok&&!x.fail&&!P.some(q=>q.t===x.l&&!q.done)&&P.length<PRIO_MAX?`<button class="pin" title="Add to my priorities" aria-label="Add to my priorities" onclick="prioAdd(${esc(JSON.stringify(x.l))})">📌</button>`:''}</div>`).join('')+
+    prioView()+(typeof RULES_HTML==='string'&&RULES_HTML?`<div class="sect">How it works</div><div class="rules">${RULES_HTML}</div>`:'');
+}
+function logView(){return `<div class="log">${S.log.slice().reverse().map(e=>`<p><em>${dayName(Math.floor(e.t/1440)).slice(0,3)} ${fmt(e.t)}</em>${e.s}</p>`).join('')||'<p>Nothing yet.</p>'}</div>`}
+// ---------------- saving ----------------
+// render() autosaves after every tap, and the page saves when it's hidden (app switch, tab close).
+// Saves live in localStorage, one key per slot. A finished game deletes its save.
+const BEST_KEY=KEY('best'),SLOT_KEY=KEY('slot');
+let saveNotice='';
+function store(){try{return window.localStorage}catch(e){return null}}
+function curSlot(){let n=1;try{n=parseInt(localStorage.getItem(SLOT_KEY)||'1',10)}catch(e){}return n>=1&&n<=GAME.slots?n:1}
+function setSlot(n){try{localStorage.setItem(SLOT_KEY,String(n))}catch(e){}}
+function slotKeys(n){n=n||curSlot();return [n===1?KEY('save'):KEY('save.slot'+n)]}
+function packSave(){return {schema:SAVE_SCHEMA,app:APP_VERSION,S,uiNarr,tab,at:Date.now()}}
+function saveGame(){const ls=store();if(!ls||!S)return;const keys=slotKeys();
+  try{if(S.over)keys.forEach(k=>ls.removeItem(k));else{const v=JSON.stringify(packSave());keys.forEach(k=>{try{ls.setItem(k,v)}catch(e){}})}}catch(e){}}
+
+// ---- loading and upgrading ----
+// fillDefaults adds anything an older save is missing (new fields in baseState()/newState()) without touching what it has.
+function fillDefaults(obj,def){
+  for(const k in def){
+    if(obj[k]===undefined||(obj[k]===null&&def[k]!==null&&typeof def[k]==='object'&&!Array.isArray(def[k]))) obj[k]=JSON.parse(JSON.stringify(def[k]));
+    else if(def[k]&&typeof def[k]==='object'&&!Array.isArray(def[k])&&obj[k]&&typeof obj[k]==='object') fillDefaults(obj[k],def[k]);
+  }
+  return obj;
+}
+const num=(v,d)=>typeof v==='number'&&isFinite(v)?v:d;
+// numeric dotted version compare: >0 when a is newer than b ('1.10.0' > '1.9.2')
+const verCmp=(a,b)=>{const p=v=>String(v||'').split('.').map(n=>parseInt(n,10)||0),x=p(a),y=p(b);for(let i=0;i<Math.max(x.length,y.length);i++){const k=(x[i]||0)-(y[i]||0);if(k)return k}return 0};
+let newerWarned='';
+function migrate(d){
+  if(!d||typeof d!=='object'||!d.S||typeof d.S!=='object') throw new Error('not a '+GAME.title+' save');
+  const from=num(d.schema,1),x=d.S,notes=[];
+  // your schema upgrades (21-story.js), oldest first
+  for(const m of (typeof MIGRATIONS!=='undefined'?MIGRATIONS:[]).slice().sort((a,b)=>a.to-b.to)) if(from<m.to) m.run(x,notes,d);
+  fillDefaults(x,baseState());
+  // engine fields must be sane
+  x.t=num(x.t,GAME.wake);x.cur=clamp(num(x.cur,Math.floor(x.t/1440)),0,GAME.days-1);
+  if(!L[x.loc]){notes.push('a place from another version doesn’t exist here, so you’re back at the start');x.loc=GAME.startLoc}
+  if(!DIFFS[x.diff]) x.diff='normal';
+  if(!Array.isArray(x.log)) x.log=[];
+  if(!Array.isArray(x.prios)) x.prios=[];
+  if(!Array.isArray(x.ev.force)) x.ev.force=[];
+  if(!Array.isArray(x.ev.history)) x.ev.history=[];
+  const newer=typeof d.app==='string'&&verCmp(d.app,APP_VERSION)>0?d.app:null;
+  if(from>SAVE_SCHEMA&&!newer) notes.push(`this save is from a newer version (${d.app||'unknown'}). Anything this version doesn’t know about is kept but ignored`);
+  else if(from<SAVE_SCHEMA) notes.push(`upgraded from an older version${d.app?' ('+d.app+')':''}`);
+  const tabs=allTabs().map(t=>t[0]);
+  return {schema:Math.max(from,SAVE_SCHEMA),app:d.app,S:x,uiNarr:Array.isArray(d.uiNarr)?d.uiNarr:[],tab:tabs.includes(d.tab)?d.tab:'act',at:d.at,notes,newer};
+}
+function rawSave(n){const ls=store();if(!ls)return null;let best=null;
+  for(const k of slotKeys(n)){const v=ls.getItem(k);if(!v)continue;let at=0;try{at=JSON.parse(v).at||0}catch(e){}if(!best||at>best.at)best={k,v,at}}
+  return best}
+function loadSave(n){
+  const r=rawSave(n);if(!r)return null;
+  try{const d=migrate(JSON.parse(r.v));return d.S.over?null:d}
+  catch(e){ // set an unreadable save aside instead of crashing on it forever
+    try{const ls=store(),sn=n||curSlot();ls.setItem(KEY('save.broken'+(sn>1?'.slot'+sn:'')),r.v);slotKeys(sn).forEach(k=>ls.removeItem(k))}catch(_){}
+    saveNotice='Your saved game couldn’t be read, so it was set aside. Start a new game.';return null}
+}
+function adopt(d){
+  S=d.S;uiNarr=d.uiNarr;tab=d.tab;
+  render();
+  if(d.newer&&newerWarned!==d.newer){newerWarned=d.newer;modal('⚠️ Save from a newer version',`<p>This save is from ${esc(GAME.title)} ${esc(d.newer)}, newer than this copy (${APP_VERSION}). Update to keep everything: whatever this copy doesn’t know about is ignored, and may be lost if you keep playing here.</p>`,[{l:'Continue anyway',fn:()=>{}}])}
+  if(d.notes&&d.notes.length) modal('Save loaded',`<p>Welcome back. Note: ${d.notes.join('; ')}.</p>`,[{l:'Continue',fn:()=>{}}]);
+}
+window.resumeGame=()=>{const d=loadSave();if(!d)return titleScreen();
+  try{adopt(d)}catch(e){saveNotice='That save couldn’t be loaded in this version.';titleScreen()}};
+
+// ---- transfer codes: move a game between devices, browsers or the installed app ----
+function b64enc(str){return btoa(unescape(encodeURIComponent(str)))}
+function b64dec(b){return decodeURIComponent(escape(atob(b)))}
+function exportCode(){const d=rawSave();if(!d&&!S)return '';const obj=d?JSON.parse(d.v):packSave();return GAME.codePrefix+':'+b64enc(JSON.stringify(obj))}
+window.openTransfer=()=>{
+  const code=exportCode();
+  modal('🔁 Transfer a saved game',`<p>Copy this code to move your game to another device or browser.</p>
+  ${code?`<textarea id="exp" readonly aria-label="Your transfer code" style="width:100%;height:70px;font-size:11px;border-radius:8px;border:1.5px solid var(--line);padding:6px">${code}</textarea>
+  <button class="act" style="margin-top:6px" onclick="copyCode()"><span class="tx"><b id="cpl">📋 Copy code</b></span></button>`:'<p><i>No game in progress to export.</i></p>'}
+  <p style="margin-top:12px">Or paste a code here to load it. It replaces the save in this slot.</p>
+  <textarea id="imp" aria-label="Paste a transfer code" oninput="window.IMPV=this.value" placeholder="${GAME.codePrefix}:…" style="width:100%;height:70px;font-size:12px;border-radius:8px;border:1.5px solid var(--line);padding:6px"></textarea>
+  <div id="imperr" style="color:var(--bad);font-size:13px"></div>`,
+  [{l:'Load pasted code',fn:importCode},{l:'Close',fn:()=>{if(!S||S.over)titleScreen()}}]);
+};
+window.copyCode=async()=>{const t=document.getElementById('exp');t.select();try{await navigator.clipboard.writeText(t.value);document.getElementById('cpl').textContent='✅ Copied'}catch(e){document.getElementById('cpl').textContent='Selected: press Ctrl+C / Copy'}};
+function importCode(){
+  const raw=(window.IMPV||document.getElementById('imp')?.value||'').trim();window.IMPV='';
+  try{
+    const body=raw.replace(new RegExp('^'+GAME.codePrefix+':'),'').replace(/\s+/g,'');
+    const d=migrate(JSON.parse(b64dec(body)));
+    if(d.S.over) throw new Error('already over');
+    setTimeout(()=>adopt(d),0);
+  }catch(e){setTimeout(()=>{openTransfer();const el=document.getElementById('imperr');if(el)el.textContent=/already over/.test(e.message)?'That game is already finished.':`That code didn’t work. Make sure you copied all of it, starting with ${GAME.codePrefix}:`;const i=document.getElementById('imp');if(i)i.value=raw},0)}
+}
+
+// ---- install as an app (PWA) + offline service worker ----
+let deferredInstall=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstall=e;const b=document.getElementById('installBtn');if(b)b.style.display='block'});
+window.addEventListener('appinstalled',()=>{deferredInstall=null;const b=document.getElementById('installBtn');if(b)b.style.display='none'});
+const isStandalone=()=>{try{return matchMedia('(display-mode: standalone)').matches||navigator.standalone===true}catch(e){return false}};
+const isIOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+window.doInstall=async()=>{if(!deferredInstall)return;deferredInstall.prompt();try{await deferredInstall.userChoice}catch(e){}deferredInstall=null;const b=document.getElementById('installBtn');if(b)b.style.display='none'};
+// Skipped on localhost so you never debug a stale cached copy; add ?sw=1 to the URL to test offline mode locally.
+if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)&&(!/^(localhost|127\.0\.0\.1)$/.test(location.hostname)||/[?&]sw=1\b/.test(location.search))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})})}
+document.addEventListener('visibilitychange',()=>{if(document.hidden)saveGame()});
+// ---------------- endings ----------------
+// finish()        the run reached its last night: graded with scoreOf()/gradeOf()
+// gameOver(id)    a loss from LOSSES (checkLoss() in your content returns the id)
+// Content supplies: scoreOf(), gradeOf(score), endRows(), LOSSES, FINISH_TEXT. See 21-story.js.
+function finish(){clearTiles();S.over=true;sfx('win');endScreen(withName(FINISH_TEXT.h1),FINISH_TEXT.sub())}
+function gameOver(why){S.over=true;clearTiles();closeModals();sfx('bad');
+  const T=LOSSES[why]||['Game over','It’s over.'];endScreen(T[0],T[1],true)}
+function endScreen(h1,sub,lost){
+  achCheck({end:true,lost});const achNew=(S.achGame||[]).map(id=>ACH.find(a=>a.id===id)).filter(Boolean);
+  const sc=Math.round(scoreOf()*DF().score),g=lost?['F',h1,sub]:gradeOf(sc);
+  saveGame(); // S.over is set, so this deletes the save
+  let best=null,newBest=false;const ls=store();
+  try{const b=ls?Number(ls.getItem(BEST_KEY)||'NaN'):NaN;best=isNaN(b)?null:b;if(!lost&&(best==null||sc>best)){ls&&ls.setItem(BEST_KEY,String(sc));newBest=true}}catch(e){}
+  app.innerHTML=withName(`<div class="end"><div style="display:flex;justify-content:space-between;align-items:center"><div class="small-note" style="color:var(--mute)">${lost?'GAME OVER':'COMPLETE'} · {{name}}</div><button class="gear" style="background:var(--surface);color:var(--ink)" onclick="openSettings()" aria-label="Settings">⚙️</button></div><h1>${h1}</h1><p>${sub}</p>
+  <div style="display:flex;gap:16px;align-items:center;margin:16px 0"><div class="grade">${g[0]}</div><div><b style="font-family:Fraunces;font-size:20px">${g[1]}</b><div style="color:var(--mute);font-size:14px">${g[2]}</div></div></div>
+  <div class="kv"><span>Difficulty</span><b>${DF().ic} ${DF().n}</b></div>
+  <div class="kv"><span>Score</span><b>${sc}${newBest?' 🏆 new best':''}</b></div>${best!=null?`<div class="kv"><span>Previous best</span><b>${best}</b></div>`:''}
+  <div class="kv"><span>🏆 Achievements this game</span><b style="text-align:right">${achNew.length?achNew.map(a=>a.ic+' '+a.n).join(', '):'none new'}</b></div>
+  ${endRows().map(([k,v])=>`<div class="kv"><span>${k}</span><b>${v}</b></div>`).join('')}
+  <button class="big" style="width:100%;margin-top:22px" onclick="startNewGame()">Play again</button><button class="act" style="margin-top:10px;justify-content:center" onclick="titleScreen()"><span class="tx" style="text-align:center"><b>Back to title</b></span></button></div>`);
+  window.scrollTo(0,0);
+}
+
+// ---------------- achievements ----------------
+// Kept per device under their own key, separate from saves: they survive new games and deleted slots.
+// ACH (21-story.js): [{id, ic, n:'Name', d:'How to get it', test:ctx=>bool}]   ctx: {} | {night,where} | {end,lost}
+const ACH_KEY=KEY('achievements');
+function achGot(){try{const o=JSON.parse(localStorage.getItem(ACH_KEY)||'{}');return o&&typeof o==='object'&&!Array.isArray(o)?o:{}}catch(e){return {}}}
+function achCount(){const g=achGot();return ACH.filter(a=>g[a.id]).length}
+function achUnlock(id){const a=ACH.find(x=>x.id===id);if(!a)return;const g=achGot();if(g[id])return;
+  g[id]=Date.now();try{localStorage.setItem(ACH_KEY,JSON.stringify(g))}catch(e){}
+  if(S){S.achGame=S.achGame||[];S.achGame.push(id)}
+  setTimeout(()=>showTile(a.ic,'Achievement: '+a.n,a.d,'good','🏆'),0)}
+function achCheck(c){if(!S)return;c=c||{};const g=achGot();
+  for(const a of ACH){if(g[a.id])continue;let ok=false;try{ok=a.test(c)}catch(e){}if(ok)achUnlock(a.id)}}
+function achModal(back){const g=achGot();
+  modal(`🏆 Achievements (${achCount()}/${ACH.length})`,ACH.map(a=>`<div class="todo"><span class="ck">${g[a.id]?a.ic:'🔒'}</span><div><b>${a.n}</b><span>${a.d}</span></div></div>`).join(''),
+    (back?[{l:'Back to settings',fn:back}]:[]).concat([{l:'Close',fn:()=>{}}]))}
+// ---------------- starting a game ----------------
+let NMV='';
+window.nameInput=v=>{NMV=v};
+function nameModal(opts={}){
+  NMV=opts.value!=null?opts.value:(profileName()||'');
+  modal(opts.first?'👋 Welcome':'👤 Change your name',`${opts.first?'<p>What should everyone call you?</p>':'<p>Every line in your log will use the new name.</p>'}
+    <input class="nm-in" id="nmIn" maxlength="20" autocomplete="off" aria-label="Your name" placeholder="${esc(GAME.defaultName)}" value="${esc(NMV)}" oninput="nameInput(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();MBTN(0)}">
+    ${opts.err?`<div style="color:var(--bad);font-size:13px;margin-top:6px">${esc(opts.err)}</div>`:'<div style="color:var(--mute);font-size:12px;margin-top:6px">Up to 20 characters. You can change it any time in ⚙️ Settings.</div>'}`,
+  [{l:opts.first?'That’s me':'Save name',fn:()=>{const r=cleanName(NMV);if(r.err)return setTimeout(()=>nameModal(Object.assign({},opts,{value:NMV,err:r.err})),0);
+      setPlayerName(r.name);if(opts.then)opts.then();else if(document.querySelector('.title'))titleScreen();else if(S&&!S.over)render()}},
+   ...(opts.first?[]:[{l:'Cancel',fn:()=>{if(opts.back)opts.back()}}])]);
+  setTimeout(()=>{const i=document.getElementById('nmIn');if(i){i.focus();i.select()}},60);
+}
+function diffModal(then){
+  const cur=prefs().diff;
+  modal('🎚️ Pick a difficulty','',Object.keys(DIFFS).map(k=>({l:`${DIFFS[k].ic} ${DIFFS[k].n}${k===cur?' (last time)':''}`,s:DIFFS[k].d,fn:()=>{setPref('diff',k);then(k)}})));
+}
+// Name (first time only) → difficulty → play. Add more pickers to this chain if your game needs them.
+window.startNewGame=()=>{const go=k=>{newGame(k);render()};const pickDiff=()=>diffModal(go);if(!profileName())nameModal({first:true,then:pickDiff});else pickDiff()};
+
+// ---------------- title screen ----------------
+function titleScreen(){clearTiles();
+  const d=loadSave(),multi=[2,3].some(k=>k<=GAME.slots&&k!==curSlot()&&rawSave(k));
+  app.innerHTML=withName(`<div class="title"><button class="tgear" onclick="openSettings()" aria-label="Settings">⚙️</button><div class="art">${TITLE.art()}</div>
+  <div class="body"><h1>${esc(GAME.title)}<span>${esc(GAME.tagline)}</span></h1>
+  <p>${TITLE.intro}</p>
+  ${TITLE.bullets.length?`<ul>${TITLE.bullets.map(b=>`<li>${b}</li>`).join('')}</ul>`:''}
+  ${d?`<button class="big" onclick="resumeGame()">Continue as ${esc(d.S.name||currentName())}: ${dayName(d.S.cur)} ${fmt(d.S.t)}${multi||curSlot()>1?` (slot ${curSlot()})`:''}</button><button class="ghost" onclick="startNewGame()">Start a new game</button>`:`<button class="big" onclick="startNewGame()">${TITLE.start}</button>`}
+  ${GAME.slots>1?'<button class="ghost" onclick="slotsModal()">💾 Save slots</button>':''}
+  <button class="ghost" onclick="openTransfer()">🔁 Transfer a saved game</button>
+  ${saveNotice?`<div class="hint">⚠️ ${saveNotice}</div>`:''}${exitNotice?`<div class="hint">${exitNotice}</div>`:''}
+  <button id="installBtn" class="ghost" style="display:${deferredInstall&&!isStandalone()?'block':'none'}" onclick="doInstall()">📲 Install as an app</button>
+  ${!isStandalone()&&isIOS()?'<div class="hint">📲 <b>Play it like an app:</b> tap the Share button in Safari, then <b>Add to Home Screen</b>. It works offline, too.</div>':''}
+  <div class="small-note">Version ${APP_VERSION}. ${TITLE.note||''}</div></div></div>`);
+  exitNotice='';saveNotice='';
+}
+
+// ---------------- save slots ----------------
+function slotLabel(n){const d=loadSave(n);return d?`${esc(d.S.name||currentName())} · ${DIFFS[d.S.diff].ic} ${dayName(d.S.cur)} ${fmt(d.S.t)}`:'<span class="slot-empty">Empty</span>'}
+window.slotsModal=()=>{
+  const inGame=S&&!S.over&&!document.querySelector('.title,.end');
+  modal('💾 Save slots',`<p>${inGame?'Your game is saved first. ':''}Each slot holds one game.</p>`,[
+    ...Array.from({length:GAME.slots},(_,i)=>i+1).map(n=>({l:`Slot ${n}${n===curSlot()?' (current)':''}`,s:slotLabel(n),fn:()=>slotModal(n)})),
+    {l:'Close',fn:()=>{}}]);
+};
+function slotModal(n){
+  const has=!!loadSave(n);
+  const use=()=>{if(S&&!S.over)saveGame();setSlot(n);S=null;closeModals()};
+  modal(`💾 Slot ${n}`,`<p>${slotLabel(n)}</p>`,[
+    ...(has?[{l:'▶️ Continue this game',fn:()=>{use();resumeGame()}}]:[]),
+    {l:has?'🆕 Start over in this slot':'🆕 Start a new game here',s:has?'Replaces the game in this slot.':'',fn:()=>{use();titleScreen();startNewGame()}},
+    ...(has?[{l:'🗑️ Delete this save',fn:()=>modal('🗑️ Delete this save?',`<p>Slot ${n}: ${slotLabel(n)}. This can’t be undone.</p>`,[
+      {l:'Delete it',fn:()=>{const ls=store();slotKeys(n).forEach(k=>ls&&ls.removeItem(k));if(n===curSlot()&&S&&!S.over){S=null;titleScreen()}else if(document.querySelector('.title'))titleScreen()}},
+      {l:'Keep it',fn:()=>slotsModal()}])}]:[]),
+    {l:'Back',fn:()=>slotsModal()}]);
+}
+
+// ---------------- settings ----------------
+let exitNotice='',inGameExited=false;
+function accessModal(){
+  const p=prefs();
+  modal('♿ Accessibility','<p>These settings apply on this device.</p>',[
+    {l:`🔠 Text size: ${{n:'Normal',l:'Large',xl:'Extra large'}[p.fs]}`,s:'Tap to cycle Normal → Large → Extra large.',fn:()=>{setPref('fs',{n:'l',l:'xl',xl:'n'}[p.fs]);accessModal()}},
+    {l:`🌓 High contrast: ${p.hc?'On':'Off'}`,s:'Darker text and borders.',fn:()=>{setPref('hc',!p.hc);accessModal()}},
+    {l:`🎞️ Reduce motion: ${p.rm?'On':'Off'}`,s:'Turns off animations and shortens transitions.',fn:()=>{setPref('rm',!p.rm);accessModal()}},
+    {l:'Back to settings',fn:()=>openSettings()}]);
+}
+window.openSettings=()=>{
+  const inGame=S&&!S.over&&!document.querySelector('.title,.end');
+  modal('⚙️ Settings',`<p>Playing as <b>{{name}}</b>${inGame?` · ${DF().ic} ${DF().n}`:''}.</p><p style="font-size:12px;color:var(--mute)">${esc(GAME.title)} version ${APP_VERSION}</p>`,[
+    {l:'👤 Change name',s:'Updates your name everywhere in the game.',fn:()=>nameModal({back:openSettings})},
+    {l:`🔊 Sound: ${prefs().sound?'On':'Off'}`,s:'Alerts and chimes.',fn:()=>{setPref('sound',!prefs().sound);if(prefs().sound)sfx('good');openSettings()}},
+    {l:'♿ Accessibility',s:`Text size: ${{n:'Normal',l:'Large',xl:'Extra large'}[prefs().fs]} · High contrast: ${prefs().hc?'On':'Off'} · Reduce motion: ${prefs().rm?'On':'Off'}`,fn:()=>accessModal()},
+    {l:`💡 Tips: ${prefs().tips?'On':'Off'}`,s:'One short tip at a time while you learn.',fn:()=>{setPref('tips',!prefs().tips);openSettings()}},
+    {l:`🔔 Event pop-ups: ${popupsOn()?'On':'Off'}`,s:popupsOn()?'An OK window for each random event. Tap to turn off (the tiles still show).':'Only the small tiles show. Tap to turn pop-ups back on.',fn:()=>{try{localStorage.setItem(POPUP_KEY,popupsOn()?'off':'on')}catch(e){}openSettings()}},
+    {l:'⌨️ Keyboard shortcuts',s:'On a computer: numbers press buttons, ? for the list.',fn:()=>keysModal(openSettings)},
+    {l:`🏆 Achievements (${achCount()}/${ACH.length})`,s:'Earned on this device, across all your games.',fn:()=>achModal(openSettings)},
+    ...(GAME.slots>1?[{l:`💾 Save slots (current: ${curSlot()})`,s:'Continue, start or delete games in each slot.',fn:()=>slotsModal()}]:[]),
+    {l:'🚪 Exit game',s:inGame?'Saves first.':'Close '+GAME.title+'.',fn:()=>confirmExit(inGame)},
+    {l:'Close',fn:()=>{}}]);
+};
+function tryClose(){try{window.close()}catch(e){}
+  setTimeout(()=>{if(!document.hidden){exitNotice=inGameExited?'✅ Your game is saved. Your browser won’t let a page close itself, so just close this tab. Continue picks up right where you left off.':'Your browser won’t let a page close itself. You can close this tab.';titleScreen()}},250)}
+function confirmExit(inGame){
+  if(!inGame){inGameExited=!!loadSave();return tryClose()}
+  modal(`🚪 Exit ${esc(GAME.title)}?`,`<p>Your game is saved automatically. Next time, tap <b>Continue</b> on the title screen to pick up right here (${dayName(day())} ${fmt(S.t)}).</p>`,[
+    {l:'Save and exit',fn:()=>{saveGame();MQ=[];clearTiles();inGameExited=true;S=null;titleScreen();tryClose()}},
+    {l:'Keep playing',fn:()=>{}}]);
+}
+// ---- ⌨️ keyboard shortcuts (desktop) ----
+// 1–9 press the numbered buttons (in a pop-up, its buttons; otherwise the action buttons on screen),
+// a tab's first letter switches to it (H Here, T To-do, L Log…), Esc closes, ? lists all of this.
+// Number hints only show on a computer with a mouse (CSS: hover + fine pointer), and never while typing.
+const KEY_CLOSE=/^(never mind|close|cancel|not now|ok|got it|back|keep playing|keep it)\b/i;
+const keyTabs=()=>{const m={};allTabs().forEach(([k,,l])=>{const c=l[0].toLowerCase();if(!m[c])m[c]=k});return m};
+const keyVisible=el=>!!el&&!el.disabled&&el.offsetParent!==null&&el.getClientRects().length>0;
+function keyTargets(){
+  const mb=document.getElementById('mbg');
+  if(mb) return {where:'modal',list:[...mb.querySelectorAll('.modal > button.act')].filter(keyVisible)};
+  if(document.querySelector('.cross'))return {where:'none',list:[]};
+  if(typeof S==='undefined'||!S||S.over||!document.querySelector('#app .hud'))return {where:'none',list:[]};
+  return {where:'main',list:tab==='act'?[...document.querySelectorAll('#app .content button.act')].filter(keyVisible):[]}}
+function keyHints(){try{
+  document.querySelectorAll('.kn').forEach(n=>n.remove());
+  const {list}=keyTargets();list.slice(0,9).forEach((b,i)=>{const n=document.createElement('i');n.className='kn';n.setAttribute('aria-hidden','true');n.textContent=i+1;b.appendChild(n)})}catch(e){}}
+function keysModal(back){
+  const row=(k,t)=>`<div class="keys-row"><kbd>${k}</kbd><span>${t}</span></div>`;
+  const tabs=Object.entries(keyTabs());
+  modal('⌨️ Keyboard shortcuts',`<div class="keys">${[
+    row('1 – 9','Press the numbered button (the small number on its right)'),
+    row(tabs.map(([c])=>c.toUpperCase()).join(' '),tabs.map(([,k])=>allTabs().find(t=>t[0]===k)[2]).join(', ')+' tabs'),
+    row('Esc','Close the pop-up; skip a transition'),
+    row('Enter','Press the highlighted button'),
+    row('?','This list')].join('')}</div><p style="font-size:12px;color:var(--mute)">Shortcuts never fire while you’re typing.</p>`,
+    (back?[{l:'Back to settings',fn:back}]:[]).concat([{l:'Close',fn:()=>{}}]))}
+window.keysModal=keysModal;
+document.addEventListener('keydown',e=>{
+  if(e.ctrlKey||e.metaKey||e.altKey||e.repeat)return;
+  const t=e.target;if(t&&(/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)||t.isContentEditable))return;
+  const k=e.key,lk=k.length===1?k.toLowerCase():k;
+  if(k==='?'){e.preventDefault();if(!document.getElementById('mbg'))keysModal();return}
+  const {where,list}=keyTargets();
+  if(/^[1-9]$/.test(k)){const b=list[+k-1];if(b){e.preventDefault();b.click()}return}
+  if(where==='modal'){
+    if(k==='Escape'){const b=[...list].reverse().find(x=>KEY_CLOSE.test(((x.querySelector('.tx b')||x).textContent||'').trim()));if(b){e.preventDefault();b.click()}}
+    return}
+  if(where!=='main')return;
+  const kt=keyTabs();if(kt[lk]){e.preventDefault();setTab(kt[lk])}
+});
+// refresh the hints whenever the screen or a pop-up changes
+{let q=false;const go=()=>{q=false;keyHints()};
+  try{new MutationObserver(ms=>{if(q)return;if(ms.some(m=>[...m.addedNodes].some(n=>n.nodeType===1&&!n.classList.contains('kn'))||[...m.removedNodes].some(n=>n.nodeType===1&&n.id==='mbg'))){q=true;requestAnimationFrame(go)}})
+    .observe(document.body,{childList:true,subtree:true})}catch(e){}}
+// ============================================================
+//  GUIDE MASTER, part 1: the world.
+//  Two weeks (Mon Jul 13 – Sun Jul 26, 2026) running a guide business out of Soldotna, Alaska.
+//  Places, trip types, bookings, actions, scenery and the two extra tabs (Bookings, Regs).
+//
+//  The regulations in this game are a simplified summary of the real 2026 rules for the Kenai
+//  (ADF&G, Alaska State Parks/KRSMA, NOAA for halibut). They change every season and by emergency order:
+//  the in-game Regs tab says so too.
+// ============================================================
+
+// ---- calendar ----
+const JUL0=13;                                           // day 0 = Monday, July 13, 2026
+const dlabel=d=>`${dayName(d).slice(0,3)} Jul ${JUL0+d}`;
+const dlong=d=>`${dayName(d)}, July ${JUL0+d}`;
+const isSunMon=d=>{const w=((d%7)+7)%7;return w===6||w===0};   // DAYS starts on Monday
+const isTueWed=d=>{const w=((d%7)+7)%7;return w===1||w===2};
+const OVERHEAD=75;                                       // boat payment, insurance, groceries: every night
+
+// ---- the game-specific part of the save ----
+function newState(){
+  return {money:1500,rep:50,energy:90,boat:85,cites:0,warns:0,
+    cred:{fa:2},            // first-aid/CPR card valid through the end of this day index (Wed Jul 15)
+    gear:3,                 // trips' worth of beads, flies, leader and lures
+    prep:-1,                // day index the gear is rigged for
+    scout:-1,               // day index you scouted the lower river
+    unlogged:0,overdue:0,   // ADF&G logbook trips not yet written up / written up late
+    book:[],nextId:1,trip:null,
+    calls:{},diner:{},report:{},office:{},dipnet:{},walks:{},
+    run:[],cum:0,limit:3,eo:[],wx:[],
+    freezer:0,skill:0,
+    visited:{shop:true},
+    stats:{trips:0,clients:0,fish:0,limits:0,earned:0,spent:0,tips:0,viol:0,fines:0,kings:0,chop:0,bear:0,noshow:0,halibut:0,checks:0,cancelled:0}};
+}
+
+// ---- HUD ----
+const STATS=[
+  {l:'Cash',  v:()=>$(Math.round(S.money)),warn:()=>S.money<0},
+  {l:'Rep',   v:()=>S.rep,m:()=>S.rep,warn:()=>S.rep<20,title:'Reputation: reviews and word of mouth. At 0, nobody books you.'},
+  {l:'Energy',v:()=>S.energy,m:()=>S.energy},
+  {l:'Boat',  v:()=>S.boat,m:()=>S.boat,title:'Your jet sled and drift boat'},
+  {l:'Record',v:()=>S.cites?`${S.cites}/3`:'Clean',warn:()=>S.cites>0,title:'Citations. Three and State Parks pulls your Kenai River guide permit.'},
+];
+
+// ---- scenery ----
+// July in Soldotna: the sun is up around 5 AM and sets after 11 PM.
+const SCENE={sun:[300,1380],skyDay:['#8fb9cf','#e4eee9'],skyDusk:['#5f6f96','#f0b98a'],skyNight:['#0c1a2a','#1f3448'],ground:'#4e7a4a',groundNight:'#1d2e22'};
+const K={sp:n=>n?'#0e2219':'#1f4a35',sp2:n=>n?'#13291f':'#2c5e43',riv:n=>n?'#1b4b52':'#4cc0bd',riv2:n=>n?'#2a6066':'#8fe0d9',mtn:n=>n?'#22313a':'#71889a',mtn2:n=>n?'#2b3b44':'#8ea3b2'};
+const win=n=>n?'#f7d77a':'#cfe0e6';
+const spruce=(x,h,n,c)=>{const b=140,w=h*.32;return `<g fill="${c||K.sp(n)}"><polygon points="${x-w},${b} ${x},${b-h*.55} ${x+w},${b}"/><polygon points="${x-w*.8},${b-h*.3} ${x},${b-h*.8} ${x+w*.8},${b-h*.3}"/><polygon points="${x-w*.55},${b-h*.6} ${x},${b-h} ${x+w*.55},${b-h*.6}"/></g>`};
+const forest=(xs,n)=>xs.map((x,i)=>spruce(x,34+((x*7)%26),n,i%2?K.sp2(n):K.sp(n))).join('');
+const mtns=n=>`<polygon points="0,112 55,62 100,92 165,38 230,98 295,52 350,90 415,44 480,96 480,140 0,140" fill="${K.mtn(n)}"/>
+  <polygon points="0,124 80,96 150,118 230,86 320,120 400,92 480,118 480,140 0,140" fill="${K.mtn2(n)}"/>
+  ${[[55,62],[165,38],[295,52],[415,44]].map(([x,y])=>`<polygon points="${x-11},${y+12} ${x},${y} ${x+11},${y+12} ${x+4},${y+9} ${x},${y+13} ${x-4},${y+9}" fill="#f4f7f8" opacity="${n?.35:.95}"/>`).join('')}`;
+const river=(n,y=128)=>`<path d="M0 ${y} Q120 ${y-8} 240 ${y+2} T480 ${y-2} L480 ${y+26} Q360 ${y+30} 240 ${y+22} T0 ${y+26} Z" fill="${K.riv(n)}"/><path d="M40 ${y+10} q30 -4 60 0 M220 ${y+14} q30 -4 60 0 M360 ${y+8} q30 -4 60 0" stroke="${K.riv2(n)}" stroke-width="2" fill="none" opacity=".7"/>`;
+const sled=(x,y)=>`<path d="M${x} ${y} h78 l10 -13 h-92 z" fill="#a9b4ba"/><rect x="${x+30}" y="${y-24}" width="18" height="12" fill="#3d4a50"/><rect x="${x+2}" y="${y-18}" width="8" height="5" fill="#2b3338"/>`;
+const drift=(x,y)=>`<path d="M${x} ${y} q38 12 78 0 l-9 -11 h-60 z" fill="#c9965a"/><path d="M${x+18} ${y-8} l-18 -10 M${x+60} ${y-8} l18 -10" stroke="#6b4a2a" stroke-width="2.5"/>`;
+const angler=(x,y,c)=>`<circle cx="${x}" cy="${y-16}" r="4" fill="#e8c9a0"/><rect x="${x-4}" y="${y-12}" width="8" height="12" rx="2" fill="${c||'#c0392b'}"/><path d="M${x+3} ${y-10} l22 -22" stroke="#333" stroke-width="1.2"/><path d="M${x+25} ${y-32} q4 14 -2 30" stroke="#999" stroke-width=".6" fill="none"/>`;
+const bearArt=(x,y,s=1)=>`<g transform="translate(${x},${y}) scale(${s})"><ellipse cx="0" cy="-12" rx="20" ry="12" fill="#5a3b22"/><circle cx="18" cy="-18" r="8" fill="#5a3b22"/><circle cx="21" cy="-25" r="3" fill="#5a3b22"/><rect x="-14" y="-4" width="6" height="8" fill="#4a3019"/><rect x="8" y="-4" width="6" height="8" fill="#4a3019"/><circle cx="23" cy="-18" r="1.4" fill="#111"/></g>`;
+const gull=(x,y)=>`<path d="M${x} ${y} q5 -5 10 0 q5 -5 10 0" stroke="#fff" stroke-width="1.6" fill="none"/>`;
+
+// ---- places ----
+const L={
+  shop:{name:'Shop & Cabin',ic:'🏠',desc:'Soldotna. Your cabin, the gear shop and both boats on trailers',
+    art:({night})=>`${mtns(night)}${forest([18,44,420,452],night)}<rect x="150" y="84" width="120" height="56" fill="#7a5236"/><polygon points="140,86 210,56 280,86" fill="#3f2a1d"/>${[0,1].map(i=>`<rect x="${166+i*64}" y="98" width="22" height="16" fill="${win(night)}"/>`).join('')}<rect x="200" y="110" width="20" height="30" fill="#3f2a1d"/><rect x="290" y="104" width="86" height="36" fill="#596a72"/><text x="333" y="126" text-anchor="middle" font-size="10" font-weight="700" font-family="DM Sans" fill="#e9eef0">GEAR SHOP</text>${sled(300,158)}<circle cx="312" cy="160" r="5" fill="#222"/><circle cx="370" cy="160" r="5" fill="#222"/>`},
+  town:{name:'Soldotna',ic:'🏪',desc:'Sterling Highway: tackle shop, the ADF&G office, the diner and the clinic',hours:()=>[300,1320],
+    art:({night})=>`${mtns(night)}${[['TACKLE','#2f5d4a',40],['ADF&G','#285a7a',150],['DINER','#9a3b2a',260],['CLINIC','#6b6f74',370]].map(([t,c,x])=>`<rect x="${x}" y="88" width="96" height="52" fill="#d8ccb2"/><rect x="${x-4}" y="80" width="104" height="12" fill="${c}"/><text x="${x+48}" y="90" text-anchor="middle" font-size="9" font-weight="700" font-family="DM Sans" fill="#fff">${t}</text><rect x="${x+12}" y="100" width="30" height="20" fill="${win(night)}"/><rect x="${x+58}" y="110" width="20" height="30" fill="#4a3a2a"/>`).join('')}`},
+  lower:{name:'Lower Kenai launch',ic:'🚤',desc:'Centennial Park boat launch, Soldotna. Power boats 50 hp max',
+    art:({night})=>`${mtns(night)}${forest([20,46,72,400,430,458],night)}${river(night)}${sled(150,138)}${angler(178,128,'#2c6e9e')}${angler(204,128,'#c0392b')}<rect x="300" y="128" width="90" height="5" fill="#8a6b48"/>${[310,330,350,370].map(x=>`<rect x="${x}" y="133" width="3" height="16" fill="#6b4f33"/>`).join('')}${angler(320,128,'#e6a21a')}${angler(350,128,'#6b8e23')}${angler(380,128,'#8e44ad')}`},
+  cooper:{name:'Cooper Landing',ic:'🏔️',desc:'Upper Kenai put-in near the Russian River. Drift boats only on this stretch',
+    art:({night})=>`${mtns(night)}${forest([14,36,60,84,380,404,430,456],night)}${river(night,124)}${drift(170,140)}${angler(196,131,'#2c6e9e')}${angler(226,131,'#c0392b')}${bearArt(360,126,.8)}`},
+  kbeach:{name:'Kenai City Beach',ic:'🌊',desc:'Mouth of the Kenai: the residents-only dipnet fishery, Jul 10–31',
+    art:({night})=>`<rect y="96" width="480" height="44" fill="${night?'#1f3b48':'#5f9fb1'}"/><polygon points="0,96 60,84 140,90 200,96" fill="${K.mtn(night)}"/><polygon points="320,96 380,70 420,80 480,72 480,96" fill="${K.mtn(night)}"/><path d="M0 136 h480 v4 h-480z" fill="#c9b78f"/>${[60,110,160,215,270,330,390,440].map((x,i)=>`<path d="M${x} 132 l${i%2?14:-14} -34" stroke="#555" stroke-width="2"/><ellipse cx="${x+(i%2?16:-16)}" cy="96" rx="8" ry="5" fill="none" stroke="#333" stroke-width="1.5"/><circle cx="${x}" cy="114" r="4" fill="#e8c9a0"/><rect x="${x-4}" y="118" width="8" height="16" rx="2" fill="${['#c0392b','#2c6e9e','#e6a21a','#6b8e23'][i%4]}"/>`).join('')}${gull(300,40)}${gull(330,52)}`},
+  homer:{name:'Homer Spit',ic:'⚓',desc:'The End of the Road: the harbor, charter boats and Kachemak Bay',
+    art:({night})=>`<rect y="92" width="480" height="48" fill="${night?'#183447':'#4c8fb0'}"/><polygon points="0,92 70,46 130,74 200,36 270,70 340,40 420,72 480,52 480,92" fill="${K.mtn(night)}"/>${[[70,46],[200,36],[340,40]].map(([x,y])=>`<polygon points="${x-12},${y+12} ${x},${y} ${x+12},${y+12}" fill="#f4f7f8" opacity="${night?.35:.95}"/>`).join('')}<path d="M0 134 h480 v6 h-480z" fill="#b6a37f"/><path d="M160 126 h110 l12 -12 h-132 z" fill="#f2f2f2"/><rect x="190" y="98" width="40" height="16" fill="#3d4a50"/><path d="M210 98 v-22" stroke="#555" stroke-width="2"/>${gull(60,30)}${gull(90,22)}${gull(400,34)}`},
+};
+const TRAVEL={'shop|town':10,'shop|lower':10,'town|lower':8,'shop|cooper':60,'town|cooper':60,'lower|cooper':62,'shop|kbeach':20,'town|kbeach':20,'lower|kbeach':22,'cooper|kbeach':78,
+  'shop|homer':85,'town|homer':85,'lower|homer':88,'kbeach|homer':90,'cooper|homer':140};
+function travelMins(a,b){return TRAVEL[a+'|'+b]??TRAVEL[b+'|'+a]??30}
+
+// ---- trip types ----
+// below: fishing from a guide vessel downstream of the Skilak Lake outlet (Sun/Mon closures, 6 AM–6 PM, 5-person July cap)
+const TRIPS={
+  reds:  {n:'Sockeye trip',ic:'🐟',loc:'lower',start:360,len:360,price:275,max:5,below:true,fuel:35,energy:28,
+          long:'Lower Kenai sockeye: run the jet sled to the reds and work the seams and bank spots.'},
+  silver:{n:'Early silver trip',ic:'🎣',loc:'lower',start:780,len:300,price:300,max:4,below:true,fuel:35,energy:26,
+          long:'Lower Kenai back-trolling for the first coho of the year. Ends at 6 PM sharp.'},
+  trout: {n:'Upper Kenai trout float',ic:'🌈',loc:'cooper',start:420,len:480,price:375,max:3,below:false,fuel:0,energy:32,
+          long:'Drift boat from Cooper Landing to Jim’s Landing: catch-and-release rainbows and Dolly Varden.'},
+  halibut:{n:'Homer halibut charter',ic:'⚓',loc:'homer',start:360,len:600,price:0,gig:450,max:6,below:false,fuel:0,energy:36,
+          long:'Captain a six-pack charter out of Homer for a buddy’s outfit. He holds the Charter Halibut Permit; you hold the six-pack license.'},
+};
+const SLOT=b=>{const T=TRIPS[b.type];return [T.start,T.start+T.len]};
+const bk=id=>S.book.find(b=>b.id===id);
+const todays=(d=day())=>S.book.filter(b=>b.d===d&&b.status==='booked');
+function conflicts(d,type){
+  const T=TRIPS[type],a=[T.start,T.start+T.len];
+  return S.book.some(b=>{if(b.d!==d||b.status!=='booked')return false;const B=SLOT(b),gap=TRIPS[b.type].loc===T.loc?30:travelMins(TRIPS[b.type].loc,T.loc)+20;
+    return a[0]<B[1]+gap&&B[0]<a[1]+gap});
+}
+// What's wrong with a booking under the rules (null = nothing)
+function issueOf(b){
+  const T=TRIPS[b.type];
+  if(T.below&&isSunMon(b.d)) return 'sunmon';
+  if(b.type==='silver'&&b.n>4) return 'overload';
+  if(b.type==='reds'&&b.n>5) return 'overload';
+  return null;
+}
+function addBooking(o){const b=Object.assign({id:S.nextId++,status:'booked',quirk:[]},o);S.book.push(b);S.book.sort((x,y)=>x.d-y.d||SLOT(x)[0]-SLOT(y)[0]);return b}
+const partyLine=b=>`The ${b.who} (${b.from}${b.res?', Alaska residents':''}) · ${b.n} ${b.type==='halibut'?'passengers':'clients'}`;
+const payOf=b=>TRIPS[b.type].gig||TRIPS[b.type].price*b.n;
+
+// ---- actions ----
+const ACT_CATS={trip:'🛶 Today’s trips',work:'🧰 Business & boat',town:'🏪 Around town',fish:'🐟 On the water',rest:'🛏️ Rest'};
+function canAfford(c){return S.money>=c}
+function spend(c,what){money(-c);S.stats.spent+=c}
+function actionsHere(){
+  const d=day(),m=tod(),a=[];
+  if(S.trip) return [{ic:'🛶',l:'Back to your trip',s:`${TRIPS[(bk(S.trip.id)||{type:'reds'}).type].n} in progress`,cat:'trip',cls:'primary',fn:()=>tripNext()}];
+  // today's trips that launch from here
+  todays(d).filter(b=>TRIPS[b.type].loc===S.loc).forEach(b=>{
+    const T=TRIPS[b.type],late=m-T.start;
+    if(m<T.start-60) a.push({ic:T.ic,l:`${T.n}: launch at ${fmt(T.start)}`,s:`${partyLine(b)}. The party shows up an hour before.`,cat:'trip',dis:true,fn:()=>{}});
+    else if(late<=90) a.push({ic:T.ic,l:`Meet the ${b.who} and launch`,s:`${partyLine(b)}. ${late>0?`You’re ${late} min late.`:`On time for ${fmt(T.start)}.`} ${T.gig?`Day rate ${$(T.gig)} + tips`:`${$(payOf(b))} + tips`}.`,cat:'trip',cls:'primary',fn:()=>tripStart(b)});
+    else a.push({ic:'😠',l:`The ${b.who} gave up on you`,s:'They waited 90 minutes, then left. Expect a review.',cat:'trip',dis:true,fn:()=>{}});
+  });
+  if(S.loc==='shop'){
+    a.push({ic:'🛏️',l:'Go to bed',s:`Ends the day. Overhead ${$(OVERHEAD)} tonight. Alarm ${fmt(S.alarm)}. The sun won’t fully set.`,cat:'rest',cls:m>=1260?'primary':'',fn:()=>endDay('home')});
+    a.push({ic:'😴',l:'Nap for an hour',s:'Energy +10.',cat:'rest',fn:()=>{pass(60);adj('energy',10);say('😴 Blackout curtains, earplugs, one glorious hour.')}});
+    const logs=S.unlogged+S.overdue;
+    if(logs) a.push({ic:'📓',l:`Fill out your ADF&G logbook (${logs} trip${logs>1?'s':''})`,s:`${logs*10} min. Every guided trip gets an entry: anglers, licenses, hours, fish kept and released.`,cat:'work',cls:'primary',fn:()=>{pass(logs*10);say(`📓 You write up ${logs} trip${logs>1?'s':''}: license numbers, hours fished, sockeye kept, kings released.${S.overdue?' A day late, but done.':''}`);S.unlogged=0;S.overdue=0}});
+    if(S.prep!==d+1&&d+1<GAME.days) a.push({ic:'🪝',l:'Rig tomorrow’s gear',s:S.gear?'45 min. Tie leaders, sharpen hooks, stage the coolers. Better trip tomorrow.':'You’re out of tackle. Restock in Soldotna first.',cat:'work',dis:!S.gear,fn:()=>{pass(45);S.prep=d+1;say('🪝 Leaders tied, hooks sharp, coolers iced, life jackets counted. Tomorrow-you says thanks.')}});
+    a.push({ic:'🔧',l:'Service the boats — $80',s:'2 hours. Boat +25: impeller, jet intake, trailer bearings, oarlocks.',cat:'work',dis:S.boat>=95||!canAfford(80),fn:()=>{spend(80);pass(120);adj('boat',25);say('🔧 New impeller, greased bearings, a cleaned-out jet intake. She purrs.')}});
+    if(!S.calls[d]) a.push({ic:'📞',l:'Return calls & emails',s:'30 min. Once a day. Booking requests come in.',cat:'work',fn:()=>{pass(30);S.calls[d]=true;const r=makeRequest();if(r)requestModal(r);else say('📞 Voicemails: two spam, one dentist, no bookings.')}});
+    a.push({ic:'📊',l:'Check the ADF&G sonar count',s:'5 min. How many sockeye passed river mile 19 yesterday.',cat:'work',fn:()=>{pass(5);sonarSay()}});
+    a.push({ic:'⏰',l:`Alarm: ${fmt(S.alarm)}`,s:'Tap to cycle 4:00 → 4:30 → 5:00 → 5:30 → 6:00.',cat:'rest',fn:()=>{const o=[240,270,300,330,360];S.alarm=o[(o.indexOf(S.alarm)+1)%o.length];say(`⏰ Alarm set for ${fmt(S.alarm)}.`)}});
+  }
+  if(S.loc==='town'){
+    const open=isOpen('town');
+    a.push({ic:'🪱',l:'Restock tackle — $90',s:`Beads, flies, single-hook lures, leader. Gear +4 trips (you have ${S.gear}).`,cat:'town',cls:S.gear<=1?'primary':'',dis:!open||!canAfford(90),fn:()=>{spend(90);S.gear+=4;pass(30);say('🪱 Pegged beads in six shades of “egg,” Russian River flies, single-hook spinners. No trebles: the emergency order says one unbaited, single-hook lure below Skilak.')}});
+    const faDay=[1,3].includes(d),cls=m>=780&&m<=800;
+    if(S.cred.fa<GAME.days) a.push({ic:'⛑️',l:'First aid & CPR class — $95',s:faDay?(m<780?`Today 1:00–4:00 PM at the clinic. Opens at 1:00.`:m<=800?'Starting now. 3 hours. Renews your card for two years.':'Today’s class already started.'):'Only Tuesday and Thursday, 1:00–4:00 PM.',cat:'town',cls:faDay&&cls&&S.cred.fa<=d+1?'primary':'',dis:!faDay||!cls||!canAfford(95)||S.cred.fa>=GAME.days,
+      fn:()=>{spend(95);pass(180);S.cred.fa=99;adj('energy',-6);say('⛑️ Three hours of chest compressions on a rubber torso named Rescue Randy. New card in your wallet: guiding legally requires a current one.')}});
+    if(!S.diner[d]) a.push({ic:'🍳',l:'Eat at the diner — $22',s:'40 min. Energy +12. Guides trade gossip at the counter.',cat:'town',dis:!open||!canAfford(22),fn:()=>{spend(22);S.diner[d]=true;pass(40);adj('energy',12);say('🍳 Reindeer sausage, eggs and hash browns. '+pick(LORE))}});
+    if(!S.office[d]) a.push({ic:'🏛️',l:'Stop by the ADF&G office',s:'20 min. Read the emergency orders posted on the board.',cat:'town',dis:!open,fn:()=>{pass(20);S.office[d]=true;S.skill++;say(`🏛️ The EO board: ${S.eo.length?S.eo.map(e=>'<b>'+e+'</b>').join(' · '):'<b>Kenai kings closed (Jun 20–Aug 15); below Skilak, one unbaited, single-hook artificial lure only.</b>'} The tech at the counter says the sonar count is ${S.run[d-1]?S.run[d-1].toLocaleString():'climbing'}.`)}});
+    if(!S.report[d]) a.push({ic:'📸',l:'Post a fishing report & photos',s:'30 min. Once a day. Rep +2 after a good trip.',cat:'town',fn:()=>{pass(30);S.report[d]=true;const good=S.book.some(b=>b.d===d&&b.status==='done'&&b.res&&b.res.happy>=60);if(good){adj('rep',2);say('📸 Grip-and-grin photos (all legal fish, all kept wet when they had to be). The likes roll in.')}else say('📸 You post a moody river photo. Three likes, one from your mom.')}});
+  }
+  if(S.loc==='lower'){
+    if(S.scout!==d) a.push({ic:'🔭',l:'Scout the river — $15 fuel',s:'1 hour. See where the reds are holding. Better trips today and tomorrow.',cat:'fish',dis:!canAfford(15),fn:()=>{spend(15);pass(60);S.scout=d;S.skill++;adj('energy',-4);say(`🔭 You run up past the Sterling Highway bridge and back. ${S.run[Math.max(0,d-1)]>90000?'Reds are stacked in the soft water along the inside bends.':'Pods of reds, but they’re moving through fast.'}`)}});
+    a.push({ic:'🐟',l:'Flip for reds yourself from the bank',s:'1 hour. You’re off the clock, so it’s legal. Freezer fish.',cat:'fish',dis:todays(d).length&&m<TRIPS.reds.start+TRIPS.reds.len,fn:()=>{pass(60);adj('energy',-5);const n=Math.min(S.limit,Math.max(0,Math.round(Math.random()*S.limit+.3)));S.freezer+=n;say(n?`🐟 Shoulder to shoulder at the walkway, you flip ${n} red${n>1?'s':''} into the net. Hooked in the mouth, every one.`:'🐟 An hour of “flipping” and nothing but a sore wrist. Combat fishing is humbling.')}});
+  }
+  if(S.loc==='cooper'){
+    if(!S.walks[d]) a.push({ic:'🥾',l:'Hike to the Russian River Falls',s:'2 hours. Watch sockeye jump the falls. Energy +8 (it’s good for the soul).',cat:'rest',fn:()=>{pass(120);S.walks[d]=true;adj('energy',8);say('🥾 Two miles of trail to the falls. Reds hurl themselves up the white water while a brown bear fishes the lip below. Bear spray on your hip the whole way.')}});
+  }
+  if(S.loc==='kbeach'){
+    const ok=m>=360&&m<=1200;
+    if(!S.dipnet[d]) a.push({ic:'🥅',l:'Dipnet for your freezer',s:ok?'3 hours. Personal use: Alaska residents only. Household limit 25 reds.':'Dipnetting is open 6 AM–11 PM.',cat:'fish',dis:!ok||S.freezer>=25,fn:()=>dipnetModal()});
+    a.push({ic:'🌊',l:'Watch the tide come in',s:'30 min. Energy +4.',cat:'rest',fn:()=>{pass(30);adj('energy',4);say('🌊 Cook Inlet has some of the biggest tides on Earth. The mud flats vanish while you watch. Don’t walk out on them: the silt grabs boots.')}});
+  }
+  if(S.loc==='homer'){
+    a.push({ic:'🍟',l:'Fish & chips on the Spit — $20',s:'40 min. Energy +10.',cat:'rest',dis:!canAfford(20),fn:()=>{spend(20);pass(40);adj('energy',10);say('🍟 Halibut and chips at a picnic table, eagles on every light pole. Homer calls itself the Halibut Fishing Capital of the World.')}});
+  }
+  return a;
+}
+
+// ---- small extras on the Here tab ----
+function statusTags(){
+  const t=[],d=day();
+  t.push(`<span class="tag">${WX[S.wx[d]||'sun'].ic} ${WX[S.wx[d]||'sun'].n}</span>`);
+  if(isSunMon(d)) t.push('<span class="tag bad">🚫 no guide-boat fishing below Skilak</span>');
+  if(isTueWed(d)) t.push('<span class="tag">⚓ no charter halibut retention</span>');
+  t.push(`<span class="tag ${S.gear<1?'bad':''}">🪱 tackle ×${S.gear}</span>`);
+  if(S.unlogged+S.overdue) t.push(`<span class="tag ${S.overdue?'bad':''}">📓 ${S.unlogged+S.overdue} to log</span>`);
+  if(S.cred.fa<d) t.push('<span class="tag bad">⛑️ first-aid card expired</span>');
+  if(S.energy<25) t.push('<span class="tag bad">🥱 running on fumes</span>');
+  if(S.freezer) t.push(`<span class="tag">🧊 ${S.freezer} reds in the freezer</span>`);
+  return t;
+}
+function alertBar(){
+  const d=day(),m=tod();
+  for(const b of todays(d)){const T=TRIPS[b.type];
+    if(m>T.start&&m<=T.start+90&&S.loc!==T.loc) return {t:`⏰ The ${b.who} are waiting at ${L[T.loc].name} (launch was ${fmt(T.start)}).`};
+    if(m>=T.start-120&&m<=T.start&&S.loc!==T.loc) return {t:`🛶 ${T.n} launches at ${fmt(T.start)} from ${L[T.loc].name}: ${travelMins(S.loc,T.loc)} min away.`,kind:'info'};}
+  if(S.cred.fa===d) return {t:'⛑️ Your first-aid card expires tonight. Guiding requires a current one.',kind:'info'};
+  return null;
+}
+
+// ---- extra tabs ----
+const EXTRA_TABS=[
+  {k:'book',ic:'📅',l:'Bookings',view:()=>{
+    let h=`<div class="sect">Your two weeks · Jul 13–26</div>`;
+    for(let d=0;d<GAME.days;d++){
+      const bs=S.book.filter(b=>b.d===d),rules=[isSunMon(d)?'🚫 guide boats off below Skilak':'',isTueWed(d)?'⚓ no charter halibut kept':''].filter(Boolean).join(' · ');
+      const lines=bs.map(b=>{const T=TRIPS[b.type],st={booked:d<day()?'—':'',done:'✅',noshow:'❌ no-show',cancelled:'🚫 cancelled'}[b.status]||'';
+        return `${T.ic} <b>${fmt(T.start)}</b> ${T.n} · ${b.who}, ${b.n} ${st}${b.res?` · ${b.res.line}`:''}`}).join('<br>');
+      h+=`<div class="todo"><span class="ck">${d<day()?'✔️':d===day()?'👉':'·'}</span><div><b>${dlong(d)}</b><span>${lines||'<i>Open day</i>'}${rules?`<br><span style="color:var(--warn)">${rules}</span>`:''}</span></div></div>`;
+    }
+    return h+`<div class="rules">Trips: 🐟 sockeye ${$(TRIPS.reds.price)}/angler (6 AM, lower river) · 🎣 silvers ${$(TRIPS.silver.price)}/angler (1 PM, lower river) · 🌈 trout float ${$(TRIPS.trout.price)}/angler (7 AM, Cooper Landing, 3 max) · ⚓ halibut day rate ${$(TRIPS.halibut.gig)} (6 AM, Homer). New requests come in by phone: <b>📞 Return calls</b> at the shop.</div>`}},
+  {k:'regs',ic:'📖',l:'Regs',view:()=>regsView()},
+];
+function regsView(){
+  const d=day(),fa=S.cred.fa>=GAME.days?'current (renewed)':S.cred.fa<d?'<b style="color:var(--bad)">EXPIRED</b>':`expires ${dlong(S.cred.fa)} at midnight`;
+  const cred=[['🪪','ADF&G sport fishing guide license + business license','current'],['⚓','USCG OUPV (“six-pack”) captain’s license','current'],['🏞️','Alaska State Parks Kenai River guide permit (KRSMA) + 3-digit boat number','current'],['🏷️','ADF&G guide-vessel decal on both sides of the boat','current'],['⛑️','First aid & CPR card',fa],['📓','ADF&G freshwater guide logbook',S.overdue?`<b style="color:var(--bad)">${S.overdue} entr${S.overdue>1?'ies':'y'} overdue</b>`:S.unlogged?`${S.unlogged} to fill in tonight`:'up to date'],['🧪','Random drug-testing program','enrolled']];
+  const R=[
+    ['👑 Kenai kings','Closed in 2026 by emergency order, including catch-and-release. A king hooked by accident gets released right away, without lifting it out of the water.'],
+    ['🪝 Gear below Skilak','Jun 20–Aug 15, 2026: one unbaited, single-hook, artificial lure. No bait, no treble hooks.'],
+    ['📆 Guide-boat days','May 1–Jul 31, downstream of the Skilak Lake outlet: no fishing from a guide vessel on Sundays or Mondays (Memorial Day excepted), and only 6 AM–6 PM on other days.'],
+    ['👥 Boat limits','July, below Skilak: no more than 5 people in a guide boat while fishing, guide included. You may carry 5 clients + yourself only if they all fish from shore. KRSMA: 6 people max on any motorboat, 50 hp max.'],
+    ['🙅 Guides don’t fish','A guide may not sport fish while clients are present. Rods in the water can’t outnumber clients aboard.'],
+    ['🐟 Sockeye',`Kenai limit ${S.limit} per day${S.limit>3?' (raised by emergency order)':''}. Must be hooked in the mouth: snagged fish go back immediately. Limits are per person and can’t be caught for someone else.`],
+    ['🌿 Banks','Many Kenai banks are closed to fishing in July and August to protect riparian habitat. Use public access points and the elevated walkways.'],
+    ['⚓ KRSMA','Don’t anchor in the primary traffic or drift-fishing channel.'],
+    ['🎣 Coho','2 per day on the Kenai. Same single-hook, no-bait rule below Skilak through Aug 15.'],
+    ['🌈 Upper river','Rainbow trout are catch-and-release: keep them wet. Russian River confluence: fly-fishing only Jun 11–Aug 20. Take carcasses out or stop, chop and throw them into fast water. Bears.'],
+    ['🥅 Dipnetting','Kenai personal-use fishery, Jul 10–31, 6 AM–11 PM: Alaska residents only. Household limit 25 (+10 per extra member). Clip both tail tips and record each fish on your permit before you leave the beach.'],
+    ['⚓ Charter halibut (Area 3A, 2026)','2 per day: one any size, one 27 inches or less. No retention on charters Tuesdays and Wednesdays (Jun 2–Aug 25). One charter trip per day. Captain and crew don’t keep halibut on a charter.'],
+    ['🍺 Boating','Operating a boat under the influence (BUI) is a crime. You’re the captain all day.'],
+  ];
+  return `<div class="sect">Credentials</div>${cred.map(([i,n,s])=>`<div class="todo"><span class="ck">${i}</span><div><b>${n}</b><span>${s}</span></div></div>`).join('')}
+  <div class="sect">River conditions</div><div class="rules">📊 Kenai sockeye sonar (river mile 19): ${S.run[d-1]?`<b>${S.run[d-1].toLocaleString()}</b> yesterday · `:''}<b>${S.cum.toLocaleString()}</b> this season.<br>${S.eo.length?'📣 '+S.eo.join('<br>📣 '):'📣 No new emergency orders this week.'}</div>
+  <div class="sect">The rules you guide by</div>${R.map(([n,s])=>`<div class="todo"><span class="ck">•</span><div><b>${n}</b><span>${s}</span></div></div>`).join('')}
+  <div class="rules" style="font-size:12px">A simplified summary of 2026 rules from ADF&G, Alaska State Parks and NOAA, for a game. Real regulations change by emergency order, sometimes overnight. Before you fish, check the current regulations and emergency orders at adfg.alaska.gov.</div>`;
+}
+
+// ---- weather & the run ----
+const WX={sun:{n:'Bluebird day',ic:'☀️',q:.03},cloud:{n:'Overcast',ic:'☁️',q:.04},rain:{n:'Steady rain',ic:'🌧️',q:-.02},wind:{n:'Windy',ic:'💨',q:-.04}};
+function rollDay(d){
+  S.wx[d]=pick(['sun','sun','cloud','cloud','rain','wind']);
+  // late-run Kenai sockeye: builds through mid-July, peaks around Jul 21–23
+  const base=50000+150000*Math.exp(-Math.pow((d-9)/4.2,2)),n=Math.round(base*(.7+Math.random()*.6)/10)*10+Math.floor(Math.random()*10);
+  S.run[d]=n;S.cum+=n;
+}
+function runFactor(type,d=day()){
+  if(type==='reds') return clamp(((S.run[Math.max(0,d-1)]||80000)-90000)/400000,-.12,.15);
+  if(type==='silver') return clamp((d-9)*.03,-.1,.1);
+  return 0;
+}
+function sonarSay(){const d=day(),y=S.run[d-1];say(y?`📊 Kenai sonar: <b>${y.toLocaleString()}</b> sockeye passed river mile 19 yesterday; <b>${S.cum.toLocaleString()}</b> for the season. ${y>150000?'The river is paved with reds.':y>90000?'Solid push of fish.':'Slow. The commercial setnetters may be catching them first.'}`:`📊 Season count so far: <b>${S.cum.toLocaleString()}</b> sockeye past the sonar.`)}
+// ============================================================
+//  GUIDE MASTER, part 2: what happens. Title, lifecycle hooks, booking requests, dipnetting,
+//  enforcement checks, random events, tips, goals, achievements, scoring and save migrations.
+//  The trip runner (tripStart, tripNext, violate, cite…) lives in 22-trips.js.
+// ============================================================
+
+// ---- local lore (sprinkled into mornings, the diner and guide gossip) ----
+const LORE=[
+  'The Kenai runs milky turquoise because of glacial flour: rock ground to powder by the glaciers upstream.',
+  'In May 1985, Les Anderson of Soldotna landed a 97 lb 4 oz king on the Kenai. It’s still the world record.',
+  'The Dena’ina name for the river is Kahtnu, and the Kenaitze people have fished it for thousands of years.',
+  'The Legislature created the Kenai River Special Management Area in 1984. That’s why outboards here top out at 50 horsepower.',
+  'ADF&G counts the sockeye with sonar at river mile 19. Guides refresh that number like it’s the stock market.',
+  'At the Russian River confluence anglers stand elbow to elbow. Folks call it combat fishing, and they aren’t joking.',
+  'Skilak Lake can go from glass to four-foot whitecaps in twenty minutes when the wind comes down off the glaciers.',
+  'The Sterling Highway dead-ends on the Homer Spit, which is why Homer calls itself the End of the Road.',
+  'Cook Inlet has some of the biggest tides on Earth. Its mudflats can trap a boot, or a person, as the water comes back.',
+  'Locals call the mosquito Alaska’s state bird. This week they’re flying in formation.',
+  'To get a Kenai River guide permit you finish the Kenai River Guide Academy and join a random drug-testing program.',
+  'The Kenai gets two sockeye runs: an early run in June, mostly bound for the Russian River, and the huge late run in July.',
+  'Pink salmon run in even years here. 2026 is even, so the humpies will flood the river in August.',
+  'In July the sun barely sets on the Kenai. You can tie leaders on the porch at 11 PM without a headlamp.',
+];
+
+// ---- booking-request parties ----
+const PARTIES=[
+  {who:'Kowalskis',from:'Wisconsin'},{who:'Oregon firefighters',from:'Oregon'},{who:'retired dentist and his grandson',from:'Iowa'},
+  {who:'family of Vermont teachers',from:'Vermont'},{who:'college buddies',from:'Colorado'},{who:'Chicago law-firm outing',from:'Chicago'},
+  {who:'anniversary couple',from:'Tennessee'},{who:'Navy vet and his brothers',from:'Virginia'},{who:'Austin startup team',from:'Austin'},
+  {who:'Nguyens',from:'Anchorage',res:true},{who:'pipeline crew on rotation',from:'Kenai',res:true},{who:'cousins from Germany',from:'Bavaria'},
+  {who:'Montana fly-shop crew',from:'Montana'},{who:'mother-and-daughter team',from:'Arizona'},{who:'Juneau bartenders',from:'Juneau',res:true},
+];
+
+// ---- title screen ----
+const TITLE={
+  start:'Launch Monday, July 13 🛶',
+  intro:'You’re a licensed Kenai River guide working out of Soldotna, Alaska. It’s the peak of the late sockeye run: two weeks of 4 AM alarms, full boats, bears, troopers and a rulebook thicker than your waders.',
+  bullets:['Show up for every booked trip: sockeye, silvers, trout floats and a Homer halibut charter.','Know the regs. Kenai kings are closed this year, and guide boats don’t fish below Skilak on Sundays or Mondays.','Keep your logbook, your first-aid card and your record clean. Three citations and your permit is gone.','Keep clients happy, the boat running and yourself awake.'],
+  note:'Regulations simplified from 2026 ADF&G, State Parks and NOAA rules. Always check the current regs.',
+  art:()=>`<svg viewBox="0 0 480 250" preserveAspectRatio="xMidYMid slice" style="width:100%;height:100%" aria-hidden="true"><defs><linearGradient id="ts" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fb9cf"/><stop offset="1" stop-color="#f0dcc0"/></linearGradient></defs><rect width="480" height="250" fill="url(#ts)"/>
+    <circle cx="390" cy="52" r="22" fill="#fbeaa8"/>
+    <g transform="translate(0,60)">${mtns(false)}${forest([16,40,66,92,370,396,424,452],false)}<rect y="140" width="480" height="60" fill="#4e7a4a"/>${river(false,134)}${drift(190,152)}${angler(216,143,'#c0392b')}${angler(246,143,'#2c6e9e')}</g>
+    <g class="bob"><text x="240" y="238" text-anchor="middle" font-size="30">🎣</text></g></svg>`,
+};
+
+// ---- lifecycle hooks ----
+function onNewGame(){
+  S.cum=650000;rollDay(0);
+  const seed=[
+    [1,'reds',4,'Hendersons','Ohio',0,['first']],[2,'reds',3,'Seattle software engineers','Seattle',0,['drinker']],
+    [3,'reds',5,'Garza family','Texas',0,['kid']],[4,'reds',2,'retired couple','Minnesota',0,['nolicense']],
+    [5,'reds',4,'Wasilla nurses and their husbands','Wasilla',1,['kingfan']],[6,'halibut',6,'oil-company crew','Anchorage',1,[]],
+    [7,'trout',3,'Denver fly-fishing club','Colorado',0,['photo']],[8,'reds',4,'bachelor party','Arizona',0,['drinker']],
+    [8,'silver',3,'dad and his two sons','Michigan',0,[]],[9,'reds',4,'church group','Kansas',0,[]],
+    [10,'silver',4,'fishing YouTuber and his crew','Florida',0,['photo','kingfan']],[11,'reds',4,'California doctors','California',0,['nolicense']],
+    [11,'silver',2,'honeymooners','Georgia',0,[]],[12,'reds',4,'Fairbanks family','Fairbanks',1,['kid']],
+    [13,'trout',2,'Guide Academy classmates','Kenai',1,[]]];
+  seed.forEach(([d,type,n,who,from,res,quirk])=>addBooking({d,type,n,who,from,res:!!res,quirk}));
+  say(`${dlong(0)}, ${fmt(S.t)}. ${WX[S.wx[0]].ic} ${WX[S.wx[0]].n}. Monday: guide boats can’t fish the Kenai below Skilak Lake today, so it’s a shop day. Your first trip is tomorrow at ${fmt(TRIPS.reds.start)}.`);
+  modal('🛶 Welcome to the Kenai',`<p>You’re a licensed sport fishing guide out of <b>Soldotna</b>, with a jet sled, a drift boat and <b>${S.book.length} trips</b> booked over the next two weeks: the peak of the late sockeye run.</p>
+    <p>👑 <b>Kenai kings are closed in 2026</b> by emergency order. Not even catch-and-release.</p>
+    <p>⛑️ Your <b>first-aid/CPR card expires Wednesday night</b>. There’s a class at the clinic in Soldotna <b>Tuesday and Thursday, 1–4 PM</b>.</p>
+    <p>Check the <b>📅 Bookings</b> tab for your schedule and the <b>📖 Regs</b> tab for the rules you guide by.</p>`,[{l:'Grab the coffee and go',fn:()=>{}}]);
+}
+function onMorning(d){
+  if(d===0) return;
+  rollDay(d);
+  const w=WX[S.wx[d]];
+  say(`${dlong(d)}, ${fmt(S.t)}. ${w.ic} ${w.n}.${Math.random()<.4?' '+pick(LORE):''}`);
+  const t=todays(d);
+  if(t.length) say('🛶 Today: '+t.map(b=>`${TRIPS[b.type].ic} ${TRIPS[b.type].n} at ${fmt(TRIPS[b.type].start)}, ${L[TRIPS[b.type].loc].name} (the ${b.who}, ${b.n})`).join(' · '));
+  else say('🛶 No trips booked today. Service the boat, return calls, or go fill the freezer.');
+  if(isSunMon(d)) say(`🚫 ${dayName(d)}: no fishing from guide boats on the Kenai below Skilak Lake through July 31.`);
+  if(S.limit===3&&(S.cum>1200000||d>=8)){
+    S.limit=6;S.eo.push('Kenai River sockeye limit raised to 6 per day, 12 in possession');
+    say('📣 <b>Emergency order:</b> with the late run past its escapement goal, ADF&G raises the Kenai sockeye limit to <b>6 per day, 12 in possession</b>.');
+    showTile('📣','Sockeye limit raised to 6','ADF&G emergency order','good');
+  }
+  if(d===10&&!S.eo.some(e=>/Russian/.test(e))){
+    S.eo.push('Russian River & upper Kenai sockeye limit 6 per day, 12 in possession');
+    say('📣 <b>Emergency order:</b> the Russian River and a stretch of the upper Kenai go to 6 sockeye a day, too.');
+  }
+}
+function onNight(where,notes,d){
+  if(S.trip){S.trip=null;notes.push('🛶 You never finished the trip. The party drove off without paying.')}
+  if(where==='collapsed'){S.loc='shop';notes.push('😵 You were up past midnight and fell asleep in the truck at the shop.')}
+  money(-OVERHEAD);S.stats.spent+=OVERHEAD;notes.push(`💸 Boat payment, insurance and groceries: ${$(OVERHEAD)}.`);
+  S.book.filter(b=>b.d===d&&b.status==='booked').forEach(b=>{b.status='noshow';adj('rep',-15);S.stats.noshow++;
+    notes.push(`😠 You never showed for the ${b.who}. They posted a one-star review from the parking lot.`)});
+  if(S.unlogged){S.overdue+=S.unlogged;notes.push(`📓 ${S.unlogged} logbook entr${S.unlogged>1?'ies are':'y is'} now overdue. Write ${S.unlogged>1?'them':'it'} up before a trooper asks.`);S.unlogged=0}
+  adj('energy',(where==='home'?60:30)/(where==='collapsed'?2:1));
+  if(d===S.cred.fa) notes.push('⛑️ Your first-aid/CPR card expired at midnight. You can’t legally guide until you renew it.');
+  if(S.energy<15) notes.push('🥱 You’re running on fumes.');
+}
+function onTime(min){if(min>0)adj('energy',-min/50)}
+function onArrive(dest){S.visited[dest]=true}
+function daySummary(d){const n=S.book.filter(b=>b.d===d&&b.status==='done').length;return [`⭐ ${S.rep}`,`⚡ ${S.energy}`,`🛶 ${n} trip${n===1?'':'s'}`]}
+
+// ---- losing ----
+const LOSSES={
+  permit:['Permit pulled','Three citations. Alaska State Parks suspends your Kenai River guide permit. The sled goes up for sale on the community board.'],
+  reviews:['Nobody’s booking','Your reviews sank below the waterline. The phone stopped ringing, so you take a job on the slime line in Kenai.'],
+  broke:['Repossessed','The bank tows the jet sled out of your yard. You can always deckhand in Homer.'],
+};
+function checkLoss(){if(S.cites>=3)return 'permit';if(S.rep<=0)return 'reviews';if(S.money<-2000)return 'broke';return null}
+
+// ---- booking requests ----
+function makeRequest(){
+  const d0=day()+1;if(d0>=GAME.days) return null;
+  for(let i=0;i<24;i++){
+    const d=d0+Math.floor(Math.random()*Math.min(6,GAME.days-d0)),p=pick(PARTIES),r=Math.random();
+    if(r<.12&&!p.res) return {kind:'dipnet',d,n:2+Math.floor(Math.random()*3),who:p.who,from:p.from,res:false};
+    const types=['reds','reds','reds','reds','trout','trout','halibut'].concat(d>=8?['silver','silver']:[]),type=pick(types);
+    const kind=r<.22&&(type==='reds')?'king':'trip';
+    const nr={reds:[2,6],silver:[2,5],trout:[2,4],halibut:[4,6]}[type],n=nr[0]+Math.floor(Math.random()*(nr[1]-nr[0]+1));
+    if(conflicts(d,type)) continue;
+    return {kind,d,type,n,who:p.who,from:p.from,res:!!p.res,quirk:Math.random()<.25?[pick(['drinker','nolicense','photo','kid'])]:[]};
+  }
+  return null;
+}
+function requestModal(r){
+  const who=`The <b>${r.who}</b> (${r.from}${r.res?', Alaska residents':''})`;
+  if(r.kind==='dipnet'){
+    modal('📞 Booking request',`<p>${who}, ${r.n} people, want you to take them <b>dipnetting at the mouth of the Kenai</b> on ${dlong(r.d)}. “We’ll pay whatever. We saw it on YouTube.”</p>`,[
+      {l:'Explain it’s Alaska residents only',s:'Offer a sockeye trip some other time.',fn:()=>{adj('rep',1);say('📞 You explain the personal-use dipnet fishery is for Alaska residents only. They’re disappointed but say they’ll book a sockeye trip next summer.')}},
+      {l:`Take them as your “guests” — ${$(150*r.n)}`,s:'Cash up front.',fn:()=>{money(150*r.n);S.stats.earned+=150*r.n;say('🥅 You pocket the cash and hand nonresidents dipnets on the beach.');violate(null,{p:.35,fine:500,what:'helping nonresidents in the personal-use fishery'})}}]);
+    return;
+  }
+  const T=TRIPS[r.type],price=T.gig?`day rate ${$(T.gig)}`:`${$(T.price)} × ${r.n} = ${$(T.price*r.n)}`;
+  const book=(n,q)=>{const b=addBooking({d:r.d,type:r.type,n,who:r.who,from:r.from,res:r.res,quirk:q||r.quirk});sfx('good');say(`📅 Booked: ${T.ic} ${T.n}, ${dlong(b.d)} at ${fmt(T.start)}, the ${b.who} (${b.n}).`)};
+  if(r.kind==='king'){
+    modal('📞 Booking request',`<p>${who}, ${r.n} anglers, ${dlong(r.d)}: “We want a <b>Kenai king</b>. A big one. Like the world record.”</p>`,[
+      {l:'Tell them straight: kings are closed',s:`Book a sockeye trip instead: ${$(TRIPS.reds.price*r.n)}.`,fn:()=>book(r.n,['kingfan'])},
+      {l:'Promise you’ll “see what we can do”',s:`Book it: ${$(TRIPS.reds.price*r.n)}.`,fn:()=>book(r.n,['kingfan','promised'])},
+      {l:'Decline politely',fn:()=>say('📞 You pass. They’ll find somebody.')}]);
+    return;
+  }
+  const o=[];
+  if(r.type==='trout'&&r.n>3) o.push({l:'Book 3 (drift boat seats three)',s:`${$(T.price*3)}. One of them stays at the lodge.`,fn:()=>book(3)});
+  else o.push({l:`Book it — ${T.gig?$(T.gig):$(T.price*r.n)}`,fn:()=>book(r.n)});
+  o.push({l:'Decline politely',fn:()=>say('📞 You pass on that one.')});
+  modal('📞 Booking request',`<p>${who} would like a <b>${T.ic} ${T.n}</b> on <b>${dlong(r.d)}</b> at ${fmt(T.start)} for <b>${r.n}</b>.</p><p style="font-size:13px;color:var(--mute)">${T.long} ${price}.</p>`,o);
+}
+
+// ---- dipnetting (you're an Alaska resident) ----
+function dipnetModal(){
+  const d=day(),n=clamp(Math.round(Math.random()*10+(S.run[d-1]||80000)/20000),2,25-S.freezer);
+  S.dipnet[d]=true;
+  modal('🥅 Dipnetting at the mouth',`<p>Three hours in chest waders at the mouth of the Kenai, a five-foot hoop net and a few hundred of your neighbors. You bonk <b>${n} reds</b>.</p><p style="font-size:13px;color:var(--mute)">Personal use is for Alaska residents only. Household limit: 25. Before you leave the beach, clip both tips of each fish’s tail and record it on your permit.</p>`,[
+    {l:'Clip both tail tips & record them on your permit',s:'10 more minutes.',fn:()=>{pass(190);S.freezer+=n;adj('energy',-10);say(`🥅 ${n} reds clipped, recorded and iced. Freezer: ${S.freezer}/25.`)}},
+    {l:'Skip the paperwork, beat the traffic',fn:()=>{pass(180);S.freezer+=n;adj('energy',-10);say(`🥅 You toss ${n} reds in the cooler and hit the road.`);violate(null,{p:.3,fine:150,minor:true,what:'unmarked, unrecorded personal-use salmon'})}}]);
+}
+
+// ---- enforcement: boat & credential checks ----
+function credCheck(){
+  const who=pick(['An Alaska Wildlife Trooper','A State Parks ranger','A pair of troopers in a patrol boat']);
+  let bad=false;
+  if(S.cred.fa<day()&&todays().length){bad=true;say(`👮 ${who} asks for your guide license, USCG card and first-aid card. The first-aid card is expired.`);cite('guiding without a current first-aid card',500,false,null)}
+  if(S.overdue>0){bad=true;say(`👮 ${who} flips through your ADF&G logbook and finds blank days.`);cite('logbook entries not filled out',250,true,null)}
+  if(!bad){S.stats.checks++;adj('rep',1);say(`👮 ${who} checks your licenses, decals, life jackets, fire extinguisher and logbook. “Clean boat. Have a good one.”`)}
+}
+
+// ---- random events ----
+defEvent({id:'call_request',hook:'wake',tile:['📞','Booking request','info'],chance:.5,cond:()=>day()<12,
+  run:()=>{const r=makeRequest();if(r)requestModal(r);else say('📞 A missed call from an unknown number. No voicemail.')}});
+defEvent({id:'trooper_check',hook:'arrive',tile:['👮','Boat check','warn'],chance:.22,bad:true,cooldown:2,cond:c=>['lower','cooper','homer'].includes(c.at),
+  run:()=>credCheck()});
+defEvent({id:'moose',hook:'travel',tile:['🫎','Moose on the highway','info'],chance:.1,cooldown:2,
+  run:()=>{pass(10);say('🫎 A cow moose and her calf amble across the Sterling Highway. Everybody stops. +10 minutes.')}});
+defEvent({id:'traffic',hook:'travel',tile:['🚗','Weekend traffic','bad'],chance:.4,cond:c=>[4,5].includes(day()%7)&&(['cooper','homer'].includes(c.to)||['cooper','homer'].includes(c.from)),
+  run:()=>{pass(20);say('🚗 Half of Anchorage is headed down the Sterling Highway with dipnets on the roof. +20 minutes.')}});
+defEvent({id:'flat',hook:'travel',tile:['🛞','Flat trailer tire','bad'],chance:.05,bad:true,max:2,
+  run:()=>{money(-60);S.stats.spent+=60;pass(30);say('🛞 A trailer tire lets go on the highway shoulder. Spare, jack, mosquitoes. −$60, +30 minutes.')}});
+defEvent({id:'midnight_sun',hook:'night',tile:['🌞','Midnight sun','bad'],chance:.15,cond:c=>c.where==='home',
+  run:()=>{adj('energy',-8);say('🌞 It’s 1 AM and still light enough to read. You stare at the ceiling. Energy −8.')}});
+defEvent({id:'mosquitoes',hook:'arrive',tile:['🦟','Mosquitoes','bad'],chance:.2,cond:c=>['cooper','kbeach'].includes(c.at),
+  run:()=>{adj('energy',-2);say('🦟 The state bird is out in force. You should’ve worn the head net.')}});
+defEvent({id:'cancel',hook:'wake',tile:['📵','Cancellation','bad'],chance:.08,bad:true,max:2,cond:()=>S.book.some(b=>b.d>day()&&b.status==='booked'),
+  run:()=>{const b=pick(S.book.filter(x=>x.d>day()&&x.status==='booked')),keep=Math.round(payOf(b)*.25);b.status='cancelled';S.stats.cancelled++;money(keep);S.stats.earned+=keep;
+    say(`📵 The ${b.who} cancel their ${dlabel(b.d)} ${TRIPS[b.type].n}: a missed connection in Seattle. You keep the ${$(keep)} deposit.`)}});
+defEvent({id:'gossip',hook:'arrive',tile:['🗣️','Guide gossip','info'],chance:.2,cond:c=>['shop','town'].includes(c.at),
+  run:()=>{S.skill++;say('🗣️ An old-timer guide leans on your tailgate. “'+pick(LORE)+'”')}});
+defEvent({id:'bear_bin',hook:'night',tile:['🐻','Bear in the bin','bad'],chance:.08,max:1,
+  run:()=>{money(-40);S.stats.spent+=40;say('🐻 A black bear tore open the fish-waste bin behind the shop. −$40 for a bear-proof lid. Lesson learned.')}});
+defEvent({id:'good_review',hook:'night',tile:['⭐','Five-star review','good'],chance:.5,cond:()=>S.book.some(b=>b.d===day()&&b.status==='done'&&b.res&&b.res.happy>=80),
+  run:()=>{adj('rep',3);say('⭐ A glowing review goes up: “Best day of our whole Alaska trip. Ask for {{name}}.”')}});
+
+// ---- tips ----
+const TIPS=[
+  {id:'welcome',when:()=>day()===0&&S.loc==='shop',t:'👋 Welcome, {{name}}! Monday is a shop day. Rig tomorrow’s gear, return calls, and check the <b>📅 Bookings</b> tab.'},
+  {id:'firstaid',when:()=>S.cred.fa<=2&&day()<=3,t:'⛑️ Your first-aid card expires <b>Wednesday night</b>. The class is in <b>Soldotna</b>, Tue & Thu 1–4 PM. Guiding without a current card can get you cited.'},
+  {id:'launch',when:()=>todays().some(b=>TRIPS[b.type].loc!==S.loc),t:'🛶 Trips launch from a set spot. Use <b>🧭 Go somewhere</b> and be there before the launch time.'},
+  {id:'logbook',when:()=>S.unlogged>0,t:'📓 Every guided trip needs an ADF&G logbook entry. Fill it out at the shop <b>before bed</b>.'},
+  {id:'gear',when:()=>S.gear<=1,t:'🪱 You’re low on tackle. Restock in <b>Soldotna</b>, or the next trip suffers.'},
+  {id:'sunmon',when:()=>isSunMon(day()),t:'🚫 No fishing from guide boats below Skilak today. The upper river, Homer and the dipnet beach are still open.'},
+  {id:'regs',when:()=>day()>=1,t:'📖 The <b>Regs</b> tab has your credentials, the sonar count and every rule you guide by.'},
+];
+
+// ---- To-do tab ----
+function todoItems(){
+  const d=day(),m=tod(),it=[];
+  S.book.filter(b=>b.d===d).forEach(b=>{const T=TRIPS[b.type];
+    it.push({l:`${T.ic} ${T.n}: ${b.who}`,s:`${fmt(T.start)}, ${L[T.loc].name}`,ok:b.status==='done',fail:b.status==='noshow'||b.status==='cancelled',urgent:b.status==='booked'&&m>=T.start-120})});
+  if(S.cred.fa<GAME.days) it.push({l:'Renew your first-aid card',s:'Soldotna clinic, Tue & Thu 1–4 PM, $95.',ok:false,urgent:S.cred.fa<=d});
+  it.push({l:'Keep your logbook current',s:S.unlogged+S.overdue?`${S.unlogged+S.overdue} trip${S.unlogged+S.overdue>1?'s':''} to write up.`:'All caught up.',ok:!(S.unlogged+S.overdue),urgent:S.overdue>0});
+  it.push({l:'Keep a clean record',s:`${S.cites} citation${S.cites===1?'':'s'}, ${S.warns} warning${S.warns===1?'':'s'}. Three citations and your permit is gone.`,ok:S.cites===0,urgent:S.cites>=2});
+  it.push({l:'Optional: fill the freezer with 25 dipnet reds',s:`${S.freezer}/25. Kenai City Beach, 6 AM–11 PM.`,ok:S.freezer>=25});
+  return it;
+}
+const RULES_HTML='<p>Make it to Sunday night, July 26. You lose if you get 3 citations (permit pulled), your reputation hits 0, or you fall $2,000 in debt.</p><p>Score: net cash + reputation ×15 + 60 per trip − 400 per citation + 5 per freezer fish, plus 300 for a season without a single violation.</p>';
+
+// ---- achievements ----
+const ACH=[
+  {id:'first_trip',ic:'🛶',n:'Off the Bank',d:'Finish your first guided trip.',test:()=>S.stats.trips>0},
+  {id:'clean_boat',ic:'🧼',n:'Clean Boat',d:'Finish both weeks without a single violation.',test:c=>c.end&&!c.lost&&S.stats.viol===0},
+  {id:'limit_out',ic:'🐟',n:'Limit Out',d:'Every client limits on a trip.',test:()=>S.stats.limits>0},
+  {id:'let_him_go',ic:'👑',n:'Let Him Go',d:'Release a king the right way: in the water.',test:()=>S.stats.kings>0},
+  {id:'stop_chop',ic:'🔪',n:'Stop, Chop & Throw',d:'Dispose of fish waste the bear-smart way.',test:()=>S.stats.chop>0},
+  {id:'freezer',ic:'🧊',n:'Full Freezer',d:'Dipnet 25 reds for your household.',test:()=>S.freezer>=25},
+  {id:'end_of_road',ic:'⚓',n:'End of the Road',d:'Captain the Homer halibut charter.',test:()=>S.stats.halibut>0||S.book.some(b=>b.type==='halibut'&&b.status==='done')},
+  {id:'five_star',ic:'⭐',n:'Five-Star Guide',d:'Reach 90 reputation.',test:()=>S.rep>=90},
+  {id:'combat_season',ic:'💪',n:'Combat Season',d:'Finish 12 trips.',test:()=>S.stats.trips>=12},
+  {id:'bear_aware',ic:'🐻',n:'Bear Aware',d:'Give a brown bear the gravel bar.',test:()=>S.stats.bear>0},
+];
+
+// ---- scoring and the end screen ----
+const FINISH_TEXT={h1:'{{name}}, that’s a wrap on July',sub:()=>'The late run is tapering off. Silvers are building, and the pinks show up in August.'};
+function scoreOf(){return Math.round((S.money-DF().money)+S.rep*15+S.stats.trips*60-S.cites*400+S.freezer*5+(S.stats.viol===0?300:0))}
+function gradeOf(sc){
+  if(sc>=16000) return ['A','Guide Master','Other guides watch where you anchor (legally).'];
+  if(sc>=12500)  return ['B','River Rat','You know every seam from Big Eddy to the Russian.'];
+  if(sc>=9000)  return ['C','Seasonal Hand','Booked, tired and still mostly dry.'];
+  if(sc>=5000)  return ['D','Greenhorn','You learned the regs the expensive way.'];
+  return ['F','Hang Up the Waders','Maybe the slime line is hiring.'];
+}
+function endRows(){
+  const s=S.stats;
+  return [['Cash',$(Math.round(S.money))],['Net for the season',$(Math.round(S.money-DF().money))],['Trips / clients',`${s.trips} / ${s.clients}`],
+    ['Fish landed',s.fish],['Trips where everyone limited',s.limits],['Tips',$(s.tips)],['Reputation',S.rep],
+    ['Record',`${S.cites} citation${S.cites===1?'':'s'}, ${S.warns} warning${S.warns===1?'':'s'}, ${$(s.fines)} in fines`],
+    ['Kings released',s.kings],['Freezer',`${S.freezer} reds`],['Boat checks passed',s.checks]];
+}
+
+// ---- save migrations ----
+const MIGRATIONS=[];
+// ============================================================
+//  GUIDE MASTER, part 3: running a trip.
+//  Enforcement (cite / violate), the trip runner (a chain of decision pop-ups),
+//  fishing spots and the dilemmas ("steps"). Rules follow the 2026 Kenai summary in regsView() (20-world.js).
+// ============================================================
+
+// ---- enforcement ----
+const COPS=['an Alaska Wildlife Trooper','a State Parks ranger in a jet sled','an ADF&G enforcement officer at the launch'];
+const NOAA='a NOAA Fisheries enforcement officer at the harbor';
+function cite(what,fine,minor,notes,who){
+  who=who||pick(COPS);let line;
+  if(minor&&S.warns<1){S.warns++;line=`⚠️ ${who} writes you a warning for ${what}.`}
+  else{S.cites++;money(-fine);S.stats.fines+=fine;adj('rep',-6);
+    line=`🚨 ${who} cites you for ${what}: ${$(fine)} fine. That’s citation ${S.cites} of 3 before State Parks pulls your Kenai River guide permit.`}
+  showTile('🚨',minor&&line.startsWith('⚠️')?'Warning':'Citation',what,'bad');
+  if(notes) notes.push(line); else say(line);
+}
+function violate(notes,{p,fine,what,minor,who}){
+  S.stats.viol++;
+  if(Math.random()<p*DF().bad){cite(what,fine,minor,notes,who);return true}
+  if(Math.random()<.3){adj('rep',-2);const l='👀 Another guide saw it. Word travels fast on the Kenai.';if(notes)notes.push(l);else say(l)}
+  return false;
+}
+
+// ---- spots ----
+const SPOTS={
+  reds:[
+    {l:'Slip into the seams below Big Eddy at first light',s:'Classic sockeye water. Elbow-to-elbow boats by eight.',q:.08,h:0},
+    {l:'Run up to the gravel bars near Swiftwater Park',s:'Less pressure, fewer fish, happier clients.',q:.02,h:3},
+    {l:'Drop them on the empty bank by the “Habitat restoration: closed to fishing” sign',s:'Nobody’s there, and the reds hug that bank.',q:.15,h:0,viol:{p:.4,fine:300,what:'fishing a bank closed to protect riparian habitat'}},
+    {l:'Use the public elevated walkway at Centennial',s:'Legal, easy footing, full-contact combat fishing.',q:0,h:4}],
+  silver:[
+    {l:'Back-troll single-hook plugs through the Pillars',s:'Slow and steady down the deep slots.',q:.06,h:0},
+    {l:'Drift spinners past Eagle Rock',s:'Early silvers stage in the soft water.',q:.04,h:0},
+    {l:'Work the Moose Range Meadows bend',s:'Pretty, quiet, a little thin on fish.',q:.02,h:2}],
+  trout:[
+    {l:'Beads below the Russian River confluence',s:'Rainbows stack behind spawning reds. So do anglers. So do bears.',q:.1,h:0,add:['flyonly','chop']},
+    {l:'Swing streamers through the Sportsman’s Landing riffles',s:'Fewer people, fun grabs.',q:.04,h:0},
+    {l:'Push on through to Skilak Lake',s:'Big water, big fish, and Skilak’s famous afternoon wind.',q:.12,h:0,risk:{p:.35,txt:'💨 The Skilak wind kicks up four-foot waves on the crossing. Everyone is soaked and nobody is smiling.',h:-10,boat:-10,energy:-8}}],
+  halibut:[
+    {l:'Fish the mouth of Kachemak Bay at slack tide',s:'Short run, easy ride. Cook Inlet tides rule everything.',q:.03,h:0},
+    {l:'Run to the flats off Anchor Point',s:'Solid “chicken” halibut and the odd barn door.',q:.06,h:0},
+    {l:'Make the long run toward the Barren Islands',s:'The big fish are out there. So is the weather.',q:.14,h:0,risk:{p:.3,txt:'🌊 A small-craft advisory comes up on the radio. Rips at the tide change, green water over the bow, four seasick clients.',h:-15,boat:-12,energy:0}}],
+};
+
+// ---- dilemmas ----
+// Each returns {t:title, b:body html, o:[{l, s, fn(b,t)}]}. After any option the runner moves to the next step.
+const O=(l,s,fn)=>({l,s,fn});
+const STEP={
+  issue_sunmon:(b)=>({t:`🚫 It’s ${dayName(b.d)}`,b:`<p>From May 1 to July 31, sport fishing from a guide vessel on the Kenai downstream of the Skilak Lake outlet is <b>closed on Sundays and Mondays</b>. The ${b.who} are standing at the launch anyway, rods in hand.</p>`,o:[
+    O('Call it off and refund them','Legal. Rep −4, no pay.',(b,t)=>{adj('rep',-4);t.abort=true;tripCancel(b,`🚫 You refund the ${b.who} and explain the rule. They grumble, but they get it.`)}),
+    O('Run it anyway. It’s one day.','Full pay if nobody notices.',(b,t)=>violate(t.notes,{p:.55,fine:750,what:'fishing from a guide vessel on a closed day'}))]}),
+  issue_overload:(b)=>{const mx=TRIPS[b.type].max;return {t:'👥 Too many for the boat',b:`<p>You booked ${b.n}. In July, below Skilak, a guide boat may hold no more than <b>5 people while fishing, guide included</b>${b.type==='reds'?', and you can carry 5 clients plus yourself only if they all fish from shore':''}. KRSMA caps any motorboat at 6 aboard.</p>`,o:[
+    O('Leave the extras fishing from shore at Centennial','Legal. They’re less thrilled.',(b,t)=>{t.happy-=6;t.notes.push(`🏞️ ${b.n-mx} of the ${b.who} fish the Centennial walkway instead.`)}),
+    O(`Refund the extras and take ${mx}`,'Legal. Less pay.',(b,t)=>{t.happy-=3;b.n=mx;t.notes.push(`💵 You refund the extra anglers and run with ${mx}.`)}),
+    O('Squeeze everyone in','Full pay, a very full boat.',(b,t)=>violate(t.notes,{p:.4,fine:400,what:'too many people in a guide boat'}))]}},
+  five:(b)=>({t:'👥 Five clients in July',b:'<p>Below Skilak in July you may carry 5 clients plus yourself <b>only to fish from shore</b>. Fishing from the boat, the limit is 5 people including you.</p>',o:[
+    O('Everyone fishes from the bank','Legal. A little slower.',(b,t)=>{t.shore=true;t.q-=.03;t.notes.push('🏞️ You ferry all five to a gravel bar and they flip from shore.')}),
+    O('Let them fish from the boat on the drift','Better catch.',(b,t)=>{t.q+=.05;violate(t.notes,{p:.35,fine:400,what:'too many people fishing from a guide vessel in July',minor:true})})]}),
+  license:(b)=>({t:'🪪 Somebody forgot a license',b:`<p>One of the ${b.who} never bought an Alaska sport fishing license. Every angler 16 and older needs one, and it goes in your logbook.</p>`,o:[
+    O('Have him buy one on his phone','ADF&G online store. 20 minutes at the launch.',(b,t)=>{t.happy-=2;t.notes.push('📱 License bought at the launch, number written in your logbook.')}),
+    O('He can ride along but not fish','Legal. He sulks.',(b,t)=>{t.nofish++;t.happy-=8}),
+    O('Let it slide. Who’s checking?','Everybody fishes.',(b,t)=>violate(t.notes,{p:.3,fine:300,what:'guiding an unlicensed angler'}))]}),
+  expired:(b)=>({t:'⛑️ Your first-aid card expired',b:'<p>A current first-aid and CPR certification is a condition of your guide license. As of today yours is expired.</p>',o:[
+    O('Cancel and refund','Legal. Rep −6.',(b,t)=>{adj('rep',-6);t.abort=true;tripCancel(b,`⛑️ You cancel on the ${b.who}. Get to the Tuesday/Thursday class in Soldotna.`)}),
+    O('Run it anyway','Hope nobody asks for your card.',(b,t)=>violate(t.notes,{p:.3,fine:500,what:'guiding without a current first-aid certification'}))]}),
+  spot:(b)=>{const T=TRIPS[b.type];return {t:`${T.ic} Where to, Captain?`,b:`<p>${T.long}</p><p>The ${b.who} are rigged and ready. Where do you take them?</p>`,o:SPOTS[b.type].map(sp=>O(sp.l,sp.s,(b,t)=>{
+    t.q+=sp.q;t.happy+=sp.h||0;t.notes.push(`📍 ${sp.l}.`);
+    if(sp.viol) violate(t.notes,sp.viol);
+    if(sp.risk&&Math.random()<sp.risk.p){t.notes.push(sp.risk.txt);t.happy+=sp.risk.h;adj('boat',sp.risk.boat||0);adj('energy',sp.risk.energy||0)}
+    if(sp.add) t.steps.splice(t.step+1,0,...sp.add.filter(x=>!t.steps.includes(x)));}))}},
+  beer:(b)=>({t:'🍺 Cooler’s open',b:`<p>It’s barely 7 AM and the ${b.who} crack the cooler. “Have one, Captain {{name}}!”</p>`,o:[
+    O('Politely decline: you’re running the boat','Legal.',()=>{}),
+    O('Ask them to keep it closed till we’re off the water','Safer boat, quieter clients.',(b,t)=>{t.happy-=4}),
+    O('Have just one, to be social','They love you for it.',(b,t)=>{t.happy+=4;violate(t.notes,{p:.25,fine:1000,what:'operating a vessel after drinking (BUI)'})})]}),
+  king:(b)=>({t:'👑 Fish on. A big one.',b:`<p>A chrome king, easily 50 pounds, rolls beside the boat on a sockeye rig. Kenai kings are <b>closed in 2026 by emergency order</b>, catch-and-release included. Accidentally hooked, it must be released right away without lifting it from the water.</p><p>Somewhere, Les Anderson’s 97-pounder is smiling.</p>`,o:[
+    O('Release it without lifting it from the water','Legal. A story they’ll tell forever.',(b,t)=>{t.happy+=3;S.stats.kings++;t.notes.push('👑 You slip the hook with the king still in the water. It holds a second, then melts into the current.')}),
+    O('Lift it for one quick photo','The photo of a lifetime.',(b,t)=>{t.happy+=8;violate(t.notes,{p:.3,fine:300,what:'removing a king salmon from the water during the closure',minor:true})}),
+    O('Bonk it. Once in a lifetime.','They’d pay double.',(b,t)=>{t.happy+=10;adj('rep',-8);t.kept++;t.notes.push('📵 Every boat on the drift watched you net that king.');violate(t.notes,{p:.6,fine:1500,what:'keeping a king salmon during the closure'})})]}),
+  snag:(b)=>({t:'🪝 Hooked in the back',b:'<p>A sockeye comes in hooked by the dorsal fin. “It counts, right?” In fresh water, a fish hooked anywhere but the mouth must be released immediately.</p>',o:[
+    O('Release it','Legal.',(b,t)=>{t.happy-=1}),
+    O('Keep it. Close enough.','One more for the cooler.',(b,t)=>{t.kept++;violate(t.notes,{p:.25,fine:200,what:'keeping a foul-hooked sockeye',minor:true})})]}),
+  over:(b)=>({t:'🐟 Limited out, wants more',b:`<p>One of the ${b.who} has his ${S.limit} reds and wants to keep catching “for his wife back home.” Bag limits are per person, and nobody can catch someone else’s.</p>`,o:[
+    O('He’s done keeping fish','Legal.',(b,t)=>{t.happy-=2}),
+    O('Keep a few extra for his wife','Happy client.',(b,t)=>{t.kept+=2;t.happy+=3;violate(t.notes,{p:.3,fine:400,what:'exceeding the bag limit'})})]}),
+  guide_fish:(b)=>({t:'🎣 “Show us how it’s done!”',b:'<p>Slow stretch. The clients want you to grab a rod. A guide may not sport fish while clients are present.</p>',o:[
+    O('Coach them from the oars','Legal. You get better at teaching.',(b,t)=>{S.skill++;t.notes.push('🧑‍🏫 You fix their drift and their hooksets. Next pass, two fish on.')}),
+    O('Fish a rod yourself for a bit','You’re better at this than they are.',(b,t)=>{t.q+=.06;violate(t.notes,{p:.25,fine:250,what:'sport fishing while guiding clients',minor:true})})]}),
+  extra_rod:(b)=>({t:'🎣 “Can we run extra rods?”',b:'<p>The clients want a couple of extra plugs out to cover more water. The rods in the water may not outnumber the clients aboard.</p>',o:[
+    O('One rod per client','Legal.',()=>{}),
+    O('Put out two extra rods','More water covered.',(b,t)=>{t.q+=.05;violate(t.notes,{p:.3,fine:250,what:'more rods than clients on a guide vessel',minor:true})})]}),
+  bait:(b)=>({t:'🥚 The silvers won’t commit',b:'<p>Fish are rolling, but they’re sniffing your lures and turning away. The boat next to you is back-bouncing cured roe. Below Skilak, through Aug 15, the emergency order allows <b>one unbaited, single-hook, artificial lure</b>.</p>',o:[
+    O('Stick with single-hook lures','Legal. Patience.',()=>{}),
+    O('Switch to cured roe','Silvers love eggs.',(b,t)=>{t.q+=.12;violate(t.notes,{p:.35,fine:300,what:'using bait under the emergency order'})}),
+    O('Tie on a treble-hook spinner','More hookups.',(b,t)=>{t.q+=.06;violate(t.notes,{p:.25,fine:200,what:'fishing a treble hook under the emergency order',minor:true})})]}),
+  sixpm:(b)=>({t:'🕕 5:40 PM, and the bite turns on',b:'<p>The tide pushes in fresh silvers and every rod bends at once. Guide-vessel fishing below Skilak is <b>6 AM to 6 PM</b> only through July 31.</p>',o:[
+    O('Lines up at 6:00 sharp','Legal. Groans all around.',(b,t)=>{t.happy-=3}),
+    O('Fish till 6:30','Ride the bite.',(b,t)=>{t.q+=.1;violate(t.notes,{p:.4,fine:400,what:'guide-vessel fishing after 6 PM'})})]}),
+  motor:(b)=>({t:'⚙️ The jet sucks up gravel',b:'<p>The jet intake grabs a mouthful of rocks on a shallow bar and the motor starts to cavitate.</p>',o:[
+    O('Beach it and clear the intake','30 minutes lost.',(b,t)=>{t.q-=.04;adj('boat',-5)}),
+    O('Limp on','The impeller will hate you.',()=>{adj('boat',-15)})]}),
+  anchor:(b)=>({t:'⚓ The best seam',b:'<p>The fish are holding right in the middle of the drift channel. KRSMA rules: don’t anchor in a way that blocks the primary traffic or drift-fishing channel.</p>',o:[
+    O('Anchor on the edge of the seam','Legal.',()=>{}),
+    O('Drop anchor mid-channel','Right on the fish. Drift boats must go around.',(b,t)=>{t.q+=.05;violate(t.notes,{p:.3,fine:200,what:'anchoring in the drift channel',minor:true})})]}),
+  combat:(b)=>({t:'🥊 Combat fishing',b:'<p>A bank angler wades in right below your clients (“low-holing”) and tangles three lines at once.</p>',o:[
+    O('Share the water and untangle with a smile','The Kenai is everybody’s river.',(b,t)=>{t.happy+=2;adj('rep',1)}),
+    O('Tell him off','Satisfying for about ten seconds.',(b,t)=>{adj('rep',-3);t.notes.push('📱 Someone filmed it. It’s on a Kenai fishing forum by lunch.')})]}),
+  photo:(b)=>({t:'🌈 A 26-inch leopard rainbow',b:'<p>The fish of the trip. Upper Kenai rainbows are catch-and-release, and they’re best kept wet.</p>',o:[
+    O('Photo with the fish in the water','Legal, and the right way.',(b,t)=>{t.happy+=6}),
+    O('Drag it up on the gravel for a hero shot','Better light.',(b,t)=>{t.happy+=7;if(Math.random()<.3){adj('rep',-4);t.notes.push('📸 The gravel-bar photo gets shared, and the comments are brutal.')}})]}),
+  bear:(b)=>({t:'🐻 Sow and two cubs',b:'<p>A brown bear sow and two cubs are working a sockeye carcass on the gravel bar ahead. Bear spray is on your hip.</p>',o:[
+    O('Give them the bar and wait','40 minutes. Unforgettable.',(b,t)=>{t.q-=.04;t.happy+=3;S.stats.bear++;t.notes.push('🐻 You hold in an eddy and watch the cubs wrestle. Nobody speaks for ten minutes.')}),
+    O('Drift past quietly mid-river','Calm and wide.',()=>{}),
+    O('Beach close for photos','Closer is better, right?',(b,t)=>{if(Math.random()<.35){t.happy-=15;adj('rep',-5);adj('energy',-10);t.notes.push('🐻 The sow bluff-charges to the water’s edge. You row hard. Someone cries.')}else t.happy+=4})]}),
+  flyonly:(b)=>({t:'🪰 Fly-fishing only',b:'<p>At the Russian River confluence one client wants to throw a spinner. This water is <b>fly-fishing only, June 11 to August 20</b>.</p>',o:[
+    O('Hand him a fly rod','Legal.',()=>{}),
+    O('Let him spin','He’s paying.',(b,t)=>violate(t.notes,{p:.3,fine:150,what:'spin fishing in fly-only water',minor:true}))]}),
+  chop:(b)=>({t:'🔪 Cleaning the reds',b:'<p>The clients kept a few reds at the confluence. Carcasses draw bears to the bank. Take fish out whole, or fillet at the cleaning tables and <b>stop, chop and throw</b> the carcasses into deep, fast water.</p>',o:[
+    O('Stop, chop and throw','Legal, bear-smart.',()=>{S.stats.chop++}),
+    O('Leave the carcasses on the bank','Saves 20 minutes.',(b,t)=>{adj('rep',-3);violate(t.notes,{p:.3,fine:200,what:'leaving fish waste on the bank',minor:true})})]}),
+  tuewed:(b)=>({t:`⚓ It’s ${dayName(b.d)}`,b:'<p>In Area 3A this summer, charter anglers <b>can’t keep halibut on Tuesdays or Wednesdays</b> (June 2–August 25). The clients flew in for halibut.</p>',o:[
+    O('Target lingcod and rockfish, release the halibut','Legal. Disappointed faces.',(b,t)=>{t.happy-=8}),
+    O('Keep a couple of halibut anyway','Coolers full.',(b,t)=>{t.happy+=6;t.kept+=2;violate(t.notes,{p:.45,fine:1500,what:'keeping halibut on a closed charter day',who:NOAA})})]}),
+  size27:(b)=>({t:'📏 The second fish',b:'<p>A client’s second halibut tapes 34 inches. Charter rules: one fish of any size, and <b>the second must be 27 inches or less</b>.</p>',o:[
+    O('Release it','Legal.',(b,t)=>{t.happy-=2}),
+    O('Keep it','It’s only 7 inches.',(b,t)=>{t.kept++;violate(t.notes,{p:.35,fine:800,what:'keeping an oversize second halibut',who:NOAA})})]}),
+  crew:(b)=>({t:'🧑‍✈️ The deckhand’s request',b:'<p>Your deckhand wants to keep a halibut for his freezer. On a charter, the captain and crew don’t keep halibut.</p>',o:[
+    O('No','Legal.',()=>{}),
+    O('Sure, one fish','Keeps the crew happy.',(b,t)=>violate(t.notes,{p:.25,fine:500,what:'crew retaining halibut on a charter',minor:true,who:NOAA}))]}),
+};
+const POOL={reds:['king','snag','over','guide_fish','anchor','combat','motor'],silver:['bait','king','extra_rod','guide_fish','motor'],trout:['bear','photo','combat','guide_fish'],halibut:['size27','crew']};
+
+// ---- the runner ----
+function tripStart(b){
+  const T=TRIPS[b.type],late=Math.max(0,tod()-T.start),t={id:b.id,late,q:0,happy:0,notes:[],step:0,steps:[],shore:false,nofish:0,kept:0,abort:false};
+  if(late){t.happy-=late/3;t.notes.push(`⏰ You rolled in ${late} minutes late. The ${b.who} noticed.`)}
+  const iss=issueOf(b);if(iss) t.steps.push('issue_'+iss);
+  if(b.type==='reds'&&b.n===5) t.steps.push('five');
+  if(b.quirk.includes('nolicense')) t.steps.push('license');
+  if(S.cred.fa<day()) t.steps.push('expired');
+  t.steps.push('spot');
+  const want=S.diff==='hard'?3:2,beats=[],q=b.quirk;
+  if(q.includes('drinker')) beats.push('beer');
+  if(q.includes('kingfan')&&(b.type==='reds'||b.type==='silver')) beats.push('king');
+  if(q.includes('photo')&&b.type==='trout') beats.push('photo');
+  if(b.type==='halibut'&&isTueWed(b.d)) beats.push('tuewed');
+  if(S.boat<25&&TRIPS[b.type].fuel){beats.push('motor');t.q-=.08;t.notes.push('🔧 The neglected jet sled runs rough all day. Service the boats at the shop.')}
+  if(q.includes('promised')){t.happy-=15;t.notes.push('👑 They were “promised” a shot at a king. There was never going to be one: the fishery is closed.')}
+  const pool=POOL[b.type].filter(x=>!beats.includes(x)&&!(x==='size27'&&isTueWed(b.d)));
+  while(beats.length<want&&pool.length) beats.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]);
+  t.steps.push(...beats.slice(0,Math.max(want,beats.length)));
+  if(b.type==='silver') t.steps.push('sixpm');
+  S.trip=t;sfx('whoosh');tripNext();
+}
+function tripNext(){
+  const t=S.trip;if(!t) return;
+  const b=bk(t.id);if(!b||b.status!=='booked'){S.trip=null;return}
+  if(t.step>=t.steps.length) return tripEnd(b,t);
+  const f=STEP[t.steps[t.step]];if(!f){t.step++;return tripNext()}
+  const v=f(b,t),T=TRIPS[b.type];
+  modal(v.t,`<p class="small-note" style="color:var(--mute);margin:0 0 6px">${T.ic} ${T.n} · ${b.who}</p>${v.b}`,v.o.map(o=>({l:o.l,s:o.s,fn:()=>{
+    const tt=S.trip;if(!tt) return;const bb=bk(tt.id);if(!bb) {S.trip=null;return}
+    o.fn&&o.fn(bb,tt);
+    if(S.trip&&!tt.abort){tt.step++;tripNext()}}})));
+}
+function tripCancel(b,note){b.status='cancelled';S.stats.cancelled++;S.trip=null;if(note)say(note)}
+function tripEnd(b,t){
+  const T=TRIPS[b.type],d=day(),r=Math.random;
+  let q=.5+t.q+runFactor(b.type)+(WX[S.wx[d]||'sun']||WX.sun).q+(S.prep===d?.08:0)+(S.scout>=d-1&&T.loc==='lower'?.05:0)
+    +(S.gear>0?0:-.15)+(S.boat<40?-.1:0)+(S.energy<30?-.1:0)+Math.min(.1,S.skill*.01)+(r()-.5)*.24;
+  q=clamp(q,.05,1);
+  const fishers=Math.max(0,b.n-t.nofish);let fish=0,frac=0,line='',limits=0;
+  if(b.type==='reds'||b.type==='silver'){
+    const lim=b.type==='reds'?S.limit:2,nm=b.type==='reds'?'red':'silver';
+    for(let i=0;i<fishers;i++){const c=clamp(Math.round(lim*q+(r()-.5)*1.6),0,lim);fish+=c;if(c===lim)limits++}
+    frac=fishers?fish/(lim*fishers):0;
+    if(fishers&&limits===fishers){S.stats.limits++;t.happy+=5}
+    line=`${fish} ${nm}${fish===1?'':'s'}${limits?`, ${limits} limit${limits>1?'s':''}`:''}`;
+  }else if(b.type==='trout'){
+    fish=Math.round(fishers*(2+q*8));frac=q;line=`${fish} trout landed & released`;
+  }else{
+    frac=q;
+    if(isTueWed(b.d)){const rk=Math.round(fishers*(1+q*3));line=`${rk} rockfish & lingcod, halibut released`}
+    else{for(let i=0;i<fishers;i++)fish+=clamp(Math.round(2*q+(r()-.5)*1.2),0,2);S.stats.halibut+=fish;line=`${fish} halibut`}
+  }
+  fish+=t.kept;
+  const happy=45+frac*45+t.happy,dRep=clamp(Math.round((happy-60)/5),-12,10);
+  const pay=payOf(b),base=T.gig?1200:pay,tip=Math.round(base*clamp((happy-50)/250,0,.2));
+  const costs=T.fuel+(T.loc==='lower'?10:0);
+  S.gear=Math.max(0,S.gear-1);
+  pass(T.len);adj('energy',-T.energy);adj('boat',-(3+Math.floor(r()*4)));adj('rep',dRep);
+  money(pay+tip-costs);
+  const st=S.stats;st.trips++;st.clients+=b.n;st.fish+=fish;st.earned+=pay;st.tips+=tip;st.spent+=costs;
+  S.unlogged++;S.skill++;
+  b.status='done';b.res={happy:Math.round(happy),fish,line};S.trip=null;
+  say(`${T.ic} ${T.n} with the ${b.who}: ${line}. Paid ${$(pay)} + ${$(tip)} tip.`);
+  const mood=happy>=75?'😁 They’re already asking about next July.':happy>=55?'🙂 Solid day. Handshakes at the trailer.':happy>=40?'😐 Polite thanks, small tip.':'😠 Tight-lipped goodbyes. Expect a rough review online.';
+  modal(`${T.ic} Back at the dock`,`${t.notes.map(n=>`<p>${n}</p>`).join('')}
+    <p><b>Catch:</b> ${line}${t.kept?` (${t.kept} kept on the sly)`:''}</p>
+    <p><b>Pay:</b> ${$(pay)}${T.gig?' day rate':''} · <b>Tip:</b> ${$(tip)} · <b>Costs:</b> ${$(costs)}</p>
+    <p>${mood} Rep ${dRep>=0?'+':'−'}${Math.abs(dRep)}.</p>
+    <p style="font-size:13px;color:var(--mute)">📓 Log it in your ADF&amp;G logbook before bed.</p>`,[{l:'Head in',fn:()=>{}}]);
+  sfx(happy>=50?'good':'bad');
+}
+// ---------------- boot ----------------
+applyPrefs();
+titleScreen();
+</script>
+</body>
+</html>

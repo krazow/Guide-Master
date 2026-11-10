@@ -1,0 +1,50 @@
+// ---------------- bottom-sheet modal ----------------
+// modal(title, bodyHtml, [{l:'Label', s:'subtitle', fn:()=>{}, dis:false}, …])
+// The first enabled button is highlighted. Modals opened while one is showing are queued and shown in order.
+// After any button, the game re-renders (unless you're on the title or end screen).
+let MB=[], MQ=[];
+function modal(title,body,btns,noClose){
+  if(document.getElementById('mbg')){MQ.push([title,body,btns,noClose]);return}
+  MB=btns;
+  const el=document.createElement('div');el.className='modal-bg';el.id='mbg';
+  el.innerHTML=withName(`<div class="modal" role="dialog" aria-modal="true" aria-label="${esc(title.replace(/<[^>]+>/g,''))}"><h2>${title}</h2><div class="mb">${body}</div>${btns.map((b,i)=>`<button class="act ${i===0&&!b.dis?'primary':''}" ${b.dis?'disabled':''} onclick="MBTN(${i})"><span class="tx"><b>${b.l}</b>${b.s?'<span>'+b.s+'</span>':''}</span></button>`).join('')}</div>`);
+  document.body.appendChild(el);
+  setTimeout(()=>{const b=el.querySelector('button.act:not([disabled])');if(b&&!el.querySelector('input,textarea'))b.focus({preventScroll:true})},30);
+}
+window.MBTN=i=>{if(MB[i]&&MB[i].dis)return;const el=document.getElementById('mbg');el&&el.remove();const f=MB[i]&&MB[i].fn;f&&f();
+  if(!document.getElementById('mbg')&&MQ.length&&S&&!S.over){const q=MQ.shift();modal(...q)}
+  if(S&&!S.over&&!document.querySelector('.title,.end'))render()};
+function closeModals(){MQ=[];document.querySelectorAll('.modal-bg').forEach(e=>e.remove())}
+
+// ---------------- full-screen transition ----------------
+// transition('🚌','Off to work','20 minutes', done)  plays a short animation, then calls done().
+// Tap to skip. Reduce-motion shortens it.
+function transition(ic,cap,cap2,done,snd){
+  const el=document.createElement('div');el.className='cross';el.tabIndex=0;sfx(snd||'whoosh');
+  el.innerHTML=`<svg viewBox="0 0 480 260" aria-hidden="true"><rect width="480" height="260" fill="none"/><path d="M0 200 h480 M0 222 h480" stroke="#fff" stroke-opacity=".1"/>
+    <text class="bob" x="240" y="150" text-anchor="middle" font-size="84">${ic}</text></svg>
+    <div class="cap">${withName(cap)}</div><div class="cap2">${withName(cap2||'')}</div><div class="cap2" style="margin-top:18px">tap to skip</div>`;
+  document.body.appendChild(el);el.focus();
+  let fin=false;const end=()=>{if(fin)return;fin=true;el.remove();done&&done()};
+  el.onclick=end;el.onkeydown=e=>{if(e.key==='Escape'||e.key==='Enter'||e.key===' '){e.preventDefault();end()}};
+  setTimeout(end,prefs().rm?700:2200);
+}
+
+// ---------------- event tiles (toasts at the top) ----------------
+// showTile('🎉','Found $20','On the way to the park','good')   kind: good | bad | warn | info
+let tileQ=[];const TILE_MAX=3;
+function tileBox(){let el=document.getElementById('tiles');if(!el){el=document.createElement('div');el.id='tiles';el.setAttribute('role','status');el.setAttribute('aria-live','polite');document.body.appendChild(el)}return el}
+function showTile(ic,title,sub,kind,when){
+  if(!S||S.over) return;
+  when=when||`${dayName(day()).slice(0,3)} ${fmt(S.t)}`;
+  const box=tileBox();
+  if(box.children.length>=TILE_MAX){tileQ.push([ic,title,sub,kind,when]);return}
+  const t=document.createElement('div');t.className='tile '+(kind||'info');
+  title=withName(title);sub=withName(sub);sfx(kind==='good'?'good':kind==='bad'?'bad':'info');
+  t.innerHTML=`<span class="ti">${ic}</span><span class="tt"><small>${{good:'Good news',bad:'Event',warn:'Heads up'}[kind]||'Update'} · ${when}</small><b>${title}</b>${sub?`<span>${sub}</span>`:''}</span><button class="ok" aria-label="Got it">✓</button>`;
+  let gone=false;const close=()=>{if(gone)return;gone=true;t.classList.add('out');setTimeout(()=>{t.remove();if(tileQ.length){const q=tileQ.shift();showTile(...q)}},260)};
+  t.querySelector('.ok').onclick=close;t.onclick=e=>{if(e.target===t)close()};
+  setTimeout(close,6500);box.appendChild(t);
+}
+function clearTiles(){tileQ=[];document.querySelectorAll('#tiles .tile').forEach(t=>t.remove())}
+window.showTile=showTile;
