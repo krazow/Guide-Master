@@ -7,13 +7,14 @@ function gameOver(why){S.over=true;clearTiles();closeModals();sfx('bad');
   const T=LOSSES[why]||['Game over','It’s over.'];endScreen(T[0],T[1],true)}
 function endScreen(h1,sub,lost){
   achCheck({end:true,lost});const achNew=(S.achGame||[]).map(id=>ACH.find(a=>a.id===id)).filter(Boolean);
-  const sc=Math.round(scoreOf()),g=lost?['F',h1,sub]:gradeOf(sc);
+  const sc=Math.round(scoreOf()),g=lost?['F','Hang Up the Waders','A career that ends early is always an F.']:gradeOf(sc);
   saveGame(); // S.over is set, so this deletes the save
   let best=null,newBest=false;const ls=store();
   try{const b=ls?Number(ls.getItem(BEST_KEY)||'NaN'):NaN;best=isNaN(b)?null:b;if(!lost&&(best==null||sc>best)){ls&&ls.setItem(BEST_KEY,String(sc));newBest=true}}catch(e){}
   app.innerHTML=withName(`<div class="end"><div style="display:flex;justify-content:space-between;align-items:center"><div class="small-note" style="color:var(--mute)">${lost?'GAME OVER':'COMPLETE'} · {{name}}</div><button class="gear" style="background:var(--surface);color:var(--ink)" onclick="openSettings()" aria-label="Settings">⚙️</button></div><h1>${h1}</h1><p>${sub}</p>
   <div style="display:flex;gap:16px;align-items:center;margin:16px 0"><div class="grade">${g[0]}</div><div><b style="font-family:Fraunces;font-size:20px">${g[1]}</b><div style="color:var(--mute);font-size:14px">${g[2]}</div></div></div>
-  <div class="kv"><span>Score</span><b>${sc}${newBest?' 🏆 new best':''}</b></div>${best!=null?`<div class="kv"><span>Previous best</span><b>${best}</b></div>`:''}
+  <div class="kv"><span>Score</span><b>${grp(sc)}${newBest?' 🏆 new best':''}</b></div>${best!=null?`<div class="kv"><span>Previous best</span><b>${grp(best)}</b></div>`:''}
+  ${typeof scoreParts==='function'?`<div class="sect" style="margin-top:14px">How the score adds up</div>${scoreParts().map(([k,v,n])=>`<div class="kv"><span>${k}<small style="display:block;color:var(--mute);font-weight:400">${n}</small></span><b>${v<0?'−':''}${grp(Math.abs(v))}</b></div>`).join('')}<div class="kv"><span><b>Total</b></span><b>${grp(sc)}</b></div><div class="sect" style="margin-top:14px">Your career</div>`:''}
   <div class="kv"><span>🏆 Achievements this game</span><b style="text-align:right">${achNew.length?achNew.map(a=>a.ic+' '+a.n).join(', '):'none new'}</b></div>
   ${endRows().map(([k,v])=>`<div class="kv"><span>${k}</span><b>${v}</b></div>`).join('')}
   <button class="big" style="width:100%;margin-top:22px" onclick="startNewGame()">Play again</button><button class="act" style="margin-top:10px;justify-content:center" onclick="titleScreen()"><span class="tx" style="text-align:center"><b>Back to title</b></span></button></div>`);

@@ -121,4 +121,50 @@ module.exports = [
     assert.strictEqual(r.lost, 30, 'the “30 minutes lost” option loses 30 minutes');
     noErrors(errors);
   } },
+
+  // ---- 4. end screen, money and the off-season ----
+  { name: 'money: one formatter with thousands separators', fn: async ctx => {
+    const { page, errors } = await open(ctx);
+    await newGame(page);
+    const r = await page.evaluate(() => [$(47975), $(-1200), $(950), $(6.19), $(1234567.5), $(0), grp(66000), $k(48250), $k(9850), $k(-120000)]);
+    assert.deepStrictEqual(r, ['$47,975', '−$1,200', '$950', '$6.19', '$1,234,567.50', '$0', '66,000', '$48k', '$9,850', '−$120k']);
+    const hud = await page.evaluate(() => { S.money = 47975; render(); return document.querySelector('.stats').textContent });
+    assert.ok(/\$48k/.test(hud) || /\$47,975/.test(hud));
+    noErrors(errors);
+  } },
+  { name: 'end screen: score breakdown adds up, labels real vs estimated trips, no duplicate headline on a loss', fn: async ctx => {
+    const { page, errors } = await open(ctx, { seed: 11 });
+    await page.evaluate(() => setPref('years', 2));
+    await newGame(page);
+    const r = await page.evaluate(() => {
+      const o = {}; S.stats.trips = 7; S.stats.viol = 0; S.money = 61975; S.rep = 80; S.up.value = 12500; S.freezer = 5;
+      const parts = scoreParts(); o.sum = parts.reduce((a, p) => a + p[1], 0); o.score = scoreOf(); o.labels = parts.map(p => p[0]);
+      finish(); const t = document.querySelector('.end').innerText; o.win = t; o.rows = document.querySelectorAll('.end .kv').length;
+      return o;
+    });
+    assert.strictEqual(r.sum, r.score);
+    for (const l of ['Net cash', 'Rest of this summer', 'Boats & permits', 'Reputation', 'Trips', 'Citations', 'Clean record bonus']) assert.ok(r.labels.includes(l), l);
+    assert.ok(/how the score adds up/i.test(r.win) && /Total/.test(r.win) && /July trips played/.test(r.win), r.win);
+    assert.ok(/\d,\d{3}/.test(r.win), 'separators on the end screen');
+    // a loss: the headline appears once, with a distinct grade line
+    await newGame(page);
+    const l = await page.evaluate(() => { S.cites = 3; gameOver('permit'); return document.querySelector('.end').innerText });
+    assert.strictEqual((l.match(/Permit pulled/g) || []).length, 1, l);
+    assert.strictEqual((l.match(/Three citations\. Alaska State Parks/g) || []).length, 1, l);
+    assert.ok(/F\s*\n?.*Hang Up the Waders/s.test(l));
+    noErrors(errors);
+  } },
+  { name: 'off-season: shorter modal, real July trips and estimated rest-of-summer are labeled', fn: async ctx => {
+    const { page, errors } = await open(ctx, { seed: 4 });
+    await page.evaluate(() => setPref('years', 5));
+    await newGame(page);
+    const r = await page.evaluate(() => new Promise(res => {
+      S.stats.trips = 18; S.stats.earned = 20000; S.stats.tips = 3000; S.cur = 13; S.t = 13 * 1440 + 1300; closeModals();
+      startSeason(1); setTimeout(() => { const m = document.getElementById('mbg'); res(m ? m.querySelector('.mb').innerText : 'none') }, 50);
+    }));
+    assert.ok(/18 July trips/.test(r) && /estimated, not played/.test(r), r);
+    assert.ok(/Winter bills \$[\d,]+/.test(r) && !/Total:/.test(r), r);
+    assert.ok(r.length < 900, 'tighter text: ' + r.length);
+    noErrors(errors);
+  } },
 ];

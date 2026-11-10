@@ -317,7 +317,10 @@ function say(s){uiNarr.push(s);S.log.push({t:S.t,s})}              // narrate + 
 function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
 function adj(k,v,lo=0,hi=100){S[k]=clamp(Math.round(S[k]+v),lo,hi)} // nudge a 0–100 stat
 function money(v){S.money=Math.round((S.money+v)*100)/100}
-const $=x=>(x<0?'−':'')+'$'+(Math.round(Math.abs(x)*100)/100).toFixed(x%1?2:0);
+// Numbers with thousands separators; $() is the one money formatter (cents only when there are some): $47,975, −$1,200, $6.19.
+const grp=n=>String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+const $=x=>{const f=(Math.round(Math.abs(x)*100)/100).toFixed(x%1?2:0).split('.');f[0]=grp(+f[0]);return (x<0?'−':'')+'$'+f.join('.')};
+const $k=x=>Math.abs(x)>=10000?(x<0?'−':'')+'$'+Math.round(Math.abs(x)/1000)+'k':$(x);   // compact money for tight spots (the top bar): $48k
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 function isOpen(id,t=S.t){const h=L[id].hours;if(!h)return true;const r=h(Math.floor(t/1440));if(!r)return false;const m=t%1440;return m>=r[0]&&m<r[1]}
 function hoursTxt(id){const h=L[id].hours;if(!h)return '';const r=h(day());return r?`Open ${fmt(r[0])}–${fmt(r[1])}`:'Closed today'}
@@ -743,13 +746,14 @@ function gameOver(why){S.over=true;clearTiles();closeModals();sfx('bad');
   const T=LOSSES[why]||['Game over','It’s over.'];endScreen(T[0],T[1],true)}
 function endScreen(h1,sub,lost){
   achCheck({end:true,lost});const achNew=(S.achGame||[]).map(id=>ACH.find(a=>a.id===id)).filter(Boolean);
-  const sc=Math.round(scoreOf()),g=lost?['F',h1,sub]:gradeOf(sc);
+  const sc=Math.round(scoreOf()),g=lost?['F','Hang Up the Waders','A career that ends early is always an F.']:gradeOf(sc);
   saveGame(); // S.over is set, so this deletes the save
   let best=null,newBest=false;const ls=store();
   try{const b=ls?Number(ls.getItem(BEST_KEY)||'NaN'):NaN;best=isNaN(b)?null:b;if(!lost&&(best==null||sc>best)){ls&&ls.setItem(BEST_KEY,String(sc));newBest=true}}catch(e){}
   app.innerHTML=withName(`<div class="end"><div style="display:flex;justify-content:space-between;align-items:center"><div class="small-note" style="color:var(--mute)">${lost?'GAME OVER':'COMPLETE'} · {{name}}</div><button class="gear" style="background:var(--surface);color:var(--ink)" onclick="openSettings()" aria-label="Settings">⚙️</button></div><h1>${h1}</h1><p>${sub}</p>
   <div style="display:flex;gap:16px;align-items:center;margin:16px 0"><div class="grade">${g[0]}</div><div><b style="font-family:Fraunces;font-size:20px">${g[1]}</b><div style="color:var(--mute);font-size:14px">${g[2]}</div></div></div>
-  <div class="kv"><span>Score</span><b>${sc}${newBest?' 🏆 new best':''}</b></div>${best!=null?`<div class="kv"><span>Previous best</span><b>${best}</b></div>`:''}
+  <div class="kv"><span>Score</span><b>${grp(sc)}${newBest?' 🏆 new best':''}</b></div>${best!=null?`<div class="kv"><span>Previous best</span><b>${grp(best)}</b></div>`:''}
+  ${typeof scoreParts==='function'?`<div class="sect" style="margin-top:14px">How the score adds up</div>${scoreParts().map(([k,v,n])=>`<div class="kv"><span>${k}<small style="display:block;color:var(--mute);font-weight:400">${n}</small></span><b>${v<0?'−':''}${grp(Math.abs(v))}</b></div>`).join('')}<div class="kv"><span><b>Total</b></span><b>${grp(sc)}</b></div><div class="sect" style="margin-top:14px">Your career</div>`:''}
   <div class="kv"><span>🏆 Achievements this game</span><b style="text-align:right">${achNew.length?achNew.map(a=>a.ic+' '+a.n).join(', '):'none new'}</b></div>
   ${endRows().map(([k,v])=>`<div class="kv"><span>${k}</span><b>${v}</b></div>`).join('')}
   <button class="big" style="width:100%;margin-top:22px" onclick="startNewGame()">Play again</button><button class="act" style="margin-top:10px;justify-content:center" onclick="titleScreen()"><span class="tx" style="text-align:center"><b>Back to title</b></span></button></div>`);
@@ -1060,7 +1064,7 @@ function actionsHere(){
     if(faDue(d)) a.push({ic:'⛑️',l:'First aid & CPR class — $95',s:faDay?(m<780?`Today 1:00–4:00 PM at the clinic. You can join until 1:30.`:m<=810?'Open for late arrivals until 1:30. 3 hours. Renews your card for two years.':'Today’s class already started.'):'Only Monday, Tuesday and Thursday, 1:00–4:00 PM.',cat:'town',cls:faDay&&cls&&S.cred.fa<=d+1?'primary':'',dis:!faDay||!cls||!canAfford(95),
       fn:()=>{spend(95);pass(180);S.cred.fa=faRenewTo(d);adj('energy',-6);say('⛑️ Three hours of chest compressions on a rubber torso named Rescue Randy. New card in your wallet, good for two years: guiding legally requires a current one.')}});
     if(!S.diner[d]) a.push({ic:'🍳',l:'Eat at the diner — $22',s:'40 min. Energy +12. Guides trade gossip at the counter.',cat:'town',dis:!open||!canAfford(22),fn:()=>{spend(22);S.diner[d]=true;pass(40);adj('energy',12);say('🍳 Reindeer sausage, eggs and hash browns. '+pick(LORE))}});
-    if(!S.office[d]) a.push({ic:'🏛️',l:'Stop by the ADF&G office',s:'20 min. Read the emergency orders posted on the board.',cat:'town',dis:!open,fn:()=>{pass(20);S.office[d]=true;S.skill++;say(`🏛️ The EO board: ${S.eo.length?S.eo.map(e=>'<b>'+e+'</b>').join(' · '):`<b>Kenai kings: ${kingRuleTxt()}</b>`} The tech at the counter says the sonar count is ${S.run[d-1]?S.run[d-1].toLocaleString():'climbing'}.`)}});
+    if(!S.office[d]) a.push({ic:'🏛️',l:'Stop by the ADF&G office',s:'20 min. Read the emergency orders posted on the board.',cat:'town',dis:!open,fn:()=>{pass(20);S.office[d]=true;S.skill++;say(`🏛️ The EO board: ${S.eo.length?S.eo.map(e=>'<b>'+e+'</b>').join(' · '):`<b>Kenai kings: ${kingRuleTxt()}</b>`} The tech at the counter says the sonar count is ${S.run[d-1]?grp(S.run[d-1]):'climbing'}.`)}});
     if(!S.report[d]) a.push({ic:'📸',l:'Post a fishing report & photos',s:'30 min. Once a day. Rep +2 after a good trip.',cat:'town',fn:()=>{pass(30);S.report[d]=true;const good=S.book.some(b=>b.d===d&&b.status==='done'&&b.out&&b.out.happy>=60);if(good){adj('rep',2);say('📸 Grip-and-grin photos (all legal fish, all kept wet when they had to be). The likes roll in.')}else say('📸 You post a moody river photo. Three likes, one from your mom.')}});
   }
   if(S.loc==='lower'||S.loc==='cooper'){boatRescueActions(a);const ba=boatAction();if(ba)a.push(ba)}
@@ -1180,7 +1184,7 @@ function regsView(){
     ['🍺 Boating','Operating a boat under the influence (BUI) is a crime. You’re the captain all day.'],
   ];
   return `<div class="sect">Credentials</div>${cred.map(([i,n,s])=>`<div class="todo"><span class="ck">${i}</span><div><b>${n}</b><span>${s}</span></div></div>`).join('')}
-  <div class="sect">River conditions</div><div class="rules">📊 Kenai sockeye sonar (river mile 19): ${S.run[d-1]?`<b>${S.run[d-1].toLocaleString()}</b> yesterday · `:''}<b>${S.cum.toLocaleString()}</b> this season.<br>${S.eo.length?'📣 '+S.eo.join('<br>📣 '):'📣 No new emergency orders this week.'}<br>🐟 Run timing, weather, tides and odds: see the <b>Fish</b> tab.</div>
+  <div class="sect">River conditions</div><div class="rules">📊 Kenai sockeye sonar (river mile 19): ${S.run[d-1]?`<b>${grp(S.run[d-1])}</b> yesterday · `:''}<b>${grp(S.cum)}</b> this season.<br>${S.eo.length?'📣 '+S.eo.join('<br>📣 '):'📣 No new emergency orders this week.'}<br>🐟 Run timing, weather, tides and odds: see the <b>Fish</b> tab.</div>
   <div class="sect">The rules you guide by · ${REG().year}</div><div class="rules" style="margin:0 0 6px">📣 ${REG().fc}</div>${R.map(([n,s])=>`<div class="todo"><span class="ck">•</span><div><b>${n}</b><span>${s}</span></div></div>`).join('')}
   <div class="rules" style="font-size:12px">Season 1 follows a simplified summary of the real 2026 rules from ADF&G, Alaska State Parks and NOAA; later seasons invent plausible changes (king status, forecasts, halibut rules). For a game. Real regulations change by emergency order, sometimes overnight. Before you fish, check the current regulations and emergency orders at adfg.alaska.gov.</div>`;
 }
@@ -1193,7 +1197,7 @@ function rollDay(d){
   const n=rollRun(d);                                    // run-timing model → today's sockeye past the sonar
   S.run[d]=n;S.cum+=n;
 }
-function sonarSay(){const d=day(),y=S.run[d-1];say(y?`📊 Kenai sonar: <b>${y.toLocaleString()}</b> sockeye passed river mile 19 yesterday; <b>${S.cum.toLocaleString()}</b> for the season. ${y>150000?'The river is paved with reds.':y>90000?'Solid push of fish.':'Slow. The commercial setnetters may be catching them first.'}`:`📊 Season count so far: <b>${S.cum.toLocaleString()}</b> sockeye past the sonar.`)}
+function sonarSay(){const d=day(),y=S.run[d-1];say(y?`📊 Kenai sonar: <b>${grp(y)}</b> sockeye passed river mile 19 yesterday; <b>${grp(S.cum)}</b> for the season. ${y>150000?'The river is paved with reds.':y>90000?'Solid push of fish.':'Slow. The commercial setnetters may be catching them first.'}`:`📊 Season count so far: <b>${grp(S.cum)}</b> sockeye past the sonar.`)}
 // ============================================================
 //  GUIDE MASTER, part 2: what happens. Title, lifecycle hooks, booking requests, dipnetting,
 //  enforcement checks, random events, tips, goals, achievements, scoring and save migrations.
@@ -1490,7 +1494,15 @@ const ACH=[
 // ---- scoring and the end screen ----
 const FINISH_TEXT={h1:'{{name}}, that’s a wrap on your career',sub:()=>`${S.years} Julys on the Kenai, ${yearOf(0)}–${yearOf(day())}. The river keeps running; somebody else gets your seams now.`};
 function curSeason(){const s=S.stats,o=S.st0||{};return {year:yearOf(day()),trips:s.trips-(o.trips||0),fares:s.earned-(o.earned||0),earned:(s.earned+s.tips)-((o.earned||0)+(o.tips||0)),wom:S.wom||0}}
-function scoreOf(){return Math.round((S.money-DF().money)+restOfSeason(curSeason()).net+(S.up?S.up.value:0)*.75+S.rep*15+S.stats.trips*60-(S.stats.citesTotal||S.cites)*400+S.freezer*2+(S.stats.viol===0?300*S.years:0))}
+// The score, line by line (the end screen shows these rows and they add up to scoreOf()).
+function scoreParts(){
+  const st=S.stats,cites=st.citesTotal||S.cites,rest=restOfSeason(curSeason()).net;
+  const P=[['Net cash',S.money-DF().money,'cash now minus your start money'],['Rest of this summer',rest,'estimated: the off-season settles June, August and September'],
+    ['Boats & permits',(S.up?S.up.value:0)*.75,'three quarters of what you bought'],['Reputation',S.rep*15,`${S.rep} × 15`],['Trips',st.trips*60,`${st.trips} July trips × 60`],
+    ['Citations',-cites*400,`${cites} × −400`],['Freezer fish',S.freezer*2,`${S.freezer} × 2`],['Clean record bonus',st.viol===0?300*S.years:0,st.viol===0?`no violations: 300 × ${S.years} seasons`:'you broke a rule']];
+  return P.map(([k,v,n])=>[k,Math.round(v),n]);
+}
+function scoreOf(){return scoreParts().reduce((a,r)=>a+r[1],0)}
 const GRADE_CUTS=[66000,57000,45000,28000];            // A, B, C, D: score per season, the same on every difficulty
 function gradeOf(sc){
   sc=sc/(S.years||1);                                   // graded per season, so careers of any length compare
@@ -1503,11 +1515,11 @@ function gradeOf(sc){
 function endRows(){
   const s=S.stats;
   const last=curSeason();last.rest=restOfSeason(last);
-  const yrs=S.seasons.concat([last]).map(x=>`${x.year}: ${x.trips}${x.rest&&x.rest.trips?` + ${x.rest.trips}`:''} trips, ${$(x.earned+(x.rest?x.rest.net:0))}`).join('<br>');
-  return [['Difficulty',`${DF().ic} ${DF().n}: ${DF().enforce<1?'fewer patrols, cheaper bills':DF().enforce>1?'more patrols, dearer bills, pickier clients':'standard patrols and bills'}; no score bonus`],['Career',`${S.years} seasons`],['Season by season',yrs],['Cash',$(Math.round(S.money))],['Net over the career',$(Math.round(S.money-DF().money))],['Boats & permits bought',S.up&&S.up.value?$(S.up.value):'none'],['Trips / clients',`${s.trips} / ${s.clients}`],
+  const yrs=S.seasons.concat([last]).map(x=>`<b>${x.year}:</b> ${x.trips} July trips, ${$(x.earned)} earned${x.rest&&x.rest.trips?`<br><span style="color:var(--mute)">rest of summer (estimated, not played): about ${x.rest.trips} trips, ${$(x.rest.net)} net</span>`:''}`).join('<br>');
+  return [['Difficulty',`${DF().ic} ${DF().n}: ${DF().enforce<1?'fewer patrols, cheaper bills':DF().enforce>1?'more patrols, dearer bills, pickier clients':'standard patrols and bills'}; no score bonus`],['Career',`${S.years} seasons`],['Season by season',yrs],['Cash',$(Math.round(S.money))],['Net over the career',$(Math.round(S.money-DF().money))],['Boats & permits bought',S.up&&S.up.value?$(S.up.value):'none'],['July trips played / clients',`${s.trips} / ${s.clients}`],
     ['Fish landed',s.fish],['Trips where everyone limited',s.limits],['Tips',$(s.tips)],['Reputation',S.rep],
     ['Record',`${s.citesTotal||0} citation${(s.citesTotal||0)===1?'':'s'}, ${s.warnsTotal||0} warning${(s.warnsTotal||0)===1?'':'s'}, ${$(s.fines)} in fines`],
-    ['Fuel',`${Math.round(s.fuelGal||0)} gal, ${$(Math.round(s.fuelCost||0))}`],['Coast Guard tows',s.tows||0],['Winter camping',`${s.campNights||0} night${(s.campNights||0)===1?'':'s'}, ${s.encounters||0} wildlife encounter${(s.encounters||0)===1?'':'s'}`],['Kings released',s.kings],['Freezer',`${S.freezer} reds`],['Boat checks passed',s.checks]];
+    ['Fuel',`${grp(s.fuelGal||0)} gal, ${$(Math.round(s.fuelCost||0))}`],['Coast Guard tows',s.tows||0],['Winter camping',`${s.campNights||0} night${(s.campNights||0)===1?'':'s'}, ${s.encounters||0} wildlife encounter${(s.encounters||0)===1?'':'s'}`],['Kings released',s.kings],['Freezer',`${S.freezer} reds`],['Boat checks passed',s.checks]];
 }
 
 // ---- save migrations ----
@@ -2082,8 +2094,8 @@ const upQ=type=>(S.up.sled&&(type==='reds'||type==='silver')?.05:0)+(S.up.drift&
 const upH=type=>(S.up.sled&&(type==='reds'||type==='silver')?3:0)+(S.up.drift&&type==='trout'?4:0)+(S.up.dock&&(type==='reds'||type==='silver')?3:0);
 
 // ---- season rollover: runs on the first morning of each new season (from onMorning) ----
-const WINTER_COST=[['🏠 Living costs, Oct–May (after your winter job)',1800],['🪪 Guide & business licenses, KRSMA permit, vessel decals',650],['🛡️ Liability insurance & drug-testing consortium',1950]];
-const winterCosts=()=>WINTER_COST.concat(S.up&&S.up.asst?[['🧑‍🤝‍🧑 Assistant guide: license, decals, insurance, drug-testing',3000]]:[],S.up&&S.up.lodge?[['🏡 Cabins: property tax, insurance and winterizing',5500]]:[]).map(([n,c])=>[n,Math.round(c*DF().cost)]);
+const WINTER_COST=[['🏠 Living costs, Oct–May (after your winter job)',1800,'🏠 Living'],['🪪 Guide & business licenses, KRSMA permit, vessel decals',650,'🪪 Licenses & permits'],['🛡️ Liability insurance & drug-testing consortium',1950,'🛡️ Insurance']];
+const winterCosts=()=>WINTER_COST.concat(S.up&&S.up.asst?[['🧑‍🤝‍🧑 Assistant guide: license, decals, insurance, drug-testing',3000,'🧑‍🤝‍🧑 Assistant']]:[],S.up&&S.up.lodge?[['🏡 Cabins: property tax, insurance and winterizing',5500,'🏡 Cabins']]:[]).map(([n,c,sh])=>[n,Math.round(c*DF().cost),sh]);
 
 // ---- late-career money sinks (2026 Alaska prices, approximate) ----
 // A boat that has worn down to 0 is out of service until you pay for a major repair (a jet-unit rebuild or a new drift-boat floor).
@@ -2137,11 +2149,11 @@ function winterModal(){
   const W=S.winter;if(!W)return;const s=W.s,p=S.seasons[S.seasons.length-1]||{};
   const fa=S.cred.fa<seasonFirst(s)?`<b style="color:var(--bad)">expired</b> (${dlongY(S.cred.fa)}). Renew it in Soldotna (Mon, Tue or Thu, 1–4 PM) before you guide`:S.cred.fa<seasonFirst(s)+SEASON?`<b style="color:var(--bad)">expires ${dlong(S.cred.fa)}</b>: renew it in Soldotna (Mon, Tue or Thu)`:`good through ${dlongY(S.cred.fa)}`;
   modal(`❄️ Off-season · ${2025+s} → ${2026+s}`,`
-    <p><b>${p.year} in review:</b> ${p.trips} trips in the July peak, ${$(p.earned||0)} in fares and tips${p.fines?`, ${$(p.fines)} in fines`:''}. Rep ${p.rep}.</p>${p.rest&&p.rest.trips?`<p>📆 <b>The rest of ${p.year}</b> (June, August, September): ${p.rest.trips} more trips booked off your reputation: ${$(p.rest.gross)} in fares, ${$(p.rest.costs)} for fuel, launches and tackle. <b>Net ${$(p.rest.net)}.</b></p>`:''}
-    <p>${winterCosts().map(([n,c])=>`${n}: <b>${$(c)}</b>`).join('<br>')}<br>Total: <b>${$(W.bill)}</b>. Cash now ${$(Math.round(S.money))}.</p>
-    <p>📣 <b>${2026+s} season:</b> ${REG().fc}<br>⚓ Charter halibut: 2 a day, the second ${halSize()} inches or less; no retention on ${halDaysTxt()}.<br>⛽ Kenai Harbor fuel: ${$(fuelPrice('kenai',seasonFirst(s)))}/gal this year.<br>${evenYear(seasonFirst(s))?'🩷 Even year: pinks arrive in August.':'Odd year: hardly any pinks.'}</p>
-    <p>⛑️ First-aid card: ${fa}.${W.expired>0?`<br>⚖️ ${W.expired} old citation${W.expired>1?'s':''} dropped off your record.`:''}${S.cites?`<br>⚖️ Active citations: ${S.cites}/3.`:''}</p>
-    <p style="font-size:13px;color:var(--mute)">Season ${s+1} of ${S.years}. Bookings fill once you’ve made your off-season plans.</p>`,[
+    <p><b>${p.year}:</b> ${p.trips} July trips, ${$(p.earned||0)} in fares and tips${p.fines?`, ${$(p.fines)} in fines`:''}. Rep ${p.rep}.${p.rest&&p.rest.trips?`<br>📆 <b>Rest of the summer</b> (estimated, not played): about ${p.rest.trips} trips, <b>${$(p.rest.net)} net</b>.`:''}</p>
+    <p>💸 <b>Winter bills ${$(W.bill)}</b>: ${winterCosts().map(([,c,sh])=>`${sh} ${$(c)}`).join(' · ')}. Cash now <b>${$(Math.round(S.money))}</b>.</p>
+    <p>📣 <b>${2026+s}:</b> ${REG().fc}<br>⚓ Halibut: 2 a day, the second ${halSize()} inches or less; no retention ${halDaysTxt()}.<br>⛽ Kenai Harbor fuel ${$(fuelPrice('kenai',seasonFirst(s)))}/gal. ${evenYear(seasonFirst(s))?'🩷 Even year: pinks in August.':'Odd year: few pinks.'}</p>
+    <p>⛑️ First-aid card: ${fa}.${W.expired>0?`<br>⚖️ ${W.expired} old citation${W.expired>1?'s':''} dropped off.`:''}${S.cites?`<br>⚖️ Active citations: ${S.cites}/3.`:''}</p>
+    <p style="font-size:13px;color:var(--mute)">Season ${s+1} of ${S.years}. Bookings open when you finish planning.</p>`,[
     {l:'🛠️ Upgrades & business',s:'Boats, marketing, rates, a Homer charter permit.',fn:()=>upgradeModal()},
     {l:'🏕️ Go winter camping',s:campUsed()?'You’ve already been camping this winter.':'Pick a place within 100 miles and a number of nights. Wildlife and quiet rest, and a bad night can cost a little cash.',dis:campUsed(),fn:()=>campModal()},
     {l:`🛶 Open bookings for ${2026+s}`,s:'Start the season.',fn:()=>finishWinter()}]);
@@ -2293,7 +2305,7 @@ function driftFuelPrices(){const r=Math.random;S.fuelBase=S.fuelBase||{kenai:6.1
 //  One bottom sheet with a short section per topic; works before a game exists and mid-game.
 // ============================================================
 const HELP=[
-  ['🎯','The goal','Run a Kenai River guide business out of Soldotna for a <strong>2-, 5- or 10-year career</strong>. Each year you play the two-week July peak; between years the off-season handles bills, upgrades and next season’s bookings. Keep clients happy, your boat running and your record clean.'],
+  ['🎯','The goal','Run a Kenai River guide business out of Soldotna for a <strong>2-, 5- or 10-year career</strong>. Each year you play the two-week July peak; between years the off-season handles bills, upgrades and next season’s bookings. Keep clients happy, your boat running and your record clean. The end screen shows how your score adds up.'],
   ['🕐','How a day works','Time moves only when you act. Tap an action on the <strong>🧭 Here</strong> tab, or <strong>Go somewhere</strong> to travel. Guides start early: the alarm is 5:00 AM (change it at the shop). To skip ahead, use <strong>⏳ Wait until…</strong>: the next launch, the 1 PM first-aid class, or 30 or 60 minutes. <strong>Go to bed</strong> at the shop to end the day; staying up past midnight costs you.'],
   ['🛶','Trips','Your schedule is on the <strong>📅 Bookings</strong> tab. Be at the launch spot by launch time: sockeye and silvers from the <strong>Lower Kenai launch</strong>, trout floats from <strong>Cooper Landing</strong>, halibut from the <strong>Homer Spit</strong>. On the water you pick a spot, then face a few choices, shuffled every time. Playing it straight costs something (time, fish or a smaller tip); bending a rule can pay cash, but if a trooper catches you the fine hurts.'],
   ['⭐','Regulars & stories','Clients who have a great day may come back next July, and they remember how it went. Over the years you may also meet a rival guide, a family that returns every summer and an invitation to the local fish and game advisory committee. No dilemma comes up more than twice a season.'],
@@ -2516,7 +2528,7 @@ const CHANGELOG={
   '1.5.3':['⚖️ Difficulty now changes the game, not the score: Combat Season means more patrols and dearer bills, Rookie the reverse. Grades were recalibrated, so an A takes real work.'],
   '1.5.4':['🎲 Dilemma options shuffle: playing it straight costs something, bending a rule can pay cash, and repeat offenders pay steeper fines. Pay now follows the day: catch, tackle and boat shape tips, refunds and word of mouth.'],
   '1.6.0':['💲 Higher rates now cost you: fewer bookings, pickier clients and a rep requirement that rises each step.','🔧 Boats at condition 0 are out of service until repaired; new motors burn less gas, new sleds finish sooner, and late-career money can buy an assistant guide, guest cabins or a riverfront launch.','⏳ New “Wait until…” action skips to the next launch or the 1 PM class. New games start with a 5:00 AM alarm.','🌙 The night summary now comes before the morning’s news, and pop-up toasts are fewer, shorter and sit below your Cash and Rep.','⭐ Longer careers: 54 client parties, regulars who come back (or don’t), six new river dilemmas, fewer repeats and three multi-season stories.'],
-  '1.6.1':['🔧 A worn-out boat now gives warnings at 40, 20 and 10, and at condition 0 you can pay for an emergency patch or rent a loaner to keep a booked trip running.','🏛️ The Board of Fisheries hearing only comes on a day with no trips booked, so it can’t cost you a no-show.'],
+  '1.6.1':['🔧 A worn-out boat now gives warnings at 40, 20 and 10, and at condition 0 you can pay for an emergency patch or rent a loaner to keep a booked trip running.','🏛️ The Board of Fisheries hearing only comes on a day with no trips booked, so it can’t cost you a no-show.','💵 Money shows thousands separators ($47,975), the end screen breaks your score down line by line and labels played trips versus the estimated rest of the summer, and the off-season summary is shorter.'],
 };
 const CHANGELOG_GENERIC='Fixes and small improvements throughout.';
 const LASTVER_KEY=KEY('lastVersion');

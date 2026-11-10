@@ -105,8 +105,8 @@ const upQ=type=>(S.up.sled&&(type==='reds'||type==='silver')?.05:0)+(S.up.drift&
 const upH=type=>(S.up.sled&&(type==='reds'||type==='silver')?3:0)+(S.up.drift&&type==='trout'?4:0)+(S.up.dock&&(type==='reds'||type==='silver')?3:0);
 
 // ---- season rollover: runs on the first morning of each new season (from onMorning) ----
-const WINTER_COST=[['🏠 Living costs, Oct–May (after your winter job)',1800],['🪪 Guide & business licenses, KRSMA permit, vessel decals',650],['🛡️ Liability insurance & drug-testing consortium',1950]];
-const winterCosts=()=>WINTER_COST.concat(S.up&&S.up.asst?[['🧑‍🤝‍🧑 Assistant guide: license, decals, insurance, drug-testing',3000]]:[],S.up&&S.up.lodge?[['🏡 Cabins: property tax, insurance and winterizing',5500]]:[]).map(([n,c])=>[n,Math.round(c*DF().cost)]);
+const WINTER_COST=[['🏠 Living costs, Oct–May (after your winter job)',1800,'🏠 Living'],['🪪 Guide & business licenses, KRSMA permit, vessel decals',650,'🪪 Licenses & permits'],['🛡️ Liability insurance & drug-testing consortium',1950,'🛡️ Insurance']];
+const winterCosts=()=>WINTER_COST.concat(S.up&&S.up.asst?[['🧑‍🤝‍🧑 Assistant guide: license, decals, insurance, drug-testing',3000,'🧑‍🤝‍🧑 Assistant']]:[],S.up&&S.up.lodge?[['🏡 Cabins: property tax, insurance and winterizing',5500,'🏡 Cabins']]:[]).map(([n,c,sh])=>[n,Math.round(c*DF().cost),sh]);
 
 // ---- late-career money sinks (2026 Alaska prices, approximate) ----
 // A boat that has worn down to 0 is out of service until you pay for a major repair (a jet-unit rebuild or a new drift-boat floor).
@@ -160,11 +160,11 @@ function winterModal(){
   const W=S.winter;if(!W)return;const s=W.s,p=S.seasons[S.seasons.length-1]||{};
   const fa=S.cred.fa<seasonFirst(s)?`<b style="color:var(--bad)">expired</b> (${dlongY(S.cred.fa)}). Renew it in Soldotna (Mon, Tue or Thu, 1–4 PM) before you guide`:S.cred.fa<seasonFirst(s)+SEASON?`<b style="color:var(--bad)">expires ${dlong(S.cred.fa)}</b>: renew it in Soldotna (Mon, Tue or Thu)`:`good through ${dlongY(S.cred.fa)}`;
   modal(`❄️ Off-season · ${2025+s} → ${2026+s}`,`
-    <p><b>${p.year} in review:</b> ${p.trips} trips in the July peak, ${$(p.earned||0)} in fares and tips${p.fines?`, ${$(p.fines)} in fines`:''}. Rep ${p.rep}.</p>${p.rest&&p.rest.trips?`<p>📆 <b>The rest of ${p.year}</b> (June, August, September): ${p.rest.trips} more trips booked off your reputation: ${$(p.rest.gross)} in fares, ${$(p.rest.costs)} for fuel, launches and tackle. <b>Net ${$(p.rest.net)}.</b></p>`:''}
-    <p>${winterCosts().map(([n,c])=>`${n}: <b>${$(c)}</b>`).join('<br>')}<br>Total: <b>${$(W.bill)}</b>. Cash now ${$(Math.round(S.money))}.</p>
-    <p>📣 <b>${2026+s} season:</b> ${REG().fc}<br>⚓ Charter halibut: 2 a day, the second ${halSize()} inches or less; no retention on ${halDaysTxt()}.<br>⛽ Kenai Harbor fuel: ${$(fuelPrice('kenai',seasonFirst(s)))}/gal this year.<br>${evenYear(seasonFirst(s))?'🩷 Even year: pinks arrive in August.':'Odd year: hardly any pinks.'}</p>
-    <p>⛑️ First-aid card: ${fa}.${W.expired>0?`<br>⚖️ ${W.expired} old citation${W.expired>1?'s':''} dropped off your record.`:''}${S.cites?`<br>⚖️ Active citations: ${S.cites}/3.`:''}</p>
-    <p style="font-size:13px;color:var(--mute)">Season ${s+1} of ${S.years}. Bookings fill once you’ve made your off-season plans.</p>`,[
+    <p><b>${p.year}:</b> ${p.trips} July trips, ${$(p.earned||0)} in fares and tips${p.fines?`, ${$(p.fines)} in fines`:''}. Rep ${p.rep}.${p.rest&&p.rest.trips?`<br>📆 <b>Rest of the summer</b> (estimated, not played): about ${p.rest.trips} trips, <b>${$(p.rest.net)} net</b>.`:''}</p>
+    <p>💸 <b>Winter bills ${$(W.bill)}</b>: ${winterCosts().map(([,c,sh])=>`${sh} ${$(c)}`).join(' · ')}. Cash now <b>${$(Math.round(S.money))}</b>.</p>
+    <p>📣 <b>${2026+s}:</b> ${REG().fc}<br>⚓ Halibut: 2 a day, the second ${halSize()} inches or less; no retention ${halDaysTxt()}.<br>⛽ Kenai Harbor fuel ${$(fuelPrice('kenai',seasonFirst(s)))}/gal. ${evenYear(seasonFirst(s))?'🩷 Even year: pinks in August.':'Odd year: few pinks.'}</p>
+    <p>⛑️ First-aid card: ${fa}.${W.expired>0?`<br>⚖️ ${W.expired} old citation${W.expired>1?'s':''} dropped off.`:''}${S.cites?`<br>⚖️ Active citations: ${S.cites}/3.`:''}</p>
+    <p style="font-size:13px;color:var(--mute)">Season ${s+1} of ${S.years}. Bookings open when you finish planning.</p>`,[
     {l:'🛠️ Upgrades & business',s:'Boats, marketing, rates, a Homer charter permit.',fn:()=>upgradeModal()},
     {l:'🏕️ Go winter camping',s:campUsed()?'You’ve already been camping this winter.':'Pick a place within 100 miles and a number of nights. Wildlife and quiet rest, and a bad night can cost a little cash.',dis:campUsed(),fn:()=>campModal()},
     {l:`🛶 Open bookings for ${2026+s}`,s:'Start the season.',fn:()=>finishWinter()}]);
