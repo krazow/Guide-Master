@@ -14,10 +14,11 @@ module.exports = [
     await page.fill('#nmIn', 'Robin');
     await page.click('#mbg button.act');                          // That's me
     await page.click('#mbg button.act >> text=Licensed Guide');   // difficulty
+    await page.click('#mbg button.act >> text=5-year career');    // career length
     while (await page.$('#mbg')) await pressFirst(page);          // welcome (and any morning pop-ups)
     await page.waitForSelector('.hud');
     assert.match(await page.textContent('.hud-sub'), /Robin/);
-    assert.strictEqual(await page.evaluate(() => [S.name, S.diff, S.loc].join()), 'Robin,normal,shop');
+    assert.strictEqual(await page.evaluate(() => [S.name, S.diff, S.loc, S.years, GAME.days].join()), 'Robin,normal,shop,5,70');
     noErrors(errors);
   } },
   { name: 'every tab renders', fn: async ctx => {
@@ -66,8 +67,9 @@ module.exports = [
     assert.match(await page.textContent('.end'), /permit/i);
     noErrors(errors);
   } },
-  { name: 'a scripted two weeks reach the end screen', fn: async ctx => {
+  { name: 'a scripted two-year career reaches the end screen', fn: async ctx => {
     const { page, errors } = await open(ctx);
+    await page.evaluate(() => setPref('years', 2));
     await newGame(page);
     await page.evaluate(() => {
       closeModals();
@@ -75,10 +77,12 @@ module.exports = [
         S.loc = 'shop'; S.trip = null; S.money = Math.max(S.money, 5000); S.rep = Math.max(S.rep, 60);
         S.book.forEach(b => { if (b.d === S.cur && b.status === 'booked') b.status = 'done'; });
         S.unlogged = 0; S.overdue = 0; endDay('home'); closeModals();
+        if (S && S.winter) { finishWinter(); closeModals(); }
       }
     });
     await page.waitForSelector('.end');
-    assert.match(await page.textContent('.end'), /July/);
+    assert.match(await page.textContent('.end'), /career/);
+    assert.match(await page.textContent('.end'), /2026: .*2027: /s);
     assert.strictEqual(await page.evaluate(() => loadSave()), null, 'finished game deletes its save');
     noErrors(errors);
   } },

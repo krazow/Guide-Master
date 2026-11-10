@@ -31,7 +31,7 @@ function migrate(d){
   for(const m of (typeof MIGRATIONS!=='undefined'?MIGRATIONS:[]).slice().sort((a,b)=>a.to-b.to)) if(from<m.to) m.run(x,notes,d);
   fillDefaults(x,baseState());
   // engine fields must be sane
-  x.t=num(x.t,GAME.wake);x.cur=clamp(num(x.cur,Math.floor(x.t/1440)),0,GAME.days-1);
+  x.t=num(x.t,GAME.wake);x.cur=clamp(num(x.cur,Math.floor(x.t/1440)),0,(x.years?x.years*14:GAME.days)-1); // years: Guide Master careers
   if(!L[x.loc]){notes.push('a place from another version doesn’t exist here, so you’re back at the start');x.loc=GAME.startLoc}
   if(!DIFFS[x.diff]) x.diff='normal';
   if(!Array.isArray(x.log)) x.log=[];

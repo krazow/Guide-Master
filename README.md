@@ -29,6 +29,18 @@ Every trip throws decisions at you, and the first option is always the legal one
 
 **Sources:** ADF&G 2026 Southcentral sport fishing regulations (Kenai River, Kenai Peninsula and guiding sections); ADF&G Emergency Order 2-KS-1-7-26 (Kenai late-run kings closed, gear restrictions); 11 AAC 20 (Kenai River Special Management Area); NOAA Fisheries / IPHC 2026 Area 3A charter halibut management measures; Alaska State Parks Kenai River guide permit requirements.
 
+## Careers: 2, 5 or 10 years
+
+When you start a new game you pick a **2-, 5- or 10-year career** (`src/js/24-career.js`). Each season you play the two-week July peak, Monday to Sunday, starting on the Monday nearest July 13 (2026: Jul 13; 2027: Jul 12; 2028: Jul 10…). Between seasons comes the **off-season**:
+
+- **Recap and bills:** the year's trips and earnings, then winter living costs, license and permit renewals (ADF&G guide and business licenses, KRSMA permit, decals) and insurance.
+- **Next year's rules and runs:** season 1 is the real 2026 (kings closed, single-hook/no-bait, Area 3A halibut 27-inch second fish, no retention Tue/Wed). Later seasons are invented but plausible. The sockeye and coho forecasts vary in size and timing, and kings may be closed, catch-and-release only or open (1 a day, harvest record). Bait is allowed when kings are open. The halibut size limit and closed days shift too. Weak sockeye years can bring an emergency order cutting the limit to 2; strong years raise it to 6. Pinks run only in even years.
+- **Upgrades:** rebuild the outboard (still 50 hp), a new jet sled, a new drift boat, marketing, a winter course, rate increases (need Rep 65+), or a Charter Halibut Permit so you run your own Homer charters.
+- **Bookings:** next season's bookings depend on your reputation, marketing and rates.
+- **Your record:** a first-aid/CPR card lasts two years. Citations drop off after the following season; three active citations still cost you the permit.
+
+The score covers the whole career (net cash, half the value of what you bought, rep, trips, a clean record), and the grade is per season, so careers of any length compare.
+
 ## Fish, weather and timing
 
 `src/js/23-fish.js` models when and where fish are, and drives trip quality, the daily sonar count, dipnetting and solo boat days:

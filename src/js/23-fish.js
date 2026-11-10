@@ -7,13 +7,11 @@
 //  Run timing is a simplified model of typical Kenai returns, not a forecast:
 //    late-run sockeye: enter mid-July, peak at the sonar around Jul 20–25, reach the upper river ~2 weeks later
 //    coho: first fish late July, peak mid-August        pinks: even years only, peak early-to-mid August
-//    late-run kings: peak late July (closed in 2026)     rainbows/Dollies: resident, better as sockeye spawn
+//    late-run kings: peak late July (closed in 2026; later seasons vary)     rainbows/Dollies: resident, better as sockeye spawn
 //    halibut: on the shallower summer grounds from late spring through September
 // ============================================================
-const DOY0=194;                                   // Jul 13 is day-of-year 194 in 2026
-const doyOf=d=>DOY0+d;
+// doyOf(d), evenYear(d), seasonOf(d): 24-career.js. Each season's REG().mult/shift scale and move the runs.
 const gauss=(x,c,s)=>Math.exp(-Math.pow((x-c)/s,2)/2);
-const EVEN_YEAR=true;                             // 2026: pinks run in even years on the Kenai
 
 // loc: where it can be fished and how good that water is for it (0–1). lag: days behind the sonar at river mile 19.
 const SPECIES={
@@ -22,9 +20,9 @@ const SPECIES={
   coho:   {n:'Coho (silvers)',ic:'🎣',keep:true,lim:()=>2,rate:.6,loc:{lower:1,cooper:.15},lag:{cooper:20},
            curve:x=>gauss(x,228,12),note:'First silvers in late July; the run peaks mid-August.'},
   pink:   {n:'Pinks (humpies)',ic:'🩷',keep:true,lim:()=>6,rate:1.6,loc:{lower:1},
-           curve:x=>(EVEN_YEAR?1:.05)*gauss(x,222,7),note:'Even years only. 2026 is even: August floods with them.'},
-  king:   {n:'King (closed)',ic:'👑',closed:true,rate:.15,loc:{lower:1,cooper:.2},
-           curve:x=>.35*gauss(x,205,9),note:'Late run peaks in late July. Closed in 2026: release any you hook.'},
+           curve:x=>gauss(x,222,7),note:'Even years only: in even Augusts the river floods with them.'},
+  king:   {n:'King',ic:'👑',closed:true,lim:()=>1,rate:.15,loc:{lower:1,cooper:.2},
+           curve:x=>.35*gauss(x,205,9),note:'Late run peaks in late July. Open, catch-and-release or closed, year to year: see Regs.'},
   trout:  {n:'Rainbow trout',ic:'🌈',cr:true,rate:2.4,loc:{cooper:1,lower:.3},
            curve:x=>.45+.4*gauss(x,225,15),note:'Resident fish. Get better as the sockeye spawn and the bead bite starts.'},
   dolly:  {n:'Dolly Varden',ic:'🐠',cr:true,rate:2,loc:{cooper:.85,lower:.3},
@@ -82,10 +80,15 @@ function wxFactor(sp,loc,d){
   if(sp==='halibut') f*=w.wind>18?.6:w.wind>12?.85:1;
   return f;
 }
+// this season's run size and timing for a species on a day (before place and daily noise)
+function runCurve(sp,x,d){
+  const R=REG(),m=R.mult[sp]??1,sh=(sp==='sockeye'||sp==='coho')?R.shift:0;
+  return SPECIES[sp].curve(x-sh)*(sp==='pink'?(evenYear(d)?1:.05):1)*(sp==='sockeye'||sp==='coho'||sp==='king'?m:1);
+}
 function abundance(sp,loc,d=day()){
   const S_=SPECIES[sp],lw=S_&&S_.loc[loc];if(!lw)return 0;
   const lag=(S_.lag&&S_.lag[loc])||0,nz=(S.noise[d]&&S.noise[d][sp])||1;
-  return clamp(S_.curve(doyOf(d)-lag)*nz*lw,0,1.3);
+  return clamp(runCurve(sp,doyOf(d)-lag,d)*nz*lw,0,1.3);
 }
 function fishOdds(sp,loc,t=S.t){const d=Math.floor(t/1440);return clamp(abundance(sp,loc,d)*todFactor(sp,loc,t)*wxFactor(sp,loc,d),0,1.4)}
 function avgOdds(sp,loc,t0,mins){let s=0,n=0;for(let m=0;m<=mins;m+=30){s+=fishOdds(sp,loc,t0+m);n++}return s/n}
@@ -100,7 +103,7 @@ function runFactor(type,d=day()){
 function rollRun(d){
   const nz={};Object.keys(SPECIES).forEach(k=>nz[k]=Math.round((.7+Math.random()*.6)*100)/100);
   S.noise[d]=nz;
-  return Math.round(SPECIES.sockeye.curve(doyOf(d))*nz.sockeye*230000/10)*10+Math.floor(Math.random()*10);
+  return Math.round(runCurve('sockeye',doyOf(d),d)*nz.sockeye*230000/10)*10+Math.floor(Math.random()*10);
 }
 
 // ---- 🚤 Take the boat out: booking-aware ----
@@ -136,7 +139,7 @@ function boatSpecies(max,illegal){
   modal(`${loc==='lower'?'🚤 Lower Kenai':'🛶 Upper Kenai float'}: what are you after?`,
     `<p style="font-size:13px;color:var(--mute)">${k.ic} ${w.temp}°F, wind ${w.dir} ${w.wind} kt · river ${waterTxt(w)}${loc==='lower'?' · one unbaited, single-hook lure (EO)':' · rainbows catch-and-release'}</p>`,
     list.map(sp=>{const S_=SPECIES[sp],o=avgOdds(sp,loc,t,120);
-      return {l:`${S_.ic} ${S_.n}`,s:S_.closed?`Closed: you can’t target kings. ${S_.note}`:`${bar(o)}${o>.75?'Hot':o>.45?'Fair':o>.2?'Slow':S_.cr?(S_.loc[loc]<.5?'Few in this stretch: better on the upper river':'Tough today'):'Hardly any yet'}. ${S_.note}`,dis:S_.closed,fn:()=>boatHours(sp,max,illegal)}}).concat([{l:'Never mind',fn:()=>{}}]));
+      const shut=S_.closed&&kingRule()!=='open';return {l:`${S_.ic} ${S_.n}${S_.closed?` (${{closed:'closed',cr:'catch-and-release',open:'open'}[kingRule()]})`:''}`,s:shut?`You can’t target kings this year. ${S_.note}`:`${bar(o)}${o>.75?'Hot':o>.45?'Fair':o>.2?'Slow':S_.cr?(S_.loc[loc]<.5?'Few in this stretch: better on the upper river':'Tough today'):'Hardly any yet'}. ${S_.note}`,dis:shut,fn:()=>boatHours(sp,max,illegal)}}).concat([{l:'Never mind',fn:()=>{}}]));
 }
 function boatHours(sp,max,illegal){
   const opts=[2,4,6].filter(h=>h*60<=max);
@@ -149,11 +152,12 @@ function boatFish(sp,h,illegal){
   S.skill++;S.scout=day();S.solo[day()]=(S.solo[day()]||0)+1;
   const lines=[],rnd=()=>.6+Math.random()*.8;
   let n=Math.round(o*S_.rate*h*rnd());
-  if(S_.keep){const lim=S_.lim(),room=sp==='halibut'?lim:Math.max(0,lim);n=Math.min(n,room);if(n>=lim)lines.push(`🎯 Limit: ${lim}. Bag limits are per day, so you reel up and run home.`);
+  if(sp==='king'){n=Math.min(1,n);if(n){S.freezer+=1;S.stats.legalKings=(S.stats.legalKings||0)+1;lines.push('👑 A legal king, recorded on your harvest record. Kings are open this year.')}else lines.push('👑 No king today. They’re the fish of ten thousand casts.')}
+  else if(S_.keep){const lim=S_.lim(),room=sp==='halibut'?lim:Math.max(0,lim);n=Math.min(n,room);if(n>=lim)lines.push(`🎯 Limit: ${lim}. Bag limits are per day, so you reel up and run home.`);
     if(n){S.freezer+=n;lines.push(`🧊 ${n} ${S_.n.toLowerCase()} for the freezer, every one hooked in the mouth.`)}else lines.push(`😶 ${h} hours and no ${S_.n.toLowerCase()} kept. ${o<.3?'The run isn’t here yet.':'Some days are like that.'}`)}
   else{lines.push(n?`${S_.ic} ${n} ${S_.n.toLowerCase()} to hand, photographed wet and released.`:`${S_.ic} Nothing to hand. Pretty river, though.`)}
   // incidental king hookups (closed: release in the water)
-  const kings=loc==='lower'&&Math.random()<avgOdds('king',loc,t0,h*60)*.25*h?1:0;
+  const kings=sp!=='king'&&kingRule()!=='open'&&loc==='lower'&&Math.random()<avgOdds('king',loc,t0,h*60)*.25*h?1:0;
   if(kings){S.stats.kings++;lines.push('👑 A bright king smashes your lure. Kings are closed: you slip the hook without lifting it from the water and watch it swim off.')}
   // what you learned
   const best=Object.keys(SPECIES).filter(k=>SPECIES[k].loc[loc]&&!SPECIES[k].closed).map(k=>[k,avgOdds(k,loc,(day()+1)*1440+360,360)]).sort((a,b)=>b[1]-a[1])[0];
@@ -173,17 +177,17 @@ function fishView(){
   const places=[['lower','🚤 Lower Kenai'],['cooper','🏔️ Upper Kenai'],['kbeach','🥅 Kenai mouth (dipnet)'],['homer','⚓ Kachemak Bay']];
   h+=`<div class="sect">Odds right now</div>`;
   places.forEach(([loc,n])=>{const sp=Object.keys(SPECIES).filter(x=>SPECIES[x].loc[loc]);
-    h+=`<div class="todo"><span class="ck">${n.split(' ')[0]}</span><div style="flex:1"><b>${n.slice(n.indexOf(' ')+1)}</b>${sp.map(x=>{const o=fishOdds(x,loc);return `<div style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--mute);margin-top:3px"><span style="width:118px">${SPECIES[x].ic} ${SPECIES[x].n}</span><span style="flex:1;height:7px;background:var(--line);border-radius:4px"><i style="display:block;height:7px;border-radius:4px;width:${Math.round(clamp(o,0,1)*100)}%;background:${SPECIES[x].closed?'#9aa':o>.6?'#2f7d4f':o>.3?'#c98a12':'#b8402a'}"></i></span></div>`}).join('')}</div></div>`});
-  h+=`<div class="sect">Run timing on the Kenai</div>${runChart(d)}<div class="rules" style="font-size:12.5px">${['sockeye','coho','pink','king','trout'].map(x=>`${SPECIES[x].ic} <b>${SPECIES[x].n}</b>: ${SPECIES[x].note}`).join('<br>')}<br>⏱️ Reds bite best at first light and in the long July evenings; at the mouth they ride the incoming tide. Halibut bite at slack water. Rain and glacial melt raise the river; rising, dirty water scatters the reds.<br><span style="color:var(--mute)">A simplified model of typical run timing, not a forecast.</span></div>`;
+    h+=`<div class="todo"><span class="ck">${n.split(' ')[0]}</span><div style="flex:1"><b>${n.slice(n.indexOf(' ')+1)}</b>${sp.map(x=>{const o=fishOdds(x,loc);return `<div style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--mute);margin-top:3px"><span style="width:118px">${SPECIES[x].ic} ${SPECIES[x].n}</span><span style="flex:1;height:7px;background:var(--line);border-radius:4px"><i style="display:block;height:7px;border-radius:4px;width:${Math.round(clamp(o,0,1)*100)}%;background:${SPECIES[x].closed&&kingRule()!=='open'?'#9aa':o>.6?'#2f7d4f':o>.3?'#c98a12':'#b8402a'}"></i></span></div>`}).join('')}</div></div>`});
+  h+=`<div class="sect">Run timing on the Kenai · ${yearOf(d)}</div><div class="rules" style="margin:0 0 8px">📣 ${REG().fc} ${evenYear(d)?'Even year: pinks coming.':'Odd year: few pinks.'}</div>${runChart(d)}<div class="rules" style="font-size:12.5px">${['sockeye','coho','pink','king','trout'].map(x=>`${SPECIES[x].ic} <b>${SPECIES[x].n}</b>: ${SPECIES[x].note}`).join('<br>')}<br>⏱️ Reds bite best at first light and in the long July evenings; at the mouth they ride the incoming tide. Halibut bite at slack water. Rain and glacial melt raise the river; rising, dirty water scatters the reds.<br><span style="color:var(--mute)">A simplified model of typical run timing, not a forecast.</span></div>`;
   return h;
 }
 function runChart(d){
   const x0=166,x1=258,W=440,H=130,X=x=>20+(x-x0)/(x1-x0)*(W-30),Y=v=>H-18-v*(H-34);
-  const series=[['sockeye','#c0392b',x=>SPECIES.sockeye.curve(x)],['coho','#2c6e9e',x=>SPECIES.coho.curve(x)],['pink','#d36ba6',x=>SPECIES.pink.curve(x)],['king','#7a7a7a',x=>SPECIES.king.curve(x)/.35*.5]];
+  const series=[['sockeye','#c0392b',x=>runCurve('sockeye',x,d)/1.4],['coho','#2c6e9e',x=>runCurve('coho',x,d)/1.4],['pink','#d36ba6',x=>runCurve('pink',x,d)],['king','#7a7a7a',x=>runCurve('king',x,d)/.35*.4]],w0=doyOf(seasonFirst(seasonOf(d)));
   const path=f=>{let p='';for(let x=x0;x<=x1;x+=2)p+=(p?'L':'M')+X(x).toFixed(1)+' '+Y(clamp(f(x),0,1)).toFixed(1);return p};
   const months=[[166,'Jun 15'],[182,'Jul 1'],[213,'Aug 1'],[244,'Sep 1']];
   return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;background:#fff;border:1px solid var(--line);border-radius:10px" role="img" aria-label="Run timing chart">
-    <rect x="${X(194)}" y="8" width="${X(207)-X(194)}" height="${H-26}" fill="#1f5d63" opacity=".08"/><text x="${X(200.5)}" y="18" text-anchor="middle" font-size="9" fill="#1f5d63" font-family="DM Sans">your 2 weeks</text>
+    <rect x="${X(w0)}" y="8" width="${X(w0+13)-X(w0)}" height="${H-26}" fill="#1f5d63" opacity=".08"/><text x="${X(w0+6.5)}" y="18" text-anchor="middle" font-size="9" fill="#1f5d63" font-family="DM Sans">your 2 weeks · ${yearOf(d)}</text>
     <line x1="${X(doyOf(d))}" x2="${X(doyOf(d))}" y1="8" y2="${H-18}" stroke="#e3642e" stroke-width="2"/>
     ${months.map(([x,l])=>`<line x1="${X(x)}" x2="${X(x)}" y1="${H-18}" y2="${H-14}" stroke="#999"/><text x="${X(x)}" y="${H-4}" text-anchor="middle" font-size="9" fill="#6b7478" font-family="DM Sans">${l}</text>`).join('')}
     <line x1="20" x2="${W-10}" y1="${H-18}" y2="${H-18}" stroke="#ccc"/>
