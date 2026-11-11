@@ -153,31 +153,57 @@ Ignoring food still costs about a grade: on Licensed Guide 46,000-51,000 a seaso
 
 ## Winter camping
 
-`src/js/28-camping.js`. During the off-season, **🏕️ Go winter camping** opens a destination picker, then a nights picker (1, 2, 3, 5 or 7) and a cost breakdown before you confirm. It is available once per off-season (a second trip would crowd out your winter job) and never moves the game clock: the trip happens between seasons.
+Camping is its own engine, **KenaiCamp**, in `src/camp/` (see `src/camp/README.md`). It touches nothing of Guide Master: `src/js/28-camping.js` is the thin adapter that builds a trip *ticket* from the save, shows the engine's screens in our pop-ups, and applies the trip *report* back. It is built so it can become its own game later ("Kenai Winter Camp"); for now it is hidden inside this one. `tools/build-camp.py` writes a dev-only standalone page, `dist-camp/kenai-camp.html` (git-ignored, not linked, not deployed, not in `sw.js`), that runs the engine in solo mode.
 
-| Destination | One-way road miles from Soldotna | Fee per night in the game |
-|---|---|---|
-| Johnson Lake (Kasilof) | 16 | free in winter ($20 in season) |
-| Clam Gulch beach | 22 | free ($20 in season) |
-| Hidden Lake (Kenai Refuge) | 24 | free ($15 in season) |
-| Swanson River Rd & Swan Lake canoe area | 29 | free |
-| Lower Skilak Lake Campground | 33 | free |
-| Captain Cook State Rec Area | 36 | free ($20 in season) |
-| Deep Creek State Rec Area | 42 | free ($20 in season) |
-| Quartz Creek (Kenai Lake) | 51 | free |
-| Anchor River State Rec Area | 66 | $20/night |
-| Homer Spit | 83 | free (city sites open Apr–Oct only) |
+**The off-season hub** (🏕️ Winter camping & work): you have **10 free days** each winter, up to **3 camping trips** and **2 winter jobs** inside them (a job takes a day). The budget restarts every off-season and nothing moves the game clock.
 
-Miles are estimates from Sterling Highway mileposts (Soldotna about MP 95.2; Quartz Creek MP 44.9, Swanson River Rd MP 83.5 plus 17 miles, Skilak Lake Rd west end MP 75.2 plus 3.5 to Hidden Lake and 13.3 to Lower Skilak, Johnson Lake Rd MP 110, Clam Gulch MP 117.4, Deep Creek MP 137.3, Anchor River MP 161, Homer MP 173 plus the Spit road). Sources: [Bells Alaska Sterling Highway road log](https://www.bellsalaska.com/roadlogs/sterling-highway-log.pdf), [Alaska State Parks fees](https://dnr.alaska.gov/parks/asp/unitfees.htm) ($20/site at Johnson Lake, Clam Gulch, Deep Creek, Captain Cook and Anchor River), [Kenai NWR camping fees](https://www.fws.gov/refuge/kenai/visit-us/activities/camping), [Swanson River Rd](https://dnr.alaska.gov/parks/aspunits/kenai/swansonrvld.htm), [Captain Cook SRA](https://dnr.alaska.gov/parks/aspunits/kenai/captcook.htm), [ADF&G Skilak Lake Road](https://www.adfg.alaska.gov/index.cfm%3Fadfg%3Dviewinglocations.skilaklakeroad) and [City of Homer campgrounds](https://www.cityofhomer-ak.gov/node/7456). Most campgrounds are not serviced in winter, so the game charges no site fee there; I could not confirm winter service for the refuge sites, Quartz Creek or Anchor River, and Captain Cook's distance (about 11 miles to Kenai plus 25) is approximate.
+**A trip:** a place (ten, all within 100 road miles of Soldotna), a month (Nov to Mar: sets daylight, ice, weather and the fishing license year), 1, 2, 3 or 5 nights, who comes, where you sleep, what you pack, then each day an activity and an evening, and a night.
+- **Daylight:** about 7.3 h in November, 5.8 in December, 6.8 in January, 9 in February, 11.5 in March (Soldotna, approximate). Under 9 h you get **one** daylight activity a day, from 9 h **two**. The evening is separate.
+- **Activities:** ice fishing (Johnson Lake and Captain Cook's Stormy Lake only; ADF&G stocks them), cross-country skiing (Swanson River and Captain Cook), snowshoeing, tracking wildlife, scouting next season's water (upper Kenai from Hidden Lake, Skilak and Quartz Creek; Kasilof from Johnson Lake), keeping camp. Evenings: early to bed, a talk by the fire (with company), tie flies and fix gear (tackle credit toward next season: +2 with a vise, +1 without), photograph the northern lights (clear nights, 70% to see them).
+- **Ice fishing rules:** it needs a **fishing license, which runs by calendar year** (about $29 for a resident; the game charges $29): a license bought in December does not cover January. Rent an ice kit for $15 or pack your own. **Ice safety:** check the thickness (4 inches of clear ice holds a person on foot) or walk out: a fall is 45% / 30% / 6% / 1% by thickness under 3 / 4 / 5 / more inches, and ice picks turn a dangerous soak into a bad hour. What you catch goes to the freezer, a fish fry (energy) or a story (rep).
+- **Packing:** the truck takes 12 load points (a camper adds 4); the tent takes 2, a wall tent 3, each guest 2. Bear container 3 ($80), extra stove fuel 2 ($14 a trip), a -20°F bag 3 ($160), spare layers 2 ($70), a truck kit 2 ($70), ice kit 4 ($90), ice picks and rope 1 ($25), fly vise 1 ($40). Gear is bought once and kept (the fuel is a per-trip cost). Items make specific bad nights rarer and gentler: the container for foxes, ravens, wolverines and bears, the bag, layers and fuel for a cold snap, the truck kit for a dead battery or a drifted-in road, picks for the ice. "Pack the usual" fills the pack in that order.
+- **Where you sleep:** tent (comfort 0), wall tent with a stove ($1,100, comfort 1), truck camper ($7,500, comfort 2), or a public-use cabin at Swanson River, Skilak or Quartz Creek ($45-65 a night; comfort 2). Each point of comfort has a 20% chance of turning a bad night into a quiet one.
+- **Company:** a regular client, a fellow guide, or the rival (once the arc has started, and only if he is friendly). Guests cost 60% more in supplies. A good trip lifts a regular's last-trip mood (so next July's rebooking odds), earns a little rep and bookings; a bad night costs goodwill.
+- **Encounters:** each night still rolls once, 50% for an encounter, weighted by the habitat of the place. The original ten are unchanged; added: river otters, a wolverine, snowshoe hares, ptarmigan, sea otters (the Spit only), chickadees, and three weather events: a cold snap, a snowstorm (an extra night and a tow without a truck kit) and a chinook thaw (softens ice). Over all places and months about 49% of the odds are bad unpacked (it was 58%), and about 38% with a bear container and truck kit.
+- **Winter jobs** (a day each): guide ice fishers (about $140 plus tips, with a license and kit), run a snowmachine tour (about $240 less fuel; needs rep 45), help at a winter event (Soldotna's Peninsula Winter Games or Kasilof's Tustumena 200, whenever they run: $60, rep +1, word of mouth, a few bookings).
+- **Carried into next summer:** energy (never below 40), rep, skill, word of mouth, fish in the freezer (stocked trout and char are small: three of them count as one red in the freezer), **tackle credit** (up to 12 trips of tackle), **scouting** (a hint at the run's timing and up to +3% catch on your first three trips) and a small **booking boost** (up to +2 points on the chance of a booking each day, which is about 3% more bookings).
 
-**Costs:** gas = round-trip miles ÷ 15 mpg × winter pump price (the Kenai dock price minus the roughly $0.85 marine premium, about $5.34 at the start and drifting each season) + site fees × nights + $25 a night in supplies. Trips you can't afford are disabled.
+**Costs:** gas = round-trip miles ÷ 15 mpg × winter pump price (the Kenai dock price minus the roughly $0.85 marine premium) × the difficulty's cost multiplier; campsite fees (only Anchor River, $20 a night, because most campgrounds are unserviced in winter) or the cabin; supplies $25 a night per person.
 
-**Encounters:** each night camped rolls once: 50% chance of one wildlife encounter, weighted by the habitat of the place (lake, forest, coast, river, mountain). Quiet nights give a little rest (+2 energy). Energy carries into the new season; skill, rep and cash change too.
+| Destination | One-way road miles from Soldotna | Fee per night in the game | Extras |
+|---|---|---|---|
+| Johnson Lake (Kasilof) | 16 | free in winter ($20 in season) | ice fishing, scouting (Kasilof) |
+| Clam Gulch beach | 22 | free ($20 in season) | |
+| Hidden Lake (Kenai Refuge) | 24 | free ($15 in season) | scouting (upper Kenai) |
+| Swanson River Rd & Swan Lake canoe area | 29 | free | skiing, cabin |
+| Lower Skilak Lake Campground | 33 | free | scouting (upper Kenai), cabin |
+| Captain Cook State Rec Area | 36 | free ($20 in season) | ice fishing (Stormy Lake), skiing |
+| Deep Creek State Rec Area | 42 | free ($20 in season) | |
+| Quartz Creek (Kenai Lake) | 51 | free | scouting (upper Kenai), cabin |
+| Anchor River State Rec Area | 66 | $20/night | |
+| Homer Spit | 83 | free (city sites open Apr-Oct only) | sea otters |
 
-- Good: cow moose and calf (approach her and it turns bad), wolves howling across the lake, a lynx on the trail, trumpeter swans on open water, bald eagles on the beach, Dall sheep on the slope.
-- Bad: a red fox raids the food bag, ravens open the cooler, a porcupine chews the truck and axe handle, a brown bear out of its den in a warm spell.
+Miles are estimates from Sterling Highway mileposts (Soldotna about MP 95.2; Quartz Creek MP 44.9, Swanson River Rd MP 83.5 plus 17 miles, Skilak Lake Rd west end MP 75.2 plus 3.5 to Hidden Lake and 13.3 to Lower Skilak, Johnson Lake Rd MP 110, Clam Gulch MP 117.4, Deep Creek MP 137.3, Anchor River MP 161, Homer MP 173 plus the Spit road). Sources: [Bells Alaska Sterling Highway road log](https://www.bellsalaska.com/roadlogs/sterling-highway-log.pdf), [Alaska State Parks fees](https://dnr.alaska.gov/parks/asp/unitfees.htm) ($20/site at Johnson Lake, Clam Gulch, Deep Creek, Captain Cook and Anchor River), [Kenai NWR camping fees](https://www.fws.gov/refuge/kenai/visit-us/activities/camping), [Swanson River Rd](https://dnr.alaska.gov/parks/aspunits/kenai/swansonrvld.htm), [Captain Cook SRA](https://dnr.alaska.gov/parks/aspunits/kenai/captcook.htm), [ADF&G Skilak Lake Road](https://www.adfg.alaska.gov/index.cfm%3Fadfg%3Dviewinglocations.skilaklakeroad) and [City of Homer campgrounds](https://www.cityofhomer-ak.gov/node/7456). **Estimates, not checked:** the cabin rates and which areas have a winter public-use cabin, the $29 license price, all gear and shelter prices, winter-job pay, the monthly daylight hours (rounded from 60.5°N) and every month's ice and weather odds. Winter event dates are not asserted.
 
-Achievements: Happy Camper (7 nights in total) and Wild Kenai (5 different encounters). The end screen lists nights camped and encounters.
+**Achievements:** Happy Camper (7 nights in total), Wild Kenai (5 different animals), Every Animal (all 16) and No Trace (break camp with food stored, trash packed out and no raided camp). The end screen lists nights, trips, animals logged, fish, tackle credits, winter jobs and what they netted.
+
+**Balance:** camping is optional and small. 40 paired five-year careers per bot (same game seeds; the camping bot uses its own random stream), a "thoughtful" camper (2 trips and 2 jobs a winter, ice fishing or scouting, a good pack, company, flies, no trace; it never buys the camper), season score per season with camping on / off:
+
+| Licensed Guide (normal) | camping | no camping | change |
+|---|---|---|---|
+| by the book (food stocked) | 59,966 | 58,711 | +2.1% |
+| phone | 61,345 | 59,785 | +2.6% |
+| skilled | 70,534 | 70,211 | +0.5% |
+| opportunist | 56,451 | 54,613 | +3.4% |
+
+| Combat Season (hard) | camping | no camping | change |
+|---|---|---|---|
+| by the book (food stocked) | 55,622 | 54,102 | +2.8% |
+| phone | 56,752 | 56,156 | +1.1% |
+| skilled | 65,590 | 64,701 | +1.4% |
+| opportunist | 51,118 | 52,345 | -2.3% (6 permits lost against 1: rule-breakers with a few more trips) |
+
+That averages about +2.1% (normal) and +0.8% (hard); a winter nets about -$80 to -$100 in cash (gear is bought once), +2 rep, 7 stocked fish and 2 tackle credits. A guide who **never stocks food** gains 6-9% because freezer fish keep them fed (a loophole for a style that is already punished). A bot that never camps (the "expert" and "passive" styles) scores exactly what it did in 1.8.1 (same seeds, identical scores): camping draws no random numbers and changes no state until you open it. The truck camper ($7,500) is a luxury, not an investment: it lowers bad nights, but it costs more than it returns in score.
 
 ## Waiting and the alarm
 

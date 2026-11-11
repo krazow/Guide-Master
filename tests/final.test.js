@@ -108,7 +108,7 @@ module.exports = [
       // rates: 8% fewer bookings a step
       o.rate = RATE_BOOK; o.ratesTxt = U('rates').d; o.dockTxt = U('dock').d;
       // the camping blurb: encounters never pay cash, so the off-season text mustn't promise any
-      S.winter = { s: 0, bill: 0, expired: 0 }; S.seasons = [{ year: 2026, trips: 1, earned: 1, rep: 50 }]; winterModal(); o.camp = MB.find(b => /winter camping/.test(b.l)).s; closeModals(); S.winter = null;
+      S.winter = { s: 0, bill: 0, expired: 0 }; S.seasons = [{ year: 2026, trips: 1, earned: 1, rep: 50 }]; winterModal(); o.camp = MB.find(b => /winter camping/i.test(b.l)).s; closeModals(); S.winter = null;
       // the motor dilemma says 30 minutes lost: it must lose them
       const t = { lost: 0, q: 0, happy: 0, notes: [], x: [] }; const v = STEP.motor(S.book[0] || { who: 'x' }); const opt = v.o.find(x => /30 minutes lost/.test(x.s)); opt.fn(null, t); o.lost = t.lost;
       return o;
@@ -117,7 +117,7 @@ module.exports = [
     assert.strictEqual(r.saved, 30); assert.strictEqual(r.savedNo, 0); assert.strictEqual(r.tank, 40); assert.ok(/30 minutes sooner/.test(r.sledTxt) && /40-gallon/.test(r.sledTxt));
     assert.ok(Math.abs(r.burn - .8) < .01 && /20% less gas/.test(r.motorTxt));
     assert.strictEqual(r.rate, .08); assert.ok(/8% fewer/.test(r.ratesTxt)); assert.ok(/8% more bookings/.test(r.dockTxt));
-    assert.ok(!/and a little cash/.test(r.camp) && /can cost a little cash/.test(r.camp), r.camp);
+    assert.ok(!/and a little cash/.test(r.camp) && /free days/.test(r.camp), r.camp);
     assert.strictEqual(r.lost, 30, 'the “30 minutes lost” option loses 30 minutes');
     noErrors(errors);
   } },

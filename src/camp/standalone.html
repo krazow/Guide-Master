@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kenai Winter Camp (dev harness)</title>
+<style>
+:root{--ink:#16242c;--mute:#5a6b75;--line:#cfdbe1;--bg:#eaf1f4;--card:#fff;--accent:#1f6f8b;--bad:#b3392b}
+*{box-sizing:border-box}
+body{margin:0;font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+header{padding:14px 16px;background:#16323f;color:#fff}
+header h1{margin:0;font-size:18px}
+header p{margin:2px 0 0;font-size:12.5px;opacity:.8}
+main{padding:16px;max-width:520px;margin:0 auto}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+button{font:inherit;min-height:44px;min-width:44px;border-radius:10px;border:1.5px solid var(--line);background:#fff;padding:8px 12px;text-align:left;cursor:pointer;width:100%;margin-top:8px}
+button.act:first-of-type:not([disabled]){border-color:var(--accent)}
+button[disabled]{opacity:.5;cursor:not-allowed}
+button .s{display:block;font-size:12.5px;color:var(--mute);font-weight:400}
+.modal-bg{position:fixed;inset:0;background:rgba(10,20,26,.55);display:flex;align-items:flex-end;justify-content:center;z-index:10}
+.modal{background:var(--card);width:100%;max-width:520px;max-height:92vh;overflow:auto;border-radius:16px 16px 0 0;padding:16px}
+.modal h2{margin:0 0 8px;font-size:18px}
+.modal .mb p{margin:.5em 0}
+</style>
+</head>
+<body>
+<header><h1>Kenai Winter Camp</h1><p>Development harness for the KenaiCamp engine, solo mode. Not part of Guide Master.</p></header>
+<main>
+  <div class="card" id="status" aria-live="polite"></div>
+  <button id="go" class="act">Start camping</button>
+  <button id="newwinter">Start a new winter</button>
+  <button id="reset">Reset this save</button>
+</main>
+<script>
+/*@CAMP@*/
+// ---- a minimal standalone host: its own pop-up, nothing from Guide Master ----
+(function(){
+  var focusBack=null;
+  function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+  function show(title,html,btns,lock){
+    var old=document.getElementById('mbg');if(old)old.remove();
+    var bg=document.createElement('div');bg.className='modal-bg';bg.id='mbg';
+    var m=document.createElement('div');m.className='modal';m.setAttribute('role','dialog');m.setAttribute('aria-modal','true');m.setAttribute('aria-label',title.replace(/<[^>]+>/g,''));m.tabIndex=-1;
+    m.innerHTML='<h2>'+title+'</h2><div class="mb">'+html+'</div>';
+    btns.forEach(function(b,i){
+      var el=document.createElement('button');el.className='act';el.disabled=!!b.dis;
+      el.innerHTML='<b>'+b.l+'</b>'+(b.s?'<span class="s">'+b.s+'</span>':'');
+      el.onclick=function(){bg.remove();document.getElementById('app')&&0;b.fn&&b.fn()};m.appendChild(el);
+    });
+    bg.appendChild(m);document.body.appendChild(bg);
+    document.querySelector('main').setAttribute('inert','');
+    bg.addEventListener('keydown',function(e){
+      if(e.key==='Tab'){var f=[].slice.call(bg.querySelectorAll('button:not([disabled])'));if(!f.length)return;var a=f[0],z=f[f.length-1];
+        if(e.shiftKey&&document.activeElement===a){e.preventDefault();z.focus()}else if(!e.shiftKey&&document.activeElement===z){e.preventDefault();a.focus()}}
+    });
+    var first=m.querySelector('button:not([disabled])');(first||m).focus();
+  }
+  function release(){var main=document.querySelector('main');main.removeAttribute('inert');var b=document.getElementById('mbg');if(b)b.remove()}
+  function status(){
+    var s=KenaiCamp.solo.load();
+    document.getElementById('status').innerHTML='<b>Winter '+(s.winter+1)+'</b> · cash $'+Math.round(s.cash)+' · energy '+s.energy+' · rep '+s.rep+'<br>Free days '+s.days+', trips '+s.trips+', jobs '+s.gigs+'<br>Animals logged: '+Object.keys(s.seen).length+' of '+KenaiCamp.data.ALL.length+'<br>Trips so far: '+s.tot.trips+', nights: '+s.tot.nights+', fish: '+s.tot.fish+'<br>Journal on this device: '+Object.keys(KenaiCamp.journal.load().seen).length+' animals';
+    window.__campStatus=s;
+  }
+  function run(){
+    KenaiCamp.start({mode:'solo',host:{show:function(t,h,b,l){show(t,h,b,l);},rand:Math.random,now:Date.now,toast:function(){},
+      onFinish:function(rep,save){release();window.__campReport=rep;status();document.getElementById('status').insertAdjacentHTML('beforeend','<hr><b>Report</b><br>'+rep.tripsTaken+' trip(s), '+rep.nights+' night(s), cash '+(rep.cashDelta<0?'-':'+')+'$'+Math.abs(Math.round(rep.cashDelta))+', energy '+(rep.energyDelta>=0?'+':'')+rep.energyDelta+', rep '+(rep.repDelta>=0?'+':'')+rep.repDelta+(rep.achievements.length?'<br>Earned: '+rep.achievements.join(', '):''));}}});
+  }
+  document.getElementById('go').onclick=run;
+  document.getElementById('newwinter').onclick=function(){KenaiCamp.solo.save(KenaiCamp.solo.newWinter());status()};
+  document.getElementById('reset').onclick=function(){KenaiCamp.solo.reset();status()};
+  status();window.__campRun=run;
+})();
+</script>
+</body>
+</html>

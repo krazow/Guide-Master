@@ -294,6 +294,8 @@ const ACH=[
   {id:'seat_table',ic:'🏛️',n:'A Seat at the Table',d:'Serve on the local fish and game advisory committee and see it through to the Board of Fisheries.',test:()=>S.arcs&&S.arcs.board.st>=3},
   {id:'happy_camper',ic:'🏕️',n:'Happy Camper',d:'Camp 7 nights in total during winters.',test:()=>(S.stats.campNights||0)>=7},
   {id:'wild_kenai',ic:'🦌',n:'Wild Kenai',d:'See 5 different wildlife encounters while camping.',test:()=>Object.keys(S.stats.seen||{}).length>=5},
+  {id:'every_animal',ic:'🦉',n:'Every Animal',d:'Log all 16 kinds of Kenai winter wildlife while camping.',test:()=>KenaiCamp.data.ALL.every(id=>(S.stats.seen||{})[id]>0)},
+  {id:'no_trace',ic:'🌲',n:'No Trace',d:'Break a winter camp with nothing left behind: food stored, trash packed out.',test:()=>!!(S.camp&&S.camp.noTrace>0)},
 ];
 
 // ---- scoring and the end screen ----
@@ -324,11 +326,20 @@ function endRows(){
   return [['Difficulty',`${DF().ic} ${DF().n}: ${DF().enforce<1?'fewer patrols, cheaper bills':DF().enforce>1?'more patrols, dearer bills, pickier clients':'standard patrols and bills'}; no score bonus`],['Career',`${S.years} seasons`],['Season by season',yrs],['Cash',$(Math.round(S.money))],['Net over the career',$(Math.round(S.money-DF().money))],['Boats & permits bought',S.up&&S.up.value?$(S.up.value):'none'],['July trips played / clients',`${s.trips} / ${s.clients}`],
     ['Fish landed',s.fish],['Trips where everyone limited',s.limits],['Tips',$(s.tips)],['Reputation',S.rep],
     ['Record',`${s.citesTotal||0} citation${(s.citesTotal||0)===1?'':'s'}, ${s.warnsTotal||0} warning${(s.warnsTotal||0)===1?'':'s'}, ${$(s.fines)} in fines`],
-    ['Fuel',`${grp(s.fuelGal||0)} gal, ${$(Math.round(s.fuelCost||0))}`],['Coast Guard tows',s.tows||0],['Winter camping',`${s.campNights||0} night${(s.campNights||0)===1?'':'s'}, ${s.encounters||0} wildlife encounter${(s.encounters||0)===1?'':'s'}`],['Kings released',s.kings],['Freezer',`${S.freezer} reds`],['Boat checks passed',s.checks]];
+    ['Fuel',`${grp(s.fuelGal||0)} gal, ${$(Math.round(s.fuelCost||0))}`],['Coast Guard tows',s.tows||0],['Winter camping',campEndText()],['Kings released',s.kings],['Freezer',`${S.freezer} reds`],['Boat checks passed',s.checks]];
 }
 
 // ---- save migrations ----
 const MIGRATIONS=[
   // schema 2 (1.5.1): the trip result lives in b.out; b.res is only the Alaska-resident flag again
   {to:2,run:x=>{(x.book||[]).forEach(b=>{if(b.res&&typeof b.res==='object'){b.out=b.res;b.res=false}else if(typeof b.res!=='boolean')b.res=!!b.res})}},
+  // schema 3 (1.9.0): camping grew from one trip a winter into a day budget with gear, a license year and next-season bonuses (28-camping.js).
+  // An old save's single trip counts against this winter's days, so a game in the middle of an off-season carries on where it was.
+  {to:3,run:x=>{
+    const o=x.camp,c=campBase();
+    if(o&&o.v===2){x.camp=o;return}
+    if(o&&typeof o==='object'&&typeof o.s==='number'){c.s=o.s;c.days=Math.max(1,o.nights||1);c.trips=1;c.tot.trips=1}
+    c.tot.nights=(x.stats&&x.stats.campNights)||0;
+    x.camp=c;
+  }},
 ];

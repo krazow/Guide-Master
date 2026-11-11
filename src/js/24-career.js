@@ -173,9 +173,10 @@ function winterModal(){
     <p>📣 <b>${2026+s}:</b> ${REG().fc}<br>⚓ Halibut: 2 a day, the second ${halSize()} inches or less; no retention ${halDaysTxt()}.<br>⛽ Kenai Harbor fuel ${$(fuelPrice('kenai',seasonFirst(s)))}/gal. ${evenYear(seasonFirst(s))?'🩷 Even year: pinks in August.':'Odd year: few pinks.'}</p>
     ${W.sup&&W.sup.length?`<p>${W.sup.join('<br>')}</p>`:''}
     <p>⛑️ First-aid card: ${fa}.${W.expired>0?`<br>⚖️ ${W.expired} old citation${W.expired>1?'s':''} dropped off.`:''}${S.cites?`<br>⚖️ Active citations: ${S.cites}/3.`:''}</p>
+    ${campHintLine()?`<p>${campHintLine()}</p>`:''}
     <p style="font-size:13px;color:var(--mute)">Season ${s+1} of ${S.years}. Bookings open when you finish planning.</p>`,[
     {l:'🛠️ Upgrades & business',s:'Boats, marketing, rates, a Homer charter permit.',fn:()=>upgradeModal()},
-    {l:'🏕️ Go winter camping',s:campUsed()?'You’ve already been camping this winter.':'Pick a place within 100 miles and a number of nights. Wildlife and quiet rest, and a bad night can cost a little cash.',dis:campUsed(),fn:()=>campModal()},
+    {l:'🏕️ Winter camping & work',s:campUsed()?'You’ve used your free days this winter. You can still look at your camping log.':`${campDaysLeft()} free days: camping trips within 100 miles (ice fishing, scouting, company), winter work, a camping log.`,fn:()=>campModal()},
     {l:`🛶 Open bookings for ${2026+s}`,s:'Start the season.',fn:()=>finishWinter()}]);
 }
 function upgradeModal(){
@@ -191,7 +192,7 @@ function finishWinter(){
 }
 function genSeasonBookings(s){
   const base=s*SEASON,web=S.up.web===s?.15:0,r=Math.random;
-  const p0=clamp((.35+S.rep/200+web+(S.arcs.rival.ally?.03:0))*rateDemand()*(S.up.dock?1.08:1),.12,.95);
+  const p0=clamp((.35+S.rep/200+web+(S.arcs.rival.ally?.03:0)+campBook(s))*rateDemand()*(S.up.dock?1.08:1),.12,.95);
   const q=()=>r()<.3?[pick(['drinker','nolicense','kingfan','photo','kid'])]:[];
   const party=()=>pick(PARTIES);
   for(let i=0;i<SEASON;i++){const d=base+i,w=i%7;

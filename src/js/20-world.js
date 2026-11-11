@@ -35,7 +35,7 @@ function newState(){
     home:{cans:3,tank:0,gal:10,tgal:0,stale:0,gen:0,frz:0},   // 31-supplies.js: fuel storage (gallons: untreated, stabilized, stale), generator type, big freezer
     food:{pan:24,fri:6,fd:0,fm:0,kits:0},ate:{d:-1,n:0},hungry:0,power:null,   // meals in the pantry and fridge, the day the fridge was stocked, meals left of a thawed red, client lunch kits; meals eaten away today; today's outage
     visited:{shop:true},
-    stats:{trips:0,clients:0,fish:0,limits:0,earned:0,spent:0,tips:0,viol:0,fines:0,kings:0,chop:0,bear:0,noshow:0,halibut:0,checks:0,cancelled:0,tows:0,fuelGal:0,fuelCost:0,campNights:0,encounters:0,seen:{}},camp:null};
+    stats:{trips:0,clients:0,fish:0,limits:0,earned:0,spent:0,tips:0,viol:0,fines:0,kings:0,chop:0,bear:0,noshow:0,halibut:0,checks:0,cancelled:0,tows:0,fuelGal:0,fuelCost:0,campNights:0,encounters:0,seen:{}},camp:campBase()};
 }
 
 // ---- HUD ----
