@@ -172,7 +172,8 @@ html.rm *,html.rm *::before,html.rm *::after{animation:none!important;transition
 .end{padding:22px 18px 40px}
 .end h1{font-size:30px;margin:6px 0 4px}
 .grade{font-family:"Fraunces";font-size:58px;font-weight:800;color:var(--cta);line-height:1}
-.kv{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:15px}
+.kv{display:flex;justify-content:space-between;gap:14px;padding:8px 0;border-bottom:1px solid var(--line);font-size:15px}
+.kv>span{flex:0 0 auto}.kv>b{text-align:right}
 .kv b{font-variant-numeric:tabular-nums}
 /* polish */
 .sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}
@@ -240,7 +241,7 @@ const GAME={
   title:'Guide Master',
   tagline:'A guide’s career on the Kenai',
   codePrefix:'GUIDEMASTER',   // transfer codes start with this, e.g. POCKETWEEK:eyJ…
-  version:'1.6.1',           // bump on every release: shown in Settings, stamped into saves and sw.js
+  version:'1.6.2',           // bump on every release: shown in Settings, stamped into saves and sw.js
   schema:2,                  // bump when the shape of S changes, and add a MIGRATIONS entry (21-story.js)
   days:14,                   // days in ONE season (the July peak, Mon–Sun twice; season 1 is Jul 13–26, 2026). A career is 14 × years: see the getter below
   wake:300,                  // default alarm for new games, in minutes after midnight (300 = 5:00 AM: guides start early; saves keep their own S.alarm)
@@ -2594,6 +2595,7 @@ const CHANGELOG={
   '1.5.3':['⚖️ Difficulty now changes the game, not the score: Combat Season means more patrols and dearer bills, Rookie the reverse. Grades were recalibrated, so an A takes real work.'],
   '1.5.4':['🎲 Dilemma options shuffle: playing it straight costs something, bending a rule can pay cash, and repeat offenders pay steeper fines. Pay now follows the day: catch, tackle and boat shape tips, refunds and word of mouth.'],
   '1.6.0':['💲 Higher rates now cost you: fewer bookings, pickier clients and a rep requirement that rises each step.','🔧 Boats at condition 0 are out of service until repaired; new motors burn less gas, new sleds finish sooner, and late-career money can buy an assistant guide, guest cabins or a riverfront launch.','⏳ New “Wait until…” action skips to the next launch or the 1 PM class. New games start with a 5:00 AM alarm.','🌙 The night summary now comes before the morning’s news, and pop-up toasts are fewer, shorter and sit below your Cash and Rep.','⭐ Longer careers: 54 client parties, regulars who come back (or don’t), six new river dilemmas, fewer repeats and three multi-season stories.'],
+  '1.6.2':['🧹 Tidier end screen: labels and values no longer run together.'],
   '1.6.1':['🔧 A worn-out boat now gives warnings at 40, 20 and 10, and at condition 0 you can pay for an emergency patch or rent a loaner to keep a booked trip running.','🏛️ The Board of Fisheries hearing only comes on a day with no trips booked, so it can’t cost you a no-show.','💵 Money shows thousands separators ($47,975), the end screen breaks your score down line by line and labels played trips versus the estimated rest of the summer, and the off-season summary is shorter.','♿ Pop-ups keep keyboard focus inside and close with Esc, Go buttons say where they go, tap targets are 44 px and the top bar no longer wraps at large text.','⛽ Fuel: the low-fuel check counts wind and long runs, the first “Risk it” asks twice, the in-trip refuel respects dock hours, and an evening reminder tells you when tomorrow needs more gas.'],
 };
 const CHANGELOG_GENERIC='Fixes and small improvements throughout.';
