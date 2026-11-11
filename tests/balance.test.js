@@ -20,7 +20,7 @@ module.exports = [
     assert.ok(r.hard.mood < r.normal.mood && r.normal.mood < r.easy.mood, 'client mood');
     assert.ok(r.hard.book < r.normal.book && r.normal.book < r.easy.book, 'bookings');
     assert.ok(r.hard.rest < r.normal.rest && r.normal.rest < r.easy.rest, 'rest of season');
-    assert.strictEqual(r.normal.overhead, 75);
+    assert.strictEqual(r.normal.overhead, 57);   // 1.7.0: groceries moved out of the nightly overhead ($75 -> $57)
     noErrors(errors);
   } },
   { name: 'hard catches more violators and fines escalate with each citation', fn: async ctx => {

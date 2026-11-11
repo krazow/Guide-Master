@@ -157,6 +157,7 @@ function tripStart(b){
   if(S.gear<=0){t.happy-=3;t.notes.push('🪱 You’re out of tackle. The clients fish with whatever is left in the bottom of the box, and they notice.')}
   if(t.loan){t.happy-=6;t.notes.push('🤝 You run the trip on a borrowed rig. It is tired and the clients can tell.')}
   if(S.boat>=80) t.happy+=2;
+  hungerTrip(t);                                           // 31-supplies.js: a hungry guide is a grumpy guide
   if(!t.loan&&S.boat<70&&b.type!=='halibut'&&Math.random()<(70-S.boat)/90){
     const m=60+Math.floor(Math.random()*60);lose(t,m);t.happy-=12;fx(t,-Math.round(payOf(b)*.15),'Breakdown credit');fx(t,-rp(80),'Roadside repair');adj('boat',8);
     t.notes.push(`🔧 Worn-out gear lets you down: ${b.type==='trout'?'an oarlock snaps and the trailer bearing howls':'the jet sled quits on the way out'} and you lose ${m} minutes. You credit the ${b.who} 15% of the fare and pay ${$(rp(80))} for a quick fix. Service the boats at the shop.`);
@@ -166,7 +167,7 @@ function tripStart(b){
   if(b.type==='reds'&&b.n===5) t.steps.push('five');
   if(b.quirk.includes('nolicense')) t.steps.push('license');
   if(S.cred.fa<day()) t.steps.push('expired');
-  t.steps.push('spot');
+  t.steps.push('pack','spot');                            // 31-supplies.js: pack the cooler, then pick the spot
   regTripStart(b,t);                                      // 30-stories.js: returning parties remember last time
   const want=S.diff==='hard'?3:2,beats=[],q=b.quirk;
   if(b.arc==='garza'&&S.arcs.garza.st>=1&&S.arcs.garza.st<=3) beats.push('arc_garza');
@@ -191,7 +192,7 @@ function tripNext(){
   const f=STEP[t.steps[t.step]];if(!f){t.step++;return tripNext()}
   const v=f(b,t),T=TRIPS[b.type];
   const opts=v.o.map((o,k)=>({o,k}));
-  for(let i=opts.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[opts[i],opts[j]]=[opts[j],opts[i]]}   // shuffled every showing
+  if(!v.fixed)for(let i=opts.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[opts[i],opts[j]]=[opts[j],opts[i]]}   // shuffled every showing
   modal(v.t,`<p class="small-note" style="color:var(--mute);margin:0 0 6px">${T.ic} ${T.n} · ${b.who}</p>${v.b}`,opts.map(({o,k})=>({l:o.l,s:o.s,legal:o.legal!==false,dis:!!o.dis,np:true,k,fn:()=>{
     const tt=S.trip;if(!tt) return;const bb=bk(tt.id);if(!bb) {S.trip=null;return}
     o.fn&&o.fn(bb,tt);

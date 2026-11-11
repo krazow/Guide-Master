@@ -19,7 +19,7 @@ module.exports = [
     const txt = await notice(page);
     assert.ok(txt.includes('Updated to version ' + ver), txt);
     assert.ok(txt.includes('from version 1.0.0'), txt);
-    assert.ok(txt.includes('What’s new') && txt.includes('Higher rates now cost you'), txt);
+    assert.ok(txt.includes('What’s new') && txt.includes('Power outages'), txt);
     assert.ok(!/saved game/i.test(txt), 'no saves, so no saved-games line');
     assert.ok((await page.locator('#mbg li').count()) <= 8);
     await page.mouse.click(5, 5);                 // backdrop area

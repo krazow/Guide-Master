@@ -153,9 +153,9 @@ function boatFish(sp,h,illegal){
   S.skill++;S.scout=day();S.solo[day()]=(S.solo[day()]||0)+1;
   const lines=[],rnd=()=>.6+Math.random()*.8;
   let n=Math.round(o*S_.rate*h*rnd());
-  if(sp==='king'){n=Math.min(1,n);if(n){S.freezer+=1;S.stats.legalKings=(S.stats.legalKings||0)+1;lines.push('👑 A legal king, recorded on your harvest record. Kings are open this year.')}else lines.push('👑 No king today. They’re the fish of ten thousand casts.')}
+  if(sp==='king'){n=Math.min(1,n);if(n){addFish(1);S.stats.legalKings=(S.stats.legalKings||0)+1;lines.push('👑 A legal king, recorded on your harvest record. Kings are open this year.')}else lines.push('👑 No king today. They’re the fish of ten thousand casts.')}
   else if(S_.keep){const lim=S_.lim(),room=sp==='halibut'?lim:Math.max(0,lim);n=Math.min(n,room);if(n>=lim)lines.push(`🎯 Limit: ${lim}. Bag limits are per day, so you reel up and run home.`);
-    if(n){S.freezer+=n;lines.push(`🧊 ${n} ${S_.n.toLowerCase()} for the freezer, every one hooked in the mouth.`)}else lines.push(`😶 ${h} hours and no ${S_.n.toLowerCase()} kept. ${o<.3?'The run isn’t here yet.':'Some days are like that.'}`)}
+    if(n){n=addFish(n);lines.push(`🧊 ${n} ${S_.n.toLowerCase()} for the freezer, every one hooked in the mouth.`)}else lines.push(`😶 ${h} hours and no ${S_.n.toLowerCase()} kept. ${o<.3?'The run isn’t here yet.':'Some days are like that.'}`)}
   else{lines.push(n?`${S_.ic} ${n} ${S_.n.toLowerCase()} to hand, photographed wet and released.`:`${S_.ic} Nothing to hand. Pretty river, though.`)}
   // incidental king hookups (closed: release in the water)
   const kings=sp!=='king'&&kingRule()!=='open'&&loc==='lower'&&Math.random()<avgOdds('king',loc,t0,h*60)*.25*h?1:0;
