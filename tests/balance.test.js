@@ -43,22 +43,22 @@ module.exports = [
       const out = {};
       for (const k of ['easy', 'normal', 'hard']) {
         newGame(k); closeModals(); S.years = 2;
-        out[k] = [132000, 131999, 114000, 113999, 90000, 89999, 56000, 55999, 0].map(x => gradeOf(x)[0]).join('');
+        out[k] = [124000, 123999, 110000, 109999, 88000, 87999, 54000, 53999, 0].map(x => gradeOf(x)[0]).join('');
       }
       newGame('normal'); closeModals(); S.years = 5;
-      out.five = [330000, 329999, 285000, 284999, 225000, 224999, 140000, 139999].map(x => gradeOf(x)[0]).join('');
+      out.five = [310000, 309999, 275000, 274999, 220000, 219999, 135000, 134999].map(x => gradeOf(x)[0]).join('');
       out.cuts = GRADE_CUTS; return out;
     });
     assert.strictEqual(r.normal, 'ABBCCDDFF');
     assert.strictEqual(r.easy, r.normal); assert.strictEqual(r.hard, r.normal);
     assert.strictEqual(r.five, 'ABBCCDDF');
-    assert.deepStrictEqual(r.cuts, [66000, 57000, 45000, 28000]);
+    assert.deepStrictEqual(r.cuts, [62000, 55000, 44000, 27000]);
     noErrors(errors);
   } },
   { name: 'end screen and rules text show the difficulty', fn: async ctx => {
     const { page, errors } = await open(ctx);
     const r = await page.evaluate(() => { newGame('hard'); closeModals(); return { rows: endRows().find(x => x[0] === 'Difficulty')[1], rules: RULES_HTML }; });
-    assert.match(r.rows, /Combat Season/); assert.match(r.rules, /no score bonus/); assert.match(r.rules, /66,000/);
+    assert.match(r.rows, /Combat Season/); assert.match(r.rules, /no score bonus/); assert.match(r.rules, /62,000/);
     noErrors(errors);
   } },
 ];
