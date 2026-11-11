@@ -270,7 +270,7 @@ function todoItems(){
   it.push({l:'Optional: fill the freezer with 25 dipnet reds',s:`${S.freezer}/25. Kenai City Beach, 6 AM–11 PM.`,ok:S.freezer>=25});
   return it;
 }
-const RULES_HTML='<p>Guide every July of a 2-, 5- or 10-year career. You lose if you get 3 active citations (permit pulled; citations drop off after the next season), your reputation hits 0, or you fall $2,000 in debt.</p><p>Score: net cash + three quarters of the value of boats and permits you bought + reputation ×15 + 60 per trip − 400 per citation + 2 per freezer fish, plus 300 a season for a career without a violation. The grade is per season, so careers of any length compare: A at 66,000 a season, B 57,000, C 45,000, D 28,000.</p><p>Difficulty gives no score bonus. It changes the game instead: <b>Rookie</b> has fewer patrols, gentler fines, cheaper fuel and bills, friendlier clients and a bit more off-month work; <b>Licensed</b> is the baseline; <b>Combat</b> has more patrols, fines that climb with every citation, dearer fuel, bills and repairs, pickier clients, less off-month work and more bad luck. The same play grades about a step lower on Combat and a step higher on Rookie.</p>';
+const RULES_HTML='<p>Guide every July of a 2-, 5- or 10-year career. You lose if you get 3 active citations (permit pulled; citations drop off after the next season), your reputation hits 0, or you fall $2,000 in debt.</p><p>Score: net cash + the estimated rest of your last summer + nine tenths of the value of boats and permits you bought + reputation ×15 + 60 per trip − 400 per citation + 2 per freezer fish, plus 300 a season for a career without a violation. The grade is per season, so careers of any length compare: A at 62,000 a season, B 55,000, C 44,000, D 27,000 (a lost career is always an F). On Licensed Guide a by-the-book career lands mostly on B, a sharp one (phone requests, every upgrade, no violations) on B or A, and one that skips meals and lunches on C. Combat Season grades about a step lower and Rookie Season about a step higher.</p><p>Difficulty gives no score bonus. It changes the game instead: <b>Rookie</b> has fewer patrols, gentler fines, cheaper fuel and bills, friendlier clients and a bit more off-month work; <b>Licensed</b> is the baseline; <b>Combat</b> has more patrols, fines that climb with every citation, dearer fuel, bills and repairs, pickier clients, less off-month work and more bad luck. The same play grades about a step lower on Combat and a step higher on Rookie.</p>';
 
 // ---- achievements ----
 const ACH=[
@@ -303,12 +303,12 @@ function curSeason(){const s=S.stats,o=S.st0||{};return {year:yearOf(day()),trip
 function scoreParts(){
   const st=S.stats,cites=st.citesTotal||S.cites,rest=restOfSeason(curSeason()).net;
   const P=[['Net cash',S.money-DF().money,'cash now minus your start money'],['Rest of this summer',rest,'estimated: the off-season settles June, August and September'],
-    ['Boats & permits',(S.up?S.up.value:0)*.75,'three quarters of what you bought'],['Reputation',S.rep*15,`${S.rep} × 15`],['Trips',st.trips*60,`${st.trips} July trips × 60`],
+    ['Boats & permits',(S.up?S.up.value:0)*.9,'nine tenths of what you bought'],['Reputation',S.rep*15,`${S.rep} × 15`],['Trips',st.trips*60,`${st.trips} July trips × 60`],
     ['Citations',-cites*400,`${cites} × −400`],['Freezer fish',S.freezer*2,`${S.freezer} × 2`],['Clean record bonus',st.viol===0?300*S.years:0,st.viol===0?`no violations: 300 × ${S.years} seasons`:'you broke a rule']];
   return P.map(([k,v,n])=>[k,Math.round(v),n]);
 }
 function scoreOf(){return scoreParts().reduce((a,r)=>a+r[1],0)}
-const GRADE_CUTS=[66000,57000,45000,28000];            // A, B, C, D: score per season, the same on every difficulty
+const GRADE_CUTS=[62000,55000,44000,27000];            // A, B, C, D: score per season, the same on every difficulty
 function gradeOf(sc){
   sc=sc/(S.years||1);                                   // graded per season, so careers of any length compare
   if(sc>=GRADE_CUTS[0]) return ['A','Guide Master','Other guides watch where you anchor (legally).'];
