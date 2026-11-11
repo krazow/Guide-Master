@@ -32,7 +32,7 @@ function render(){
   const xt=(EXTRA_TABS||[]).find(t=>t.k===tab);
   h+=`<div class="content">${tab==='act'?actView():tab==='todo'?todoView():tab==='log'?logView():xt?xt.view():actView()}</div>`;
   const pending=todoItems().filter(x=>x.urgent&&!x.ok).length,tabs=allTabs();
-  h+=`<nav class="tabs" style="grid-template-columns:repeat(${tabs.length},1fr)">${tabs.map(([k,i,l])=>`<button class="${tab===k?'on':''}" onclick="setTab('${k}')"${tab===k?' aria-current="page"':''}><span class="ti">${i}</span>${l}${k==='todo'&&pending?'<span class="dot"></span>':''}</button>`).join('')}</nav>`;
+  h+=`<nav class="tabs" style="grid-template-columns:repeat(${tabs.length},1fr)">${tabs.map(([k,i,l])=>`<button class="${tab===k?'on':''}" onclick="setTab('${k}')"${tab===k?' aria-current="page"':''}><span class="ti">${i}</span>${l}${(k==='todo'&&pending)||(k==='home'&&typeof homeDot==='function'&&homeDot())?'<span class="dot"></span>':''}</button>`).join('')}</nav>`;
   app.innerHTML=withName(h);
   achCheck();
   saveGame();

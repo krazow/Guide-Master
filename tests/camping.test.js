@@ -11,6 +11,7 @@ async function winterGame(ctx, diff) {
     closeModals(); S.money = 20000; S.cur = 13; S.t = 13 * 1440 + 1300; S.loc = 'shop';
     S.book.forEach(b => { if (b.status === 'booked') b.status = 'done'; });
     endDay('home'); await new Promise(r => setTimeout(r, 10));
+    S.cabin.rolled = S.winter.s;   // (1.10.0) the cabin's first storm lands before camping starts; these tests are about camping, so it has already passed
   });
   return { page, errors };
 }
@@ -181,7 +182,7 @@ module.exports = [
       out.fresh = m3.S.camp.v === 2 && m3.S.camp.days === 0;
       return out;
     });
-    assert.strictEqual(r.schema, 3); assert.strictEqual(r.camp.v, 2); assert.strictEqual(r.camp.days, 3); assert.strictEqual(r.camp.trips, 1); assert.deepStrictEqual(r.seen, { moose: 1, bear: 1 });
+    assert.strictEqual(r.schema, 4); assert.strictEqual(r.camp.v, 2); assert.strictEqual(r.camp.days, 3); assert.strictEqual(r.camp.trips, 1); assert.deepStrictEqual(r.seen, { moose: 1, bear: 1 });
     assert.strictEqual(r.days, 7); assert.strictEqual(r.trips, 2); assert.strictEqual(r.used, false); assert.strictEqual(r.tk, 7); assert.ok(/7 free days/.test(r.hub), r.hub);
     assert.strictEqual(r.days2, 10); assert.strictEqual(r.tn2, 5); assert.ok(r.fresh); assert.ok(r.winter);
     noErrors(errors);
@@ -201,9 +202,9 @@ module.exports = [
   } },
   { name: 'camping: Help and the off-season blurb describe the new camping', fn: async ctx => {
     const { page, errors } = await open(ctx);
-    const r = await page.evaluate(() => { const h = HELP.find(x => /camping/i.test(x[1])); return { t: h[2], v: APP_VERSION, notes: CHANGELOG[APP_VERSION].join(' ') }; });
+    const r = await page.evaluate(() => { const h = HELP.find(x => /camping/i.test(x[1])); return { t: h[2], v: APP_VERSION, notes: CHANGELOG['1.9.0'].join(' ') }; });
     assert.ok(/ice fish/i.test(r.t) && /license/i.test(r.t) && /10 free days|ten free days/i.test(r.t), r.t);
-    assert.strictEqual(r.v, '1.9.0'); assert.ok(/camping/i.test(r.notes) && /game in progress|saved game/i.test(r.notes), r.notes);
+    assert.ok(/^\d+\.\d+\.\d+$/.test(r.v)); assert.ok(/camping/i.test(r.notes) && /game in progress|saved game/i.test(r.notes), r.notes);
     noErrors(errors);
   } },
 ];

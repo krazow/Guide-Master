@@ -5,6 +5,8 @@
   src/style.css    all styles
   src/camp/*.js    the KenaiCamp winter-camping engine (one global namespace, no access to the game), concatenated in file-name order
                    FIRST, so the game files that follow can use KenaiCamp. See src/camp/README.md.
+  src/home/*.js    the CabinUpkeep home-maintenance module (one global namespace, no access to the game), concatenated next, also
+                   before the game files. See src/home/README.md.
   src/js/*.js      the game code, concatenated in file-name order
 
 It also keeps sw.js in step with GAME.id and GAME.version (src/js/00-game.js),
@@ -27,7 +29,8 @@ def build():
     shell = read('src/shell.html')
     css = read('src/style.css').rstrip('\n')
     # the camping engine goes first: it is self-contained, and the game adapter (src/js/28-camping.js) calls it
-    files = sorted(glob.glob(os.path.join(ROOT, 'src', 'camp', '*.js'))) + sorted(glob.glob(os.path.join(ROOT, 'src', 'js', '*.js')))
+    # the home-upkeep module goes second for the same reason (src/js/32-home.js is its adapter)
+    files = [f for d in ('camp', 'home', 'js') for f in sorted(glob.glob(os.path.join(ROOT, 'src', d, '*.js')))]
     js = '\n'.join(read(os.path.relpath(f, ROOT)).rstrip('\n') for f in files)
     assert shell.count('/*@STYLE@*/') == 1 and shell.count('//@SCRIPT@') == 1, 'placeholders missing in src/shell.html'
     return shell.replace('/*@STYLE@*/', css).replace('//@SCRIPT@', js), len(files)

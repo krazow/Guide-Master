@@ -32,6 +32,7 @@ function newState(){
     calls:{},diner:{},report:{},office:{},dipnet:{},walks:{},
     run:[],cum:0,limit:3,eo:[],wx:[],wxd:[],noise:[],water:.5,solo:{},pu:0,
     freezer:0,skill:20,
+    cabin:CabinUpkeep.newState(),homeAsk:-1,winOut:null,   // 32-home.js: the cabin's upkeep (src/home/), the last winter its spring jobs were mentioned, this winter's outage
     home:{cans:3,tank:0,gal:10,tgal:0,stale:0,gen:0,frz:0},   // 31-supplies.js: fuel storage (gallons: untreated, stabilized, stale), generator type, big freezer
     food:{pan:24,fri:6,fd:0,fm:0,kits:0},ate:{d:-1,n:0},hungry:0,power:null,   // meals in the pantry and fridge, the day the fridge was stocked, meals left of a thawed red, client lunch kits; meals eaten away today; today's outage
     visited:{shop:true},
@@ -229,6 +230,7 @@ function statusTags(){
   if(heat()>=2) t.push(`<span class="tag bad">🚔 troopers know your boat (${heat()} rules broken)</span>`);
   if(S.freezer) t.push(`<span class="tag">🧊 ${S.freezer} reds in the freezer</span>`);
   t.push(...suppliesTags());
+  t.push(...homeTags());
   return t;
 }
 function alertBar(){

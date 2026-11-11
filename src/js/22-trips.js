@@ -246,6 +246,7 @@ function tripEnd(b,t){
     else{for(let i=0;i<fishers;i++)fish+=clamp(Math.round(2*q+(r()-.5)*1.2),0,2);S.stats.halibut+=fish;line=`${fish} halibut`}
   }
   fish+=t.kept;
+  homeProcessing(b,fish,t);                              // 32-home.js: the fish processing station
   // ---- what the day was worth ----
   // The booked fare is the base. A good day (fish, happy clients, a clean boat and tackle) earns bigger tips and word of mouth;
   // a bad one (skunked, out of tackle, a breakdown, grumpy clients) means a partial refund and a bad review.

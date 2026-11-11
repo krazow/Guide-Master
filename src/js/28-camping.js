@@ -93,6 +93,7 @@ function campWrap(rep){
 // the player's entry point (from the off-season summary)
 function campModal(){
   if(!S.winter) return;
+  if(cabin().rolled!==S.winter.s) return homeBeforeCamping(()=>campModal());   // the winter's first storm lands before the free days are spent
   campW();
   KenaiCamp.start({mode:'guide',ticket:campTicket(),host:{
     show:(title,html,btns,lock)=>modal(title,html,btns,lock),
@@ -103,7 +104,7 @@ function campModal(){
 }
 // bots and tests: play a whole winter's camping with the engine's headless policy and apply the report
 function campBot(opts){
-  if(!S.winter) return null;campW();
+  if(!S.winter) return null;homeRollWinterSync();homeAnswerStorms();campW();
   const r=KenaiCamp.sim({ticket:campTicket(),rand:(opts&&opts.rand)||(()=>Math.random()),policy:(opts&&opts.policy)||'thoughtful',opts});
   campApply(r.report);return r.report;
 }

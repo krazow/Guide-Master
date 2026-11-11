@@ -113,7 +113,7 @@ const HAP0=76;
 const seasonHap=(s,o)=>{const n=(s.hapN||0)-(o.hapN||0);return n>0?((s.hapSum||0)-(o.hapSum||0))/n:HAP0};
 
 // ---- season rollover: runs on the first morning of each new season (from onMorning) ----
-const WINTER_COST=[['🏠 Living costs, Oct–May (after your winter job)',1800,'🏠 Living'],['🪪 Guide & business licenses, KRSMA permit, vessel decals',650,'🪪 Licenses & permits'],['🛡️ Liability insurance & drug-testing consortium',1950,'🛡️ Insurance']];
+const WINTER_COST=[['🏠 Living costs, Oct–May (after your winter job)',1300,'🏠 Living'],['🪪 Guide & business licenses, KRSMA permit, vessel decals',650,'🪪 Licenses & permits'],['🛡️ Liability insurance & drug-testing consortium',1950,'🛡️ Insurance']];
 const winterCosts=()=>WINTER_COST.concat(S.up&&S.up.asst?[['🧑‍🤝‍🧑 Assistant guide: license, decals, insurance, drug-testing',3000,'🧑‍🤝‍🧑 Assistant']]:[],S.up&&S.up.lodge?[['🏡 Cabins: property tax, insurance and winterizing',5500,'🏡 Cabins']]:[]).map(([n,c,sh])=>[n,Math.round(c*DF().cost),sh]);
 
 // ---- late-career money sinks (2026 Alaska prices, approximate) ----
@@ -176,8 +176,9 @@ function winterModal(){
     ${campHintLine()?`<p>${campHintLine()}</p>`:''}
     <p style="font-size:13px;color:var(--mute)">Season ${s+1} of ${S.years}. Bookings open when you finish planning.</p>`,[
     {l:'🛠️ Upgrades & business',s:'Boats, marketing, rates, a Homer charter permit.',fn:()=>upgradeModal()},
+    {l:`🏠 The cabin: ${homeWinterLabel()}`,s:cabinWinterBlurb(),fn:()=>homeWinterModal()},
     {l:'🏕️ Winter camping & work',s:campUsed()?'You’ve used your free days this winter. You can still look at your camping log.':`${campDaysLeft()} free days: camping trips within 100 miles (ice fishing, scouting, company), winter work, a camping log.`,fn:()=>campModal()},
-    {l:`🛶 Open bookings for ${2026+s}`,s:'Start the season.',fn:()=>finishWinter()}]);
+    {l:`🛶 Open bookings for ${2026+s}`,s:'Start the season.',fn:()=>homeOpenGate(()=>finishWinter())}]);
 }
 function upgradeModal(){
   modal(`🛠️ Off-season plans · cash ${$(Math.round(S.money))}`,`<p style="font-size:13px;color:var(--mute)">Rates now ×${S.up.rate.toFixed(1)}. Rep ${S.rep}.</p>`,
@@ -185,6 +186,7 @@ function upgradeModal(){
       .concat([{l:'🏠 Home: generator, fuel storage, freezer',s:`${genOf()?genOf().short+' generator, ':'No generator, '}${fuelCap()} gal of fuel storage, a ${fishCap()}-fish freezer.`,fn:()=>homeShopModal(()=>upgradeModal())},{l:'Done',s:'Back to the off-season summary.',fn:()=>setTimeout(winterModal,0)}]));
 }
 function finishWinter(){
+  homeFinishWinter();                                    // 32-home.js: spring at the cabin, before the bookings open
   const s=S.winter.s;S.winter=null;const reg=genSeasonBookings(s);
   const n=S.book.filter(b=>seasonOf(b.d)===s).length;
   say(`📅 ${2026+s} bookings are in: <b>${n} trips</b> for the season. ${REG().fc}${reg.length?'<br>'+reg.join('<br>'):''}`);
