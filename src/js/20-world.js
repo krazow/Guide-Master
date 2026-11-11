@@ -22,6 +22,7 @@ function newState(){
     gear:3,                 // trips' worth of beads, flies, leader and lures
     prep:-1,                // day index the gear is rigged for
     scout:-1,               // day index you scouted the lower river
+    scoutAt:{},look:-1,     // day index you scouted the upper river / Homer; the day you last read the Fish tab (spot hints, 23-fish.js)
     unlogged:0,overdue:0,   // ADF&G logbook trips not yet written up / written up late
     book:[],nextId:1,trip:null,
     regs:[],                // returning parties (30-stories.js): who they are and how their last trip went
@@ -30,7 +31,7 @@ function newState(){
 
     calls:{},diner:{},report:{},office:{},dipnet:{},walks:{},
     run:[],cum:0,limit:3,eo:[],wx:[],wxd:[],noise:[],water:.5,solo:{},pu:0,
-    freezer:0,skill:0,
+    freezer:0,skill:20,
     home:{cans:3,tank:0,gal:10,tgal:0,stale:0,gen:0,frz:0},   // 31-supplies.js: fuel storage (gallons: untreated, stabilized, stale), generator type, big freezer
     food:{pan:24,fri:6,fd:0,fm:0,kits:0},ate:{d:-1,n:0},hungry:0,power:null,   // meals in the pantry and fridge, the day the fridge was stocked, meals left of a thawed red, client lunch kits; meals eaten away today; today's outage
     visited:{shop:true},
@@ -157,7 +158,7 @@ function actionsHere(){
   }
   if(S.loc==='lower'||S.loc==='cooper'){boatRescueActions(a);const ba=boatAction();if(ba)a.push(ba)}
   if(S.loc==='lower'){
-    if(S.scout!==d) a.push({ic:'🔭',l:`Scout the river — ~${bn('scout')} gal`,s:`1 hour. See where the reds are holding. Better trips today and tomorrow. Tank: ${Math.round(S.fuel)} gal.`,cat:'fish',fn:()=>{if(burnSolo(bn('scout'))<1)return;pass(60);S.scout=d;S.skill++;adj('energy',-4);say(`🔭 You run up past the Sterling Highway bridge and back. ${S.run[Math.max(0,d-1)]>90000?'Reds are stacked in the soft water along the inside bends.':'Pods of reds, but they’re moving through fast.'}`)}});
+    if(S.scout!==d) a.push({ic:'🔭',l:`Scout the river — ~${bn('scout')} gal`,s:`1 hour. See where the reds are holding: better trips today and tomorrow, and the spot buttons show an exact read. Tank: ${Math.round(S.fuel)} gal.`,cat:'fish',fn:()=>{if(burnSolo(bn('scout'))<1)return;pass(60);S.scout=d;S.skill++;adj('energy',-4);say(`🔭 You run up past the Sterling Highway bridge and back. ${S.run[Math.max(0,d-1)]>90000?'Reds are stacked in the soft water along the inside bends.':'Pods of reds, but they’re moving through fast.'}`)}});
     a.push({ic:'🐟',l:'Flip for reds yourself from the bank',s:'1 hour. You’re off the clock, so it’s legal. Freezer fish.',cat:'fish',dis:todays(d).length&&m<TRIPS.reds.start+TRIPS.reds.len,fn:()=>{pass(60);adj('energy',-5);const n=addFish(Math.min(S.limit,Math.max(0,Math.round(Math.random()*S.limit+.3))));say(n?`🐟 Shoulder to shoulder at the walkway, you flip ${n} red${n>1?'s':''} into the net. Hooked in the mouth, every one.`:'🐟 An hour of “flipping” and nothing but a sore wrist. Combat fishing is humbling.')}});
   }
   if(S.loc==='cooper'){

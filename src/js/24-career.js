@@ -64,11 +64,11 @@ const FA_CLASS_TXT='Mon/Tue/Thu 1 PM at the Soldotna clinic';
 // ---- off-season upgrades ----
 const UPGRADES=[
   {id:'motor',ic:'⚙️',n:'Repower: a new 50 hp jet outboard',cost:13500,once:true,d:'Boat back to 100, wear on it halved, and about 20% less gas on every run. Still 50 hp: the most the Kenai allows.'},
-  {id:'sled',ic:'🚤',n:'New 20-ft welded jet sled, motor & trailer',cost:52000,once:true,d:'Drier and faster: sockeye and silver trips finish 30 minutes sooner (a little less tiring), the fuel run takes 45 minutes instead of 65, and you get a 40-gallon tank and a better catch and happier clients. The July five-person limit doesn’t change.'},
+  {id:'sled',ic:'🚤',n:'New 20-ft welded jet sled, motor & trailer',cost:52000,once:true,d:'Drier and faster: sockeye and silver trips finish 30 minutes sooner (a little less tiring), the fuel run takes 45 minutes instead of 65, and you get a 40-gallon tank, a slightly better catch and happier clients. The July five-person limit doesn’t change.'},
   {id:'drift',ic:'🛶',n:'New drift boat & trailer',cost:12500,once:true,d:'Upper Kenai floats go better (+catch, +happiness).'},
-  {id:'web',ic:'🌐',n:'Website refresh + Anchorage sport-show booth',cost:2200,d:'More bookings this season.'},
-  {id:'course',ic:'🧯',n:'Winter course: swiftwater rescue & fly casting',cost:750,d:'Skill +4. One per winter.'},
-  {id:'rates',ic:'💲',n:'Raise your rates 10%',cost:0,d:'Pays 10% more per trip, but bookings drop (about 8% fewer trips a step, in July and the rest of the summer) and clients expect more: tips shrink unless the day goes well. Each step needs more reputation (65, 70, 75). Up to +30%.'},
+  {id:'web',ic:'🌐',n:'Website refresh + Anchorage sport-show booth',cost:2200,d:'More July bookings and a busier rest of the summer, this season only.'},
+  {id:'course',ic:'🧯',n:'Winter course: swiftwater rescue & fly casting',cost:750,d:'Skill +14 (skill rusts 40% every winter). One per winter.'},
+  {id:'rates',ic:'💲',n:'Raise your rates 10%',cost:0,d:'Pays 10% more per trip, but bookings drop (about 8% fewer trips at +10%, 18% fewer at +20%, 31% fewer at +30%, in July and the rest of the summer) and clients expect more: tips shrink unless the day goes well. Each step needs more reputation (65, 70, 75). Up to +30%.'},
   {id:'asst',ic:'🧑‍🤝‍🧑',n:'Hire an assistant guide (second sled, decals, training)',cost:32000,once:true,d:'A used second sled and trailer, decals, permit and training for an assistant guide. When you are booked, a second party can take the same slot with your assistant: you keep 60% of the fare and tips, they cost fuel and a $3,000 winter overhead, and their day can go wrong (a refund, a fine, your name on the decal). Needs Rep 70 and two seasons under your belt.'},
   {id:'lodge',ic:'🏡',n:'Build four riverside guest cabins',cost:95000,once:true,d:'Four cabins on a Soldotna river lot, rented at about $225 a night over the summer, and their guests book trips: roughly +$12,000 a year at a top reputation after cleaning, staff, utilities and a $5,500 winter bill (much less if your rep is poor), and 10% more off-month trips. Needs Rep 60 and three seasons behind you.'},
   {id:'dock',ic:'⚓',n:'Buy a riverfront lot with a private launch and fuel dock',cost:240000,once:true,d:'Your own ramp and pump on the Kenai: no $15 launch fees, no trips to Kenai Harbor (fill up at your dock for about $0.85 a gallon less), clients love the quiet put-in (+3 happiness on sockeye and silver trips) and about 8% more bookings. Needs Rep 70 and four seasons behind you.'},
@@ -91,18 +91,26 @@ function buyUp(u){const U=S.up,s=seasonOf(day());money(-u.cost);S.stats.spent+=u
   if(u.id==='chp'){U.chp=true;U.value+=u.cost}
   if(u.id==='asst'||u.id==='lodge'||u.id==='dock'){U[u.id]=true;U.value+=u.cost}
   if(u.id==='web')U.web=s;
-  if(u.id==='course'){U.course=s;S.skill+=4}
+  if(u.id==='course'){U.course=s;S.skill+=COURSE_SKILL}
   if(u.id==='rates')U.rate=Math.round((U.rate+.1)*10)/10;
   sfx('good');say(`${u.ic} ${u.n}${u.cost?` (${$(u.cost)})`:''}.`)}
-// Rates: each +10% step costs something. Bookings fall with price (RATE_BOOK per step, in July and across the rest of the
+// Rates: each +10% step costs something. Bookings fall with price (RATE_BOOK per step plus RATE_STEEP × 0, 1, 3 for steps 1, 2, 3, in July and across the rest of the
 // summer), clients expect more (RATE_MOOD happiness per step: smaller tips on an average day) and the next step needs more rep.
-const RATE_BOOK=.08,RATE_MOOD=3;
+const RATE_BOOK=.08,RATE_STEEP=.025,RATE_MOOD=3;
 const rateSteps=()=>Math.round((((S.up&&S.up.rate)||1)-1)*10);
 const rateRep=()=>65+5*rateSteps();                          // rep needed to buy the NEXT step
-const rateDemand=()=>Math.max(.4,1-RATE_BOOK*rateSteps());   // share of bookings that survive the price
+const rateDemand=()=>{const n=rateSteps();return Math.max(.4,1-RATE_BOOK*n-RATE_STEEP*n*(n-1)/2)};   // share of bookings that survive the price
 // effects used by the trip engine and payOf()
-const upQ=type=>(S.up.sled&&(type==='reds'||type==='silver')?.05:0)+(S.up.drift&&type==='trout'?.05:0);
-const upH=type=>(S.up.sled&&(type==='reds'||type==='silver')?3:0)+(S.up.drift&&type==='trout'?4:0)+(S.up.dock&&(type==='reds'||type==='silver')?3:0);
+const upQ=type=>(S.up.sled&&(type==='reds'||type==='silver')?.03:0)+(S.up.drift&&type==='trout'?.06:0);
+const upH=type=>(S.up.sled&&(type==='reds'||type==='silver')?2:0)+(S.up.drift&&type==='trout'?5:0)+(S.up.dock&&(type==='reds'||type==='silver')?3:0);
+
+// Skill (1.8.0): the feel for the river. It builds with every trip, scouting run, ADF&G office stop and winter course, and rusts by
+// 40% each winter, so a guide who keeps at it stays sharper than one who just shows up. Each point is worth SKILL_Q of catch, up to SKILL_MAX.
+const COURSE_SKILL=14,SKILL_Q=.004,SKILL_MAX=.16,SKILL_KEEP=.6;
+const skillQ=()=>Math.min(SKILL_MAX,Math.max(0,S.skill)*SKILL_Q);
+// How the season went, as average client happiness over July trips (a no-show counts as 20), with the difficulty and rate moods taken out.
+const HAP0=76;
+const seasonHap=(s,o)=>{const n=(s.hapN||0)-(o.hapN||0);return n>0?((s.hapSum||0)-(o.hapSum||0))/n:HAP0};
 
 // ---- season rollover: runs on the first morning of each new season (from onMorning) ----
 const WINTER_COST=[['🏠 Living costs, Oct–May (after your winter job)',1800,'🏠 Living'],['🪪 Guide & business licenses, KRSMA permit, vessel decals',650,'🪪 Licenses & permits'],['🛡️ Liability insurance & drug-testing consortium',1950,'🛡️ Insurance']];
@@ -143,13 +151,13 @@ function asstSettle(b,notes){
   notes.push(`🧑‍🤝‍🧑 ${line.charAt(0).toUpperCase()+line.slice(1)} Your share, after his cut, fuel and fees: <b>${mine<0?'−':''}${$(Math.abs(mine))}</b>.`);
 }
 function startSeason(s){
-  const st=S.stats,o=S.st0||{},yr=2025+s,prev={year:yr,trips:st.trips-(o.trips||0),fares:st.earned-(o.earned||0),earned:(st.earned-(o.earned||0))+(st.tips-(o.tips||0)),fines:st.fines-(o.fines||0),rep:S.rep,cites:(st.citesTotal||0)-(o.citesTotal||0),wom:S.wom||0};
+  const st=S.stats,o=S.st0||{},yr=2025+s,prev={hap:seasonHap(st,o),tips:(st.tipSum||0)-(o.tipSum||0),year:yr,trips:st.trips-(o.trips||0),fares:st.earned-(o.earned||0),earned:(st.earned-(o.earned||0))+(st.tips-(o.tips||0)),fines:st.fines-(o.fines||0),rep:S.rep,cites:(st.citesTotal||0)-(o.citesTotal||0),wom:S.wom||0};
   const rest=restOfSeason(prev);prev.rest=rest;money(rest.net);st.earned+=rest.gross;st.spent+=rest.costs;st.restTrips=(st.restTrips||0)+rest.trips;
   const boat0=S.boat;adj('boat',-Math.round(rest.trips*(S.up.motor?.2:.4)));driftFuelPrices();
   S.seasons.push(prev);S.st0=JSON.parse(JSON.stringify(st));
   const bill=winterCosts().reduce((a,[,c])=>a+c,0);money(-bill);st.spent+=bill;
   S.reg=genRegs(s);S.loaner=-1;S.patch=null;S.limit=3;S.eo=[];S.cum=Math.round(650000*S.reg.mult.sockeye);
-  S.wom=0;S.warns=0;S.prep=-1;S.scout=-1;S.trip=null;S.unlogged=0;S.overdue=0;S.energy=90;
+  S.skill=Math.round(S.skill*SKILL_KEEP);S.wom=0;S.warns=0;S.prep=-1;S.scout=-1;S.trip=null;S.unlogged=0;S.overdue=0;S.energy=90;
   adj('boat',S.up.motor?-5:-12);S.boat=Math.max(S.boat,Math.min(boat0,10));   // winter wear never takes a boat out of service on its own
   S.rep=Math.round(50+(S.rep-50)*.85);
   const before=S.cites;S.cites=S.citeLog.filter(x=>seasonOf(x)>=s-1).length;

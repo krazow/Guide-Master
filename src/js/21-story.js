@@ -115,7 +115,7 @@ function onNight(where,notes,d){
   money(-overhead());S.stats.spent+=overhead();notes.push(`💸 Boat payment, insurance and utilities: ${$(overhead())}.`);
   {const fp=fuelPlan();if(fp.short&&fp.tomorrow)notes.push(`⛽ The sled has ${fp.have} gallons and tomorrow’s trips need about ${fp.need}. Fill up at Kenai Harbor (6 AM–10 PM) before you launch.${homeFuelHint()}`)}
   S.book.filter(b=>b.d===d&&b.status==='booked'&&b.asst).forEach(b=>asstSettle(b,notes));
-  S.book.filter(b=>b.d===d&&b.status==='booked'&&!b.asst).forEach(b=>{b.status='noshow';adj('rep',-15);S.stats.noshow++;
+  S.book.filter(b=>b.d===d&&b.status==='booked'&&!b.asst).forEach(b=>{b.status='noshow';adj('rep',-15);S.stats.noshow++;S.stats.hapSum=(S.stats.hapSum||0)+20;S.stats.hapN=(S.stats.hapN||0)+1;
     notes.push(`😠 You never showed for the ${b.who}. They posted a one-star review from the parking lot.`)});
   if(S.unlogged){S.overdue+=S.unlogged;notes.push(`📓 ${S.unlogged} logbook entr${S.unlogged>1?'ies are':'y is'} now overdue. Write ${S.unlogged>1?'them':'it'} up before a trooper asks.`);S.unlogged=0}
   adj('energy',(where==='home'?60:30)/(where==='collapsed'?2:1));
@@ -270,7 +270,7 @@ function todoItems(){
   it.push({l:'Optional: fill the freezer with 25 dipnet reds',s:`${S.freezer}/25. Kenai City Beach, 6 AM–11 PM.`,ok:S.freezer>=25});
   return it;
 }
-const RULES_HTML='<p>Guide every July of a 2-, 5- or 10-year career. You lose if you get 3 active citations (permit pulled; citations drop off after the next season), your reputation hits 0, or you fall $2,000 in debt.</p><p>Score: net cash + the estimated rest of your last summer + nine tenths of the value of boats and permits you bought + reputation ×15 + 60 per trip − 400 per citation + 2 per freezer fish, plus 300 a season for a career without a violation. The grade is per season, so careers of any length compare: A at 62,000 a season, B 55,000, C 44,000, D 27,000 (a lost career is always an F). On Licensed Guide a by-the-book career lands mostly on B, a sharp one (phone requests, every upgrade, no violations) on B or A, and one that skips meals and lunches on C. Combat Season grades about a step lower and Rookie Season about a step higher.</p><p>Difficulty gives no score bonus. It changes the game instead: <b>Rookie</b> has fewer patrols, gentler fines, cheaper fuel and bills, friendlier clients and a bit more off-month work; <b>Licensed</b> is the baseline; <b>Combat</b> has more patrols, fines that climb with every citation, dearer fuel, bills and repairs, pickier clients, less off-month work and more bad luck. The same play grades about a step lower on Combat and a step higher on Rookie.</p>';
+const RULES_HTML='<p>Guide every July of a 2-, 5- or 10-year career. You lose if you get 3 active citations (permit pulled; citations drop off after the next season), your reputation hits 0, or you fall $2,000 in debt.</p><p>Score: net cash + the estimated rest of your last summer + nine tenths of the value of boats and permits you bought + reputation ×15 + 60 per trip − 400 per citation + 2 per freezer fish, plus 300 a season for a career without a violation. The grade is per season, so careers of any length compare: A at 62,000 a season, B 55,000, C 44,000, D 27,000 (a lost career is always an F). On Licensed Guide a by-the-book career lands mostly on B, a sharp one (phone requests, every upgrade, no violations) on B or A, a skilled one (Fish tab and scouting to pick spots, a well-kept boat, regulars, no overpricing) on A, a passive one on C or B and one that skips meals and lunches on C or D. Combat Season grades about a step lower and Rookie Season about a step higher.</p><p>Difficulty gives no score bonus. It changes the game instead: <b>Rookie</b> has fewer patrols, gentler fines, cheaper fuel and bills, friendlier clients and a bit more off-month work; <b>Licensed</b> is the baseline; <b>Combat</b> has more patrols, fines that climb with every citation, dearer fuel, bills and repairs, pickier clients, less off-month work and more bad luck. The same play grades about a step lower on Combat and a step higher on Rookie.</p>';
 
 // ---- achievements ----
 const ACH=[
@@ -298,7 +298,7 @@ const ACH=[
 
 // ---- scoring and the end screen ----
 const FINISH_TEXT={h1:'{{name}}, that’s a wrap on your career',sub:()=>`${S.years} Julys on the Kenai, ${yearOf(0)}–${yearOf(day())}. The river keeps running; somebody else gets your seams now.`};
-function curSeason(){const s=S.stats,o=S.st0||{};return {year:yearOf(day()),trips:s.trips-(o.trips||0),fares:s.earned-(o.earned||0),earned:(s.earned+s.tips)-((o.earned||0)+(o.tips||0)),wom:S.wom||0}}
+function curSeason(){const s=S.stats,o=S.st0||{};return {hap:seasonHap(s,o),tips:(s.tipSum||0)-(o.tipSum||0),year:yearOf(day()),trips:s.trips-(o.trips||0),fares:s.earned-(o.earned||0),earned:(s.earned+s.tips)-((o.earned||0)+(o.tips||0)),wom:S.wom||0}}
 // The score, line by line (the end screen shows these rows and they add up to scoreOf()).
 function scoreParts(){
   const st=S.stats,cites=st.citesTotal||S.cites,rest=restOfSeason(curSeason()).net;

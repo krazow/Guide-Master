@@ -14,6 +14,15 @@
 
 // ---- returning parties ----
 const ORD=['','first','second','third','fourth','fifth','sixth','seventh','eighth','ninth','tenth'];
+const REG_MAX=10;
+function addReg(b,h,s,arc){S.regs.push({who:b.who,from:b.from,res:!!b.res,type:b.type==='halibut'?'reds':b.type,n:Math.min(b.n,b.type==='trout'?3:b.type==='silver'?4:5),trips:1,last:{h,s},arc:arc?'garza':null});if(arc)S.arcs.garza.st=1}
+// "Hand them your card" at the dock: a party that had a good day and didn't offer their number. Better days say yes more often.
+function regCard(b){
+  pass(10);const h=b.out?b.out.happy:75;b.card=false;
+  if(S.regs.length>=REG_MAX||S.regs.some(x=>x.who===b.who)) return;
+  if(Math.random()<(h>=88?.85:.6)){addReg(b,h,seasonOf(day()),false);say(`⭐ The ${b.who} tuck your card in a wallet: “We’ll call you for next July.” They’re a regular now.`)}
+  else say(`🪪 The ${b.who} thank you for the card. “Maybe next year.”`)
+}
 function regAfterTrip(b,happy,notes){
   const h=Math.round(happy),s=seasonOf(day());let g=S.regs.find(x=>x.who===b.who);
   const arc=b.arc==='garza';
@@ -21,11 +30,11 @@ function regAfterTrip(b,happy,notes){
     g.last={h,s};g.trips=(g.trips||1)+1;
     if(h>=88) notes.push(`⭐ The ${b.who} are already talking about July ${yearOf(day())+1}.`);
   }else{
-    const join=arc?h>=60:(h>=75&&S.regs.length<10&&Math.random()<.4);
-    if(join){S.regs.push({who:b.who,from:b.from,res:!!b.res,type:b.type==='halibut'?'reds':b.type,n:Math.min(b.n,b.type==='trout'?3:b.type==='silver'?4:5),trips:1,last:{h,s},arc:arc?'garza':null});
-      if(arc)S.arcs.garza.st=1;
+    const join=arc?h>=60:(h>=75&&S.regs.length<REG_MAX&&Math.random()<.4);
+    if(join){addReg(b,h,s,arc);
       notes.push(`⭐ The ${b.who} slip you a card with their number: “Same time next July?” If you treat them right, they will be back.`)}
     else if(arc)S.arcs.garza.st=-1;
+    else if(h>=75&&S.regs.length<REG_MAX) b.card=true;                 // a happy party that didn't ask: you can hand them your card at the dock
   }
 }
 // next season's bookings from the regulars; returns report lines for the off-season

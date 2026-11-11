@@ -70,11 +70,15 @@ const STEP={
   expired:(b)=>({t:'⛑️ Your first-aid card expired',b:'<p>A current first-aid and CPR certification is a condition of your guide license. As of today yours is expired.</p>',o:[
     O('Cancel and refund','No fare, rep −6.',(b,t)=>{adj('rep',-6);t.abort=true;tripCancel(b,`⛑️ You cancel on the ${b.who}. Get to the Monday, Tuesday or Thursday class in Soldotna.`)}),
     O('Run it anyway','Full fare. Hope nobody asks for your card.',(b,t)=>violate(t.notes,{p:.3,fine:500,what:'guiding without a current first-aid certification'}),1)]}),
-  spot:(b)=>{const T=TRIPS[b.type];return {t:`${T.ic} Where to, Captain?`,b:`<p>${T.long}</p><p>The ${b.who} are rigged and ready. Where do you take them?</p>`,o:SPOTS[b.type].map(sp=>O(sp.l,sp.s,(b,t)=>{
-    t.q+=sp.q;t.happy+=sp.h||0;t.fuelx=(t.fuelx||0)+(sp.fuel||0);t.notes.push(`📍 ${sp.l}.`);
+  spot:(b)=>{const T=TRIPS[b.type],hint=spotHint(b.type),d=day();return {t:`${T.ic} Where to, Captain?`,b:`<p>${T.long}</p><p>The ${b.who} are rigged and ready. Where do you take them?</p>${hint?`<p class="small-note" style="font-size:12.5px;color:var(--mute);margin:0">${hint==='exact'?'🔭 You scouted the water: the reads below are exact.':'🐟 From the Fish tab: a read from today’s water, wind, run and tide.'}</p>`:'<p class="small-note" style="font-size:12.5px;color:var(--mute);margin:0">💡 Spots fish differently with the water, wind and run. Check the 🐟 Fish tab or scout the river first.</p>'}`,o:SPOTS[b.type].map((sp,i)=>{
+    const read=hint?spotFit(b.type,i,d,hint==='exact'):null,pre=read?`${hint==='exact'?'🔭':'🐟'} ${spotWord(read.f)}${read.why?`: ${read.why}`:''}. `:'';
+    return O(sp.l,pre+sp.s,(b,t)=>{
+    const fit=spotFit(b.type,i,d,true);
+    t.q+=sp.q+(fit?fit.f*SPOT_Q:0);t.happy+=sp.h||0;t.fuelx=(t.fuelx||0)+(sp.fuel||0);t.notes.push(`📍 ${sp.l}.`);
+    if(fit&&Math.abs(fit.f)>=.3)t.notes.push(fit.f>0?`🎯 ${fit.why?fit.why.charAt(0).toUpperCase()+fit.why.slice(1):'The water suits it'}: the fish are there.`:`🌫️ ${fit.why?fit.why.charAt(0).toUpperCase()+fit.why.slice(1):'The water is wrong for it'}: it fishes slowly today.`);
     if(sp.viol){fx(t,60,'Tip for the empty water');violate(t.notes,sp.viol)}
     if(sp.risk&&Math.random()<sp.risk.p*windRisk()){t.notes.push(sp.risk.txt);t.happy+=sp.risk.h;adj('boat',sp.risk.boat||0);adj('energy',sp.risk.energy||0)}
-    if(sp.add) t.steps.splice(t.step+1,0,...sp.add.filter(x=>!t.steps.includes(x)));},!!sp.viol))}},
+    if(sp.add) t.steps.splice(t.step+1,0,...sp.add.filter(x=>!t.steps.includes(x)));},!!sp.viol)})}},
   beer:(b)=>({t:'🍺 Cooler’s open',b:`<p>It’s barely 7 AM and the ${b.who} crack the cooler. “Have one, Captain {{name}}!”</p>`,o:[
     O('Politely decline: you’re running the boat','They tease you about it all morning.',(b,t)=>{t.happy-=3}),
     O('Ask them to keep it closed till we’re off the water','Safer boat, quieter clients.',(b,t)=>{t.happy-=5}),
@@ -156,7 +160,7 @@ function tripStart(b){
   // tackle and boat condition shape the day before you even leave the dock
   if(S.gear<=0){t.happy-=3;t.notes.push('🪱 You’re out of tackle. The clients fish with whatever is left in the bottom of the box, and they notice.')}
   if(t.loan){t.happy-=6;t.notes.push('🤝 You run the trip on a borrowed rig. It is tired and the clients can tell.')}
-  if(S.boat>=80) t.happy+=2;
+  t.happy+=clamp(Math.round((S.boat-65)/7),-3,4);   // a well-kept boat pleases clients; a tired one shows
   hungerTrip(t);                                           // 31-supplies.js: a hungry guide is a grumpy guide
   if(!t.loan&&S.boat<70&&b.type!=='halibut'&&Math.random()<(70-S.boat)/90){
     const m=60+Math.floor(Math.random()*60);lose(t,m);t.happy-=12;fx(t,-Math.round(payOf(b)*.15),'Breakdown credit');fx(t,-rp(80),'Roadside repair');adj('boat',8);
@@ -203,8 +207,8 @@ window.legalBtn=()=>{const i=MB.findIndex(b=>b.legal===true);return i<0?0:i};
 function tripCancel(b,note){b.status='cancelled';S.stats.cancelled++;S.trip=null;if(note)say(note)}
 function tripEnd(b,t){
   const T=TRIPS[b.type],d=day(),r=Math.random;
-  let q=.5+t.q+runFactor(b.type)+(WX[S.wx[d]||'sun']||WX.sun).q+(S.prep===d?.08:0)+(S.scout>=d-1&&T.loc==='lower'?.05:0)
-    +upQ(b.type)+(S.gear>0?0:-.15)+(S.boat<40&&!t.loan?-.1:0)+(S.energy<30?-.1:0)+Math.min(.1,S.skill*.01)+(r()-.5)*.24;
+  let q=.5+t.q+runFactor(b.type)+(WX[S.wx[d]||'sun']||WX.sun).q+(S.prep===d?.08:0)+(scoutedFor(b.type,d)?.05:0)
+    +upQ(b.type)+(S.gear>0?0:-.15)+(S.boat<40&&!t.loan?-.1:0)+(S.energy<30?-.1:0)+skillQ()+(r()-.5)*.24;
   q=clamp(q,.05,1);
   // fuel: burn from the tank; run dry and the trip ends with a Coast Guard tow
   const ft=tripFuel(b);let towed=false;
@@ -231,7 +235,7 @@ function tripEnd(b,t){
   // a bad one (skunked, out of tackle, a breakdown, grumpy clients) means a partial refund and a bad review.
   const happy=45+frac*45+t.happy+upH(b.type)+DF().mood-RATE_MOOD*rateSteps();
   const fare=towed?Math.round(payOf(b)*.5):payOf(b),base=b.type==='halibut'&&!S.up.chp?1200:fare;
-  const tip=Math.round(base*clamp((happy-62)/130,0,.3));
+  const tip=Math.round(base*clamp((happy-60)/100,0,.3));
   const skunk=fishers>0&&fish-t.kept<=0&&b.type!=='trout'&&!(b.type==='halibut'&&halClosed(b.d));
   const refundPct=clamp((42-happy)/200,0,.25)+(skunk?.05:0),refund=Math.round(fare*refundPct);
   const xs=(t.x||[]),xnet=xs.reduce((a,[,v])=>a+v,0),xpos=xs.reduce((a,[,v])=>a+Math.max(0,v),0),xneg=xs.reduce((a,[,v])=>a+Math.min(0,v),0);
@@ -245,7 +249,8 @@ function tripEnd(b,t){
   if(noBoat()&&b.type!=='halibut')t.notes.push('🔧 The boat is out of service: you can’t launch again until a major repair, an emergency patch or a loaner.');
   else if(t.boat0!=null&&!t.loan)boatWatch(t.boat0);
   money(fare-refund+tip+xnet-costs);
-  const st=S.stats;st.trips++;st.clients+=b.n;st.fish+=fish;st.earned+=fare-refund;st.tips+=tip+xpos;st.spent+=costs-xneg;
+  const st=S.stats;st.hapSum=(st.hapSum||0)+clamp(happy-DF().mood+RATE_MOOD*rateSteps()*.7,0,110);st.hapN=(st.hapN||0)+1;st.tipSum=(st.tipSum||0)+tip;   // the season’s quality (24-career, 25-fuel): relative to the difficulty’s client mood
+  st.trips++;st.clients+=b.n;st.fish+=fish;st.earned+=fare-refund;st.tips+=tip+xpos;st.spent+=costs-xneg;
   S.unlogged++;S.skill++;
   const net=fare-refund+tip+xnet-costs;
   b.status='done';b.out={happy:Math.round(happy),fish,line,fare,refund,tip,net};S.trip=null;
@@ -258,6 +263,6 @@ function tripEnd(b,t){
     <p><b>Catch:</b> ${line}${t.kept?` (${t.kept} kept on the sly)`:''}${lost?` · ${lost} minutes lost`:''}</p>
     ${towed?'<p>🛟 <b>Towed in.</b> Half the fare refunded.</p>':''}<p><b>The pay:</b>${row(`Booked fare${b.type==='halibut'&&!S.up.chp?' (day rate)':''}`,fare)}${refund?row(`Refund${why.length?` (${why.join(', ')})`:''}`,-refund):''}${row('Tip',tip)}${xs.map(([l,v])=>row(l,v)).join('')}${costs?row('Launch fee',-costs):''}<br><b>Net: ${net<0?'−':''}${$(Math.abs(net))}</b></p>
     <p>${mood} Rep ${dRep>=0?'+':'−'}${Math.abs(dRep)}.</p>
-    <p style="font-size:13px;color:var(--mute)">📓 Log it in your ADF&amp;G logbook before bed.</p>`,[{l:'Head in',fn:()=>{}}]);
+    <p style="font-size:13px;color:var(--mute)">📓 Log it in your ADF&amp;G logbook before bed.</p>`,[{l:'Head in',fn:()=>{}}].concat(b.card?[{l:'Hand them your card and ask them back',s:'10 minutes. After a day like this, most say yes.',fn:()=>regCard(b)}]:[]));
   sfx(happy>=50?'good':'bad');
 }
