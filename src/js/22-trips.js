@@ -224,7 +224,7 @@ function tripCancel(b,note){b.status='cancelled';S.stats.cancelled++;S.trip=null
 function tripEnd(b,t){
   const T=TRIPS[b.type],d=day(),r=Math.random;
   let q=.5+t.q+runFactor(b.type)+(WX[S.wx[d]||'sun']||WX.sun).q+(S.prep===d?.08:0)+(scoutedFor(b.type,d)?.05:0)
-    +upQ(b.type)+(S.gear>0?0:-.15)+(S.boat<40&&!t.loan?-.1:0)+(S.energy<30?-.1:0)+skillQ()+(r()-.5)*.24;
+    +upQ(b.type)+campQ()+(S.gear>0?0:-.15)+(S.boat<40&&!t.loan?-.1:0)+(S.energy<30?-.1:0)+skillQ()+(r()-.5)*.24;
   q=clamp(q,.05,1);
   // fuel: burn from the tank; run dry and the trip ends with a Coast Guard tow
   const ft=tripFuel(b);let towed=false;

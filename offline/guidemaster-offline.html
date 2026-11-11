@@ -217,6 +217,869 @@ button.act,.ghost,.big{min-height:44px}
 <noscript><p style="color:#fff;padding:20px;font-family:sans-serif">This game needs JavaScript.</p></noscript>
 <script>
 // ============================================================
+//  KENAI WINTER CAMP, part 0: the namespace.
+//  The whole camping engine lives behind ONE global, KenaiCamp. It never reads or writes anything of the host game:
+//  everything it needs comes in through the trip ticket and a small host adapter, and everything it produces goes
+//  out in the trip report. See src/camp/README.md for the contract.
+//  The only browser storage it touches uses keys that start with "kenaicamp:".
+// ============================================================
+const KenaiCamp={
+  VERSION:'1.0.0',
+  SCHEMA:1,                 // version of the ticket, report and stored-data shapes; bump when any of them change
+  PREFIX:'kenaicamp:',      // every storage key this engine uses starts with this
+};
+(function(K){
+  'use strict';
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const r2=x=>Math.round(x*100)/100;
+  const grp=n=>String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+  // money: $1,234 (cents only when there are some), with a real minus sign
+  const $=x=>{const f=(Math.round(Math.abs(x)*100)/100).toFixed(x%1?2:0).split('.');f[0]=grp(+f[0]);return (x<0?'−':'')+'$'+f.join('.')};
+  const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const sgn=n=>(n<0?'−':'+')+Math.abs(n);
+  // a small seeded generator (mulberry32) for tests and the solo harness
+  function seeded(seed){let a=seed>>>0;return ()=>{a=(a+0x6D2B79F5)>>>0;let t=a;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296}}
+  // storage that never throws and never leaves the kenaicamp: namespace
+  const store={
+    ok(){try{return typeof localStorage!=='undefined'&&!!localStorage}catch(e){return false}},
+    get(k){try{return this.ok()?JSON.parse(localStorage.getItem(K.PREFIX+k)):null}catch(e){return null}},
+    set(k,v){try{if(this.ok())localStorage.setItem(K.PREFIX+k,JSON.stringify(v))}catch(e){}},
+    del(k){try{if(this.ok())localStorage.removeItem(K.PREFIX+k)}catch(e){}},
+  };
+  K.util={clamp,r2,grp,$,esc,sgn,seeded,store};
+})(KenaiCamp);
+// ============================================================
+//  KENAI WINTER CAMP, part 1: the content.
+//  Places, months, gear, shelters, wildlife and weather, activities, winter work and achievements.
+//
+//  Mileages are one-way road miles from Soldotna, worked out from Sterling Highway mileposts (Soldotna at about
+//  milepost 95.2): Johnson Lake Rd at MP 110, Clam Gulch at 117.4, Deep Creek at 137.3, Anchor River at 161, Homer at 173,
+//  Quartz Creek at 44.9, Swanson River Rd at 83.5 (+17 mi), Skilak Lake Rd west end at 75.2, Hidden Lake 3.5 mi and Lower Skilak
+//  13.3 mi along it. Captain Cook SRA is "25 miles north of Kenai" (about 11 from Soldotna to Kenai). Most campgrounds are not
+//  serviced in winter, so winter camping there is free but without services. Prices are 2026 estimates, not quotes.
+// ============================================================
+(function(K){
+  'use strict';
+  const D=K.data={};
+  D.MPG=15; D.SUPPLIES=25; D.NIGHTS=[1,2,3,5]; D.WINTER_DAYS=10; D.MAX_TRIPS=3; D.MAX_GIGS=2;
+  D.MAX_BOOK=.02;            // the most a winter can add to next season's daily chance of a booking
+  D.MAX_FIRST=.03;           // the most it can add to the catch on the first few trips
+  D.LICENSE=29;               // an Alaska resident sport fishing license (about $29); licenses run by calendar year
+  D.ICE_WALK=4;               // inches of clear, hard ice for a person on foot
+  D.CAPACITY=12;              // load points the truck and sled carry; every item and companion uses some
+  D.RENT_ICE=15;              // renting an ice kit at the Soldotna tackle shop
+
+  // ---- places (habitat h: lake, forest, coast, river, mtn) ----
+  D.PLACES=[
+    {id:'johnson',ic:'🏞️',n:'Johnson Lake (Kasilof)',miles:16,fee:0,h:'lake',ice:'Johnson Lake',scout:'kasilof',d:'Sterling Hwy MP 110, then Johnson Lake Road. The state rec area has toilets and a boat launch in summer ($20 a site); in winter nothing is serviced or plowed, so you park out and camp free on the ice-rimmed lake. ADF&G stocks this lake, and winter anglers fish it through the ice.'},
+    {id:'clam',ic:'🌊',n:'Clam Gulch beach',miles:22,fee:0,h:'coast',d:'MP 117.4 on the Sterling Hwy. The summer campground ($20 a site) is not serviced in winter; the bluff looks over Cook Inlet and the volcanoes across the water.'},
+    {id:'hidden',ic:'🌲',n:'Hidden Lake (Kenai Refuge)',miles:24,fee:0,h:'forest',scout:'upper',d:'3.5 miles along Skilak Lake Road from the Sterling Hwy at MP 75.2. The refuge charges $15 in season. In winter, expect no services and no fee.'},
+    {id:'swanson',ic:'🛶',n:'Swanson River Road & Swan Lake canoe area',miles:29,fee:0,h:'lake',ski:true,cabin:45,d:'Turn north at MP 83.5 and drive 17 miles of refuge road to the canoe-route landings. Summer parking is $5. In winter it’s unserviced, quiet ski and snowmobile country, and a refuge public-use cabin can be reserved ahead.'},
+    {id:'skilak',ic:'⛰️',n:'Lower Skilak Lake Campground',miles:33,fee:0,h:'mtn',scout:'upper',cabin:55,d:'13.3 miles along Skilak Lake Road from the west end. A summer campground (May to September) with no fee. In winter you’re on your own on a big, windy lake shore; a public-use cabin in the area can be reserved ahead.'},
+    {id:'cook',ic:'🌲',n:'Captain Cook State Rec Area',miles:36,fee:0,h:'forest',ice:'Stormy Lake',ski:true,d:'About 25 miles north of Kenai, near Stormy Lake, where winter visitors ice fish stocked fish. Discovery Campground is $20 a site in summer; in winter you camp unserviced.'},
+    {id:'deep',ic:'🦅',n:'Deep Creek State Rec Area',miles:42,fee:0,h:'coast',d:'MP 137.3 on the Sterling Hwy, on the Cook Inlet bluff above the beach. Summer sites are $20; in winter there is no service, and the beach is a cold, bright place for eagles.'},
+    {id:'quartz',ic:'🏔️',n:'Quartz Creek (Kenai Lake)',miles:51,fee:0,h:'mtn',scout:'upper',cabin:65,d:'Quartz Creek Campground sits at MP 44.9 near Cooper Landing, a summer Forest Service campground. In winter it is unserviced with steep mountain slopes on all sides. Dall sheep and goats are in the high country, and the upper Kenai River runs below.'},
+    {id:'anchor',ic:'🎣',n:'Anchor River State Rec Area',miles:66,fee:20,h:'river',d:'MP 161, the westernmost highway point in North America. The state campgrounds charge $20 a site; the Anchor River runs open under ice shelves and steelhead and Dolly Varden are in it.'},
+    {id:'spit',ic:'⚓',n:'Homer Spit',miles:83,fee:0,h:'coast',d:'The city’s Spit campgrounds are open April through October only, so in winter you park rough with no hookups and no dump station. Expect sea ducks, sea otters, eagles and a hard wind off Kachemak Bay.'},
+  ];
+  D.place=id=>D.PLACES.find(p=>p.id===id);
+
+  // ---- months: daylight hours (about, at 60°N), ice quality, and the weather odds ----
+  D.MONTHS=[
+    {id:'nov',n:'November',day:7.3,ice:.22,clear:.35,cold:.5,storm:1,chin:.5,yo:0,t:'10 to 25°F',d:'Early ice is thin and the days are shrinking.'},
+    {id:'dec',n:'December',day:5.8,ice:.4,clear:.40,cold:1.2,storm:1.2,chin:.8,yo:0,t:'0 to 20°F',d:'The darkest weeks: barely five and a half hours of light, and the best northern lights.'},
+    {id:'jan',n:'January',day:6.8,ice:.8,clear:.45,cold:1.6,storm:1,chin:1,yo:1,t:'−15 to 15°F',d:'Cold and still, with ice that holds. Fishing licenses started over on January 1.'},
+    {id:'feb',n:'February',day:9,ice:.95,clear:.5,cold:1.3,storm:1,chin:1,yo:1,t:'−5 to 25°F',d:'The ice is at its best and the days are noticeably longer.'},
+    {id:'mar',n:'March',day:11.5,ice:.65,clear:.5,cold:.5,storm:.7,chin:1.5,yo:1,t:'10 to 35°F',d:'Long bright days, but thaws and soft ice are coming.'},
+  ];
+  D.month=id=>D.MONTHS.find(m=>m.id===id);
+  D.slots=m=>m.day>=9?2:1;                      // daylight activities per day: one in the dark months, two on long days
+  // calendar year of a month in a winter that starts in `year`: Nov and Dec are that year, Jan to Mar the next
+  D.calYear=(m,year)=>year+m.yo;
+
+  // ---- things to pack (wt = load points; once = bought once and kept, otherwise paid every trip) ----
+  D.PACK=[
+    {id:'bear',ic:'🛢️',n:'Bear-resistant food container',cost:80,wt:3,once:true,d:'Locks food and scented gear away from foxes, ravens, wolverines and bears. Keep it downwind of camp, away from the tent.'},
+    {id:'fuel',ic:'⛽',n:'Extra stove fuel',cost:14,wt:2,once:false,d:'A cold snap burns twice the fuel. Running out at 25 below is how a hard night becomes a dangerous one.'},
+    {id:'bag',ic:'🛌',n:'Cold-rated sleeping bag (−20°F)',cost:160,wt:3,once:true,d:'Rated well below the night’s low, on an insulated pad. Cold sleepers burn through the night’s energy.'},
+    {id:'layers',ic:'🧥',n:'Spare layers: wool, a dry hat and mitts',cost:70,wt:2,once:true,d:'Cotton kills when it’s wet. A dry set of wool is the cheapest insurance there is.'},
+    {id:'truck',ic:'🔋',n:'Truck kit: jump pack, shovel, tow strap',cost:70,wt:2,once:true,d:'A dead battery or a drifted-in road is a nuisance with this and a tow bill without it.'},
+    {id:'ice',ic:'🧊',n:'Ice kit: hand auger, rod and skimmer',cost:90,wt:4,once:true,d:'Needed to fish through the ice. You can rent one in town for a day if you can’t carry it.'},
+    {id:'picks',ic:'📍',n:'Ice picks and a throw rope',cost:25,wt:1,once:true,d:'Worn around the neck, the picks let you pull yourself out of the water. The rope is for pulling out someone else.'},
+    {id:'vise',ic:'🪶',n:'Fly-tying vise and materials',cost:40,wt:1,once:true,d:'Evenings by the fire turn into flies and leaders for next July.'},
+  ];
+  D.pack=id=>D.PACK.find(p=>p.id===id);
+
+  // ---- where you sleep (comfort lowers the odds of a bad night; load and cap use truck space) ----
+  D.SHELTERS={
+    tent:{id:'tent',ic:'⛺',n:'Four-season tent and stove',comfort:0,load:2,cap:0,cost:0,d:'What you already own. Cold, but light.'},
+    wall:{id:'wall',ic:'🏕️',n:'Wall tent with a wood stove',comfort:1,load:3,cap:0,cost:1100,d:'A canvas wall tent and a small stove: you can stand up, dry your boots and keep a pot hot. About $1,100.'},
+    camper:{id:'camper',ic:'🚐',n:'Truck camper',comfort:2,load:0,cap:4,cost:7500,d:'A used, insulated pickup camper with a furnace. It carries your gear, too. About $7,500.'},
+    cabin:{id:'cabin',ic:'🛖',n:'Public-use cabin',comfort:2,load:0,cap:0,cost:0,d:'A refuge or State Parks cabin reserved ahead: bunks, a stove and four walls.'},
+  };
+
+  // ---- the animals (every wildlife encounter is a species for the camping log) ----
+  D.SPECIES=[
+    ['moose','🫎','Moose'],['wolves','🐺','Wolves'],['lynx','🐈','Lynx'],['fox','🦊','Red fox'],['ravens','🐦‍⬛','Ravens'],
+    ['porcupine','🦔','Porcupine'],['swans','🦢','Trumpeter swans'],['eagles','🦅','Bald eagles'],['sheep','🐏','Dall sheep'],['bear','🐻','Brown bear'],
+    ['otters','🦦','River otters'],['wolverine','🦡','Wolverine'],['hares','🐇','Snowshoe hares'],['ptarmigan','🐦','Willow ptarmigan'],['seaotters','🦭','Sea otters'],['chickadees','🐤','Chickadees'],
+  ].map(([id,ic,n])=>({id,ic,n}));
+  D.ALL=D.SPECIES.map(s=>s.id);
+
+  // ---- encounters and weather ----
+  // kind: good, bad or mixed. cat: wild (weighted by the habitat of the place) or weather (any place, weighted by the month).
+  // counter: the packed item that makes a bad one rarer and gentler. fx(c) returns {d:{energy,cash,rep,skill,wom,days,thaw,messy}, line}.
+  // c.has(item), c.r() random 0..1, c.comfort, c.shelter. Money in d.cash is negative for a cost.
+  const E=D.ENC=[];
+  const add=e=>E.push(e);
+  add({id:'moose',ic:'🫎',t:'A cow moose and her calf',kind:'good',cat:'wild',h:['forest','lake','river','coast'],
+    text:'At first light a cow moose and her calf browse the willows right at the edge of camp, breath smoking in the cold.',
+    fx:c=>c.r()<.25?{d:{energy:-6},line:'You edge in for a better look. She lays her ears back and stamps; you retreat to the truck for an hour.'}:{d:{energy:5},line:'You stay in the doorway and just watch.',lesson:'Give a moose room. A cow with a calf is the one that charges.'}});
+  add({id:'wolves',ic:'🐺',t:'Wolves howling across the lake',kind:'good',cat:'wild',h:['lake','forest','mtn'],
+    text:'Around midnight a pack starts up on the far shore. One voice, then five, rising and bouncing off the frozen lake.',
+    fx:()=>({d:{energy:4,skill:1},line:'You lie awake and listen to every note.'})});
+  add({id:'lynx',ic:'🐈',t:'A lynx on the trail',kind:'good',cat:'wild',h:['forest','lake'],
+    text:'On a morning walk a lynx crosses the trail ahead, big paws, tufted ears, in snowshoe hare country. It looks at you and is gone.',
+    fx:()=>({d:{energy:3,skill:1},line:'Hare tracks everywhere; you learn to read them.'})});
+  add({id:'fox',ic:'🦊',t:'A red fox raids the food bag',kind:'bad',cat:'wild',h:['forest','coast','river','lake'],counter:'bear',
+    text:'You wake to a fox trotting off with your bacon. The food bag you left out is shredded.',
+    fx:c=>c.has('bear')?{d:{},line:'The fox gives the sealed container a hard sniff and trots off with nothing.',lesson:'A bear-resistant container works on foxes, too.'}:{d:{cash:-35,energy:-2,messy:1},line:'You restock at the gas station.',lesson:'Food left out feeds foxes and teaches them to come back. Seal it away from the tent.'}});
+  add({id:'ravens',ic:'🐦‍⬛',t:'Ravens open the cooler',kind:'bad',cat:'wild',h:['forest','coast','river','lake','mtn'],counter:'bear',
+    text:'A pair of ravens figure out the latch on the cooler and you find them lunching on your sandwiches, croaking like they paid for them.',
+    fx:c=>c.has('bear')?{d:{},line:'The ravens walk around the locked container twice and give up.'}:{d:{cash:-20,messy:1},line:'Smart birds.',lesson:'Ravens learn latches. A cooler is not a lock.'}});
+  add({id:'porcupine',ic:'🦔',t:'A porcupine at the truck',kind:'bad',cat:'wild',h:['forest','lake','river'],
+    text:'In the night a porcupine finds salt on the truck and chews on a tire sidewall and the axe handle you left out.',
+    fx:()=>({d:{cash:-60},line:'A new tire patch and a new axe handle.',lesson:'Salty tool handles and road-salted tires draw porcupines. Put tools away at night.'})});
+  add({id:'swans',ic:'🦢',t:'Trumpeter swans on open water',kind:'good',cat:'wild',h:['lake','river'],
+    text:'Where the outlet keeps the water open, a family of trumpeter swans feeds along the ice edge, their calls like small brass horns.',
+    fx:()=>({d:{energy:4,rep:1},line:'You have a story for the next clients.'})});
+  add({id:'eagles',ic:'🦅',t:'Bald eagles on the beach',kind:'good',cat:'wild',h:['coast','river'],
+    text:'A dozen bald eagles line the tide flat and the driftwood, picking over what the tide left.',
+    fx:()=>({d:{energy:4,skill:1},line:'You watch how they work the water.'})});
+  add({id:'sheep',ic:'🐏',t:'Dall sheep on the slope',kind:'good',cat:'wild',h:['mtn'],
+    text:'White specks on the avalanche chute above camp resolve into Dall sheep, bedded in the wind-scoured alpine, glowing in the low sun.',
+    fx:()=>({d:{energy:6},line:'You carry the picture home.'})});
+  add({id:'bear',ic:'🐻',t:'A brown bear out of its den',kind:'bad',cat:'wild',h:['forest','mtn','lake','coast'],counter:'bear',cw:.5,
+    text:'A warm spell and big tracks in the snow beside the tent: a brown bear is awake and wandering where it should be asleep.',
+    fx:c=>c.has('bear')?{d:{energy:-4},line:'Your food is sealed and well away from the tent, so there is nothing to reward the bear. You still break camp in the dark and drive out.',lesson:'A bear that finds food at a camp comes back for the next one. Store it, and leave.'}:{d:{cash:-15,energy:-9,messy:1},line:'You pack up in the dark and drive out.',lesson:'Food in the tent invites a bear to it. Cook and store away from where you sleep.'}});
+  // new in this version
+  add({id:'otters',ic:'🦦',t:'River otters on the ice',kind:'good',cat:'wild',h:['river','lake'],
+    text:'Two river otters pop out of an open lead, slide belly-first down the snowbank and dive back in, again and again, as if the ice were a playground.',
+    fx:()=>({d:{energy:4},line:'You laugh for the first time in a week.'})});
+  add({id:'wolverine',ic:'🦡',t:'A wolverine raids the cache',kind:'bad',cat:'wild',h:['forest','mtn','lake'],counter:'bear',cw:.25,
+    text:'Something with big claws and no fear has torn into the food you stashed under the tarp, and it dragged half of it into the spruce. The tracks are a wolverine’s, loping straight lines in the snow.',
+    fx:c=>c.has('bear')?{d:{},line:'The wolverine rolls the locked container thirty feet and gives up.',lesson:'Nothing but a hard container stops a wolverine. A tarp is a wrapper.'}:{d:{cash:-45,energy:-3,messy:1},line:'You write off the food and restock.',lesson:'A wolverine will tear through a tarp. Hard-sided, locked, and away from camp.'}});
+  add({id:'hares',ic:'🐇',t:'Snowshoe hares at dusk',kind:'good',cat:'wild',h:['forest','lake','river'],
+    text:'At dusk the willows are full of snowshoe hares in their white coats, hopping out onto the packed trail with their oversized back feet.',
+    fx:()=>({d:{energy:3},line:'Where the hares are, the lynx are not far away.'})});
+  add({id:'ptarmigan',ic:'🐦',t:'Ptarmigan in the willows',kind:'good',cat:'wild',h:['mtn','lake','coast'],
+    text:'A flock of willow ptarmigan, white as the snow, bursts from under a bush and clucks across the slope.',
+    fx:()=>({d:{energy:4},line:'Alaska’s state bird, in its winter whites.'})});
+  add({id:'seaotters',ic:'🦭',t:'Sea otters off the Spit',kind:'good',cat:'wild',h:['coast'],only:['spit'],
+    text:'Off the end of the Spit a raft of sea otters floats on its backs in the swell, cracking clams on their chests.',
+    fx:()=>({d:{energy:5},line:'You watch until your fingers go numb.'})});
+  add({id:'chickadees',ic:'🐤',t:'Chickadees at camp',kind:'good',cat:'wild',h:['forest','lake','river','coast'],
+    text:'A flock of black-capped and boreal chickadees works the spruce around camp, tiny and loud and not at all bothered by the cold.',
+    fx:()=>({d:{energy:3},line:'They live on what they find, so you don’t feed them.',lesson:'Don’t feed wildlife, even the small ones. Fed birds lose their winter foraging skills.'})});
+  // weather
+  add({id:'coldsnap',ic:'🥶',t:'A cold snap',kind:'bad',cat:'weather',base:3.5,mon:'cold',
+    text:'The temperature falls through the night to minus 25 and keeps going. Water bottles freeze solid, the water line of a camper or cabin freezes, and in the morning the truck’s battery will not turn over.',
+    fx:c=>{let e=-8;if(c.has('bag'))e*=.6;if(c.has('layers'))e*=.75;if(c.has('fuel'))e*=.8;if(c.comfort>=2)e*=.7;e=Math.round(e);
+      const kit=c.has('truck'),cash=kit?0:-60,ok=[c.has('bag')&&'a bag rated for it',c.has('layers')&&'dry layers',c.has('fuel')&&'plenty of stove fuel'].filter(Boolean);
+      return {d:{energy:e,cash},line:(kit?'Your jump pack gets the truck going in minutes. ':'A tow truck and a new battery clamp cost you. ')+(ok.length?'Camp was ready with '+ok.join(' and ')+'.':'You were not ready for it.'),
+        lesson:'A cold snap is when stove fuel, a bag rated below the low and a jump pack earn their weight.'}}});
+  add({id:'snowstorm',ic:'🌨️',t:'A snowstorm',kind:'bad',cat:'weather',base:3.2,mon:'storm',counter:'truck',cw:.7,
+    text:'Snow falls all night and by morning the road out is drifted shut. You are not going anywhere today.',
+    fx:c=>{const e=c.comfort>=2?-1:c.comfort===1?-2:-3,kit=c.has('truck');
+      return {d:{energy:e,cash:kit?-25:-95,days:1},line:kit?'You shovel out the truck with your own shovel, eat a stranded day’s food and drive out the next morning.':'A plow-truck neighbor pulls you out the next morning for a fee, after a stranded day.',lesson:'A shovel and a day’s extra food turn a snowed-in night into a story.'}}});
+  add({id:'chinook',ic:'🌬️',t:'A chinook thaw',kind:'mixed',cat:'weather',base:2.6,mon:'chin',
+    text:'A warm wind off the Gulf sweeps in overnight and the thermometer jumps thirty degrees. Icicles drip off the tent and the trail turns to slush.',
+    fx:()=>({d:{energy:2,thaw:1},line:'An easy day, but the ice on every lake is softer than it was.',lesson:'A thaw weakens lake ice fast. Re-check it before you walk out.'})});
+
+  // quiet nights
+  D.QUIET=['❄️ A quiet night. Minus 10°F, snow squeaking under your boots, and stars all the way down.',
+    '🌌 The northern lights roll green over the spruce for an hour. Then silence.',
+    '🌲 Snow loads the spruce boughs until one lets go with a soft thump. Otherwise: nothing at all.',
+    '🔥 You feed the fire, the stove ticks, and the cold sits just outside the tent.',
+    '🌙 A full moon on fresh snow; you could read by it.',
+    '💨 The wind rises at midnight and drops at four. You sleep through most of it.'];
+
+  // ---- winter work (a day each) ----
+  D.GIGS=[
+    {id:'iceguide',ic:'🧊',n:'Guide ice fishers on a stocked lake',d:'Two clients, a day on the ice, about $70 each, and gas to the lake.',need:'You need an ice kit (you can rent one for $15) and a current fishing license.'},
+    {id:'snowmachine',ic:'🛷',n:'Run a snowmachine tour for visitors',d:'A day showing visitors the refuge by snowmachine, about $80 a rider, less fuel. A machine can break down, and riders’ tips vary.',need:'You need a little reputation to be trusted with a rental sled.'},
+    {id:'event',ic:'🏁',n:'Help at a winter event',d:'Winter Games in Soldotna or the Tustumena 200 sled dog race in Kasilof, whenever they run: a stipend and meals, and a lot of people who will remember you.',need:''},
+  ];
+
+  // ---- achievements the engine itself can award (the host may add its own) ----
+  D.ACH=[
+    {id:'every_animal',ic:'🦌',n:'Every Animal',d:'See all '+D.ALL.length+' kinds of Kenai winter wildlife.'},
+    {id:'no_trace',ic:'🌲',n:'No Trace',d:'Break camp with nothing left behind: food stored, trash packed out, no raided camp.'},
+  ];
+})(KenaiCamp);
+// ============================================================
+//  KENAI WINTER CAMP, part 2: the engine.
+//  A state machine with no screen of its own: KenaiCamp.session(ticket, {rand}) returns an object whose view() says what to
+//  show (a title, some HTML and a list of choices) and whose choose(id) moves on. The UI (camp-30-ui.js) and the headless
+//  simulator (camp-40-sim.js) both drive it the same way. It reads the ticket once and produces one report; it never touches
+//  the host game's state.
+//
+//  One visit to the winter hub can hold up to MAX_TRIPS camping trips and some winter work, all inside a budget of
+//  WINTER_DAYS free days. A trip is: where, when, how long, who comes, where you sleep, what you pack, then for each day
+//  an activity (one in the dark months, two on long days), an evening, and a night; at the end, break camp.
+// ============================================================
+(function(K){
+  'use strict';
+  const D=K.data,U=K.util,{clamp,r2,$,esc,sgn}=U;
+  const r3=x=>Math.round(x*1000)/1000;
+  const n0=(v,d)=>typeof v==='number'&&isFinite(v)?v:d;
+
+  // ---- the ticket: what the host hands in (anything missing gets a sensible default) ----
+  K.normTicket=function(t){
+    t=t||{};
+    const ar=a=>Array.isArray(a)?a:[];
+    return {
+      v:K.SCHEMA,mode:t.mode==='solo'?'solo':'guide',
+      year:n0(t.year,2026),                                   // the calendar year the winter starts in (Nov and Dec are this year; Jan to Mar the next)
+      cash:n0(t.cash,0),energy:clamp(n0(t.energy,70),0,100),rep:clamp(n0(t.rep,50),0,100),skill:n0(t.skill,20),
+      gas:n0(t.gas,5.34),mpg:n0(t.mpg,D.MPG),costMult:n0(t.costMult,1),   // pump price a gallon, the truck's mileage, the difficulty's cost multiplier
+      gear:ar(t.gear).slice(),                                // owned gear ids: pack items, and the shelters 'wall' and 'camper'
+      licYear:n0(t.licYear,0),                                // the calendar year of the last fishing license bought
+      food:{meals:n0(t.food&&t.food.meals,0),freezerRoom:Math.max(0,n0(t.food&&t.food.freezerRoom,30))},
+      regulars:ar(t.regulars).map(r=>({id:String(r.id),name:String(r.name||r.id),mood:n0(r.mood,60)})),   // returning clients: mood 0..100 is how their last trip went
+      rival:t.rival&&t.rival.id?{id:String(t.rival.id),name:String(t.rival.name||'the other guide'),mood:n0(t.rival.mood,0)}:null,
+      guideFriend:t.guideFriend!==false,
+      daysLeft:Math.max(0,n0(t.daysLeft,D.WINTER_DAYS)),tripsLeft:Math.max(0,n0(t.tripsLeft,D.MAX_TRIPS)),gigsLeft:Math.max(0,n0(t.gigsLeft,D.MAX_GIGS)),
+      gigsDone:ar(t.gigsDone).slice(),
+      seen:Object.assign({},t.seen||{}),ach:ar(t.ach).slice(),noTraceTrips:n0(t.noTraceTrips,0),
+    };
+  };
+
+  function weights(T,onlyWild,good){
+    const pl=D.place(T.place),m=D.month(T.month);
+    return D.ENC.map(e=>{
+      let w=0;
+      if(e.cat==='wild'){
+        if(e.only)w=e.only.includes(pl.id)?5:0;else if(e.h.includes(pl.h))w=e.h[0]===pl.h?4:3;
+      }else if(!onlyWild)w=e.base*m[e.mon];
+      if(good&&e.kind==='bad')w=0;
+      if(w&&e.kind==='bad'&&e.counter&&T.pack.includes(e.counter))w*=e.cw||.3;
+      if(w&&e.kind==='bad'&&e.cat==='wild'&&T.warned)w*=.7;
+      return w;
+    });
+  }
+  // the odds of each encounter at a place in a month with a pack (for tests and balancing)
+  K.weights=(place,month,pack)=>weights({place,month,pack:pack||[]},false,false).map((w,i)=>({id:D.ENC[i].id,kind:D.ENC[i].kind,w}));
+
+  K.session=function(ticket,o){
+    o=o||{};
+    const t=K.normTicket(ticket),rand=typeof o.rand==='function'?o.rand:Math.random,r=()=>rand();
+    const pk=a=>a[Math.floor(r()*a.length)];
+    const ss={t,mode:t.mode,phase:'hub',cash:t.cash,energy:t.energy,rep:t.rep,skill:t.skill,days:t.daysLeft,tripsLeft:t.tripsLeft,gigsLeft:t.gigsLeft,
+      gear:new Set(t.gear),lic:t.licYear,seen:Object.assign({},t.seen),gigsDone:new Set(t.gigsDone),plan:null,trip:null,res:null,steps:0,over:false};
+    const R={spent:0,earned:0,wom:0,book:0,fish:0,tackle:0,q:0,scoutPts:0,scoutAreas:[],rel:{},seen:{},fresh:[],gearBought:[],lic:null,daysUsed:0,nights:0,enc:0,noTraceTrips:0,ties:0,aurora:0,trips:[],log:[],gigs:[],skillD:0};
+    ss.R=R;
+    const spend=x=>{x=r2(x);ss.cash=r2(ss.cash-x);R.spent=r2(R.spent+x)};
+    const earn=x=>{x=r2(x);ss.cash=r2(ss.cash+x);R.earned=r2(R.earned+x)};
+    const loseCash=x=>{const c=Math.min(x,Math.max(0,Math.floor(ss.cash)));spend(c);return c};
+    const adjE=v=>{ss.energy=clamp(Math.round(ss.energy+v),0,100)};
+    const adjR=v=>{ss.rep=clamp(Math.round(ss.rep+v),0,100)};
+    const has=id=>ss.gear.has(id);
+    const B=(id,l,s,dis)=>({id,l,s:s||'',dis:!!dis});
+    const stat=()=>`<p class="cc-stat" style="font-size:13px;color:var(--mute,#667)">Cash ${$(Math.round(ss.cash))} · Energy ${ss.energy} · Days left this winter: ${ss.days}</p>`;
+    const names=()=>{const m={};t.regulars.forEach(g=>{m[g.id]={name:g.name,kind:'regular'}});if(t.rival)m[t.rival.id]={name:t.rival.name,kind:'rival'};m.guide={name:'a fellow guide',kind:'guide'};return m};
+    const seenN=()=>D.ALL.filter(id=>ss.seen[id]>0).length;
+    const markSeen=id=>{const was=ss.seen[id]>0;ss.seen[id]=(ss.seen[id]||0)+1;R.seen[id]=(R.seen[id]||0)+1;if(!was){R.fresh.push(id);return true}return false};
+    const sp=id=>D.SPECIES.find(s=>s.id===id);
+
+    // ---- costs ----
+    function cost(p){
+      const pl=D.place(p.place),n=p.nights,sh=D.SHELTERS[p.shelter],comp=p.company?1:0;
+      const gal=r2(Math.round(pl.miles*2/t.mpg*10)/10),fuel=r2(gal*t.gas*t.costMult);
+      const cabin=p.shelter==='cabin'?r2(pl.cabin*n*t.costMult):0,fees=p.shelter==='cabin'?0:r2(pl.fee*n*t.costMult);
+      const sup=r2(D.SUPPLIES*n*t.costMult*(1+.6*comp));
+      let gear=0;(p.pack||[]).forEach(id=>{const it=D.pack(id);if(!it.once||!has(id))gear+=it.cost});
+      return {gal,fuel,fees,cabin,sup,gear:r2(gear),total:r2(fuel+fees+cabin+sup+gear)};
+    }
+    const capOf=p=>D.CAPACITY+D.SHELTERS[p.shelter].cap;
+    const loadOf=p=>D.SHELTERS[p.shelter].load+(p.company?2:0)+(p.pack||[]).reduce((a,id)=>a+D.pack(id).wt,0);
+    function autoPack(p){
+      const pl=D.place(p.place),m=D.month(p.month),want=['bear','bag','layers'];
+      if(pl.ice)want.push('picks','ice');                 // on a stocked lake the picks come first; the kit can be rented if there is no room
+      if(m.cold>=1)want.push('fuel');
+      want.push('truck','vise');
+      const out=[],base=Object.assign({},p,{pack:[]});
+      for(const id of want){
+        const it=D.pack(id),next=Object.assign({},p,{pack:out.concat(id)});
+        if(loadOf(next)>capOf(next))continue;
+        if((!it.once||!has(id))&&cost(next).total>ss.cash)continue;
+        out.push(id);
+      }
+      return out;
+    }
+
+    // ---- daily weather and the ice ----
+    const mon=()=>D.month(ss.trip.month);
+    function newDay(){const T=ss.trip;T.today=[];T.slotsUsed=0;T.clear=r()<mon().clear;T.slots=D.slots(mon())}
+    function iceThick(){const T=ss.trip;if(T.ice==null)T.ice=Math.max(1,Math.round(mon().ice*16+(r()-.5)*8));return Math.max(0,T.ice-(T.thaw?3:0))}
+
+    // ---- encounters ----
+    function pickEnc(T,onlyWild,good){
+      const ws=weights(T,onlyWild,good),tot=ws.reduce((a,b)=>a+b,0);let x=r()*tot;
+      for(let i=0;i<ws.length;i++){x-=ws[i];if(x<0)return D.ENC[i]}
+      return D.ENC[0];
+    }
+    const fxLine=d=>{const a=[];if(d.energy)a.push('Energy '+sgn(d.energy));if(d.skill)a.push('Skill '+sgn(d.skill));if(d.rep)a.push('Rep '+sgn(d.rep));if(d.cash)a.push(`−${$(Math.abs(d.cash))}`);if(d.days)a.push('an extra day snowed in');return a.length?` (${a.join(', ')})`:''};
+    function applyD(d){
+      const T=ss.trip;let e=d.energy||0,cash=d.cash||0;
+      if(cash<0){cash=-loseCash(-cash)}
+      d.cash=cash;
+      adjE(e);if(d.rep)adjR(d.rep);if(d.skill){ss.skill+=d.skill;R.skillD+=d.skill}if(d.wom)R.wom+=d.wom;
+      if(d.thaw)T.thaw=true;if(d.messy)T.messy=true;if(d.days)T.extra+=d.days;
+    }
+    function night(){
+      const T=ss.trip,i=T.i,m=D.month(T.month),comfort=D.SHELTERS[T.shelter].comfort,c={has:id=>T.pack.includes(id),r,comfort,shelter:T.shelter};
+      let rows;
+      if(r()<.5){
+        let e=pickEnc(T,false,false);
+        if(e.kind==='bad'&&comfort>0&&r()<.2*comfort)e=null;     // a better shelter turns a hard night into a bad hour
+        if(e){
+          const f=e.fx(c);applyD(f.d);T.enc++;R.enc++;
+          const isNew=e.cat==='wild'?markSeen(e.id):false;
+          T.events.push(e.id);
+          if(T.company)T.rel+=e.kind==='bad'?-1:1;
+          if(e.kind==='good')T.goodN++;else if(e.kind==='bad')T.badN++;
+          return `<p><b>Night ${i}: ${e.ic} ${e.t}${isNew?' · new for your log':''}.</b> ${e.text} <em>${f.line}${fxLine(f.d)}</em>${f.lesson?`<br><span style="font-size:13px;color:var(--mute,#667)">💡 ${f.lesson}</span>`:''}</p>`;
+        }
+        adjE(2+comfort);if(T.company)T.rel+=1;
+        return `<p><b>Night ${i}:</b> A bad night coming on, but your ${D.SHELTERS[T.shelter].n.toLowerCase()} turns it into a nuisance. (Energy +${2+comfort})</p>`;
+      }
+      adjE(2+(T.pack.includes('bag')?1:0)+(comfort>0?1:0));if(T.company)T.rel+=1;
+      return `<p><b>Night ${i}:</b> ${pk(D.QUIET)} (Energy +${2+(T.pack.includes('bag')?1:0)+(comfort>0?1:0)})</p>`;
+    }
+
+    // ---- the flow ----
+    const toRes=(title,html,next)=>{ss.res={title,html,next};ss.phase='result'};
+    function startPlan(){ss.plan={place:null,month:null,nights:null,company:null,shelter:'tent',pack:[],declined:[]};ss.phase='where'}
+    function guestOf(id){const n=names()[id];return n?n.name:'your guest'}
+    function startTrip(){
+      const p=ss.plan,c=cost(p),pl=D.place(p.place),sp0=R.spent;
+      spend(c.total);(p.pack||[]).forEach(id=>{const it=D.pack(id);if(it.once&&!has(id)){ss.gear.add(id);R.gearBought.push(id)}});
+      ss.trip={place:p.place,month:p.month,nights:p.nights,i:1,extra:0,company:p.company,shelter:p.shelter,pack:p.pack.slice(),cost:c,ice:null,thaw:false,warned:false,messy:false,
+        sp0,rel:0,enc:0,goodN:0,badN:0,events:[],acts:[],fish:0,tackle:0,ties:0,scout:0,e0:ss.energy,c0:ss.cash+c.total,rep0:ss.rep,sk0:ss.skill,fresh0:R.fresh.length,aurora:0,thorough:null,log:[],leave:false,slots:1,slotsUsed:0,clear:false};
+      newDay();ss.phase='day';
+    }
+    function afterAct(){
+      const T=ss.trip;T.slotsUsed++;
+      ss.phase=T.slotsUsed<T.slots?'day':'evening';
+    }
+    // an activity finishes: show what happened, then go on
+    const actDone=(title,html)=>toRes(title,html,afterAct);
+
+    function doActivity(id){
+      const T=ss.trip,pl=D.place(T.place),m=mon();
+      const note=(k,txt)=>{T.acts.push(k);T.today.push(k);T.log.push(txt)};
+      if(id==='rest'){adjE(3);note('rest','Rested in camp.');return actDone('🏕️ A day in camp',`<p>You keep camp, split wood, melt snow and sit in the low sun. (Energy +3)</p>`)}
+      if(id==='icefish'){
+        if(ss.lic<D.calYear(m,t.year)){ss.phase='lic';return}
+        if(!T.pack.includes('ice')){ss.phase='kit';return}
+        ss.phase='icesafe';return;
+      }
+      if(id==='snowshoe'||id==='ski'){
+        const ski=id==='ski',sprain=r()<(ski?.08:.1);
+        if(sprain){adjE(-5);note(id,'Took a fall on the trail.');return actDone(ski?'⛷️ A fall on the trail':'🥾 A twisted ankle',`<p>${ski?'A ski catches in a drift':'A snowshoe catches a buried branch'} and you go down hard. You limp back to camp. (Energy −5)</p><p style="font-size:13px;color:var(--mute,#667)">💡 Tell someone your route, and carry a whistle and a headlamp in winter, even for a short loop.</p>`)}
+        adjE(ski?5:4);let extra='';
+        if(r()<(ski?.2:.3)){const e=pickEnc(T,true,true),isNew=markSeen(e.id);adjE(2);extra=`<p><b>${e.ic} ${e.t}${isNew?' · new for your log':''}.</b> ${e.text} (Energy +2)</p>`}
+        note(id,ski?'Skied the trails.':'Snowshoed the trails.');
+        return actDone(ski?'⛷️ Skiing the trails':'🥾 Snowshoeing',`<p>${ski?'You ski a groomed loop and a quiet side trail, the snow squeaking and the spruce hushed.':'You break trail on snowshoes up a ridge and loop back through the spruce.'} (Energy +${ski?5:4})</p>${extra}`);
+      }
+      if(id==='track'){
+        const win=r()<clamp(.55+ss.skill/400+(T.company?.05:0),.3,.85);
+        if(!win){adjE(1);note('track','Followed tracks that went cold.');return actDone('🐾 Cold tracks',`<p>The wind has erased most of the sign and the tracks you follow end at a creek. A good walk, anyway. (Energy +1)</p>`)}
+        if(r()<.12){adjE(-5);note('track','Spooked a moose on the trail.');return actDone('🫎 Too close',`<p>You follow fresh sign into the willows and nearly walk into a moose. You back out slowly; it watches you go. (Energy −5)</p><p style="font-size:13px;color:var(--mute,#667)">💡 In winter, moose are stressed and hungry. Keep at least 25 yards, and never get between a cow and her calf.</p>`)}
+        const pool=D.ENC.filter(e=>e.cat==='wild'&&e.id!=='bear'),ws=weights(T,true,false),cand=pool.map(e=>ws[D.ENC.indexOf(e)]);
+        let tot=cand.reduce((a,b)=>a+b,0),x=r()*tot,e=pool[0];for(let i=0;i<pool.length;i++){x-=cand[i];if(x<0){e=pool[i];break}}
+        const isNew=markSeen(e.id);let line;
+        if(e.kind==='bad'){T.warned=true;line='You read the sign and now know what is around camp, so you tighten up food storage. (Skill +1, harder for raiders tonight)'}else{adjE(2);line='A clear look at an animal you came for. (Energy +2, Skill +1)'}
+        ss.skill+=1;R.skillD+=1;note('track','Tracked '+e.t.toLowerCase()+'.');
+        return actDone(`🐾 Tracking: ${e.ic} ${e.t}${isNew?' · new for your log':''}`,`<p>You pick up fresh tracks and follow them patiently, reading the sign. ${e.text}</p><p><em>${line}</em></p>`);
+      }
+      if(id==='scout'){
+        if(r()<.15&&!T.pack.includes('truck')){const c=loseCash(40*t.costMult);adjE(-3);R.scoutAreas.includes(pl.scout)||R.scoutAreas.push(pl.scout);R.scoutPts=Math.min(2,R.scoutPts+1);T.scout++;note('scout','Scouted the water; the truck got stuck.');return actDone('🔭 Scouting, and a stuck truck',`<p>You walk the bank and take notes on the holes and the ice shelves, then get the truck stuck on the way out. A neighbor with a winch charges ${$(c)}. The notes are good, though. (Energy −3, −${$(c)})</p>`)}
+        adjE(-3);ss.skill+=1;R.skillD+=1;R.scoutAreas.includes(pl.scout)||R.scoutAreas.push(pl.scout);R.scoutPts=Math.min(2,R.scoutPts+1);T.scout++;
+        note('scout','Scouted next season’s water.');
+        return actDone(pl.scout==='kasilof'?'🔭 Scouting the Kasilof':'🔭 Scouting the upper Kenai',`<p>${pl.scout==='kasilof'?'You walk the Kasilof’s bank where the dippers and drift boats go in summer, noting the bars, the log jams and the ice shelves.':'You walk the upper Kenai’s banks near the lake outlet, noting where the gravel is shifting, which holes are deepening and where the rapids have changed.'} You will know this water better in July. (Energy −3, Skill +1)</p>`);
+      }
+    }
+    function iceFish(checked){
+      const T=ss.trip,thick=iceThick();let fell=false;
+      if(checked==null){   // risk it
+        const p=thick<3?.45:thick<4?.3:thick<5?.06:.01;fell=r()<p;
+        if(fell){
+          const picks=T.pack.includes('picks');let e=picks?-8:-18,cash=picks?0:-90;if(T.pack.includes('layers'))e=Math.round(e*.6);
+          adjE(e);const c=cash?loseCash(-cash):0;T.acts.push('icefall');T.today.push('icefish');T.log.push('Fell through the ice.');
+          return actDone('🧊 Through the ice',`<p>The ice drops out from under you about ${pk([30,40,50])} feet from shore, ${thick} inch${thick===1?'':'es'} thick right there. ${picks?'You kick, grab your ice picks and haul yourself out onto your belly, then roll away from the hole.':'You claw at the edge until it holds, and the cold is huge.'} ${T.pack.includes('layers')?'You change into the dry layers in your pack.':'You are soaked in single-digit air and it is a long, dangerous walk to the truck.'}${c?` You lose an auger and a rod. (−${$(c)})`:''} (Energy ${e})</p><p style="font-size:13px;color:var(--mute,#667)">💡 Clear hard ice about 4 inches thick holds a person on foot. Check as you go, stay off ice near inlets, outlets and springs, and wear picks around your neck.</p>`);
+        }
+      }else if(checked<D.ICE_WALK){return}
+      const n=Math.max(1,Math.round(1+r()*3.5+(ss.skill>=40?1:0)));
+      T.fishN=n;ss.phase='icecatch';
+    }
+    function iceCatchUse(use){
+      const T=ss.trip,n=T.fishN||0;let html;
+      T.acts.push('icefish');T.today.push('icefish');
+      if(use==='freezer'){const room=Math.max(0,t.food.freezerRoom-R.fish),put=Math.min(n,room);R.fish+=put;T.fish+=put;T.log.push(`Ice fished: ${n}, ${put} to the freezer.`);html=`<p>You clean ${n} fish on the ice and carry ${put} home for the freezer.${put<n?` The rest go to the neighbors; the freezer is full.`:''}</p>`}
+      else if(use==='fry'){adjE(6);if(T.company)T.rel+=1;T.log.push(`Ice fished: ${n}, a fish fry.`);html=`<p>You fry ${n} fish in a skillet over the stove, right there on the shore: crisp, hot and eaten with your fingers. (Energy +6)${T.company?' Your company will remember it.':''}</p>`}
+      else{adjR(1);R.wom+=n>=3?1:0;T.log.push(`Ice fished: ${n}, a story.`);html=`<p>You let the fish go (the bigger ones, anyway) and keep the story: ${n} on the ice in a day, and a hole you can describe to anybody. (Rep +1)</p>`}
+      actDone('🧊 Ice fishing: '+n+' on the ice',html);
+    }
+
+    function evening(id){
+      const T=ss.trip;
+      if(id==='rest'){adjE(3);T.log.push('Early to bed.');return toRes('🌙 Early to bed',`<p>You eat, bank the stove and crawl in early. (Energy +3)</p>`,toNight)}
+      if(id==='fire'){adjE(1);T.rel+=2;T.log.push('Stories around the fire.');return toRes('🔥 Around the fire',`<p>You swap stories until the coals go gray, ${esc(guestOf(T.company))} and you. (Energy +1)</p>`,toNight)}
+      if(id==='tie'){
+        const vise=T.pack.includes('vise'),gain=vise?2:1;T.tackle+=gain;T.ties++;R.ties++;adjE(1);
+        T.log.push('Tied flies and fixed gear.');
+        return toRes('🪶 Flies and leaders',`<p>${vise?'You clamp the vise to the cooler lid and tie a dozen sockeye flies and a few steelhead patterns, then re-rig leaders and sharpen hooks by headlamp.':'With no vise you re-rig leaders, sharpen hooks and splice a few lines by headlamp.'} Next July’s tackle is a little more taken care of. (Tackle credit +${gain}, Energy +1)</p>`,toNight);
+      }
+      if(id==='aurora'){
+        const seen=r()<.7;T.aurora++;
+        if(seen){const first=T.aurora===1;adjE(first&&T.pack.includes('layers')?2:0);if(first){adjR(1);R.wom+=1}R.aurora++;T.log.push('Photographed the northern lights.');
+          return toRes('🌌 Northern lights',`<p>Around midnight a green curtain unrolls over the spruce, then pink at the edges. You set the camera on a tripod, count out thirty seconds and watch your breath freeze. ${first?'The pictures will be on your page by February. (Rep +1)':''}</p>`,toNight)}
+        adjE(-2);T.log.push('Waited up for the aurora.');
+        return toRes('🌌 Clouds close in',`<p>You wait up in the cold with the camera set, but a skin of cloud slides in from the inlet and the sky stays dark. (Energy −2)</p>`,toNight);
+      }
+    }
+    function toNight(){const T=ss.trip;T.nightHtml=night();ss.phase='night'}
+    function afterNight(){
+      const T=ss.trip;
+      if(T.i<T.nights){T.i++;newDay();ss.phase='day'}else ss.phase='leave';
+    }
+    function leave(thorough){
+      const T=ss.trip;T.thorough=thorough;let html;
+      if(thorough){adjE(-2);html=`<p>You police the site, pack out every scrap including the microtrash, scatter the cold fire ring’s ashes and leave the snow looking like nobody was there. (Energy −2)</p>`}
+      else{html=`<p>You toss the scraps on the coals, kick snow over the ring and go.</p>`;T.messy=true;if(r()<.25){adjR(-1);html+=`<p>The next party in finds the mess and mentions it around town. (Rep −1)</p>`}}
+      finishTrip(html);
+    }
+    function finishTrip(html){
+      const T=ss.trip,m=D.month(T.month),pl=D.place(T.place),used=T.nights+T.extra;
+      ss.days=Math.max(0,ss.days-used);ss.tripsLeft=Math.max(0,ss.tripsLeft-1);R.daysUsed+=used;R.nights+=T.nights;
+      const noTrace=T.thorough===true&&!T.messy;if(noTrace)R.noTraceTrips++;
+      let rel=null;
+      if(T.company){
+        const delta=clamp(T.rel,-3,4),who=names()[T.company]||{name:'your guest',kind:'guide'};
+        R.rel[T.company]=(R.rel[T.company]||0)+delta;
+        if(delta>=3){adjR(1)}else if(delta<=-2&&who.kind!=='guide')adjR(-1);
+        if(delta>=2)R.book=Math.min(D.MAX_BOOK,R.book+.005);
+        if(delta>=2&&who.kind==='guide'){ss.skill+=1;R.skillD+=1}
+        rel={id:T.company,name:who.name,kind:who.kind,delta};
+      }
+      if(T.scout)R.book=Math.min(D.MAX_BOOK,R.book+.005);
+      R.tackle+=T.tackle;
+      const sum={place:T.place,placeName:pl.n,month:T.month,monthName:m.n,nights:T.nights,extra:T.extra,company:T.company,shelter:T.shelter,enc:T.enc,good:T.goodN,bad:T.badN,events:T.events,acts:T.acts,fish:T.fish,tackle:T.tackle,
+        scout:T.scout,cost:r2(R.spent-T.sp0),energy:ss.energy-T.e0,cash:r2(ss.cash-T.c0),rep:ss.rep-T.rep0,skill:ss.skill-T.sk0,fresh:R.fresh.slice(T.fresh0),rel,noTrace,thorough:T.thorough===true,messy:T.messy,aurora:T.aurora,log:T.log};
+      R.trips.push(sum);R.log.push({kind:'trip',title:`${m.n} at ${pl.n}`,lines:T.log.slice()});
+      T.sum=sum;
+      ss.res={title:`🏕️ Back from ${pl.n}`,html:html+summaryHtml(sum),next:()=>{ss.trip=null;ss.phase='hub'}};ss.phase='result';
+    }
+    function summaryHtml(s){
+      const nm=names();
+      const A={rest:'rested in camp',icefish:'ice fished',snowshoe:'snowshoed',ski:'skied',track:'tracked wildlife',scout:'scouted the water',icefall:'fell through the ice'};
+      const acts=[...new Set(s.acts)].map(a=>A[a]).filter(Boolean);
+      const rows=[`<b>${s.nights} night${s.nights===1?'':'s'}</b> at ${esc(s.placeName)} in ${s.monthName}${s.extra?`, plus ${s.extra} snowed-in day${s.extra>1?'s':''}`:''}. ${s.enc} encounter${s.enc===1?'':'s'}${s.enc?` (${s.good} good, ${s.bad} bad)`:''}.`,
+        acts.length?`You ${acts.join(', ')}${s.aurora?' and watched for the northern lights':''}.`:'',
+        s.fish?`🐟 ${s.fish} fish in the freezer.`:'',s.tackle?`🪶 Tackle credit +${s.tackle} for next season.`:'',s.scout?`🔭 You know the ${D.place(s.place).scout==='kasilof'?'Kasilof':'upper Kenai'} better for July.`:'',
+        s.rel?`🤝 ${s.rel.delta>=2?'A good trip with':s.rel.delta<0?'A rough trip with':'A quiet trip with'} ${esc(s.rel.name)}.`:'',
+        s.fresh.length?`📖 New in your log: ${s.fresh.map(id=>sp(id).ic+' '+sp(id).n).join(', ')}.`:'',
+        s.noTrace?'🌲 No trace: you broke camp with nothing left behind.':s.messy?'🗑️ The camp was left a little messy.':'',
+        `Spent ${$(s.cost)}. Energy ${sgn(s.energy)}, cash ${s.cash<0?'−':'+'}${$(Math.abs(s.cash))}${s.rep?`, rep ${sgn(s.rep)}`:''}${s.skill?`, skill ${sgn(s.skill)}`:''}.`].filter(Boolean);
+      return `<hr style="border:0;border-top:1px solid var(--line,#ccd)">`+rows.map(x=>`<p>${x}</p>`).join('');
+    }
+
+    // ---- winter work ----
+    function gig(id){
+      const G=D.GIGS.find(g=>g.id===id),m=D.month('jan');let html='',net=0,e=0,rep=0,w=0,bk=0,title=G.ic+' '+G.n;
+      ss.gigsLeft--;ss.days=Math.max(0,ss.days-1);R.daysUsed++;ss.gigsDone.add(id);
+      if(id==='iceguide'){
+        const lines=[];
+        if(ss.lic<D.calYear(m,t.year)){spend(D.LICENSE);ss.lic=D.calYear(m,t.year);R.lic=ss.lic;lines.push(`You buy a ${ss.lic} fishing license first (${$(D.LICENSE)}).`)}
+        let rent=0;if(!has('ice')){rent=D.RENT_ICE*t.costMult;spend(rent);lines.push(`You rent an ice kit (${$(rent)}).`)}
+        const gas=r2(8*t.costMult*t.gas/5.3);spend(gas);
+        let fare=140,tip=Math.round(r()*40);const cancel=r()<.15;if(cancel){fare=70;lines.push('One of the two cancels at the last minute.')}
+        earn(fare+tip);net=fare+tip-gas-rent;e=-4;adjE(e);rep=cancel?0:1;adjR(rep);
+        html=`<p>You meet two clients at a stocked lake, drill the holes, check the ice and get everybody on fish by noon. ${lines.join(' ')} They pay ${$(fare)} and tip ${$(tip)}. Gas ${$(gas)}.</p><p><em>Net about ${$(Math.round(net))}. (Energy ${e}${rep?', Rep +1':''})</em></p>`;
+      }else if(id==='snowmachine'){
+        const fuel=r2(35*t.costMult),gross=240;spend(fuel);const bust=r()<.15,tipTop=r()<.2;
+        if(bust){earn(gross-60);rep=-1;adjR(rep);net=gross-60-fuel;html=`<p>A rented machine quits twelve miles out and you tow it back with another. You refund ${$(60)} and the riders are polite and unimpressed. Fuel ${$(fuel)}.</p>`}
+        else{const tip=tipTop?50:Math.round(r()*20);earn(gross+tip);net=gross+tip-fuel;rep=tipTop?1:0;if(rep)adjR(1);html=`<p>Three riders, a blue-sky day, a lake crossing and a cow moose on the trail. They pay ${$(gross)} and tip ${$(tip)}. Fuel ${$(fuel)}.</p>`}
+        e=-5;adjE(e);html+=`<p><em>Net about ${$(Math.round(net))}. (Energy ${e}${rep?`, Rep ${sgn(rep)}`:''})</em></p>`;
+      }else{
+        earn(60);net=60;e=-3;adjE(e);rep=1;adjR(1);w=1;bk=.005;R.wom+=w;R.book=Math.min(D.MAX_BOOK,R.book+bk);
+        html=`<p>You work a trailhead table and a warming tent, hand out soup and learn names. Half the people in line turn out to fish the river in July. They pay a ${$(60)} stipend and meals.</p><p><em>(Energy ${e}, Rep +1, word of mouth +1)</em></p>`;
+      }
+      R.log.push({kind:'gig',title:G.n,lines:[`Net about ${$(Math.round(net))}.`]});R.gigs.push(id);
+      toRes(title,html,()=>{ss.phase='hub'});
+    }
+    function gigWhy(g){
+      if(ss.gigsLeft<=0)return 'No more winter work this winter.';
+      if(ss.days<=0)return 'No free days left.';
+      if(ss.gigsDone.has(g.id))return 'Done this winter.';
+      if(g.id==='snowmachine'&&ss.rep<45)return 'Needs a little more reputation (45).';
+      if(g.id==='iceguide'){const need=ss.lic<D.calYear(D.month('jan'),t.year)?D.LICENSE:0;if(ss.cash<need+D.RENT_ICE+12)return 'Can’t afford the license and the rental.'}
+      return '';
+    }
+
+    // ---- views ----
+    function V(){
+      const ph=ss.phase,P=ss.plan,T=ss.trip;
+      if(ph==='hub'){
+        const left=ss.days>0&&ss.tripsLeft>0;
+        return {title:'🏕️ Winter camp',exit:'done',meta:{},html:`<p>Winter on the Kenai Peninsula, with the river asleep. You have <b>${ss.days} free day${ss.days===1?'':'s'}</b> before spring: up to ${ss.tripsLeft} camping trip${ss.tripsLeft===1?'':'s'} and ${ss.gigsLeft} job${ss.gigsLeft===1?'':'s'}. Camp, fish through the ice, learn the water, or earn a little.</p>${stat()}<p style="font-size:13px;color:var(--mute,#667)">Pump gas about ${$(t.gas)}/gal; the pickup gets ${t.mpg} mpg. Most campgrounds are unserviced in winter. You have seen ${seenN()} of ${D.ALL.length} animals.</p>`,
+          buttons:[B('plan','🏕️ Plan a camping trip',left?'Pick a place within 100 road miles of Soldotna, a month, how long, who comes and what you pack.':ss.tripsLeft<=0?'No more trips this winter.':'No free days left.',!left),
+            B('work','💼 Winter work',ss.gigsLeft>0&&ss.days>0?'A day of paid work or a winter event instead of camping.':'No more winter work this winter.',!(ss.gigsLeft>0&&ss.days>0)),
+            B('shop','🛒 Shelter & outfitters','A wall tent or a truck camper makes bad nights rarer.'),
+            B('log','📖 Camping log',`${seenN()} of ${D.ALL.length} animals seen.`),
+            B('done',ss.R.trips.length||ss.R.gigs.length?'Back to the off-season':'Not now','Back to the off-season summary.')]};
+      }
+      if(ph==='where')return {title:'🏕️ Where to?',exit:'back',meta:{},html:`<p>Pick a place within 100 road miles of Soldotna.</p>${stat()}`,
+        buttons:D.PLACES.map(p=>B('p:'+p.id,`${p.ic} ${p.n} — ${p.miles} mi`,p.d+(p.ice?` Ice fishing: yes (${p.ice}).`:'')+(p.scout?` Scouting: ${p.scout==='kasilof'?'Kasilof':'upper Kenai'}.`:''))).concat([B('back','Back','Back to your winter plans.')])};
+      if(ph==='when'){
+        const pl=D.place(P.place);
+        return {title:`${pl.ic} ${pl.n}`,exit:'back',meta:{},html:`<p>When do you go? The month sets the daylight, the ice, the weather and which fishing license you need.</p>${stat()}`,
+          buttons:D.MONTHS.map(m=>{const cal=D.calYear(m,t.year),icy=pl.ice?(m.ice<.3?' Ice is thin.':m.ice<.6?' Ice is questionable.':' Good ice.'):'';
+            return B('m:'+m.id,`${m.n} ${cal} — about ${m.day} hours of light`,`${m.d} ${m.t}. ${D.slots(m)>1?'Long enough days for two activities.':'One activity a day.'}${icy}`)}).concat([B('back','Back','Pick another place.')])};
+      }
+      if(ph==='nights'){
+        const pl=D.place(P.place),m=D.month(P.month);
+        return {title:`${pl.ic} ${pl.n}, ${m.n}`,exit:'back',meta:{},html:`<p>${pl.miles} miles each way. Each night has a 50% chance of an encounter; the animals, the weather and what you packed decide which. ${ss.days} free days left.</p>${stat()}`,
+          buttons:D.NIGHTS.filter(n=>n<=Math.max(1,ss.days)).map(n=>{const c=cost(Object.assign({},P,{nights:n,shelter:'tent',pack:[],company:null}));return B('n:'+n,`${n} night${n>1?'s':''} — about ${$(c.fuel+c.fees+c.sup)}`,`${$(c.fuel)} gas, ${$(c.fees)} fees, ${$(c.sup)} supplies before gear.`,c.fuel+c.fees+c.sup>ss.cash)}).concat([B('back','Back','Pick another month.')])};
+      }
+      if(ph==='who'){
+        const nm=names(),bs=[B('c:none','Go alone','Quiet, cheap and easy to pack for.')];
+        const regs=t.regulars.filter(g=>g.mood>=45).sort((a,b)=>b.mood-a.mood).slice(0,3);
+        regs.forEach(g=>bs.push(B('c:'+g.id,`Invite ${g.name}`,`A regular client. A good trip builds goodwill and next July’s booking; a bad night costs some. Costs a little more in supplies.`,P.declined.includes(g.id))));
+        if(t.guideFriend)bs.push(B('c:guide','Invite a fellow guide','Swap spot notes and river stories. A friend who likes your camp tells other guides.',P.declined.includes('guide')));
+        if(t.rival&&t.rival.mood>=0)bs.push(B('c:'+t.rival.id,`Invite ${t.rival.name}`,'The other guide on your seam. A night in the cold can melt a rivalry, or not.',P.declined.includes(t.rival.id)));
+        bs.push(B('back','Back','Pick another length.'));
+        return {title:'🤝 Who comes?',exit:'back',meta:{},html:`<p>Company makes the evening, and a bad night is shared. It also uses a little room in the truck and about 60% more in supplies.</p>${stat()}`,buttons:bs};
+      }
+      if(ph==='shelter'){
+        const pl=D.place(P.place),bs=[];
+        ['tent','wall','camper'].forEach(id=>{if(id==='tent'||has(id)){const s=D.SHELTERS[id];bs.push(B('s:'+id,`${s.ic} ${s.n}`,`${s.d} Comfort ${s.comfort}.`))}});
+        if(pl.cabin){const s=D.SHELTERS.cabin,c=r2(pl.cabin*P.nights*t.costMult);bs.push(B('s:cabin',`${s.ic} ${s.n} — ${$(c)}`,`${s.d} Reserved ahead. Rates around ${$(pl.cabin)} a night; comfort ${s.comfort}.`,false))}
+        bs.push(B('back','Back','Pick who comes.'));
+        return {title:'🛏️ Where do you sleep?',exit:'back',meta:{},html:`<p>Comfort lowers the odds that a bad night stays a bad night.</p>${stat()}`,buttons:bs};
+      }
+      if(ph==='pack'){
+        const cap=capOf(P),load=loadOf(P),c=cost(P),bs=[B('auto','Pack the usual','Food container, warm bag and layers first, then what this trip needs, as far as room and cash allow.'),B('packed','Done packing','Look over the cost.')];
+        D.PACK.forEach(it=>{
+          const on=P.pack.includes(it.id),owned=has(it.id),next=Object.assign({},P,{pack:P.pack.concat(it.id)}),fits=on||loadOf(next)<=cap;
+          const price=!it.once?`${$(it.cost)} each trip`:owned?'you own it':`${$(it.cost)} to buy`;
+          bs.push(B('k:'+it.id,`${on?'✓ ':''}${it.ic} ${it.n} (${it.wt})`,`${price}. ${it.d}${fits||on?'':' Not enough room.'}`,!fits&&!on));
+        });
+        bs.push(B('back','Back','Pick where you sleep.'));
+        return {title:'🎒 Packing',exit:'back',meta:{},html:`<p>Load <b>${load} of ${cap}</b>. Everything you pack takes room: the shelter, any company and each item. Each item changes the odds of one problem.</p><p style="font-size:13px">Gear costs ${$(c.gear)} so far. Cash ${$(Math.round(ss.cash))}.</p>`,buttons:bs};
+      }
+      if(ph==='confirm'){
+        const pl=D.place(P.place),c=cost(P),m=D.month(P.month),sh=D.SHELTERS[P.shelter];
+        return {title:`🏕️ ${P.nights} night${P.nights>1?'s':''} at ${pl.n}`,exit:'back',meta:{},html:`<p>${m.n} ${D.calYear(m,t.year)}. ${sh.ic} ${sh.n}${P.company?`, with ${esc(guestOf(P.company))}`:', alone'}.</p><p>⛽ Gas: ${pl.miles*2} miles round trip ÷ ${t.mpg} mpg = ${c.gal} gal × ${$(t.gas*t.costMult)} = <b>${$(c.fuel)}</b><br>🏕️ ${P.shelter==='cabin'?'Cabin':'Campsite fees'}: <b>${$(P.shelter==='cabin'?c.cabin:c.fees)}</b><br>🥫 Supplies, ${$(D.SUPPLIES*t.costMult)}/night${P.company?' plus your guest':''}: <b>${$(c.sup)}</b><br>🎒 Gear: <b>${$(c.gear)}</b><br>Total: <b>${$(c.total)}</b> of ${$(Math.round(ss.cash))}.</p>`,
+          buttons:[B('go','Pack the truck','Go.',c.total>ss.cash),B('back','Back','Change the packing.')]};
+      }
+      if(ph==='day'){
+        const pl=D.place(T.place),m=mon(),left=T.slots-T.slotsUsed,bs=[];
+        if(pl.ice&&!T.today.includes('icefish')){
+          const need=ss.lic<D.calYear(m,t.year),thin=m.ice<.3;
+          bs.push(B('icefish',`🧊 Ice fishing${need?' (license first)':''}`,`Stocked fish for the freezer, a fish fry or a story. ${need?`A fishing license is required, and licenses run by calendar year: ${$(D.LICENSE)}. `:''}${thin?'The ice is thin this early. ':''}Check the ice before you walk out.`));
+        }
+        if(pl.ski)bs.push(B('ski','⛷️ Cross-country skiing','Trails and quiet. Energy up, a small chance of a fall.'));
+        bs.push(B('snowshoe','🥾 Snowshoeing','Break trail through the spruce. Energy up, a small chance of a twist.'));
+        bs.push(B('track','🐾 Track wildlife','Read the sign. You may log an animal and learn what is around camp, or startle one.'));
+        if(pl.scout)bs.push(B('scout',`🔭 Scout next season’s water (${pl.scout==='kasilof'?'Kasilof':'upper Kenai'})`,R.scoutPts>=2?'You already know it well.':'Walk the banks. Better first trips in July and a feel for the run, a little tiring.',R.scoutPts>=2));
+        bs.push(B('rest','☕ Keep camp and rest','Energy +3.'));
+        if(T.slotsUsed>0)bs.push(B('evening','Call it a day','Head for the fire.'));
+        return {title:`${pl.ic} Day ${T.i} of ${T.nights}`,exit:null,meta:{},html:`<p><b>${m.n}</b>: about ${m.day} hours of daylight, ${m.t}. ${left>1?'A long enough day for two activities.':left===1?'Daylight for one activity.':''} ${T.clear?'A clear sky tonight.':'Clouds tonight.'}${T.thaw?' A chinook has softened the ice.':''}</p>${stat()}`,buttons:bs};
+      }
+      if(ph==='lic'){
+        const m=mon(),cal=D.calYear(m,t.year);
+        return {title:'🎣 A fishing license',exit:'no',meta:{},html:`<p>Ice fishing needs an Alaska fishing license, and licenses run by <b>calendar year</b>. ${ss.lic?`Your last one was for ${ss.lic}, so you need a ${cal} license`:`You need a ${cal} license`}${cal>t.year?', since the year turned on January 1':''}. A resident license is about ${$(D.LICENSE)}, valid through December 31, ${cal}.</p>${stat()}`,
+          buttons:[B('buy',`Buy the ${cal} license — ${$(D.LICENSE)}`,'Then go fish.',ss.cash<D.LICENSE),B('no','Not today','Do something else with the day.')]};
+      }
+      if(ph==='kit')return {title:'🧊 An ice kit',exit:'no',meta:{},html:`<p>You didn’t pack an auger and rod. The tackle shop will rent you a kit for the day.</p>${stat()}`,buttons:[B('rent',`Rent one — ${$(D.RENT_ICE*t.costMult)}`,'Then go fish.',ss.cash<D.RENT_ICE*t.costMult),B('no','Not today','Do something else with the day.')]};
+      if(ph==='icesafe'){
+        const m=mon();
+        return {title:'🧊 Ice safety',exit:null,meta:{},html:`<p>${esc(D.place(T.place).ice)} is frozen, but how thick? Ice thickness varies across a lake and gets thinner near inlets, outlets and springs. About <b>4 inches of clear, hard ice</b> holds a person on foot.${T.thaw?' The chinook has been at it.':''}${m.ice<.3?' It is early in the season.':''}</p><p style="font-size:13px;color:var(--mute,#667)">${T.pack.includes('picks')?'You are wearing your ice picks.':'You have no ice picks.'}</p>`,
+          buttons:[B('check','Check the thickness first','Drill test holes every few steps. Takes a little time but you will know.'),B('risk','Walk out and fish','Faster. If the ice is thin, you may be wet and cold.')]};
+      }
+      if(ph==='icethin'){
+        return {title:'🧊 Too thin',exit:'skip',meta:{},html:`<p>The auger comes up with only ${T.thinAt} inch${T.thinAt===1?'':'es'} of ice under your boots. That will not hold you out on the lake.</p>`,buttons:[B('shore','Fish from the shore','A few casts, a couple of fish at most.'),B('skip','Call it off','Not worth it.')]};
+      }
+      if(ph==='icecatch'){
+        const room=Math.max(0,t.food.freezerRoom-R.fish);
+        return {title:`🧊 ${T.fishN} on the ice`,exit:null,meta:{},html:`<p>You land ${T.fishN} stocked fish, rainbow trout and char, and the sun is low. What will you do with them?</p>${T.checkedMsg||''}`,buttons:[B('freezer','Take them home for the freezer',room>0?`Up to ${room} fit. Freezer fish count as food next season.`:'The freezer is full.',room<=0),B('fry','Fry them on the shore','A fish fry. Energy up.'),B('story','Release them and keep the story','Rep +1.')]};
+      }
+      if(ph==='evening'){
+        const bs=[B('rest','🌙 Early to bed','Energy +3.')];
+        if(T.company)bs.push(B('fire','🔥 Talk by the fire','Build goodwill with your guest.'));
+        bs.push(B('tie',`🪶 Tie flies and fix gear${T.pack.includes('vise')?'':' (no vise)'}`,T.pack.includes('vise')?'Tackle credit +2 toward next season’s restock, and a small boost to your first trips.':'Tackle credit +1: re-rigging leaders with what you have.'));
+        if(T.clear)bs.push(B('aurora','🌌 Photograph the northern lights','Clear tonight. It is cold work: a chance at a great picture, a chance at nothing.'));
+        return {title:`🌙 Evening, day ${T.i}`,exit:null,meta:{},html:`<p>The light goes by mid-afternoon. How do you spend the evening?</p>${stat()}`,buttons:bs};
+      }
+      if(ph==='night')return {title:`🌙 Night ${T.i}`,exit:null,meta:{},html:T.nightHtml+stat(),buttons:[B('go',T.i<T.nights?'Next morning':'Break camp','')]};
+      if(ph==='leave')return {title:'🧳 Breaking camp',exit:null,meta:{},html:`<p>Time to go. The snow keeps everything: a scrap of foil, a wrapper, a fire ring. How do you leave it?</p>`,
+        buttons:[B('thorough','Leave no trace','Pack out all trash, scatter the ashes and leave the site clean. A little tiring.'),B('quick','Quick pack','Toss the scraps and go.')]};
+      if(ph==='work')return {title:'💼 Winter work',exit:'back',meta:{},html:`<p>A day of work in the cold. Winter jobs pay a little and each uses a free day. ${ss.gigsLeft} job${ss.gigsLeft===1?'':'s'} left this winter.</p>${stat()}`,
+        buttons:D.GIGS.map(g=>{const why=gigWhy(g);return B('g:'+g.id,`${g.ic} ${g.n}`,why?why+' '+g.d:g.d+(g.need?' '+g.need:''),!!why)}).concat([B('back','Back','Back to your winter plans.')])};
+      if(ph==='shop'){
+        const bs=[];['wall','camper'].forEach(id=>{const s=D.SHELTERS[id],owned=has(id);bs.push(B('b:'+id,`${s.ic} ${s.n} — ${$(s.cost)}`,owned?'You own it.':s.d,owned||ss.cash<s.cost))});
+        bs.push(B('back','Back','Back to your winter plans.'));
+        return {title:'🛒 Shelter & outfitters',exit:'back',meta:{},html:`<p>A better shelter lowers the chance that a bad night stays bad, on every trip, and wall tents and truck campers hold their value. The small gear (bear container, bag, ice kit and the rest) is bought when you pack.</p>${stat()}`,buttons:bs};
+      }
+      if(ph==='log'){
+        const rows=D.SPECIES.map(s=>`<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--line,#ccd)"><span>${s.ic} ${ss.seen[s.id]>0?s.n:'?'}</span><span>${ss.seen[s.id]>0?'×'+ss.seen[s.id]:'not yet'}</span></div>`).join('');
+        return {title:'📖 Camping log',exit:'back',meta:{},html:`<p>${seenN()} of ${D.ALL.length} animals seen. See them all for the <b>Every Animal</b> award, and break camp clean for <b>No Trace</b>.</p>${rows}`,buttons:[B('back','Back','Back to your winter plans.')]};
+      }
+      if(ph==='result')return {title:ss.res.title,exit:'ok',meta:{},html:ss.res.html+stat(),buttons:[B('ok','Continue','')]};
+      if(ph==='end')return {title:'🏕️ Back to town',exit:null,meta:{},html:'',buttons:[]};
+      throw new Error('camp: unknown phase '+ph);
+    }
+    function view(){const v=V();v.meta.phase=ss.phase;v.meta.cash=ss.cash;v.meta.energy=ss.energy;v.meta.daysLeft=ss.days;v.meta.tripsLeft=ss.tripsLeft;v.meta.seen=seenN();v.meta.trip=ss.trip?{place:ss.trip.place,i:ss.trip.i,nights:ss.trip.nights,slotsUsed:ss.trip.slotsUsed,slots:ss.trip.slots,clear:ss.trip.clear,company:ss.trip.company,shelter:ss.trip.shelter,pack:ss.trip.pack.slice()}:null;v.meta.plan=ss.plan?JSON.parse(JSON.stringify(ss.plan)):null;v.meta.gear=[...ss.gear];v.meta.lic=ss.lic;return v}
+
+    // ---- choices ----
+    function choose(id){
+      const v=view(),b=v.buttons.find(x=>x.id===id);
+      if(!b||b.dis)return false;
+      ss.steps++;const ph=ss.phase,P=ss.plan,T=ss.trip;
+      switch(ph){
+        case 'hub':
+          if(id==='plan')startPlan();else if(id==='work')ss.phase='work';else if(id==='shop')ss.phase='shop';else if(id==='log')ss.phase='log';else if(id==='done')ss.phase='end';
+          break;
+        case 'where':if(id==='back')ss.phase='hub';else{P.place=id.slice(2);ss.phase='when'}break;
+        case 'when':if(id==='back')ss.phase='where';else{P.month=id.slice(2);ss.phase='nights'}break;
+        case 'nights':if(id==='back')ss.phase='when';else{P.nights=+id.slice(2);ss.phase='who'}break;
+        case 'who':
+          if(id==='back'){ss.phase='nights';break}
+          if(id==='c:none'){P.company=null}
+          else{
+            const cid=id.slice(2),who=names()[cid],g=t.regulars.find(x=>x.id===cid);
+            let p=cid==='guide'?.85:t.rival&&cid===t.rival.id?(t.rival.mood>0?.75:.4):(g.mood>=75?1:.6);
+            if(r()>=p){P.declined.push(cid);ss.res={title:'📞 Can’t make it',html:`<p>${esc(who.name.charAt(0).toUpperCase()+who.name.slice(1))} thanks you for asking, but can’t get away this time. Maybe next winter.</p>`,next:()=>{ss.phase='who'}};ss.phase='result';break}
+            P.company=cid;
+          }
+          {const pl=D.place(P.place);P.shelter='tent';P.pack=[];ss.phase=(pl.cabin||has('wall')||has('camper'))?'shelter':'pack'}
+          break;
+        case 'shelter':if(id==='back')ss.phase='who';else{P.shelter=id.slice(2);P.pack=[];ss.phase='pack'}break;
+        case 'pack':
+          if(id==='back'){const pl=D.place(P.place);ss.phase=(pl.cabin||has('wall')||has('camper'))?'shelter':'who'}
+          else if(id==='auto')P.pack=autoPack(P);
+          else if(id==='packed')ss.phase='confirm';
+          else{const k=id.slice(2),i=P.pack.indexOf(k);if(i>=0)P.pack.splice(i,1);else P.pack.push(k)}
+          break;
+        case 'confirm':if(id==='back')ss.phase='pack';else startTrip();break;
+        case 'day':if(id==='evening')ss.phase='evening';else doActivity(id);break;
+        case 'lic':if(id==='buy'){spend(D.LICENSE);ss.lic=D.calYear(mon(),t.year);R.lic=ss.lic;ss.phase=T.pack.includes('ice')?'icesafe':'kit'}else ss.phase='day';break;
+        case 'kit':if(id==='rent'){spend(D.RENT_ICE*t.costMult);T.rented=true;ss.phase='icesafe'}else ss.phase='day';break;
+        case 'icesafe':
+          if(id==='check'){const th=iceThick();T.checkedMsg=`<p style="font-size:13px;color:var(--mute,#667)">The ice was ${th} inch${th===1?'':'es'} thick where you drilled.</p>`;if(th<D.ICE_WALK){T.thinAt=th;ss.phase='icethin'}else iceFish(th)}
+          else{T.checkedMsg='';iceFish(null)}
+          break;
+        case 'icethin':
+          if(id==='shore'){T.fishN=r()<.5?1:0;if(T.fishN)ss.phase='icecatch';else{T.acts.push('icefish');T.today.push('icefish');T.log.push('Fished from shore; nothing.');actDone('🧊 A cold shore','<p>Half an hour of jigging from the bank and nothing bites. (No change)</p>')}}
+          else{T.log.push('Called off ice fishing: too thin.');T.today.push('icefish');ss.phase='day'}
+          break;
+        case 'icecatch':iceCatchUse(id);break;
+        case 'evening':evening(id);break;
+        case 'night':afterNight();break;
+        case 'leave':leave(id==='thorough');break;
+        case 'work':if(id==='back')ss.phase='hub';else gig(id.slice(2));break;
+        case 'shop':
+          if(id==='back')ss.phase='hub';else{const sid=id.slice(2),s=D.SHELTERS[sid];spend(s.cost);ss.gear.add(sid);R.gearBought.push(sid);ss.res={title:`${s.ic} ${s.n}`,html:`<p>You buy a ${s.n.toLowerCase()} for ${$(s.cost)}. It will pay off every cold night you spend in it.</p>`,next:()=>{ss.phase='shop'}};ss.phase='result'}
+          break;
+        case 'log':ss.phase='hub';break;
+        case 'result':{const n=ss.res.next;n()}break;
+      }
+      return true;
+    }
+
+    // ---- the report ----
+    function report(){
+      const seenAll=D.ALL.every(id=>ss.seen[id]>0),ach=[];
+      if(seenAll&&!t.ach.includes('every_animal'))ach.push('every_animal');
+      if(R.noTraceTrips>0&&!t.ach.includes('no_trace'))ach.push('no_trace');
+      const nm=names(),rels=Object.keys(R.rel).map(id=>({id,kind:(nm[id]||{kind:'guide'}).kind,name:(nm[id]||{name:id}).name,delta:clamp(R.rel[id],-3,4)}));
+      const sc=R.scoutPts,q=Math.min(D.MAX_FIRST,(sc>=2?.02:sc===1?.01:0)+Math.min(.01,R.ties*.004));
+      return {
+        v:K.SCHEMA,mode:t.mode,
+        cashDelta:r2(ss.cash-t.cash),spent:r2(R.spent),earned:r2(R.earned),
+        energyDelta:ss.energy-t.energy,repDelta:ss.rep-t.rep,skillDelta:R.skillD,
+        womDelta:R.wom,bookingBoost:r3(Math.min(D.MAX_BOOK,R.book)),firstTripBoost:r3(q),
+        foodFish:R.fish,tackleCredit:R.tackle,
+        scout:sc>0?{areas:R.scoutAreas.slice(),points:sc,hint:true}:null,
+        relations:rels,speciesSeen:Object.assign({},R.seen),newSpecies:R.fresh.slice(),achievements:ach,
+        daysUsed:R.daysUsed,tripsTaken:R.trips.length,gigs:R.gigs.slice(),nights:R.nights,encounters:R.enc,noTraceTrips:R.noTraceTrips,
+        gearBought:R.gearBought.slice(),license:R.lic?{year:R.lic}:null,
+        log:R.log.map(x=>({kind:x.kind,title:x.title,lines:x.lines.slice()})),trips:R.trips.map(x=>Object.assign({},x,{log:x.log.slice()})),
+      };
+    }
+    return {view,choose,report,get done(){return ss.phase==='end'},get phase(){return ss.phase},state:ss,K};
+  };
+})(KenaiCamp);
+// ============================================================
+//  KENAI WINTER CAMP, part 3: start(), the journal and the solo save.
+//  KenaiCamp.start({mode, ticket, host}) runs the session through the host's own screens:
+//    host.show(title, html, buttons, lock)  show a pop-up; buttons are {l, s, dis, fn}; fn runs after the pop-up closes
+//    host.onFinish(report)                  the visit is over; apply the report
+//    host.toast(msg)                        optional, a short notice
+//    host.rand()                            optional, a number in [0,1)
+//    host.now()                             optional, milliseconds
+//  The engine itself never reads the page or the host's state.
+// ============================================================
+(function(K){
+  'use strict';
+  const D=K.data,U=K.util;
+
+  // ---- the shared journal: which animals this device has ever seen (key kenaicamp:journal) ----
+  K.journal={
+    load(){const j=U.store.get('journal');return j&&j.v===K.SCHEMA&&j.seen&&typeof j.seen==='object'?j:{v:K.SCHEMA,seen:{}}},
+    merge(seen){const j=this.load();Object.keys(seen||{}).forEach(id=>{if(D.ALL.includes(id))j.seen[id]=(j.seen[id]||0)+seen[id]});U.store.set('journal',j);return j},
+  };
+
+  // ---- the solo save (key kenaicamp:solo): a fixed starting ticket and a few carried numbers ----
+  K.solo={
+    fresh(){return {v:K.SCHEMA,winter:0,cash:1500,energy:80,rep:55,skill:20,gear:[],licYear:0,seen:{},ach:[],noTraceTrips:0,tot:{trips:0,nights:0,fish:0,tackle:0,gigs:0},days:D.WINTER_DAYS,trips:D.MAX_TRIPS,gigs:D.MAX_GIGS,gigsDone:[]}},
+    load(){const s=U.store.get('solo');return s&&s.v===K.SCHEMA&&Array.isArray(s.gear)?Object.assign(this.fresh(),s):this.fresh()},
+    save(s){U.store.set('solo',s)},
+    reset(){U.store.del('solo');return this.fresh()},
+    ticket(s){s=s||this.load();
+      return {mode:'solo',year:2026+s.winter,cash:s.cash,energy:s.energy,rep:s.rep,skill:s.skill,gas:5.34,mpg:D.MPG,costMult:1,gear:s.gear,licYear:s.licYear,food:{meals:30,freezerRoom:30},
+        regulars:[{id:'garza',name:'the Garza family',mood:80},{id:'couple',name:'the retired couple',mood:60}],rival:null,guideFriend:true,
+        daysLeft:s.days,tripsLeft:s.trips,gigsLeft:s.gigs,gigsDone:s.gigsDone,seen:s.seen,ach:s.ach,noTraceTrips:s.noTraceTrips}},
+    // fold a report into a solo save; returns the new save
+    apply(s,rep){
+      const n=JSON.parse(JSON.stringify(s)),c=U.clamp;
+      n.cash=Math.round((n.cash+rep.cashDelta)*100)/100;n.energy=c(n.energy+rep.energyDelta,0,100);n.rep=c(n.rep+rep.repDelta,0,100);n.skill+=rep.skillDelta;
+      rep.gearBought.forEach(g=>{if(!n.gear.includes(g))n.gear.push(g)});if(rep.license)n.licYear=Math.max(n.licYear,rep.license.year);
+      Object.keys(rep.speciesSeen).forEach(id=>{n.seen[id]=(n.seen[id]||0)+rep.speciesSeen[id]});
+      rep.achievements.forEach(a=>{if(!n.ach.includes(a))n.ach.push(a)});n.noTraceTrips+=rep.noTraceTrips;
+      n.days=Math.max(0,n.days-rep.daysUsed);n.trips=Math.max(0,n.trips-rep.tripsTaken);n.gigs=Math.max(0,n.gigs-rep.gigs.length);n.gigsDone=n.gigsDone.concat(rep.gigs);
+      n.tot.trips+=rep.tripsTaken;n.tot.nights+=rep.nights;n.tot.fish+=rep.foodFish;n.tot.tackle+=rep.tackleCredit;n.tot.gigs+=rep.gigs.length;
+      return n;
+    },
+    newWinter(s){const n=this.fresh(),o=s||this.load();return Object.assign(n,o,{winter:o.winter+1,energy:Math.max(o.energy,80),days:D.WINTER_DAYS,trips:D.MAX_TRIPS,gigs:D.MAX_GIGS,gigsDone:[]})},
+  };
+
+  // phases where Esc/back is safe (they have a Back button); everything mid-trip is locked
+  const FREE=['hub','where','when','nights','who','shelter','pack','confirm','work','shop','log'];
+
+  // start a visit. Returns a handle: {session, stop()}
+  K.start=function(opts){
+    opts=opts||{};
+    const host=opts.host||{},mode=opts.mode==='solo'?'solo':'guide';
+    if(typeof host.show!=='function')throw new Error('KenaiCamp.start needs host.show');
+    let ticket=opts.ticket;
+    if(mode==='solo'&&!ticket)ticket=K.solo.ticket();
+    const sess=K.session(Object.assign({},ticket,{mode}),{rand:typeof host.rand==='function'?host.rand:undefined});
+    let stopped=false,finished=false;
+    function finish(){
+      if(finished)return;finished=true;
+      const rep=sess.report();
+      K.journal.merge(rep.speciesSeen);
+      let soloSave=null;
+      if(mode==='solo'){soloSave=K.solo.apply(K.solo.load(),rep);K.solo.save(soloSave)}
+      if(typeof host.onFinish==='function')host.onFinish(rep,soloSave);
+    }
+    function show(){
+      if(stopped)return;
+      if(sess.done)return finish();
+      const v=sess.view();
+      host.show(v.title,v.html,v.buttons.map(b=>({l:b.l,s:b.s,dis:b.dis,fn:()=>{sess.choose(b.id);setTimeout(show,0)}})),!FREE.includes(sess.phase));
+    }
+    show();
+    return {session:sess,stop(){stopped=true}};
+  };
+
+  // a read-only camping log screen for the host (species seen, from the ticket)
+  K.logView=function(seen){
+    const rows=D.SPECIES.map(s=>`<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--line,#ccd)"><span>${s.ic} ${seen&&seen[s.id]>0?s.n:'?'}</span><span>${seen&&seen[s.id]>0?'×'+seen[s.id]:'not yet'}</span></div>`).join('');
+    const n=D.ALL.filter(id=>seen&&seen[id]>0).length;
+    return {title:'📖 Camping log',html:`<p>${n} of ${D.ALL.length} animals seen.</p>${rows}`};
+  };
+})(KenaiCamp);
+// ============================================================
+//  KENAI WINTER CAMP, part 4: headless play.
+//  KenaiCamp.sim({ticket, seed|rand, policy, steps}) plays a whole visit with no screen and returns {report, steps}.
+//  Policies: 'first' (the first enabled choice), 'random', 'thoughtful' (a sensible camper: ice fishing and scouting,
+//  a good pack, company, flies in the evening, leaves no trace) or your own function (view, state) → choice id.
+//  The host game's bots and the tests use this; it is also how the engine is balanced.
+// ============================================================
+(function(K){
+  'use strict';
+  const D=K.data;
+
+  function thoughtful(opts){
+    opts=opts||{};const reserve=opts.reserve!=null?opts.reserve:2500,maxTrips=opts.trips!=null?opts.trips:2,gigs=opts.gigs!=null?opts.gigs:2;
+    let k=0,bought=false;
+    const PLAN=[{p:'cook',m:'feb',n:2},{p:'quartz',m:'jan',n:2},{p:'johnson',m:'jan',n:2}];
+    return (v,ss)=>{
+      const ids=v.buttons.filter(b=>!b.dis).map(b=>b.id),has=id=>ids.includes(id),m=v.meta,T=m.trip;
+      const first=()=>ids[0];
+      switch(m.phase){
+        case 'hub':
+          if(opts.shop&&!bought&&m.cash>14000&&!m.gear.includes('camper')){bought=true;return 'shop'}
+          if(k<maxTrips&&has('plan')&&m.cash>reserve+400)return 'plan';
+          if(has('work')&&ss.R.gigs.length<gigs&&m.cash>600)return 'work';
+          return 'done';
+        case 'where':return 'p:'+PLAN[Math.min(k,PLAN.length-1)].p;
+        case 'when':return 'm:'+PLAN[Math.min(k,PLAN.length-1)].m;
+        case 'nights':{const n=PLAN[Math.min(k,PLAN.length-1)].n;return has('n:'+n)?'n:'+n:first()}
+        case 'who':{const c=ids.filter(i=>i.startsWith('c:')&&i!=='c:none'&&i!=='c:guide');return c[0]||(has('c:guide')?'c:guide':'c:none')}
+        case 'shelter':return has('s:camper')?'s:camper':has('s:wall')?'s:wall':'s:tent';
+        case 'pack':return m.plan&&m.plan.pack.length?'packed':'auto';
+        case 'confirm':if(!has('go')){return 'back'}k++;return 'go';
+        case 'day':
+          if(has('icefish'))return 'icefish';
+          if(has('scout'))return 'scout';
+          if(T.slotsUsed>0)return 'evening';
+          return has('track')?'track':'snowshoe';
+        case 'lic':return has('buy')?'buy':'no';
+        case 'kit':return has('rent')?'rent':'no';
+        case 'icesafe':return 'check';
+        case 'icethin':return 'skip';
+        case 'icecatch':return has('freezer')?'freezer':'fry';
+        case 'evening':return T.company&&T.i===1&&has('fire')?'fire':has('tie')?'tie':'rest';
+        case 'night':return 'go';
+        case 'leave':return 'thorough';
+        case 'work':{const g=ids.filter(i=>i.startsWith('g:'));return g[0]||'back'}
+        case 'shop':return has('b:camper')?'b:camper':'back';
+        case 'result':return 'ok';
+        default:return first();
+      }
+    };
+  }
+  K.policies={
+    first:()=>(v)=>{if(v.meta.phase==='pack')return 'packed';const b=v.buttons.find(x=>!x.dis);return b?b.id:v.exit},
+    random:rand=>(v)=>{const o=v.buttons.filter(x=>!x.dis);return o.length?o[Math.floor(rand()*o.length)].id:v.exit},
+    thoughtful,
+  };
+
+  K.sim=function(o){
+    o=o||{};
+    const rand=typeof o.rand==='function'?o.rand:K.util.seeded(o.seed==null?1:o.seed);
+    const ticket=Object.assign({},o.ticket||(o.mode==='solo'?K.solo.ticket(K.solo.fresh()):{}),o.mode?{mode:o.mode}:{});
+    const s=K.session(ticket,{rand});
+    let pol=o.policy||'thoughtful';
+    if(typeof pol==='string')pol=pol==='random'?K.policies.random(rand):pol==='first'?K.policies.first():K.policies.thoughtful(o.opts);
+    const cap=o.steps||600;let guard=0;
+    while(!s.done&&guard++<cap){
+      const v=s.view();
+      let id=pol(v,s.state);
+      // after a long visit, head for the exit so a silly policy can't loop forever
+      if(guard>cap-30){const on=v.buttons.filter(b=>!b.dis);id=v.exit||(on[on.length-1]||{}).id}
+      if(!s.choose(id)){const b=v.buttons.find(x=>!x.dis);if(!b||!s.choose(b.id))break}
+    }
+    return {report:s.report(),steps:guard,finished:s.done,session:s};
+  };
+})(KenaiCamp);
+// ============================================================
 //  GAME CONFIG: start here when you make a new game.
 //  tools/new-game.py rewrites id / title / codePrefix / colors for you
 //  (in this file, src/shell.html, the web manifest and sw.js).
@@ -243,8 +1106,8 @@ const GAME={
   title:'Guide Master',
   tagline:'A guide’s career on the Kenai',
   codePrefix:'GUIDEMASTER',   // transfer codes start with this, e.g. POCKETWEEK:eyJ…
-  version:'1.8.1',           // bump on every release: shown in Settings, stamped into saves and sw.js
-  schema:2,                  // bump when the shape of S changes, and add a MIGRATIONS entry (21-story.js)
+  version:'1.9.0',           // bump on every release: shown in Settings, stamped into saves and sw.js
+  schema:3,                  // bump when the shape of S changes, and add a MIGRATIONS entry (21-story.js)
   days:14,                   // days in ONE season (the July peak, Mon–Sun twice; season 1 is Jul 13–26, 2026). A career is 14 × years: see the getter below
   wake:300,                  // default alarm for new games, in minutes after midnight (300 = 5:00 AM: guides start early; saves keep their own S.alarm)
   startLoc:'shop',
@@ -996,7 +1859,7 @@ function newState(){
     home:{cans:3,tank:0,gal:10,tgal:0,stale:0,gen:0,frz:0},   // 31-supplies.js: fuel storage (gallons: untreated, stabilized, stale), generator type, big freezer
     food:{pan:24,fri:6,fd:0,fm:0,kits:0},ate:{d:-1,n:0},hungry:0,power:null,   // meals in the pantry and fridge, the day the fridge was stocked, meals left of a thawed red, client lunch kits; meals eaten away today; today's outage
     visited:{shop:true},
-    stats:{trips:0,clients:0,fish:0,limits:0,earned:0,spent:0,tips:0,viol:0,fines:0,kings:0,chop:0,bear:0,noshow:0,halibut:0,checks:0,cancelled:0,tows:0,fuelGal:0,fuelCost:0,campNights:0,encounters:0,seen:{}},camp:null};
+    stats:{trips:0,clients:0,fish:0,limits:0,earned:0,spent:0,tips:0,viol:0,fines:0,kings:0,chop:0,bear:0,noshow:0,halibut:0,checks:0,cancelled:0,tows:0,fuelGal:0,fuelCost:0,campNights:0,encounters:0,seen:{}},camp:campBase()};
 }
 
 // ---- HUD ----
@@ -1549,6 +2412,8 @@ const ACH=[
   {id:'seat_table',ic:'🏛️',n:'A Seat at the Table',d:'Serve on the local fish and game advisory committee and see it through to the Board of Fisheries.',test:()=>S.arcs&&S.arcs.board.st>=3},
   {id:'happy_camper',ic:'🏕️',n:'Happy Camper',d:'Camp 7 nights in total during winters.',test:()=>(S.stats.campNights||0)>=7},
   {id:'wild_kenai',ic:'🦌',n:'Wild Kenai',d:'See 5 different wildlife encounters while camping.',test:()=>Object.keys(S.stats.seen||{}).length>=5},
+  {id:'every_animal',ic:'🦉',n:'Every Animal',d:'Log all 16 kinds of Kenai winter wildlife while camping.',test:()=>KenaiCamp.data.ALL.every(id=>(S.stats.seen||{})[id]>0)},
+  {id:'no_trace',ic:'🌲',n:'No Trace',d:'Break a winter camp with nothing left behind: food stored, trash packed out.',test:()=>!!(S.camp&&S.camp.noTrace>0)},
 ];
 
 // ---- scoring and the end screen ----
@@ -1579,13 +2444,22 @@ function endRows(){
   return [['Difficulty',`${DF().ic} ${DF().n}: ${DF().enforce<1?'fewer patrols, cheaper bills':DF().enforce>1?'more patrols, dearer bills, pickier clients':'standard patrols and bills'}; no score bonus`],['Career',`${S.years} seasons`],['Season by season',yrs],['Cash',$(Math.round(S.money))],['Net over the career',$(Math.round(S.money-DF().money))],['Boats & permits bought',S.up&&S.up.value?$(S.up.value):'none'],['July trips played / clients',`${s.trips} / ${s.clients}`],
     ['Fish landed',s.fish],['Trips where everyone limited',s.limits],['Tips',$(s.tips)],['Reputation',S.rep],
     ['Record',`${s.citesTotal||0} citation${(s.citesTotal||0)===1?'':'s'}, ${s.warnsTotal||0} warning${(s.warnsTotal||0)===1?'':'s'}, ${$(s.fines)} in fines`],
-    ['Fuel',`${grp(s.fuelGal||0)} gal, ${$(Math.round(s.fuelCost||0))}`],['Coast Guard tows',s.tows||0],['Winter camping',`${s.campNights||0} night${(s.campNights||0)===1?'':'s'}, ${s.encounters||0} wildlife encounter${(s.encounters||0)===1?'':'s'}`],['Kings released',s.kings],['Freezer',`${S.freezer} reds`],['Boat checks passed',s.checks]];
+    ['Fuel',`${grp(s.fuelGal||0)} gal, ${$(Math.round(s.fuelCost||0))}`],['Coast Guard tows',s.tows||0],['Winter camping',campEndText()],['Kings released',s.kings],['Freezer',`${S.freezer} reds`],['Boat checks passed',s.checks]];
 }
 
 // ---- save migrations ----
 const MIGRATIONS=[
   // schema 2 (1.5.1): the trip result lives in b.out; b.res is only the Alaska-resident flag again
   {to:2,run:x=>{(x.book||[]).forEach(b=>{if(b.res&&typeof b.res==='object'){b.out=b.res;b.res=false}else if(typeof b.res!=='boolean')b.res=!!b.res})}},
+  // schema 3 (1.9.0): camping grew from one trip a winter into a day budget with gear, a license year and next-season bonuses (28-camping.js).
+  // An old save's single trip counts against this winter's days, so a game in the middle of an off-season carries on where it was.
+  {to:3,run:x=>{
+    const o=x.camp,c=campBase();
+    if(o&&o.v===2){x.camp=o;return}
+    if(o&&typeof o==='object'&&typeof o.s==='number'){c.s=o.s;c.days=Math.max(1,o.nights||1);c.trips=1;c.tot.trips=1}
+    c.tot.nights=(x.stats&&x.stats.campNights)||0;
+    x.camp=c;
+  }},
 ];
 // ============================================================
 //  GUIDE MASTER, part 3: running a trip.
@@ -1813,7 +2687,7 @@ function tripCancel(b,note){b.status='cancelled';S.stats.cancelled++;S.trip=null
 function tripEnd(b,t){
   const T=TRIPS[b.type],d=day(),r=Math.random;
   let q=.5+t.q+runFactor(b.type)+(WX[S.wx[d]||'sun']||WX.sun).q+(S.prep===d?.08:0)+(scoutedFor(b.type,d)?.05:0)
-    +upQ(b.type)+(S.gear>0?0:-.15)+(S.boat<40&&!t.loan?-.1:0)+(S.energy<30?-.1:0)+skillQ()+(r()-.5)*.24;
+    +upQ(b.type)+campQ()+(S.gear>0?0:-.15)+(S.boat<40&&!t.loan?-.1:0)+(S.energy<30?-.1:0)+skillQ()+(r()-.5)*.24;
   q=clamp(q,.05,1);
   // fuel: burn from the tank; run dry and the trip ends with a Coast Guard tow
   const ft=tripFuel(b);let towed=false;
@@ -2292,9 +3166,10 @@ function winterModal(){
     <p>📣 <b>${2026+s}:</b> ${REG().fc}<br>⚓ Halibut: 2 a day, the second ${halSize()} inches or less; no retention ${halDaysTxt()}.<br>⛽ Kenai Harbor fuel ${$(fuelPrice('kenai',seasonFirst(s)))}/gal. ${evenYear(seasonFirst(s))?'🩷 Even year: pinks in August.':'Odd year: few pinks.'}</p>
     ${W.sup&&W.sup.length?`<p>${W.sup.join('<br>')}</p>`:''}
     <p>⛑️ First-aid card: ${fa}.${W.expired>0?`<br>⚖️ ${W.expired} old citation${W.expired>1?'s':''} dropped off.`:''}${S.cites?`<br>⚖️ Active citations: ${S.cites}/3.`:''}</p>
+    ${campHintLine()?`<p>${campHintLine()}</p>`:''}
     <p style="font-size:13px;color:var(--mute)">Season ${s+1} of ${S.years}. Bookings open when you finish planning.</p>`,[
     {l:'🛠️ Upgrades & business',s:'Boats, marketing, rates, a Homer charter permit.',fn:()=>upgradeModal()},
-    {l:'🏕️ Go winter camping',s:campUsed()?'You’ve already been camping this winter.':'Pick a place within 100 miles and a number of nights. Wildlife and quiet rest, and a bad night can cost a little cash.',dis:campUsed(),fn:()=>campModal()},
+    {l:'🏕️ Winter camping & work',s:campUsed()?'You’ve used your free days this winter. You can still look at your camping log.':`${campDaysLeft()} free days: camping trips within 100 miles (ice fishing, scouting, company), winter work, a camping log.`,fn:()=>campModal()},
     {l:`🛶 Open bookings for ${2026+s}`,s:'Start the season.',fn:()=>finishWinter()}]);
 }
 function upgradeModal(){
@@ -2310,7 +3185,7 @@ function finishWinter(){
 }
 function genSeasonBookings(s){
   const base=s*SEASON,web=S.up.web===s?.15:0,r=Math.random;
-  const p0=clamp((.35+S.rep/200+web+(S.arcs.rival.ally?.03:0))*rateDemand()*(S.up.dock?1.08:1),.12,.95);
+  const p0=clamp((.35+S.rep/200+web+(S.arcs.rival.ally?.03:0)+campBook(s))*rateDemand()*(S.up.dock?1.08:1),.12,.95);
   const q=()=>r()<.3?[pick(['drinker','nolicense','kingfan','photo','kid'])]:[];
   const party=()=>pick(PARTIES);
   for(let i=0;i<SEASON;i++){const d=base+i,w=i%7;
@@ -2479,7 +3354,7 @@ const HELP=[
   ['⚡','Home fuel, outages & the generator','Fuel is still sold only at the Kenai Harbor dock, but you can <strong>haul extra home</strong> into approved cans (you start with three) or a 100-gallon tank, and fuel the sled from them at the shop. Gas left untreated all winter goes <strong>stale</strong>: add <strong>stabilizer</strong> before the season ends. Wind and winter storms knock the power out now and then: a long outage spoils fresh food and, after a day or two, the freezer. A <strong>generator</strong> (Soldotna, Home supplies) runs on your home gas and keeps the freezer going; fuel and generator both stay outside, away from the cabin.'],
   ['🐟','Fish & weather','The <strong>🐟 Fish</strong> tab shows today’s weather, river level, tides, the odds by place and species, where to fish today, and when each run arrives. Reds bite best at first light; silvers build late July; pinks run in even years. <strong>Read it before you launch:</strong> every spot fishes better or worse with the day’s water, wind, run and tide, and once you have looked at the tab (or scouted the river) the spot buttons show a Hot, Good, Fair or Poor read. With no clients booked, <strong>Take the boat out</strong> to fill your freezer and scout.'],
   ['🔧','Money & gear','The booked fare is your base pay; tips, refunds and word of mouth follow how the day went: the catch, happy clients, tackle and a boat in good shape. A well-kept boat and a fed crew pay: tips run from nothing at 60 happiness to 30% of the fare at 90, and the <strong>rest of your summer</strong> (June, August and September, settled in the off-season) follows how happy your clients were on average, not only how many trips you ran. Run out of tackle, skip meals (after a second hungry night you get a warning and a pricier gas-station fix) or let the boat wear down and you’ll see smaller tips, refunds, breakdowns and a quieter off-season. Restock tackle in Soldotna, service the boats at the shop, buy fuel at the harbor. Overhead is charged every night. The Boat stat warns you at 40, 20 and 10. At 0 your sled and drift boat are out of service until a major repair ($2,400), though an emergency patch ($600, back to 25 for two days, only at 10 or less) or a rented loaner ($600, for the day) keeps a booked trip running. In the off-season you can buy upgrades: a new motor (burns less gas), a new sled (trips finish 30 minutes sooner), a drift boat, marketing, a winter course (skill, which builds with practice and rusts over the winter), higher rates (more per trip, fewer bookings, pickier clients: the first step is cheap, the third is not), your own Homer charter permit and, later in a career, an assistant guide, guest cabins or a riverfront lot with a private launch.'],
-  ['🏕️','Winter camping','In the off-season you can <strong>go winter camping</strong> once per winter: pick one of ten real Kenai Peninsula spots within 100 road miles of Soldotna and 1–7 nights. You pay gas, campsite fees (most places are unserviced in winter) and supplies. Each night has a <strong>50% chance of a wildlife encounter</strong>, good or bad, that nudges your energy, skill, rep or cash going into the new season.'],
+  ['🏕️','Winter camping','In the off-season you have <strong>10 free days</strong> for up to three trips and two winter jobs. Pick one of ten Kenai Peninsula spots within 100 road miles of Soldotna, a month (it sets the daylight, ice and weather), who comes along, and what to <strong>pack</strong>: a bear-resistant container, a cold-rated bag, spare layers, stove fuel, a truck kit, ice picks. Each day you choose an activity (one in the dark months, two on long days): <strong>ice fish</strong> a stocked lake (you need a fishing license, and licenses restart every January), snowshoe, ski, track wildlife, scout the upper Kenai or Kasilof, or watch the northern lights. Evenings you can tie flies for tackle next season. Each night has a <strong>50% chance of an encounter</strong>, good or bad; what you packed and where you sleep (tent, wall tent, truck camper, public-use cabin) change the odds. Winter jobs pay a little; a camping log keeps the animals you have seen.'],
   ['💀','How you lose','Three active citations (permit pulled), reputation down to 0 (nobody books you), or $2,000 in debt (the bank takes the sled).'],
   ['💡','Tips','Rig tomorrow’s gear, read the Fish tab and scout the river for better trips. Tips (💡) appear as you play; turn them on or off in ⚙️ Settings. On a computer, number keys press buttons, <strong>Esc</strong> closes a pop-up and <strong>?</strong> lists the shortcuts. Settings has bigger text and high contrast.'],
 ];
@@ -2562,119 +3437,121 @@ async function fbSend(back){
 }
 window.feedbackModal=feedbackModal;
 // ============================================================
-//  GUIDE MASTER, part 9: winter camping.
-//  In the off-season (S.winter pending) you can take one camping trip: pick a place within 100 road miles of
-//  Soldotna and a number of nights. You pay for gas (round trip, pickup), campsite fees and supplies, then each
-//  night has a 50% chance of a wildlife encounter, weighted by the habitat of the place. Encounters nudge energy
-//  (which carries into the new season), skill, rep and cash. The trip never advances S.t or S.cur.
+//  GUIDE MASTER, part 9: winter camping (the adapter).
+//  The camping game itself lives in src/camp/ (the KenaiCamp engine, which knows nothing about this game). This file is the
+//  thin bridge: it builds the engine's trip ticket from the save (S), gives it a host adapter made of our own pop-ups, and
+//  applies the trip report back to S. In the off-season ("S.winter" pending) the player has WINTER_DAYS free days to spend on
+//  up to three camping trips and some winter work. Nothing here moves the game clock (S.t, S.cur).
 //
-//  Mileages are one-way road miles from Soldotna, worked out from Sterling Highway mileposts (Soldotna at about
-//  milepost 95.2): Johnson Lake Rd at MP 110, Clam Gulch at 117.4, Deep Creek at 137.3, Anchor River at 161,
-//  Homer at 173, Quartz Creek at 44.9, Swanson River Rd at 83.5 (+17 mi), Skilak Lake Rd west end at 75.2,
-//  Hidden Lake 3.5 mi and Lower Skilak 13.3 mi along it. Captain Cook SRA is "25 miles north of Kenai" (about 11
-//  from Soldotna to Kenai). Fees are Alaska State Parks' published $20/site where a campground is run; most are
-//  unmaintained in winter, so winter camping is free but without services.
+//  Save state: S.camp = {v:2, s (winter these counters belong to), days, trips, gigs, gigsDone, gear (owned gear ids), lic (the
+//  calendar year of the last fishing license), boost {s,q,book} (next season's bonus), hint, ach, noTrace, tot {…}}.
+//  S.stats.campNights / encounters / seen keep counting as before (the end screen and the old achievements read them).
 // ============================================================
-const CAMP_MPG=15, CAMP_SUPPLIES=25, CAMP_NIGHTS=[1,2,3,5,7];
-const CAMP_DEST=[
-  {id:'johnson',ic:'🏞️',n:'Johnson Lake (Kasilof)',miles:16,fee:0,h:'lake',d:'Sterling Hwy MP 110, then Johnson Lake Road. The state rec area has toilets and a boat launch in summer ($20 a site); in winter nothing is serviced or plowed, so you park out and camp free on the ice-rimmed lake.'},
-  {id:'clam',ic:'🌊',n:'Clam Gulch beach',miles:22,fee:0,h:'coast',d:'MP 117.4 on the Sterling Hwy. The summer campground ($20 a site) is not serviced in winter; the bluff looks over Cook Inlet and the volcanoes across the water.'},
-  {id:'hidden',ic:'🌲',n:'Hidden Lake (Kenai Refuge)',miles:24,fee:0,h:'forest',d:'3.5 miles along Skilak Lake Road from the Sterling Hwy at MP 75.2. The refuge charges $15 in season. In winter, expect no services and no fee.'},
-  {id:'swanson',ic:'🛶',n:'Swanson River Road & Swan Lake canoe area',miles:29,fee:0,h:'lake',d:'Turn north at MP 83.5 and drive 17 miles of refuge road to the canoe-route landings. Summer parking is $5. In winter it’s unserviced, quiet ski and snowmobile country.'},
-  {id:'skilak',ic:'⛰️',n:'Lower Skilak Lake Campground',miles:33,fee:0,h:'mtn',d:'13.3 miles along Skilak Lake Road from the west end. A summer campground (May to September) with no fee. In winter you’re on your own on a big, windy lake shore.'},
-  {id:'cook',ic:'🌲',n:'Captain Cook State Rec Area',miles:36,fee:0,h:'forest',d:'About 25 miles north of Kenai, near Stormy Lake, where winter visitors ice fish. Discovery Campground is $20 a site in summer; in winter you camp unserviced.'},
-  {id:'deep',ic:'🦅',n:'Deep Creek State Rec Area',miles:42,fee:0,h:'coast',d:'MP 137.3 on the Sterling Hwy, on the Cook Inlet bluff above the beach. Summer sites are $20; in winter there is no service, and the beach is a cold, bright place for eagles.'},
-  {id:'quartz',ic:'🏔️',n:'Quartz Creek (Kenai Lake)',miles:51,fee:0,h:'mtn',d:'Quartz Creek Campground sits at MP 44.9 near Cooper Landing, a summer Forest Service campground. In winter it is unserviced with steep mountain slopes on all sides. Dall sheep and goats are in the high country.'},
-  {id:'anchor',ic:'🎣',n:'Anchor River State Rec Area',miles:66,fee:20,h:'river',d:'MP 161, the westernmost highway point in North America. The state campgrounds charge $20 a site; the Anchor River runs open under ice shelves and steelhead and Dolly Varden are in it.'},
-  {id:'spit',ic:'⚓',n:'Homer Spit',miles:83,fee:0,h:'coast',d:'The city’s Spit campgrounds are open April through October only, so in winter you park rough with no hookups and no dump station. Expect sea ducks, eagles and a hard wind off Kachemak Bay.'}
-];
+const CAMP_MAX_TACKLE=12;
+const CAMP_FISH_PER_RED=3;   // stocked trout and char are small: about three of them make the meals of one red salmon in the freezer
+function campBase(){return {v:2,s:-1,days:0,trips:0,gigs:0,gigsDone:[],gear:[],lic:0,boost:{s:-1,q:0,book:0},hint:null,ach:[],noTrace:0,tot:{trips:0,nights:0,fish:0,tackle:0,gigs:0,spent:0,net:0}}}
 const campGas=()=>Math.round(Math.max(4.5,((S.fuelBase&&S.fuelBase.kenai)||6.19)-.85)*100)/100;   // Peninsula pump gas ≈ marine dock price − the marine premium
-function campCost(dest,n){
-  const gas=campGas(),gal=Math.round(dest.miles*2/CAMP_MPG*10)/10,fuel=Math.round(gal*gas*100)/100,fees=dest.fee*n,sup=CAMP_SUPPLIES*n;
-  return {gas,gal,fuel,fees,sup,total:Math.round((fuel+fees+sup)*100)/100};
+// this winter's counters (they restart when a new off-season begins)
+function campW(){
+  const C=S.camp&&S.camp.v===2?S.camp:(S.camp=campBase());
+  if(S.winter&&C.s!==S.winter.s){C.s=S.winter.s;C.days=0;C.trips=0;C.gigs=0;C.gigsDone=[]}
+  return C;
 }
-
-// ---- ten encounters (fx applies the effect and returns the line to show) ----
-const loseCash=x=>{const c=Math.min(x,Math.max(0,Math.round(S.money)));money(-c);S.stats.spent+=c;return c};
-const CAMP_ENC=[
-  {id:'moose',ic:'🫎',t:'A cow moose and her calf',good:true,h:['forest','lake','river'],
-   text:'At first light a cow moose and her calf browse the willows right at the edge of camp, breath smoking in the cold.',
-   fx(){if(Math.random()<.25){adj('energy',-6);return 'You edge in for a better look. She lays her ears back and stamps; you retreat to the truck for an hour. (Energy −6)'}adj('energy',5);return 'You stay in the doorway and just watch. (Energy +5)'}},
-  {id:'wolves',ic:'🐺',t:'Wolves howling across the lake',good:true,h:['lake','forest','mtn'],
-   text:'Around midnight a pack starts up on the far shore. One voice, then five, rising and bouncing off the frozen lake.',
-   fx(){adj('energy',4);S.skill+=1;return 'You lie awake and listen to every note. (Energy +4, Skill +1)'}},
-  {id:'lynx',ic:'🐈',t:'A lynx on the trail',good:true,h:['forest','lake'],
-   text:'On a morning walk a lynx crosses the trail ahead, big paws, tufted ears, in snowshoe hare country. It looks at you and is gone.',
-   fx(){adj('energy',3);S.skill+=1;return 'Hare tracks everywhere; you learn to read them. (Energy +3, Skill +1)'}},
-  {id:'fox',ic:'🦊',t:'A red fox raids the food bag',good:false,h:['forest','coast','river','lake'],
-   text:'You wake to a fox trotting off with your bacon. The food bag you left out is shredded.',
-   fx(){const c=loseCash(35);adj('energy',-2);return `You restock at the gas station. (−${$(c)}, Energy −2)`}},
-  {id:'ravens',ic:'🐦‍⬛',t:'Ravens open the cooler',good:false,h:['forest','coast','river','lake','mtn'],
-   text:'A pair of ravens figure out the latch on the cooler and you find them lunching on your sandwiches, croaking like they paid for them.',
-   fx(){const c=loseCash(20);return `Smart birds. (−${$(c)})`}},
-  {id:'porcupine',ic:'🦔',t:'A porcupine at the truck',good:false,h:['forest','lake','river'],
-   text:'In the night a porcupine finds salt on the truck and chews on a tire sidewall and the axe handle you left out.',
-   fx(){const c=loseCash(60);return `A new tire patch and a new axe handle. (−${$(c)})`}},
-  {id:'swans',ic:'🦢',t:'Trumpeter swans on open water',good:true,h:['lake','river'],
-   text:'Where the outlet keeps the water open, a family of trumpeter swans feeds along the ice edge, their calls like small brass horns.',
-   fx(){adj('energy',4);adj('rep',1);return 'You have a story for the next clients. (Energy +4, Rep +1)'}},
-  {id:'eagles',ic:'🦅',t:'Bald eagles on the beach',good:true,h:['coast','river'],
-   text:'A dozen bald eagles line the tide flat and the driftwood, picking over what the tide left.',
-   fx(){adj('energy',4);S.skill+=1;return 'You watch how they work the water. (Energy +4, Skill +1)'}},
-  {id:'sheep',ic:'🐏',t:'Dall sheep on the slope',good:true,h:['mtn'],
-   text:'White specks on the avalanche chute above camp resolve into Dall sheep, bedded in the wind-scoured alpine, glowing in the low sun.',
-   fx(){adj('energy',6);return 'You carry the picture home. (Energy +6)'}},
-  {id:'bear',ic:'🐻',t:'A brown bear out of its den',good:false,h:['forest','mtn','lake','coast'],
-   text:'A warm spell and big tracks in the snow beside the tent: a brown bear is awake and wandering where it should be asleep.',
-   fx(){const c=loseCash(15);adj('energy',-9);return `You pack up in the dark and drive out. (Energy −9, −${$(c)} gas)`}}
-];
-function campPick(dest){
-  const w=CAMP_ENC.map(e=>e.h.includes(dest.h)?(e.h[0]===dest.h?4:3):0),tot=w.reduce((a,b)=>a+b,0);
-  let r=Math.random()*tot;for(let i=0;i<w.length;i++){r-=w[i];if(r<0)return CAMP_ENC[i]}
-  return CAMP_ENC[0];
+const campDaysLeft=()=>S.winter?Math.max(0,KenaiCamp.data.WINTER_DAYS-campW().days):0;
+const campTripsLeft=()=>S.winter?Math.max(0,KenaiCamp.data.MAX_TRIPS-campW().trips):0;
+// is there anything left to do this winter? (the pop-up can still be opened to see the log or buy a shelter)
+const campUsed=()=>!S.winter||campDaysLeft()<=0||(campTripsLeft()<=0&&campW().gigs>=KenaiCamp.data.MAX_GIGS);
+// effects on next season's trips and bookings (used by 22-trips.js and genSeasonBookings in 24-career.js)
+function campQ(){
+  const C=S.camp;if(!C||!C.boost||C.boost.s<0||C.boost.s!==seasonOf(day())) return 0;
+  return S.stats.trips-((S.st0&&S.st0.trips)||0)<3?C.boost.q:0;
 }
-const CAMP_QUIET=['❄️ A quiet night. Minus 10°F, snow squeaking under your boots, and stars all the way down.',
-  '🌌 The northern lights roll green over the spruce for an hour. Then silence.',
-  '🌲 Snow loads the spruce boughs until one lets go with a soft thump. Otherwise: nothing at all.',
-  '🔥 You feed the fire, the stove ticks, and the cold sits just outside the tent.',
-  '🌙 A full moon on fresh snow; you could read by it.',
-  '💨 The wind rises at midnight and drops at four. You sleep through most of it.'];
+const campBook=s=>{const C=S.camp;return C&&C.boost&&C.boost.s===s?C.boost.book:0};
 
-// ---- the flow: winterModal → campModal → nightsModal → confirm → goCamp → report ----
-const campUsed=()=>!!(S.camp&&S.winter&&S.camp.s===S.winter.s);
+function campTicket(){
+  const C=campW(),A=S.arcs&&S.arcs.rival,W=S.winter;
+  return {
+    mode:'guide',year:2025+W.s,cash:Math.round(S.money),energy:S.energy,rep:S.rep,skill:S.skill,
+    gas:campGas(),mpg:15,costMult:DF().cost,
+    gear:C.gear.slice(),licYear:C.lic,food:{meals:foodMeals(),freezerRoom:Math.max(0,fishCap()-S.freezer)*CAMP_FISH_PER_RED},
+    regulars:S.regs.map(g=>({id:g.who,name:'the '+g.who,mood:g.last?g.last.h:60})),
+    rival:A&&A.st>=2?{id:'rival',name:'Dale Voss',mood:A.mood||0}:null,guideFriend:true,
+    daysLeft:campDaysLeft(),tripsLeft:campTripsLeft(),gigsLeft:Math.max(0,KenaiCamp.data.MAX_GIGS-C.gigs),gigsDone:C.gigsDone.slice(),
+    seen:Object.assign({},S.stats.seen),ach:C.ach.slice(),noTraceTrips:C.noTrace,
+  };
+}
+// the trip report goes back into the save
+function campApply(rep){
+  const C=campW(),st=S.stats,W=S.winter;
+  money(rep.cashDelta);st.spent+=rep.spent;
+  S.energy=clamp(S.energy+rep.energyDelta,Math.min(S.energy,40),100);
+  if(rep.repDelta)adj('rep',rep.repDelta);
+  S.skill+=rep.skillDelta;S.wom=(S.wom||0)+rep.womDelta;
+  if(rep.foodFish)S.freezer=Math.min(fishCap(),S.freezer+Math.round(rep.foodFish/CAMP_FISH_PER_RED));
+  if(rep.tackleCredit)S.gear=Math.min(Math.max(S.gear,CAMP_MAX_TACKLE),S.gear+rep.tackleCredit);
+  if(rep.firstTripBoost||rep.bookingBoost){
+    const B=C.boost.s===W.s?C.boost:(C.boost={s:W.s,q:0,book:0});
+    B.q=Math.round(Math.min(KenaiCamp.data.MAX_FIRST,B.q+rep.firstTripBoost)*1000)/1000;B.book=Math.round(Math.min(KenaiCamp.data.MAX_BOOK,B.book+rep.bookingBoost)*1000)/1000;
+  }
+  if(rep.scout){const sh=(S.reg&&S.reg.shift)||0;
+    C.hint={s:W.s,txt:rep.scout.areas.includes('kasilof')&&!rep.scout.areas.includes('upper')?'Kasilof anglers':'upper-river guides',
+      run:sh>=2?`the late run should come about ${sh} days later than usual`:sh<=-2?`the late run should come about ${-sh} days earlier than usual`:'the late run should arrive about when it normally does'}}
+  rep.relations.forEach(x=>{
+    if(x.kind==='regular'){const g=S.regs.find(y=>y.who===x.id);if(g&&g.last){g.last.h=clamp(g.last.h+x.delta*5,0,100);if(x.delta>=2)g.miss=0}}
+    else if(x.kind==='rival'&&S.arcs&&S.arcs.rival){const A=S.arcs.rival;if(x.delta>=2)A.mood=1;else if(x.delta<=-2)A.mood=-1}
+  });
+  st.seen=st.seen||{};Object.keys(rep.speciesSeen).forEach(id=>{st.seen[id]=(st.seen[id]||0)+rep.speciesSeen[id]});
+  st.encounters=(st.encounters||0)+rep.encounters;st.campNights=(st.campNights||0)+rep.nights;
+  rep.gearBought.forEach(g=>{if(!C.gear.includes(g))C.gear.push(g)});if(rep.license)C.lic=Math.max(C.lic,rep.license.year);
+  rep.achievements.forEach(a=>{if(!C.ach.includes(a))C.ach.push(a)});C.noTrace+=rep.noTraceTrips;
+  C.days+=rep.daysUsed;C.trips+=rep.tripsTaken;C.gigs+=rep.gigs.length;C.gigsDone=C.gigsDone.concat(rep.gigs);
+  const T=C.tot;T.trips+=rep.tripsTaken;T.nights+=rep.nights;T.fish+=rep.foodFish;T.tackle+=rep.tackleCredit;T.gigs+=rep.gigs.length;T.spent+=rep.spent;T.net+=rep.cashDelta;
+  return rep;
+}
+// what the wrap-up says about next season
+function campWrapHtml(rep){
+  const f=n=>n>0?'+'+n:String(n),L=[];
+  L.push(`${rep.tripsTaken} camping trip${rep.tripsTaken===1?'':'s'}, ${rep.nights} night${rep.nights===1?'':'s'}${rep.gigs.length?`, ${rep.gigs.length} winter job${rep.gigs.length===1?'':'s'}`:''}.`);
+  L.push(`Cash ${rep.cashDelta<0?'−':'+'}${$(Math.abs(Math.round(rep.cashDelta)))} · Energy ${f(rep.energyDelta)} · Rep ${f(rep.repDelta)}${rep.skillDelta?` · Skill ${f(rep.skillDelta)}`:''}.`);
+  if(rep.foodFish)L.push(`🐟 ${rep.foodFish} stocked fish in the freezer: about ${Math.round(rep.foodFish/CAMP_FISH_PER_RED)} red${Math.round(rep.foodFish/CAMP_FISH_PER_RED)===1?'':'s'}’ worth of meals.`);
+  if(rep.tackleCredit)L.push(`🪶 Tackle +${rep.tackleCredit}: that many trips’ worth of flies and leaders you won’t have to buy.`);
+  if(rep.firstTripBoost)L.push(`🎯 Better first trips in July (about ${Math.round(rep.firstTripBoost*100)}% more catch on your first three trips).`);
+  if(rep.bookingBoost)L.push(`📅 A few more bookings next season.`);
+  if(rep.scout)L.push(`🔭 Talking with ${campW().hint.txt}, you hear that ${campW().hint.run}.`);
+  rep.relations.forEach(x=>L.push(`🤝 ${x.name.charAt(0).toUpperCase()+x.name.slice(1)}: ${x.delta>=2?'a good trip together':x.delta<0?'a rough night together':'a quiet trip'}.`));
+  if(rep.newSpecies.length)L.push(`📖 ${rep.newSpecies.length} new animal${rep.newSpecies.length>1?'s':''} in your camping log.`);
+  rep.achievements.forEach(a=>{const x=KenaiCamp.data.ACH.find(y=>y.id===a);if(x)L.push(`${x.ic} <b>${x.n}</b>: ${x.d}`)});
+  return L.map(x=>`<p>${x}</p>`).join('');
+}
+function campWrap(rep){
+  if(!rep.tripsTaken&&!rep.gigs.length&&!rep.gearBought.length&&!rep.license) return setTimeout(winterModal,0);
+  sfx(rep.encounters?'good':'click');
+  modal('🏕️ What camping did',campWrapHtml(rep),[{l:'Back to the off-season',fn:()=>setTimeout(winterModal,0)}]);
+}
+// the player's entry point (from the off-season summary)
 function campModal(){
   if(!S.winter) return;
-  modal('🏕️ Winter camping · cash '+$(Math.round(S.money)),`<p>Winter on the Kenai Peninsula. Pick a place within 100 road miles of Soldotna. One trip per off-season: the rest of the winter you work your other job.</p><p style="font-size:13px;color:var(--mute)">Pump gas about ${$(campGas())}/gal; the pickup gets ${CAMP_MPG} mpg. Most campgrounds are unserviced in winter.</p>`,
-    CAMP_DEST.map(d=>({l:`${d.ic} ${d.n} — ${d.miles} mi`,s:d.d,fn:()=>setTimeout(()=>nightsModal(d),0)})).concat([{l:'Not now',s:'Back to the off-season summary.',fn:()=>setTimeout(winterModal,0)}]));
+  campW();
+  KenaiCamp.start({mode:'guide',ticket:campTicket(),host:{
+    show:(title,html,btns,lock)=>modal(title,html,btns,lock),
+    toast:msg=>showTile('🏕️',msg,'','info'),
+    rand:()=>Math.random(),now:()=>Date.now(),
+    onFinish:rep=>{campApply(rep);campWrap(rep)},
+  }});
 }
-function nightsModal(d){
-  modal(`${d.ic} ${d.n}`,`<p>${d.d}</p><p style="font-size:13px;color:var(--mute)">${d.miles} miles each way. Fee ${d.fee?$(d.fee)+'/night':'none (unmaintained in winter)'}. Each night has a 50% chance of a wildlife encounter.</p>`,
-    CAMP_NIGHTS.map(n=>{const c=campCost(d,n);return {l:`${n} night${n>1?'s':''} — ${$(c.total)}`,s:c.total>S.money?'Can’t afford it.':`${$(c.fuel)} gas, ${$(c.fees)} fees, ${$(c.sup)} supplies.`,dis:c.total>S.money,fn:()=>setTimeout(()=>campConfirm(d,n),0)}})
-      .concat([{l:'Back',s:'Pick another place.',fn:()=>setTimeout(campModal,0)}]));
+// bots and tests: play a whole winter's camping with the engine's headless policy and apply the report
+function campBot(opts){
+  if(!S.winter) return null;campW();
+  const r=KenaiCamp.sim({ticket:campTicket(),rand:(opts&&opts.rand)||(()=>Math.random()),policy:(opts&&opts.policy)||'thoughtful',opts});
+  campApply(r.report);return r.report;
 }
-function campConfirm(d,n){
-  const c=campCost(d,n);
-  modal(`🏕️ ${n} night${n>1?'s':''} at ${d.n}`,`<p>⛽ Gas: ${d.miles*2} miles round trip ÷ ${CAMP_MPG} mpg = ${c.gal} gal × ${$(c.gas)} = <b>${$(c.fuel)}</b><br>🏕️ Campsite fees: <b>${$(c.fees)}</b><br>🥫 Supplies, ${$(CAMP_SUPPLIES)}/night: <b>${$(c.sup)}</b><br>Total: <b>${$(c.total)}</b> of ${$(Math.round(S.money))}.</p>`,
-    [{l:'Pack the truck',s:'Go.',dis:c.total>S.money,fn:()=>goCamp(d,n)},{l:'Back',fn:()=>setTimeout(()=>nightsModal(d),0)}]);
-}
-function goCamp(d,n){
-  if(!S.winter||campUsed()) return null;
-  const c=campCost(d,n);if(c.total>S.money) return null;
-  money(-c.total);S.stats.spent+=c.total;S.camp={s:S.winter.s,dest:d.id,nights:n};
-  const st=S.stats;st.campNights=(st.campNights||0)+n;st.seen=st.seen||{};
-  const e0=S.energy,rows=[];let enc=0;
-  for(let i=1;i<=n;i++){
-    if(Math.random()<.5){
-      const e=campPick(d);enc++;st.encounters=(st.encounters||0)+1;st.seen[e.id]=(st.seen[e.id]||0)+1;
-      rows.push(`<p><b>Night ${i}: ${e.ic} ${e.t}.</b> ${e.text} <em>${e.fx()}</em></p>`);
-    }else{adj('energy',2);rows.push(`<p><b>Night ${i}:</b> ${pick(CAMP_QUIET)} (Energy +2)</p>`)}
-  }
-  adj('energy',0);
-  S.camp.enc=enc;
-  sfx(enc?'good':'click');
-  modal(`🏕️ Back from ${d.n}`,rows.join('')+`<p>${n} night${n>1?'s':''}, ${enc} encounter${enc===1?'':'s'}. Spent <b>${$(c.total)}</b>. Energy ${e0} → <b>${S.energy}</b> (carries into the season). Cash ${$(Math.round(S.money))}.</p>`,
-    [{l:'Back to the off-season',fn:()=>setTimeout(winterModal,0)}]);
-  return {cost:c.total,enc,rows};
+const campHintLine=()=>{const C=S.camp;return C&&C.hint&&S.winter&&C.hint.s===S.winter.s?`🔭 ${C.hint.run.charAt(0).toUpperCase()+C.hint.run.slice(1)}.`:''};
+// the end screen: one row
+function campEndText(){
+  const C=S.camp&&S.camp.v===2?S.camp:campBase(),s=S.stats,seen=Object.keys(s.seen||{}).filter(id=>KenaiCamp.data.ALL.includes(id)).length,T=C.tot;
+  if(!s.campNights&&!T.trips&&!T.gigs&&!C.gear.length) return 'none';
+  const net=Math.round(T.net);
+  return `${s.campNights||0} night${(s.campNights||0)===1?'':'s'} over ${T.trips} trip${T.trips===1?'':'s'}, ${s.encounters||0} wildlife encounter${(s.encounters||0)===1?'':'s'}, ${seen} of ${KenaiCamp.data.ALL.length} animals logged<br><span style="color:var(--mute)">${T.fish} fish in the freezer, ${T.tackle} tackle credits, ${T.gigs} winter job${T.gigs===1?'':'s'}; trips and jobs ${net<0?'cost':'earned'} ${$(Math.abs(net))} net${C.ach.length?'; '+C.ach.map(a=>(KenaiCamp.data.ACH.find(x=>x.id===a)||{n:a}).n).join(', '):''}</span>`;
 }
 // ---------------- "Updated to version X" notice ----------------
 // The title screen calls maybeUpdateNotice(). If this device last acknowledged a different version, a pop-up says which
@@ -2694,6 +3571,7 @@ const CHANGELOG={
   '1.5.4':['🎲 Dilemma options shuffle: playing it straight costs something, bending a rule can pay cash, and repeat offenders pay steeper fines. Pay now follows the day: catch, tackle and boat shape tips, refunds and word of mouth.'],
   '1.6.0':['💲 Higher rates now cost you: fewer bookings, pickier clients and a rep requirement that rises each step.','🔧 Boats at condition 0 are out of service until repaired; new motors burn less gas, new sleds finish sooner, and late-career money can buy an assistant guide, guest cabins or a riverfront launch.','⏳ New “Wait until…” action skips to the next launch or the 1 PM class. New games start with a 5:00 AM alarm.','🌙 The night summary now comes before the morning’s news, and pop-up toasts are fewer, shorter and sit below your Cash and Rep.','⭐ Longer careers: 54 client parties, regulars who come back (or don’t), six new river dilemmas, fewer repeats and three multi-season stories.'],
   '1.8.0':['🎯 Skill pays: spots fish differently with the day’s water, wind, run and tide. Read the 🐟 Fish tab or scout the river and the spot buttons show which one is hot.','⭐ The rest of your summer follows how happy your clients were, not only how many trips you ran. Tips run higher on a good day, a well-kept boat pleases clients, and a happy party may take your card and become a regular.','💲 Raising rates gets steeper after the first step, and skill builds with practice and rusts over the winter.'],
+  '1.9.0':['🏕️ Winter camping is much bigger: ten free days each winter for up to three trips, with a pack to choose (bear container, a cold-rated bag, spare layers, stove fuel), ice fishing on stocked lakes, tracking and scouting, evenings tying flies, company, public-use cabins and a truck camper, winter jobs, and a log of every animal you see.','🎣 Real rules: ice fishing needs a fishing license, and licenses start over every January. Scouting the upper Kenai or Kasilof gives a hint about next summer’s run. Your game in progress is brought up to date automatically.'],
   '1.8.1':['🚔 Bending the rules can still pay on the day, but not over a career: every rule you break in a season makes the next one likelier to be caught, guides who see it talk, and a citation is public record, so a booked party may cancel and the rest of your summer books thinner.','🍽️ After a second hungry night you get a warning first thing in the morning, with a quick (pricier) gas-station breakfast and a day of food. Going hungry is gentler on your clients than before, but groceries are still the cheap way.','🐻 Combat Season re-tuned: fuel and bills a little less steep, clients a little less picky and the off-months a little busier, so a sharp guide can earn a B. It is still clearly harder than Licensed Guide. A game in progress is brought up to date automatically.'],
   '1.7.1':['🎯 Grades re-tuned: per season A is 62,000, B 55,000, C 44,000, D 27,000, so playing by the book earns a B again and a sharp career an A. Boats and permits now count at nine tenths of what you paid, so long careers no longer outscore short ones for buying a sled or the charter permit. The Help sheet and rules list the cutoffs.'],
   '1.7.0':['🍽️ Food: stock the pantry and fridge at the Soldotna grocery store, pack a lunch (and lunches for the clients) before each trip, and watch the new Food gauge. Skip meals and you run out of energy.','⛽ Home fuel: haul extra gas home from the harbor into cans (or buy a 100-gallon tank), fuel the sled from it at the shop, and add stabilizer before winter or it goes stale.','⚡ Power outages: wind and winter storms can spoil the freezer. A portable generator runs on your home gas and keeps it going.'],
