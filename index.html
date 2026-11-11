@@ -694,7 +694,7 @@ const KenaiCamp={
         s.rel?`🤝 ${s.rel.delta>=2?'A good trip with':s.rel.delta<0?'A rough trip with':'A quiet trip with'} ${esc(s.rel.name)}.`:'',
         s.fresh.length?`📖 New in your log: ${s.fresh.map(id=>sp(id).ic+' '+sp(id).n).join(', ')}.`:'',
         s.noTrace?'🌲 No trace: you broke camp with nothing left behind.':s.messy?'🗑️ The camp was left a little messy.':'',
-        `Spent ${$(s.cost)}. Energy ${sgn(s.energy)}, cash ${s.cash<0?'−':'+'}${$(Math.abs(s.cash))}${s.rep?`, rep ${sgn(s.rep)}`:''}${s.skill?`, skill ${sgn(s.skill)}`:''}.`].filter(Boolean);
+        `${Math.round(s.cost)!==Math.round(-s.cash)?`Spent ${$(Math.round(s.cost))}. `:''}Energy ${sgn(s.energy)}, cash ${s.cash<0?'−':'+'}${$(Math.round(Math.abs(s.cash)))}${s.rep?`, rep ${sgn(s.rep)}`:''}${s.skill?`, skill ${sgn(s.skill)}`:''}.`].filter(Boolean);
       return `<hr style="border:0;border-top:1px solid var(--line,#ccd)">`+rows.map(x=>`<p>${x}</p>`).join('');
     }
 
