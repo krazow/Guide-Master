@@ -76,6 +76,7 @@ function onNewGame(){
     <p>📆 This is season 1 of a <b>${S.years}-year career</b>. Each July you guide two weeks; each winter you pay the bills, plan upgrades and see what the new season’s rules and runs look like.</p>
     <p>👑 <b>Kenai kings are closed in 2026</b> by emergency order. Not even catch-and-release.</p>
     <p>⛽ The sled has <b>${S.fuel} gallons</b> in a ${SLED_TANK()}-gallon tank. The only fuel dock is at <b>Kenai Harbor</b>. Run dry and the Coast Guard tows you in.</p>
+    <p>🍽️ You have to eat, too: about <b>${Math.floor(foodMeals()/MEALS)} days</b> of food in the pantry. Restock at the grocery store in Soldotna, pack a lunch before each trip, and keep a few cans of gas at home (you haul it from the harbor).</p>
     <p>⛑️ Your <b>first-aid/CPR card expires Wednesday night</b> (a new one lasts two years). There’s a class at the clinic in Soldotna <b>Monday, Tuesday and Thursday, 1–4 PM</b> (join by 1:30).</p>
     <p>Check the <b>📅 Bookings</b> tab for your schedule and the <b>📖 Regs</b> tab for the rules you guide by.</p>`,[{l:'Grab the coffee and go',fn:()=>{}}]);
 }
@@ -111,13 +112,14 @@ function onMorning(d){
 function onNight(where,notes,d){
   if(S.trip){S.trip=null;notes.push('🛶 You never finished the trip. The party drove off without paying.')}
   if(where==='collapsed'){S.loc='shop';notes.push('😵 You were up past midnight and fell asleep in the truck at the shop.')}
-  money(-overhead());S.stats.spent+=overhead();notes.push(`💸 Boat payment, insurance and groceries: ${$(overhead())}.`);
-  {const fp=fuelPlan();if(fp.short&&fp.tomorrow)notes.push(`⛽ The sled has ${fp.have} gallons and tomorrow’s trips need about ${fp.need}. Fill up at Kenai Harbor (6 AM–10 PM) before you launch.`)}
+  money(-overhead());S.stats.spent+=overhead();notes.push(`💸 Boat payment, insurance and utilities: ${$(overhead())}.`);
+  {const fp=fuelPlan();if(fp.short&&fp.tomorrow)notes.push(`⛽ The sled has ${fp.have} gallons and tomorrow’s trips need about ${fp.need}. Fill up at Kenai Harbor (6 AM–10 PM) before you launch.${homeFuelHint()}`)}
   S.book.filter(b=>b.d===d&&b.status==='booked'&&b.asst).forEach(b=>asstSettle(b,notes));
   S.book.filter(b=>b.d===d&&b.status==='booked'&&!b.asst).forEach(b=>{b.status='noshow';adj('rep',-15);S.stats.noshow++;
     notes.push(`😠 You never showed for the ${b.who}. They posted a one-star review from the parking lot.`)});
   if(S.unlogged){S.overdue+=S.unlogged;notes.push(`📓 ${S.unlogged} logbook entr${S.unlogged>1?'ies are':'y is'} now overdue. Write ${S.unlogged>1?'them':'it'} up before a trooper asks.`);S.unlogged=0}
   adj('energy',(where==='home'?60:30)/(where==='collapsed'?2:1));
+  suppliesNight(notes,d);                                // 31-supplies.js: tonight's meals, spoilage
   if(d===S.cred.fa) notes.push('⛑️ Your first-aid/CPR card expired at midnight. You can’t legally guide until you renew it.');
   if(S.energy<15) notes.push('🥱 You’re running on fumes.');
 }
@@ -203,8 +205,8 @@ function dipnetModal(){
   const d=day(),o=avgOdds('sockeye','kbeach',S.t,180),n=clamp(Math.round((2+13*o)*(.7+Math.random()*.6)),1,Math.max(1,25-S.pu));
   S.dipnet[d]=true;
   modal('🥅 Dipnetting at the mouth',`<p>Three hours in chest waders at the mouth of the Kenai, a five-foot hoop net and a few hundred of your neighbors. You bonk <b>${n} reds</b>.</p><p style="font-size:13px">🌊 Tide: ${tideNow()}. Reds ride the incoming tide in; ${o>.75?'you timed it right.':o>.45?'decent timing.':'next time, come on the flood tide.'}</p><p style="font-size:13px;color:var(--mute)">Personal use is for Alaska residents only. Household limit: 25. Before you leave the beach, clip both tips of each fish’s tail and record it on your permit.</p>`,[
-    {l:'Clip both tail tips & record them on your permit',s:'10 more minutes.',fn:()=>{pass(190);S.freezer+=n;S.pu+=n;adj('energy',-10);say(`🥅 ${n} reds clipped, recorded and iced. Freezer: ${S.freezer}/25.`)}},
-    {l:'Skip the paperwork, beat the traffic',fn:()=>{pass(180);S.freezer+=n;S.pu+=n;adj('energy',-10);say(`🥅 You toss ${n} reds in the cooler and hit the road.`);violate(null,{p:.3,fine:150,minor:true,what:'unmarked, unrecorded personal-use salmon'})}}]);
+    {l:'Clip both tail tips & record them on your permit',s:'10 more minutes.',fn:()=>{pass(190);const k=addFish(n);S.pu+=n;adj('energy',-10);say(`🥅 ${n} reds clipped, recorded and iced. Freezer: ${S.freezer}/${fishCap()}.`)}},
+    {l:'Skip the paperwork, beat the traffic',fn:()=>{pass(180);addFish(n);S.pu+=n;adj('energy',-10);say(`🥅 You toss ${n} reds in the cooler and hit the road.`);violate(null,{p:.3,fine:150,minor:true,what:'unmarked, unrecorded personal-use salmon'})}}]);
 }
 
 // ---- enforcement: boat & credential checks ----
@@ -261,7 +263,8 @@ function todoItems(){
     it.push({l:`${T.ic} ${T.n}: ${b.who}`,s:`${fmt(T.start)}, ${L[T.loc].name}`,ok:b.status==='done',fail:b.status==='noshow'||b.status==='cancelled',urgent:b.status==='booked'&&m>=T.start-120})});
   if(faDue(d)) it.push({l:'Renew your first-aid card',s:'Soldotna clinic, Mon, Tue & Thu 1–4 PM (join by 1:30), $95.',ok:false,urgent:faUrgent(d)||S.cred.fa<d});
   if(S.boat<=40) it.push({l:S.boat<=0?'Get the boat back in service':'Service the boats',s:S.boat<=0?`Out of service: a major repair ${$(rp(MAJOR_REPAIR))}, or an emergency patch or loaner to run a trip.`:`Condition ${S.boat}. At the shop: DIY +20 or the dealer +40. Below 10 it can go out of service.`,ok:false,urgent:S.boat<=20});
-  {const fp=fuelPlan();if(fp.short&&fp.tomorrow)it.push({l:'Fuel up for tomorrow',s:`The sled has ${fp.have} gal and tomorrow’s trips need about ${fp.need}. Kenai Harbor fuel dock, ${hoursTxt('harbor').replace('Open ','')}.`,ok:false,urgent:tod()>=1020})}
+  {const fp=fuelPlan();if(fp.short&&fp.tomorrow)it.push({l:'Fuel up for tomorrow',s:`The sled has ${fp.have} gal and tomorrow’s trips need about ${fp.need}. Kenai Harbor fuel dock, ${hoursTxt('harbor').replace('Open ','')}.${homeFuelHint()}`,ok:false,urgent:tod()>=1020})}
+  it.push(...suppliesTodo());
   it.push({l:'Keep your logbook current',s:S.unlogged+S.overdue?`${S.unlogged+S.overdue} trip${S.unlogged+S.overdue>1?'s':''} to write up.`:'All caught up.',ok:!(S.unlogged+S.overdue),urgent:S.overdue>0});
   it.push({l:'Keep a clean record',s:`${S.cites} active citation${S.cites===1?'':'s'}, ${S.warns} warning${S.warns===1?'':'s'} this season. Three citations and your permit is gone.`,ok:S.cites===0,urgent:S.cites>=2});
   it.push({l:'Optional: fill the freezer with 25 dipnet reds',s:`${S.freezer}/25. Kenai City Beach, 6 AM–11 PM.`,ok:S.freezer>=25});

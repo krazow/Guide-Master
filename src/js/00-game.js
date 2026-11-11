@@ -16,6 +16,7 @@
 //    09-keys.js      keyboard shortcuts for desktop
 //    20-world.js     ← YOUR GAME: stats, starting state, places, actions, scenery
 //    21-story.js     ← YOUR GAME: events, tips, to-do, achievements, scoring, migrations
+//    31-supplies.js  ← YOUR GAME: food, home fuel storage, power outages and the generator
 //    99-boot.js      starts the app
 //  Engine files (00–09) shouldn't need much editing; your game lives in 20+.
 // ============================================================
@@ -24,7 +25,7 @@ const GAME={
   title:'Guide Master',
   tagline:'A guide’s career on the Kenai',
   codePrefix:'GUIDEMASTER',   // transfer codes start with this, e.g. POCKETWEEK:eyJ…
-  version:'1.6.2',           // bump on every release: shown in Settings, stamped into saves and sw.js
+  version:'1.7.0',           // bump on every release: shown in Settings, stamped into saves and sw.js
   schema:2,                  // bump when the shape of S changes, and add a MIGRATIONS entry (21-story.js)
   days:14,                   // days in ONE season (the July peak, Mon–Sun twice; season 1 is Jul 13–26, 2026). A career is 14 × years: see the getter below
   wake:300,                  // default alarm for new games, in minutes after midnight (300 = 5:00 AM: guides start early; saves keep their own S.alarm)

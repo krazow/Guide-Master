@@ -153,7 +153,7 @@ function startSeason(s){
   adj('boat',S.up.motor?-5:-12);S.boat=Math.max(S.boat,Math.min(boat0,10));   // winter wear never takes a boat out of service on its own
   S.rep=Math.round(50+(S.rep-50)*.85);
   const before=S.cites;S.cites=S.citeLog.filter(x=>seasonOf(x)>=s-1).length;
-  S.winter={s,bill,expired:before-S.cites};
+  S.winter={s,bill,expired:before-S.cites,sup:suppliesWinter()};   // 31-supplies.js: stale gas, fridge, a winter outage
   setTimeout(()=>{if(S&&S.winter&&!S.over)winterModal()},0);   // after the night summary
 }
 function winterModal(){
@@ -163,6 +163,7 @@ function winterModal(){
     <p><b>${p.year}:</b> ${p.trips} July trips, ${$(p.earned||0)} in fares and tips${p.fines?`, ${$(p.fines)} in fines`:''}. Rep ${p.rep}.${p.rest&&p.rest.trips?`<br>📆 <b>Rest of the summer</b> (estimated, not played): about ${p.rest.trips} trips, <b>${$(p.rest.net)} net</b>.`:''}</p>
     <p>💸 <b>Winter bills ${$(W.bill)}</b>: ${winterCosts().map(([,c,sh])=>`${sh} ${$(c)}`).join(' · ')}. Cash now <b>${$(Math.round(S.money))}</b>.</p>
     <p>📣 <b>${2026+s}:</b> ${REG().fc}<br>⚓ Halibut: 2 a day, the second ${halSize()} inches or less; no retention ${halDaysTxt()}.<br>⛽ Kenai Harbor fuel ${$(fuelPrice('kenai',seasonFirst(s)))}/gal. ${evenYear(seasonFirst(s))?'🩷 Even year: pinks in August.':'Odd year: few pinks.'}</p>
+    ${W.sup&&W.sup.length?`<p>${W.sup.join('<br>')}</p>`:''}
     <p>⛑️ First-aid card: ${fa}.${W.expired>0?`<br>⚖️ ${W.expired} old citation${W.expired>1?'s':''} dropped off.`:''}${S.cites?`<br>⚖️ Active citations: ${S.cites}/3.`:''}</p>
     <p style="font-size:13px;color:var(--mute)">Season ${s+1} of ${S.years}. Bookings open when you finish planning.</p>`,[
     {l:'🛠️ Upgrades & business',s:'Boats, marketing, rates, a Homer charter permit.',fn:()=>upgradeModal()},
@@ -172,7 +173,7 @@ function winterModal(){
 function upgradeModal(){
   modal(`🛠️ Off-season plans · cash ${$(Math.round(S.money))}`,`<p style="font-size:13px;color:var(--mute)">Rates now ×${S.up.rate.toFixed(1)}. Rep ${S.rep}.</p>`,
     UPGRADES.map(u=>{const why=upOK(u);return {l:`${u.ic} ${u.n}${u.cost?` — ${$(u.cost)}`:''}`,s:why?`${why}. ${u.d}`:u.d,dis:!!why,fn:()=>{buyUp(u);setTimeout(upgradeModal,0)}}})
-      .concat([{l:'Done',s:'Back to the off-season summary.',fn:()=>setTimeout(winterModal,0)}]));
+      .concat([{l:'🏠 Home: generator, fuel storage, freezer',s:`${genOf()?genOf().short+' generator, ':'No generator, '}${fuelCap()} gal of fuel storage, a ${fishCap()}-fish freezer.`,fn:()=>homeShopModal(()=>upgradeModal())},{l:'Done',s:'Back to the off-season summary.',fn:()=>setTimeout(winterModal,0)}]));
 }
 function finishWinter(){
   const s=S.winter.s;S.winter=null;const reg=genSeasonBookings(s);
