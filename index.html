@@ -244,7 +244,7 @@ const GAME={
   title:'Guide Master',
   tagline:'A guide’s career on the Kenai',
   codePrefix:'GUIDEMASTER',   // transfer codes start with this, e.g. POCKETWEEK:eyJ…
-  version:'1.7.1',           // bump on every release: shown in Settings, stamped into saves and sw.js
+  version:'1.8.0',           // bump on every release: shown in Settings, stamped into saves and sw.js
   schema:2,                  // bump when the shape of S changes, and add a MIGRATIONS entry (21-story.js)
   days:14,                   // days in ONE season (the July peak, Mon–Sun twice; season 1 is Jul 13–26, 2026). A career is 14 × years: see the getter below
   wake:300,                  // default alarm for new games, in minutes after midnight (300 = 5:00 AM: guides start early; saves keep their own S.alarm)
@@ -263,9 +263,9 @@ const DIFFS={
   // money: starting cash. bad: random-event multiplier. enforce: catch-chance multiplier. fine: fine multiplier;
   // esc: extra fine per citation already on your record. cost: fuel, overhead, winter bills and repairs.
   // mood: client happiness (tips, rep). book: off-month bookings. wear: boat wear. No difficulty changes the score.
-  easy:  {n:'Rookie Season',ic:'🎣',d:'More cash, fewer troopers, cheaper bills and easygoing clients. For learning the water.',money:3000,bad:0.6,enforce:0.7,fine:0.8,esc:0.1,cost:0.8,mood:6,book:1.08,wear:0.85},
+  easy:  {n:'Rookie Season',ic:'🎣',d:'More cash, fewer troopers, cheaper bills and easygoing clients. For learning the water.',money:3000,bad:0.6,enforce:0.7,fine:0.8,esc:0.1,cost:0.8,mood:5,book:1.08,wear:0.85},
   normal:{n:'Licensed Guide',ic:'🛶',d:'The Kenai as it is: busy, beautiful and well patrolled.',money:1500,bad:1,enforce:1,fine:1,esc:0.2,cost:1,mood:0,book:1,wear:1},
-  hard:  {n:'Combat Season',ic:'🐻',d:'Thin cash, more troopers, fines that climb steeply with every citation, dearer fuel and bills, pickier clients, quieter off-months and more bad luck. Same score, tougher grade.',money:600,bad:1.5,enforce:1.4,fine:1.1,esc:0.3,cost:1.2,mood:-7,book:0.88,wear:1.25},
+  hard:  {n:'Combat Season',ic:'🐻',d:'Thin cash, more troopers, fines that climb steeply with every citation, dearer fuel and bills, pickier clients, quieter off-months and more bad luck. Same score, tougher grade.',money:600,bad:1.5,enforce:1.4,fine:1.1,esc:0.3,cost:1.2,mood:-5,book:0.88,wear:1.25},
 };
 const DF=()=>DIFFS[(typeof S!=='undefined'&&S&&S.diff)||'normal']||DIFFS.normal;
 // ---------------- state ----------------
@@ -984,6 +984,7 @@ function newState(){
     gear:3,                 // trips' worth of beads, flies, leader and lures
     prep:-1,                // day index the gear is rigged for
     scout:-1,               // day index you scouted the lower river
+    scoutAt:{},look:-1,     // day index you scouted the upper river / Homer; the day you last read the Fish tab (spot hints, 23-fish.js)
     unlogged:0,overdue:0,   // ADF&G logbook trips not yet written up / written up late
     book:[],nextId:1,trip:null,
     regs:[],                // returning parties (30-stories.js): who they are and how their last trip went
@@ -992,7 +993,7 @@ function newState(){
 
     calls:{},diner:{},report:{},office:{},dipnet:{},walks:{},
     run:[],cum:0,limit:3,eo:[],wx:[],wxd:[],noise:[],water:.5,solo:{},pu:0,
-    freezer:0,skill:0,
+    freezer:0,skill:20,
     home:{cans:3,tank:0,gal:10,tgal:0,stale:0,gen:0,frz:0},   // 31-supplies.js: fuel storage (gallons: untreated, stabilized, stale), generator type, big freezer
     food:{pan:24,fri:6,fd:0,fm:0,kits:0},ate:{d:-1,n:0},hungry:0,power:null,   // meals in the pantry and fridge, the day the fridge was stocked, meals left of a thawed red, client lunch kits; meals eaten away today; today's outage
     visited:{shop:true},
@@ -1119,7 +1120,7 @@ function actionsHere(){
   }
   if(S.loc==='lower'||S.loc==='cooper'){boatRescueActions(a);const ba=boatAction();if(ba)a.push(ba)}
   if(S.loc==='lower'){
-    if(S.scout!==d) a.push({ic:'🔭',l:`Scout the river — ~${bn('scout')} gal`,s:`1 hour. See where the reds are holding. Better trips today and tomorrow. Tank: ${Math.round(S.fuel)} gal.`,cat:'fish',fn:()=>{if(burnSolo(bn('scout'))<1)return;pass(60);S.scout=d;S.skill++;adj('energy',-4);say(`🔭 You run up past the Sterling Highway bridge and back. ${S.run[Math.max(0,d-1)]>90000?'Reds are stacked in the soft water along the inside bends.':'Pods of reds, but they’re moving through fast.'}`)}});
+    if(S.scout!==d) a.push({ic:'🔭',l:`Scout the river — ~${bn('scout')} gal`,s:`1 hour. See where the reds are holding: better trips today and tomorrow, and the spot buttons show an exact read. Tank: ${Math.round(S.fuel)} gal.`,cat:'fish',fn:()=>{if(burnSolo(bn('scout'))<1)return;pass(60);S.scout=d;S.skill++;adj('energy',-4);say(`🔭 You run up past the Sterling Highway bridge and back. ${S.run[Math.max(0,d-1)]>90000?'Reds are stacked in the soft water along the inside bends.':'Pods of reds, but they’re moving through fast.'}`)}});
     a.push({ic:'🐟',l:'Flip for reds yourself from the bank',s:'1 hour. You’re off the clock, so it’s legal. Freezer fish.',cat:'fish',dis:todays(d).length&&m<TRIPS.reds.start+TRIPS.reds.len,fn:()=>{pass(60);adj('energy',-5);const n=addFish(Math.min(S.limit,Math.max(0,Math.round(Math.random()*S.limit+.3))));say(n?`🐟 Shoulder to shoulder at the walkway, you flip ${n} red${n>1?'s':''} into the net. Hooked in the mouth, every one.`:'🐟 An hour of “flipping” and nothing but a sore wrist. Combat fishing is humbling.')}});
   }
   if(S.loc==='cooper'){
@@ -1369,7 +1370,7 @@ function onNight(where,notes,d){
   money(-overhead());S.stats.spent+=overhead();notes.push(`💸 Boat payment, insurance and utilities: ${$(overhead())}.`);
   {const fp=fuelPlan();if(fp.short&&fp.tomorrow)notes.push(`⛽ The sled has ${fp.have} gallons and tomorrow’s trips need about ${fp.need}. Fill up at Kenai Harbor (6 AM–10 PM) before you launch.${homeFuelHint()}`)}
   S.book.filter(b=>b.d===d&&b.status==='booked'&&b.asst).forEach(b=>asstSettle(b,notes));
-  S.book.filter(b=>b.d===d&&b.status==='booked'&&!b.asst).forEach(b=>{b.status='noshow';adj('rep',-15);S.stats.noshow++;
+  S.book.filter(b=>b.d===d&&b.status==='booked'&&!b.asst).forEach(b=>{b.status='noshow';adj('rep',-15);S.stats.noshow++;S.stats.hapSum=(S.stats.hapSum||0)+20;S.stats.hapN=(S.stats.hapN||0)+1;
     notes.push(`😠 You never showed for the ${b.who}. They posted a one-star review from the parking lot.`)});
   if(S.unlogged){S.overdue+=S.unlogged;notes.push(`📓 ${S.unlogged} logbook entr${S.unlogged>1?'ies are':'y is'} now overdue. Write ${S.unlogged>1?'them':'it'} up before a trooper asks.`);S.unlogged=0}
   adj('energy',(where==='home'?60:30)/(where==='collapsed'?2:1));
@@ -1524,7 +1525,7 @@ function todoItems(){
   it.push({l:'Optional: fill the freezer with 25 dipnet reds',s:`${S.freezer}/25. Kenai City Beach, 6 AM–11 PM.`,ok:S.freezer>=25});
   return it;
 }
-const RULES_HTML='<p>Guide every July of a 2-, 5- or 10-year career. You lose if you get 3 active citations (permit pulled; citations drop off after the next season), your reputation hits 0, or you fall $2,000 in debt.</p><p>Score: net cash + the estimated rest of your last summer + nine tenths of the value of boats and permits you bought + reputation ×15 + 60 per trip − 400 per citation + 2 per freezer fish, plus 300 a season for a career without a violation. The grade is per season, so careers of any length compare: A at 62,000 a season, B 55,000, C 44,000, D 27,000 (a lost career is always an F). On Licensed Guide a by-the-book career lands mostly on B, a sharp one (phone requests, every upgrade, no violations) on B or A, and one that skips meals and lunches on C. Combat Season grades about a step lower and Rookie Season about a step higher.</p><p>Difficulty gives no score bonus. It changes the game instead: <b>Rookie</b> has fewer patrols, gentler fines, cheaper fuel and bills, friendlier clients and a bit more off-month work; <b>Licensed</b> is the baseline; <b>Combat</b> has more patrols, fines that climb with every citation, dearer fuel, bills and repairs, pickier clients, less off-month work and more bad luck. The same play grades about a step lower on Combat and a step higher on Rookie.</p>';
+const RULES_HTML='<p>Guide every July of a 2-, 5- or 10-year career. You lose if you get 3 active citations (permit pulled; citations drop off after the next season), your reputation hits 0, or you fall $2,000 in debt.</p><p>Score: net cash + the estimated rest of your last summer + nine tenths of the value of boats and permits you bought + reputation ×15 + 60 per trip − 400 per citation + 2 per freezer fish, plus 300 a season for a career without a violation. The grade is per season, so careers of any length compare: A at 62,000 a season, B 55,000, C 44,000, D 27,000 (a lost career is always an F). On Licensed Guide a by-the-book career lands mostly on B, a sharp one (phone requests, every upgrade, no violations) on B or A, a skilled one (Fish tab and scouting to pick spots, a well-kept boat, regulars, no overpricing) on A, a passive one on C or B and one that skips meals and lunches on C or D. Combat Season grades about a step lower and Rookie Season about a step higher.</p><p>Difficulty gives no score bonus. It changes the game instead: <b>Rookie</b> has fewer patrols, gentler fines, cheaper fuel and bills, friendlier clients and a bit more off-month work; <b>Licensed</b> is the baseline; <b>Combat</b> has more patrols, fines that climb with every citation, dearer fuel, bills and repairs, pickier clients, less off-month work and more bad luck. The same play grades about a step lower on Combat and a step higher on Rookie.</p>';
 
 // ---- achievements ----
 const ACH=[
@@ -1552,7 +1553,7 @@ const ACH=[
 
 // ---- scoring and the end screen ----
 const FINISH_TEXT={h1:'{{name}}, that’s a wrap on your career',sub:()=>`${S.years} Julys on the Kenai, ${yearOf(0)}–${yearOf(day())}. The river keeps running; somebody else gets your seams now.`};
-function curSeason(){const s=S.stats,o=S.st0||{};return {year:yearOf(day()),trips:s.trips-(o.trips||0),fares:s.earned-(o.earned||0),earned:(s.earned+s.tips)-((o.earned||0)+(o.tips||0)),wom:S.wom||0}}
+function curSeason(){const s=S.stats,o=S.st0||{};return {hap:seasonHap(s,o),tips:(s.tipSum||0)-(o.tipSum||0),year:yearOf(day()),trips:s.trips-(o.trips||0),fares:s.earned-(o.earned||0),earned:(s.earned+s.tips)-((o.earned||0)+(o.tips||0)),wom:S.wom||0}}
 // The score, line by line (the end screen shows these rows and they add up to scoreOf()).
 function scoreParts(){
   const st=S.stats,cites=st.citesTotal||S.cites,rest=restOfSeason(curSeason()).net;
@@ -1658,11 +1659,15 @@ const STEP={
   expired:(b)=>({t:'⛑️ Your first-aid card expired',b:'<p>A current first-aid and CPR certification is a condition of your guide license. As of today yours is expired.</p>',o:[
     O('Cancel and refund','No fare, rep −6.',(b,t)=>{adj('rep',-6);t.abort=true;tripCancel(b,`⛑️ You cancel on the ${b.who}. Get to the Monday, Tuesday or Thursday class in Soldotna.`)}),
     O('Run it anyway','Full fare. Hope nobody asks for your card.',(b,t)=>violate(t.notes,{p:.3,fine:500,what:'guiding without a current first-aid certification'}),1)]}),
-  spot:(b)=>{const T=TRIPS[b.type];return {t:`${T.ic} Where to, Captain?`,b:`<p>${T.long}</p><p>The ${b.who} are rigged and ready. Where do you take them?</p>`,o:SPOTS[b.type].map(sp=>O(sp.l,sp.s,(b,t)=>{
-    t.q+=sp.q;t.happy+=sp.h||0;t.fuelx=(t.fuelx||0)+(sp.fuel||0);t.notes.push(`📍 ${sp.l}.`);
+  spot:(b)=>{const T=TRIPS[b.type],hint=spotHint(b.type),d=day();return {t:`${T.ic} Where to, Captain?`,b:`<p>${T.long}</p><p>The ${b.who} are rigged and ready. Where do you take them?</p>${hint?`<p class="small-note" style="font-size:12.5px;color:var(--mute);margin:0">${hint==='exact'?'🔭 You scouted the water: the reads below are exact.':'🐟 From the Fish tab: a read from today’s water, wind, run and tide.'}</p>`:'<p class="small-note" style="font-size:12.5px;color:var(--mute);margin:0">💡 Spots fish differently with the water, wind and run. Check the 🐟 Fish tab or scout the river first.</p>'}`,o:SPOTS[b.type].map((sp,i)=>{
+    const read=hint?spotFit(b.type,i,d,hint==='exact'):null,pre=read?`${hint==='exact'?'🔭':'🐟'} ${spotWord(read.f)}${read.why?`: ${read.why}`:''}. `:'';
+    return O(sp.l,pre+sp.s,(b,t)=>{
+    const fit=spotFit(b.type,i,d,true);
+    t.q+=sp.q+(fit?fit.f*SPOT_Q:0);t.happy+=sp.h||0;t.fuelx=(t.fuelx||0)+(sp.fuel||0);t.notes.push(`📍 ${sp.l}.`);
+    if(fit&&Math.abs(fit.f)>=.3)t.notes.push(fit.f>0?`🎯 ${fit.why?fit.why.charAt(0).toUpperCase()+fit.why.slice(1):'The water suits it'}: the fish are there.`:`🌫️ ${fit.why?fit.why.charAt(0).toUpperCase()+fit.why.slice(1):'The water is wrong for it'}: it fishes slowly today.`);
     if(sp.viol){fx(t,60,'Tip for the empty water');violate(t.notes,sp.viol)}
     if(sp.risk&&Math.random()<sp.risk.p*windRisk()){t.notes.push(sp.risk.txt);t.happy+=sp.risk.h;adj('boat',sp.risk.boat||0);adj('energy',sp.risk.energy||0)}
-    if(sp.add) t.steps.splice(t.step+1,0,...sp.add.filter(x=>!t.steps.includes(x)));},!!sp.viol))}},
+    if(sp.add) t.steps.splice(t.step+1,0,...sp.add.filter(x=>!t.steps.includes(x)));},!!sp.viol)})}},
   beer:(b)=>({t:'🍺 Cooler’s open',b:`<p>It’s barely 7 AM and the ${b.who} crack the cooler. “Have one, Captain {{name}}!”</p>`,o:[
     O('Politely decline: you’re running the boat','They tease you about it all morning.',(b,t)=>{t.happy-=3}),
     O('Ask them to keep it closed till we’re off the water','Safer boat, quieter clients.',(b,t)=>{t.happy-=5}),
@@ -1744,7 +1749,7 @@ function tripStart(b){
   // tackle and boat condition shape the day before you even leave the dock
   if(S.gear<=0){t.happy-=3;t.notes.push('🪱 You’re out of tackle. The clients fish with whatever is left in the bottom of the box, and they notice.')}
   if(t.loan){t.happy-=6;t.notes.push('🤝 You run the trip on a borrowed rig. It is tired and the clients can tell.')}
-  if(S.boat>=80) t.happy+=2;
+  t.happy+=clamp(Math.round((S.boat-65)/7),-3,4);   // a well-kept boat pleases clients; a tired one shows
   hungerTrip(t);                                           // 31-supplies.js: a hungry guide is a grumpy guide
   if(!t.loan&&S.boat<70&&b.type!=='halibut'&&Math.random()<(70-S.boat)/90){
     const m=60+Math.floor(Math.random()*60);lose(t,m);t.happy-=12;fx(t,-Math.round(payOf(b)*.15),'Breakdown credit');fx(t,-rp(80),'Roadside repair');adj('boat',8);
@@ -1791,8 +1796,8 @@ window.legalBtn=()=>{const i=MB.findIndex(b=>b.legal===true);return i<0?0:i};
 function tripCancel(b,note){b.status='cancelled';S.stats.cancelled++;S.trip=null;if(note)say(note)}
 function tripEnd(b,t){
   const T=TRIPS[b.type],d=day(),r=Math.random;
-  let q=.5+t.q+runFactor(b.type)+(WX[S.wx[d]||'sun']||WX.sun).q+(S.prep===d?.08:0)+(S.scout>=d-1&&T.loc==='lower'?.05:0)
-    +upQ(b.type)+(S.gear>0?0:-.15)+(S.boat<40&&!t.loan?-.1:0)+(S.energy<30?-.1:0)+Math.min(.1,S.skill*.01)+(r()-.5)*.24;
+  let q=.5+t.q+runFactor(b.type)+(WX[S.wx[d]||'sun']||WX.sun).q+(S.prep===d?.08:0)+(scoutedFor(b.type,d)?.05:0)
+    +upQ(b.type)+(S.gear>0?0:-.15)+(S.boat<40&&!t.loan?-.1:0)+(S.energy<30?-.1:0)+skillQ()+(r()-.5)*.24;
   q=clamp(q,.05,1);
   // fuel: burn from the tank; run dry and the trip ends with a Coast Guard tow
   const ft=tripFuel(b);let towed=false;
@@ -1819,7 +1824,7 @@ function tripEnd(b,t){
   // a bad one (skunked, out of tackle, a breakdown, grumpy clients) means a partial refund and a bad review.
   const happy=45+frac*45+t.happy+upH(b.type)+DF().mood-RATE_MOOD*rateSteps();
   const fare=towed?Math.round(payOf(b)*.5):payOf(b),base=b.type==='halibut'&&!S.up.chp?1200:fare;
-  const tip=Math.round(base*clamp((happy-62)/130,0,.3));
+  const tip=Math.round(base*clamp((happy-60)/100,0,.3));
   const skunk=fishers>0&&fish-t.kept<=0&&b.type!=='trout'&&!(b.type==='halibut'&&halClosed(b.d));
   const refundPct=clamp((42-happy)/200,0,.25)+(skunk?.05:0),refund=Math.round(fare*refundPct);
   const xs=(t.x||[]),xnet=xs.reduce((a,[,v])=>a+v,0),xpos=xs.reduce((a,[,v])=>a+Math.max(0,v),0),xneg=xs.reduce((a,[,v])=>a+Math.min(0,v),0);
@@ -1833,7 +1838,8 @@ function tripEnd(b,t){
   if(noBoat()&&b.type!=='halibut')t.notes.push('🔧 The boat is out of service: you can’t launch again until a major repair, an emergency patch or a loaner.');
   else if(t.boat0!=null&&!t.loan)boatWatch(t.boat0);
   money(fare-refund+tip+xnet-costs);
-  const st=S.stats;st.trips++;st.clients+=b.n;st.fish+=fish;st.earned+=fare-refund;st.tips+=tip+xpos;st.spent+=costs-xneg;
+  const st=S.stats;st.hapSum=(st.hapSum||0)+clamp(happy-DF().mood+RATE_MOOD*rateSteps()*.7,0,110);st.hapN=(st.hapN||0)+1;st.tipSum=(st.tipSum||0)+tip;   // the season’s quality (24-career, 25-fuel): relative to the difficulty’s client mood
+  st.trips++;st.clients+=b.n;st.fish+=fish;st.earned+=fare-refund;st.tips+=tip+xpos;st.spent+=costs-xneg;
   S.unlogged++;S.skill++;
   const net=fare-refund+tip+xnet-costs;
   b.status='done';b.out={happy:Math.round(happy),fish,line,fare,refund,tip,net};S.trip=null;
@@ -1846,7 +1852,7 @@ function tripEnd(b,t){
     <p><b>Catch:</b> ${line}${t.kept?` (${t.kept} kept on the sly)`:''}${lost?` · ${lost} minutes lost`:''}</p>
     ${towed?'<p>🛟 <b>Towed in.</b> Half the fare refunded.</p>':''}<p><b>The pay:</b>${row(`Booked fare${b.type==='halibut'&&!S.up.chp?' (day rate)':''}`,fare)}${refund?row(`Refund${why.length?` (${why.join(', ')})`:''}`,-refund):''}${row('Tip',tip)}${xs.map(([l,v])=>row(l,v)).join('')}${costs?row('Launch fee',-costs):''}<br><b>Net: ${net<0?'−':''}${$(Math.abs(net))}</b></p>
     <p>${mood} Rep ${dRep>=0?'+':'−'}${Math.abs(dRep)}.</p>
-    <p style="font-size:13px;color:var(--mute)">📓 Log it in your ADF&amp;G logbook before bed.</p>`,[{l:'Head in',fn:()=>{}}]);
+    <p style="font-size:13px;color:var(--mute)">📓 Log it in your ADF&amp;G logbook before bed.</p>`,[{l:'Head in',fn:()=>{}}].concat(b.card?[{l:'Hand them your card and ask them back',s:'10 minutes. After a day like this, most say yes.',fn:()=>regCard(b)}]:[]));
   sfx(happy>=50?'good':'bad');
 }
 // ============================================================
@@ -1957,6 +1963,53 @@ function rollRun(d){
   return Math.round(runCurve('sockeye',doyOf(d),d)*nz.sockeye*230000/10)*10+Math.floor(Math.random()*10);
 }
 
+// ---- where to fish today (1.8.0): each spot answers to the day's water, wind, run and tide ----
+// The spots in SPOTS (22-trips.js) are not equally good every day. SPOT_FIT[type][i] returns the day's reasons for spot i (value, text);
+// they sum to a fit between -1 and 1 and move the catch by SPOT_Q per point. Scouting adds the day's hidden local noise (exact);
+// the Fish tab shows the reasons from the conditions alone. Nothing is hidden from a player who looks: the buttons carry the hint.
+const SPOT_Q=.15;
+const TYPE_IX={reds:1,silver:2,trout:3,halibut:4};
+const hz=(a,b,c)=>{const x=Math.sin(a*127.1+b*311.7+c*74.7)*43758.5453;return x-Math.floor(x)};
+// today's conditions as signed readings (about -1 to +1, centred on a typical July day)
+function spotConds(type,d=day()){
+  const T=TRIPS[type],[sp,loc]=TRIP_SP[type]||TRIP_SP.reds,w=wxOf(d),k=S.wx[d]||'sun',n=(x,c,r)=>clamp((x-c)/r,-1,1);
+  return {run:n(abundance(sp,loc,d),sp==='coho'?.09:.78,sp==='coho'?.12:.4),sock:n(abundance('sockeye','cooper',d),.22,.15),calm:n(w.wind,9,-6),lvl:n(w.level,.28,.3),
+    trend:w.dw>.04?-.8:w.dw<-.05?.3:0,cloud:k==='cloud'||k==='rain'?.7:k==='sun'?-.7:0,slack:n(1-Math.abs(tide(d*1440+T.start+T.len/2).rate),.3,.35)};
+}
+const R=(v,up,down)=>[v,v>=0?up:down];     // a reading times its weight, with the reason for each sign
+const SPOT_FIT={           // same order as SPOTS in 22-trips.js; null = no read (the closed-bank spot)
+  reds:[
+    c=>[R(.6*c.run,'a strong run stacks the seams','a thin run leaves the seams empty'),R(c.trend,'falling, clearing water holds reds in the seams','rising, dirty water scatters the seams')],
+    c=>[R(.6*c.lvl,'high water pushes reds onto the gravel bars','low water leaves the bars dry'),R(.3*c.calm,'a calm run upriver','wind makes the long run rough')],
+    null,
+    c=>[R(.5*c.cloud,'overcast keeps the reds on the bank edge','bright sun pushes them to deep water'),R(-.3*c.run,'a thin run slides along the bank shallows','a big run crowds the walkway')]],
+  silver:[
+    c=>[R(.6*c.lvl,'big water fills the deep slots','low water empties the deep slots'),R(.3*c.calm,'easy trolling','wind makes trolling rough')],
+    c=>[R(c.trend,'falling water parks silvers in the soft water','rising water drives silvers out of the soft water'),R(.4*c.cloud,'overcast helps','bright sun puts them down')],
+    c=>[R(.6*c.run,'enough silvers to spread upriver','too few silvers to bother going this far'),R(.3*c.calm,'a calm run upriver','wind on the long run')]],
+  trout:[
+    c=>[R(.5*c.sock,'spawning reds have the rainbows on the egg bite','few spawning reds yet, so no egg bite'),R(-.4*c.lvl,'clear water shows the beads','milky, high water hides the beads'),R(.2*c.cloud,'overcast helps','bright sun')],
+    c=>[R(c.trend===0?.4:-.3,'steady water fishes the riffles well','a changing river puts the fish down'),R(.3*c.cloud,'overcast helps','bright sun')],
+    c=>[R(.8*c.calm,'a calm lake','whitecaps on Skilak')]],
+  halibut:[
+    c=>[R(.6*c.slack,'slack tide at the mouth','running tide at the mouth'),R(-.2*c.calm,'sheltered water','')],
+    c=>[R(.6*c.calm,'light wind on the flats','chop on the flats'),R(.3*c.slack,'slack tide','running tide')],
+    c=>[R(.9*c.calm,'calm seas out to the Barrens','chop out toward the Barren Islands')]],
+};
+// fit of spot i of a trip type on day d: {f, why}; exact adds the day's local noise (what scouting shows), otherwise conditions only
+function spotFit(type,i,d=day(),exact=true){
+  const fn=(SPOT_FIT[type]||[])[i];if(!fn) return null;
+  const terms=fn(spotConds(type,d)),sum=terms.reduce((a,x)=>a+x[0],0),nz=exact?(hz(d,TYPE_IX[type]||0,i)-.5)*.7:0;
+  const top=terms.reduce((m,x)=>Math.abs(x[0])>Math.abs(m[0])?x:m,[0,'']);
+  return {f:clamp(sum+nz,-1,1),why:top[0]?top[1]:''};
+}
+const spotWord=f=>f>=.45?'Hot':f>=.15?'Good':f>-.15?'Fair':'Poor';
+// did you scout where this trip goes (today or yesterday)?
+const scoutedFor=(type,d=day())=>{const loc=TRIPS[type].loc;return loc==='lower'?S.scout>=d-1:!!(S.scoutAt&&S.scoutAt[loc]>=d-1)};
+// what the player knows when picking a spot: 'exact' (scouted), 'tab' (looked at the Fish tab today) or null
+const spotHint=(type,d=day())=>scoutedFor(type,d)?'exact':S.look===d?'tab':null;
+const spotsToday=d=>{const t=[...new Set(todays(d).map(b=>b.type))];return t.length?t:['reds']};
+
 // ---- 🚤 Take the boat out: booking-aware ----
 // Returns the action for the Here tab at the lower launch or Cooper Landing (null elsewhere).
 function boatAction(){
@@ -2001,7 +2054,7 @@ function boatHours(sp,max,illegal){
 function boatFish(sp,h,illegal){
   const loc=S.loc,t0=S.t,S_=SPECIES[sp],cost=loc==='lower'?LAUNCH_FEE:35;
   spend(cost);const got=loc==='lower'?burnSolo(bn('soloHour')*h):1;const o=avgOdds(sp,loc,t0,h*60)*got;if(got<1)h=Math.max(1,Math.round(h*got));else pass(h*60+20);adj('energy',-4*h);adj('boat',loc==='lower'?-2:-1);
-  S.skill++;S.scout=day();S.solo[day()]=(S.solo[day()]||0)+1;
+  S.skill+=2;if(loc==='lower')S.scout=day();else{S.scoutAt=S.scoutAt||{};S.scoutAt[loc]=day()}S.solo[day()]=(S.solo[day()]||0)+1;
   const lines=[],rnd=()=>.6+Math.random()*.8;
   let n=Math.round(o*S_.rate*h*rnd());
   if(sp==='king'){n=Math.min(1,n);if(n){addFish(1);S.stats.legalKings=(S.stats.legalKings||0)+1;lines.push('👑 A legal king, recorded on your harvest record. Kings are open this year.')}else lines.push('👑 No king today. They’re the fish of ten thousand casts.')}
@@ -2021,7 +2074,7 @@ function boatFish(sp,h,illegal){
 
 // ---- 🐟 Fish tab: conditions, tides, odds by place, run timing ----
 function fishView(){
-  const d=day(),w=wxOf(d),k=WX[S.wx[d]||'sun'],tt=tideTable(d);
+  const d=day();S.look=d;const w=wxOf(d),k=WX[S.wx[d]||'sun'],tt=tideTable(d);
   const row=(a,b)=>`<div class="kv" style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line);font-size:14px"><span>${a}</span><b style="text-align:right">${b}</b></div>`;
   let h=`<div class="sect">Today · ${dlong(d)}</div>`+row('Weather',`${k.ic} ${k.n}, ${w.temp}°F`)+row('Wind',`${w.dir} ${w.wind} kt${w.wind>18?' · small-craft advisory on Cook Inlet':''}`)+
     row('Rain',w.rain?`${w.rain} in`:'none')+row('Kenai River',waterTxt(w)+(w.level>.75?' · milky, fast':''))+row('Tide at the mouth now',tideNow())+
@@ -2030,6 +2083,7 @@ function fishView(){
   h+=`<div class="sect">Odds right now</div>`;
   places.forEach(([loc,n])=>{const sp=Object.keys(SPECIES).filter(x=>SPECIES[x].loc[loc]);
     h+=`<div class="todo"><span class="ck">${n.split(' ')[0]}</span><div style="flex:1"><b>${n.slice(n.indexOf(' ')+1)}</b>${sp.map(x=>{const o=fishOdds(x,loc);return `<div style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--mute);margin-top:3px"><span style="width:118px">${SPECIES[x].ic} ${SPECIES[x].n}</span><span style="flex:1;height:7px;background:var(--line);border-radius:4px"><i style="display:block;height:7px;border-radius:4px;width:${Math.round(clamp(o,0,1)*100)}%;background:${SPECIES[x].closed&&kingRule()!=='open'?'#9aa':o>.6?'#2f7d4f':o>.3?'#c98a12':'#b8402a'}"></i></span></div>`}).join('')}</div></div>`});
+  h+=`<div class="sect">Where to fish today</div><div class="rules" style="margin:0 0 8px;font-size:12.5px">${spotsToday(d).map(ty=>{const T=TRIPS[ty];return `${T.ic} <b>${T.n}</b>${scoutedFor(ty,d)?' (you scouted it: spot buttons show the exact read)':''}<br>${SPOTS[ty].map((sp,i)=>{const f=spotFit(ty,i,d,false);return f?`&nbsp;${f.f>=.15?'🟢':f.f>-.15?'🟡':'🔴'} ${sp.l.replace(/ at first light$/,'')}: <b>${spotWord(f.f)}</b>${f.why?`, ${f.why}`:''}`:''}).filter(Boolean).join('<br>')}`}).join('<br>')}<br><span style="color:var(--mute)">A read from today’s water, wind, run and tide. Scouting the river adds what the fish are doing right now.</span></div>`;
   h+=`<div class="sect">Run timing on the Kenai · ${yearOf(d)}</div><div class="rules" style="margin:0 0 8px">📣 ${REG().fc} ${evenYear(d)?'Even year: pinks coming.':'Odd year: few pinks.'}</div>${runChart(d)}<div class="rules" style="font-size:12.5px">${['sockeye','coho','pink','king','trout'].map(x=>`${SPECIES[x].ic} <b>${SPECIES[x].n}</b>: ${SPECIES[x].note}`).join('<br>')}<br>⏱️ Reds bite best at first light and in the long July evenings; at the mouth they ride the incoming tide. Halibut bite at slack water. Rain and glacial melt raise the river; rising, dirty water scatters the reds.<br><span style="color:var(--mute)">A simplified model of typical run timing, not a forecast.</span></div>`;
   return h;
 }
@@ -2113,11 +2167,11 @@ const FA_CLASS_TXT='Mon/Tue/Thu 1 PM at the Soldotna clinic';
 // ---- off-season upgrades ----
 const UPGRADES=[
   {id:'motor',ic:'⚙️',n:'Repower: a new 50 hp jet outboard',cost:13500,once:true,d:'Boat back to 100, wear on it halved, and about 20% less gas on every run. Still 50 hp: the most the Kenai allows.'},
-  {id:'sled',ic:'🚤',n:'New 20-ft welded jet sled, motor & trailer',cost:52000,once:true,d:'Drier and faster: sockeye and silver trips finish 30 minutes sooner (a little less tiring), the fuel run takes 45 minutes instead of 65, and you get a 40-gallon tank and a better catch and happier clients. The July five-person limit doesn’t change.'},
+  {id:'sled',ic:'🚤',n:'New 20-ft welded jet sled, motor & trailer',cost:52000,once:true,d:'Drier and faster: sockeye and silver trips finish 30 minutes sooner (a little less tiring), the fuel run takes 45 minutes instead of 65, and you get a 40-gallon tank, a slightly better catch and happier clients. The July five-person limit doesn’t change.'},
   {id:'drift',ic:'🛶',n:'New drift boat & trailer',cost:12500,once:true,d:'Upper Kenai floats go better (+catch, +happiness).'},
-  {id:'web',ic:'🌐',n:'Website refresh + Anchorage sport-show booth',cost:2200,d:'More bookings this season.'},
-  {id:'course',ic:'🧯',n:'Winter course: swiftwater rescue & fly casting',cost:750,d:'Skill +4. One per winter.'},
-  {id:'rates',ic:'💲',n:'Raise your rates 10%',cost:0,d:'Pays 10% more per trip, but bookings drop (about 8% fewer trips a step, in July and the rest of the summer) and clients expect more: tips shrink unless the day goes well. Each step needs more reputation (65, 70, 75). Up to +30%.'},
+  {id:'web',ic:'🌐',n:'Website refresh + Anchorage sport-show booth',cost:2200,d:'More July bookings and a busier rest of the summer, this season only.'},
+  {id:'course',ic:'🧯',n:'Winter course: swiftwater rescue & fly casting',cost:750,d:'Skill +14 (skill rusts 40% every winter). One per winter.'},
+  {id:'rates',ic:'💲',n:'Raise your rates 10%',cost:0,d:'Pays 10% more per trip, but bookings drop (about 8% fewer trips at +10%, 18% fewer at +20%, 31% fewer at +30%, in July and the rest of the summer) and clients expect more: tips shrink unless the day goes well. Each step needs more reputation (65, 70, 75). Up to +30%.'},
   {id:'asst',ic:'🧑‍🤝‍🧑',n:'Hire an assistant guide (second sled, decals, training)',cost:32000,once:true,d:'A used second sled and trailer, decals, permit and training for an assistant guide. When you are booked, a second party can take the same slot with your assistant: you keep 60% of the fare and tips, they cost fuel and a $3,000 winter overhead, and their day can go wrong (a refund, a fine, your name on the decal). Needs Rep 70 and two seasons under your belt.'},
   {id:'lodge',ic:'🏡',n:'Build four riverside guest cabins',cost:95000,once:true,d:'Four cabins on a Soldotna river lot, rented at about $225 a night over the summer, and their guests book trips: roughly +$12,000 a year at a top reputation after cleaning, staff, utilities and a $5,500 winter bill (much less if your rep is poor), and 10% more off-month trips. Needs Rep 60 and three seasons behind you.'},
   {id:'dock',ic:'⚓',n:'Buy a riverfront lot with a private launch and fuel dock',cost:240000,once:true,d:'Your own ramp and pump on the Kenai: no $15 launch fees, no trips to Kenai Harbor (fill up at your dock for about $0.85 a gallon less), clients love the quiet put-in (+3 happiness on sockeye and silver trips) and about 8% more bookings. Needs Rep 70 and four seasons behind you.'},
@@ -2140,18 +2194,26 @@ function buyUp(u){const U=S.up,s=seasonOf(day());money(-u.cost);S.stats.spent+=u
   if(u.id==='chp'){U.chp=true;U.value+=u.cost}
   if(u.id==='asst'||u.id==='lodge'||u.id==='dock'){U[u.id]=true;U.value+=u.cost}
   if(u.id==='web')U.web=s;
-  if(u.id==='course'){U.course=s;S.skill+=4}
+  if(u.id==='course'){U.course=s;S.skill+=COURSE_SKILL}
   if(u.id==='rates')U.rate=Math.round((U.rate+.1)*10)/10;
   sfx('good');say(`${u.ic} ${u.n}${u.cost?` (${$(u.cost)})`:''}.`)}
-// Rates: each +10% step costs something. Bookings fall with price (RATE_BOOK per step, in July and across the rest of the
+// Rates: each +10% step costs something. Bookings fall with price (RATE_BOOK per step plus RATE_STEEP × 0, 1, 3 for steps 1, 2, 3, in July and across the rest of the
 // summer), clients expect more (RATE_MOOD happiness per step: smaller tips on an average day) and the next step needs more rep.
-const RATE_BOOK=.08,RATE_MOOD=3;
+const RATE_BOOK=.08,RATE_STEEP=.025,RATE_MOOD=3;
 const rateSteps=()=>Math.round((((S.up&&S.up.rate)||1)-1)*10);
 const rateRep=()=>65+5*rateSteps();                          // rep needed to buy the NEXT step
-const rateDemand=()=>Math.max(.4,1-RATE_BOOK*rateSteps());   // share of bookings that survive the price
+const rateDemand=()=>{const n=rateSteps();return Math.max(.4,1-RATE_BOOK*n-RATE_STEEP*n*(n-1)/2)};   // share of bookings that survive the price
 // effects used by the trip engine and payOf()
-const upQ=type=>(S.up.sled&&(type==='reds'||type==='silver')?.05:0)+(S.up.drift&&type==='trout'?.05:0);
-const upH=type=>(S.up.sled&&(type==='reds'||type==='silver')?3:0)+(S.up.drift&&type==='trout'?4:0)+(S.up.dock&&(type==='reds'||type==='silver')?3:0);
+const upQ=type=>(S.up.sled&&(type==='reds'||type==='silver')?.03:0)+(S.up.drift&&type==='trout'?.06:0);
+const upH=type=>(S.up.sled&&(type==='reds'||type==='silver')?2:0)+(S.up.drift&&type==='trout'?5:0)+(S.up.dock&&(type==='reds'||type==='silver')?3:0);
+
+// Skill (1.8.0): the feel for the river. It builds with every trip, scouting run, ADF&G office stop and winter course, and rusts by
+// 40% each winter, so a guide who keeps at it stays sharper than one who just shows up. Each point is worth SKILL_Q of catch, up to SKILL_MAX.
+const COURSE_SKILL=14,SKILL_Q=.004,SKILL_MAX=.16,SKILL_KEEP=.6;
+const skillQ=()=>Math.min(SKILL_MAX,Math.max(0,S.skill)*SKILL_Q);
+// How the season went, as average client happiness over July trips (a no-show counts as 20), with the difficulty and rate moods taken out.
+const HAP0=76;
+const seasonHap=(s,o)=>{const n=(s.hapN||0)-(o.hapN||0);return n>0?((s.hapSum||0)-(o.hapSum||0))/n:HAP0};
 
 // ---- season rollover: runs on the first morning of each new season (from onMorning) ----
 const WINTER_COST=[['🏠 Living costs, Oct–May (after your winter job)',1800,'🏠 Living'],['🪪 Guide & business licenses, KRSMA permit, vessel decals',650,'🪪 Licenses & permits'],['🛡️ Liability insurance & drug-testing consortium',1950,'🛡️ Insurance']];
@@ -2192,13 +2254,13 @@ function asstSettle(b,notes){
   notes.push(`🧑‍🤝‍🧑 ${line.charAt(0).toUpperCase()+line.slice(1)} Your share, after his cut, fuel and fees: <b>${mine<0?'−':''}${$(Math.abs(mine))}</b>.`);
 }
 function startSeason(s){
-  const st=S.stats,o=S.st0||{},yr=2025+s,prev={year:yr,trips:st.trips-(o.trips||0),fares:st.earned-(o.earned||0),earned:(st.earned-(o.earned||0))+(st.tips-(o.tips||0)),fines:st.fines-(o.fines||0),rep:S.rep,cites:(st.citesTotal||0)-(o.citesTotal||0),wom:S.wom||0};
+  const st=S.stats,o=S.st0||{},yr=2025+s,prev={hap:seasonHap(st,o),tips:(st.tipSum||0)-(o.tipSum||0),year:yr,trips:st.trips-(o.trips||0),fares:st.earned-(o.earned||0),earned:(st.earned-(o.earned||0))+(st.tips-(o.tips||0)),fines:st.fines-(o.fines||0),rep:S.rep,cites:(st.citesTotal||0)-(o.citesTotal||0),wom:S.wom||0};
   const rest=restOfSeason(prev);prev.rest=rest;money(rest.net);st.earned+=rest.gross;st.spent+=rest.costs;st.restTrips=(st.restTrips||0)+rest.trips;
   const boat0=S.boat;adj('boat',-Math.round(rest.trips*(S.up.motor?.2:.4)));driftFuelPrices();
   S.seasons.push(prev);S.st0=JSON.parse(JSON.stringify(st));
   const bill=winterCosts().reduce((a,[,c])=>a+c,0);money(-bill);st.spent+=bill;
   S.reg=genRegs(s);S.loaner=-1;S.patch=null;S.limit=3;S.eo=[];S.cum=Math.round(650000*S.reg.mult.sockeye);
-  S.wom=0;S.warns=0;S.prep=-1;S.scout=-1;S.trip=null;S.unlogged=0;S.overdue=0;S.energy=90;
+  S.skill=Math.round(S.skill*SKILL_KEEP);S.wom=0;S.warns=0;S.prep=-1;S.scout=-1;S.trip=null;S.unlogged=0;S.overdue=0;S.energy=90;
   adj('boat',S.up.motor?-5:-12);S.boat=Math.max(S.boat,Math.min(boat0,10));   // winter wear never takes a boat out of service on its own
   S.rep=Math.round(50+(S.rep-50)*.85);
   const before=S.cites;S.cites=S.citeLog.filter(x=>seasonOf(x)>=s-1).length;
@@ -2370,9 +2432,13 @@ function harborActions(a){
 
 // ---- the rest of the summer (June, August, September), settled in the off-season ----
 // You play the two-week July peak; the rest of your season is booked off your reputation.
+// (1.8.0) The rest of the summer follows how the July went, not only how many trips you ran: the average client's happiness
+// (a good day with the right spot, a full tackle box, a clean boat and a fed crew), word of mouth and your regulars all bring the off-season trade.
+const WEB_REST=1.12,REST_X=1.95,QUAL_SPAN=90,WOM_W=.006,REG_W=.003;
+const qualityF=p=>clamp(1+((p.hap==null?HAP0:p.hap)-HAP0)/QUAL_SPAN,.7,1.25);
 function restOfSeason(p){
   if(!p||!p.trips) return {trips:0,gross:0,costs:0,net:0};
-  const trips=Math.round(p.trips*2.4*DF().book*clamp(S.rep/70,.5,1.25)*(1+clamp((p.wom||0)*.005,-.06,.08))*rateDemand()*(S.up&&S.up.lodge?1.1:1)*(S.up&&S.up.dock?1.08:1)),fare=p.fares/p.trips;
+  const trips=Math.round(p.trips*REST_X*DF().book*clamp(S.rep/70,.5,1.25)*qualityF(p)*(1+clamp((p.wom||0)*WOM_W,-.10,.15))*(1+REG_W*Math.min(REG_MAX,(S.regs||[]).length))*rateDemand()*(S.up&&S.up.lodge?1.1:1)*(S.up&&S.up.dock?1.08:1)*(S.up&&S.up.web===p.year-2026?WEB_REST:1)),fare=(p.fares+(p.tips||0))/p.trips;
   let gross=Math.round(trips*fare),costs=Math.round(trips*(bn('reds')*fuelPrice('kenai')+LAUNCH_FEE+30));
   if(S.up&&S.up.asst){const x=Math.round(trips*.2);gross+=Math.round(x*fare*(1-ASST_CUT));costs+=Math.round(x*(bn('reds')*fuelPrice('kenai')+LAUNCH_FEE+30))}   // the assistant covers the off-month overflow
   if(S.up&&S.up.lodge){const l=lodgeSeason();gross+=l.gross;costs+=l.costs}
@@ -2385,20 +2451,20 @@ function driftFuelPrices(){const r=Math.random;S.fuelBase=S.fuelBase||{kenai:6.1
 //  One bottom sheet with a short section per topic; works before a game exists and mid-game.
 // ============================================================
 const HELP=[
-  ['🎯','The goal','Run a Kenai River guide business out of Soldotna for a <strong>2-, 5- or 10-year career</strong>. Each year you play the two-week July peak; between years the off-season handles bills, upgrades and next season’s bookings. Keep clients happy, your boat running and your record clean. The end screen shows how your score adds up. Your grade is your score per season: <strong>A 62,000, B 55,000, C 44,000, D 27,000</strong>, F below (and for any career that ends early). On Licensed Guide, playing it by the book usually earns a B, a sharp career (every request answered, upgrades bought, a clean record) a B or an A, and one that skips meals and lunches a C. Combat Season grades about a step lower and Rookie Season about a step higher.'],
+  ['🎯','The goal','Run a Kenai River guide business out of Soldotna for a <strong>2-, 5- or 10-year career</strong>. Each year you play the two-week July peak; between years the off-season handles bills, upgrades and next season’s bookings. Keep clients happy, your boat running and your record clean. The end screen shows how your score adds up. Your grade is your score per season: <strong>A 62,000, B 55,000, C 44,000, D 27,000</strong>, F below (and for any career that ends early). On Licensed Guide, playing it by the book usually earns a B, a sharp career (every request answered, upgrades bought, a clean record) a B or an A, a skilled one (it reads the Fish tab and scouts to pick the right spot each day, keeps the boat up, asks happy clients back and doesn’t overprice) nearly always an A, a passive one a C or a B, and one that skips meals and lunches a C or a D. Combat Season grades about a step lower and Rookie Season about a step higher.'],
   ['🕐','How a day works','Time moves only when you act. Tap an action on the <strong>🧭 Here</strong> tab, or <strong>Go somewhere</strong> to travel. Guides start early: the alarm is 5:00 AM (change it at the shop). To skip ahead, use <strong>⏳ Wait until…</strong>: the next launch, the 1 PM first-aid class, or 30 or 60 minutes. <strong>Go to bed</strong> at the shop to end the day; staying up past midnight costs you.'],
   ['🛶','Trips','Your schedule is on the <strong>📅 Bookings</strong> tab. Be at the launch spot by launch time: sockeye and silvers from the <strong>Lower Kenai launch</strong>, trout floats from <strong>Cooper Landing</strong>, halibut from the <strong>Homer Spit</strong>. On the water you pick a spot, then face a few choices, shuffled every time. Playing it straight costs something (time, fish or a smaller tip); bending a rule can pay cash, but if a trooper catches you the fine hurts.'],
-  ['⭐','Regulars & stories','Clients who have a great day may come back next July, and they remember how it went. Over the years you may also meet a rival guide, a family that returns every summer and an invitation to the local fish and game advisory committee. No dilemma comes up more than twice a season.'],
+  ['⭐','Regulars & stories','Clients who have a great day may come back next July, and they remember how it went. If a happy party doesn’t offer its number, you can hand them your card at the dock. Over the years you may also meet a rival guide, a family that returns every summer and an invitation to the local fish and game advisory committee. No dilemma comes up more than twice a season.'],
   ['📖','The rules','The <strong>📖 Regs</strong> tab lists your credentials and every rule you guide by: king status, single-hook/no-bait, no guide-boat fishing below Skilak on Sundays and Mondays, 6 AM–6 PM, five people a boat in July, bag limits, halibut rules. Break one and you may get a warning (the first minor offense each season) or a citation, and every citation on your record makes the next fine bigger. <strong>Three active citations</strong> and State Parks pulls your permit.'],
   ['📓','Paperwork','Fill out your <strong>ADF&G logbook</strong> at the shop after every trip, before bed. Keep your <strong>first-aid/CPR card</strong> current: classes are in Soldotna, Monday, Tuesday and Thursday, 1–4 PM (join by 1:30), and a card lasts two years.'],
   ['⛽','Fuel','The jet sled burns about 9 gallons on a sockeye trip and 11 on a silver trip. You can fill up <strong>only at the Kenai Harbor fuel dock</strong> (6 AM–10 PM). The game warns you when the tank won’t cover a trip, counting wind and long runs, and reminds you in the evening if tomorrow needs more than you have. Run dry and the Coast Guard tows you in: half the fare refunded, a $102 assist and a hit to your reputation. Watch the <strong>Fuel</strong> gauge in the top bar. (Home fuel is below.)'],
   ['🍽️','Food','You eat three meals a day, and the kitchen runs on stores: a <strong>pantry</strong> (keeps), a <strong>fridge</strong> (fresh food goes off after about 6 days) and the <strong>freezer</strong> (your dipnet and solo-trip reds, about 4 meals each). The <strong>Food</strong> gauge in the top bar shows how many days you have. In <strong>Soldotna</strong>, <strong>Stock up</strong> buys about a week of groceries (about $18 a day, Peninsula prices). Meals come out of the stores every night on their own; a meal you can’t eat costs energy. <strong>Before each trip you pack the cooler:</strong> your own lunch keeps your energy up, and a lunch kit or a shore lunch of freezer reds makes the clients happier (bigger tips). On a long day, the trout float or the halibut charter, clients with no lunch are unhappy.'],
   ['⚡','Home fuel, outages & the generator','Fuel is still sold only at the Kenai Harbor dock, but you can <strong>haul extra home</strong> into approved cans (you start with three) or a 100-gallon tank, and fuel the sled from them at the shop. Gas left untreated all winter goes <strong>stale</strong>: add <strong>stabilizer</strong> before the season ends. Wind and winter storms knock the power out now and then: a long outage spoils fresh food and, after a day or two, the freezer. A <strong>generator</strong> (Soldotna, Home supplies) runs on your home gas and keeps the freezer going; fuel and generator both stay outside, away from the cabin.'],
-  ['🐟','Fish & weather','The <strong>🐟 Fish</strong> tab shows today’s weather, river level, tides, the odds by place and species, and when each run arrives. Reds bite best at first light; silvers build late July; pinks run in even years. With no clients booked, <strong>Take the boat out</strong> to fill your freezer and scout.'],
-  ['🔧','Money & gear','The booked fare is your base pay; tips, refunds and word of mouth follow how the day went: the catch, happy clients, tackle and a boat in good shape. Run out of tackle or let the boat wear down and you’ll see smaller tips, refunds and breakdowns. Restock tackle in Soldotna, service the boats at the shop, buy fuel at the harbor. Overhead is charged every night. The Boat stat warns you at 40, 20 and 10. At 0 your sled and drift boat are out of service until a major repair ($2,400), though an emergency patch ($600, back to 25 for two days, only at 10 or less) or a rented loaner ($600, for the day) keeps a booked trip running. In the off-season you can buy upgrades: a new motor (burns less gas), a new sled (trips finish 30 minutes sooner), a drift boat, marketing, higher rates (more per trip, fewer bookings, pickier clients), your own Homer charter permit and, later in a career, an assistant guide, guest cabins or a riverfront lot with a private launch.'],
+  ['🐟','Fish & weather','The <strong>🐟 Fish</strong> tab shows today’s weather, river level, tides, the odds by place and species, where to fish today, and when each run arrives. Reds bite best at first light; silvers build late July; pinks run in even years. <strong>Read it before you launch:</strong> every spot fishes better or worse with the day’s water, wind, run and tide, and once you have looked at the tab (or scouted the river) the spot buttons show a Hot, Good, Fair or Poor read. With no clients booked, <strong>Take the boat out</strong> to fill your freezer and scout.'],
+  ['🔧','Money & gear','The booked fare is your base pay; tips, refunds and word of mouth follow how the day went: the catch, happy clients, tackle and a boat in good shape. A well-kept boat and a fed crew pay: tips run from nothing at 60 happiness to 30% of the fare at 90, and the <strong>rest of your summer</strong> (June, August and September, settled in the off-season) follows how happy your clients were on average, not only how many trips you ran. Run out of tackle, skip meals or let the boat wear down and you’ll see smaller tips, refunds, breakdowns and a quieter off-season. Restock tackle in Soldotna, service the boats at the shop, buy fuel at the harbor. Overhead is charged every night. The Boat stat warns you at 40, 20 and 10. At 0 your sled and drift boat are out of service until a major repair ($2,400), though an emergency patch ($600, back to 25 for two days, only at 10 or less) or a rented loaner ($600, for the day) keeps a booked trip running. In the off-season you can buy upgrades: a new motor (burns less gas), a new sled (trips finish 30 minutes sooner), a drift boat, marketing, a winter course (skill, which builds with practice and rusts over the winter), higher rates (more per trip, fewer bookings, pickier clients: the first step is cheap, the third is not), your own Homer charter permit and, later in a career, an assistant guide, guest cabins or a riverfront lot with a private launch.'],
   ['🏕️','Winter camping','In the off-season you can <strong>go winter camping</strong> once per winter: pick one of ten real Kenai Peninsula spots within 100 road miles of Soldotna and 1–7 nights. You pay gas, campsite fees (most places are unserviced in winter) and supplies. Each night has a <strong>50% chance of a wildlife encounter</strong>, good or bad, that nudges your energy, skill, rep or cash going into the new season.'],
   ['💀','How you lose','Three active citations (permit pulled), reputation down to 0 (nobody books you), or $2,000 in debt (the bank takes the sled).'],
-  ['💡','Tips','Rig tomorrow’s gear and scout the river for better trips. Tips (💡) appear as you play; turn them on or off in ⚙️ Settings. On a computer, number keys press buttons, <strong>Esc</strong> closes a pop-up and <strong>?</strong> lists the shortcuts. Settings has bigger text and high contrast.'],
+  ['💡','Tips','Rig tomorrow’s gear, read the Fish tab and scout the river for better trips. Tips (💡) appear as you play; turn them on or off in ⚙️ Settings. On a computer, number keys press buttons, <strong>Esc</strong> closes a pop-up and <strong>?</strong> lists the shortcuts. Settings has bigger text and high contrast.'],
 ];
 function helpModal(){
   modal('❓ Help! How to play Guide Master',HELP.map(([ic,h,t])=>`<div class="todo"><span class="ck">${ic}</span><div><b>${h}</b><span style="font-size:13.5px;line-height:1.45;color:var(--ink)">${t}</span></div></div>`).join('')+
@@ -2610,6 +2676,7 @@ const CHANGELOG={
   '1.5.3':['⚖️ Difficulty now changes the game, not the score: Combat Season means more patrols and dearer bills, Rookie the reverse. Grades were recalibrated, so an A takes real work.'],
   '1.5.4':['🎲 Dilemma options shuffle: playing it straight costs something, bending a rule can pay cash, and repeat offenders pay steeper fines. Pay now follows the day: catch, tackle and boat shape tips, refunds and word of mouth.'],
   '1.6.0':['💲 Higher rates now cost you: fewer bookings, pickier clients and a rep requirement that rises each step.','🔧 Boats at condition 0 are out of service until repaired; new motors burn less gas, new sleds finish sooner, and late-career money can buy an assistant guide, guest cabins or a riverfront launch.','⏳ New “Wait until…” action skips to the next launch or the 1 PM class. New games start with a 5:00 AM alarm.','🌙 The night summary now comes before the morning’s news, and pop-up toasts are fewer, shorter and sit below your Cash and Rep.','⭐ Longer careers: 54 client parties, regulars who come back (or don’t), six new river dilemmas, fewer repeats and three multi-season stories.'],
+  '1.8.0':['🎯 Skill pays: spots fish differently with the day’s water, wind, run and tide. Read the 🐟 Fish tab or scout the river and the spot buttons show which one is hot.','⭐ The rest of your summer follows how happy your clients were, not only how many trips you ran. Tips run higher on a good day, a well-kept boat pleases clients, and a happy party may take your card and become a regular.','💲 Raising rates gets steeper after the first step, and skill builds with practice and rusts over the winter.'],
   '1.7.1':['🎯 Grades re-tuned: per season A is 62,000, B 55,000, C 44,000, D 27,000, so playing by the book earns a B again and a sharp career an A. Boats and permits now count at nine tenths of what you paid, so long careers no longer outscore short ones for buying a sled or the charter permit. The Help sheet and rules list the cutoffs.'],
   '1.7.0':['🍽️ Food: stock the pantry and fridge at the Soldotna grocery store, pack a lunch (and lunches for the clients) before each trip, and watch the new Food gauge. Skip meals and you run out of energy.','⛽ Home fuel: haul extra gas home from the harbor into cans (or buy a 100-gallon tank), fuel the sled from it at the shop, and add stabilizer before winter or it goes stale.','⚡ Power outages: wind and winter storms can spoil the freezer. A portable generator runs on your home gas and keeps it going.'],
   '1.6.2':['🧹 Tidier end screen: labels and values no longer run together.'],
@@ -2672,6 +2739,15 @@ function maybeUpdateNotice(){
 
 // ---- returning parties ----
 const ORD=['','first','second','third','fourth','fifth','sixth','seventh','eighth','ninth','tenth'];
+const REG_MAX=10;
+function addReg(b,h,s,arc){S.regs.push({who:b.who,from:b.from,res:!!b.res,type:b.type==='halibut'?'reds':b.type,n:Math.min(b.n,b.type==='trout'?3:b.type==='silver'?4:5),trips:1,last:{h,s},arc:arc?'garza':null});if(arc)S.arcs.garza.st=1}
+// "Hand them your card" at the dock: a party that had a good day and didn't offer their number. Better days say yes more often.
+function regCard(b){
+  pass(10);const h=b.out?b.out.happy:75;b.card=false;
+  if(S.regs.length>=REG_MAX||S.regs.some(x=>x.who===b.who)) return;
+  if(Math.random()<(h>=88?.85:.6)){addReg(b,h,seasonOf(day()),false);say(`⭐ The ${b.who} tuck your card in a wallet: “We’ll call you for next July.” They’re a regular now.`)}
+  else say(`🪪 The ${b.who} thank you for the card. “Maybe next year.”`)
+}
 function regAfterTrip(b,happy,notes){
   const h=Math.round(happy),s=seasonOf(day());let g=S.regs.find(x=>x.who===b.who);
   const arc=b.arc==='garza';
@@ -2679,11 +2755,11 @@ function regAfterTrip(b,happy,notes){
     g.last={h,s};g.trips=(g.trips||1)+1;
     if(h>=88) notes.push(`⭐ The ${b.who} are already talking about July ${yearOf(day())+1}.`);
   }else{
-    const join=arc?h>=60:(h>=75&&S.regs.length<10&&Math.random()<.4);
-    if(join){S.regs.push({who:b.who,from:b.from,res:!!b.res,type:b.type==='halibut'?'reds':b.type,n:Math.min(b.n,b.type==='trout'?3:b.type==='silver'?4:5),trips:1,last:{h,s},arc:arc?'garza':null});
-      if(arc)S.arcs.garza.st=1;
+    const join=arc?h>=60:(h>=75&&S.regs.length<REG_MAX&&Math.random()<.4);
+    if(join){addReg(b,h,s,arc);
       notes.push(`⭐ The ${b.who} slip you a card with their number: “Same time next July?” If you treat them right, they will be back.`)}
     else if(arc)S.arcs.garza.st=-1;
+    else if(h>=75&&S.regs.length<REG_MAX) b.card=true;                 // a happy party that didn't ask: you can hand them your card at the dock
   }
 }
 // next season's bookings from the regulars; returns report lines for the off-season

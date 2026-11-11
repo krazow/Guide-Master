@@ -106,6 +106,53 @@ function rollRun(d){
   return Math.round(runCurve('sockeye',doyOf(d),d)*nz.sockeye*230000/10)*10+Math.floor(Math.random()*10);
 }
 
+// ---- where to fish today (1.8.0): each spot answers to the day's water, wind, run and tide ----
+// The spots in SPOTS (22-trips.js) are not equally good every day. SPOT_FIT[type][i] returns the day's reasons for spot i (value, text);
+// they sum to a fit between -1 and 1 and move the catch by SPOT_Q per point. Scouting adds the day's hidden local noise (exact);
+// the Fish tab shows the reasons from the conditions alone. Nothing is hidden from a player who looks: the buttons carry the hint.
+const SPOT_Q=.15;
+const TYPE_IX={reds:1,silver:2,trout:3,halibut:4};
+const hz=(a,b,c)=>{const x=Math.sin(a*127.1+b*311.7+c*74.7)*43758.5453;return x-Math.floor(x)};
+// today's conditions as signed readings (about -1 to +1, centred on a typical July day)
+function spotConds(type,d=day()){
+  const T=TRIPS[type],[sp,loc]=TRIP_SP[type]||TRIP_SP.reds,w=wxOf(d),k=S.wx[d]||'sun',n=(x,c,r)=>clamp((x-c)/r,-1,1);
+  return {run:n(abundance(sp,loc,d),sp==='coho'?.09:.78,sp==='coho'?.12:.4),sock:n(abundance('sockeye','cooper',d),.22,.15),calm:n(w.wind,9,-6),lvl:n(w.level,.28,.3),
+    trend:w.dw>.04?-.8:w.dw<-.05?.3:0,cloud:k==='cloud'||k==='rain'?.7:k==='sun'?-.7:0,slack:n(1-Math.abs(tide(d*1440+T.start+T.len/2).rate),.3,.35)};
+}
+const R=(v,up,down)=>[v,v>=0?up:down];     // a reading times its weight, with the reason for each sign
+const SPOT_FIT={           // same order as SPOTS in 22-trips.js; null = no read (the closed-bank spot)
+  reds:[
+    c=>[R(.6*c.run,'a strong run stacks the seams','a thin run leaves the seams empty'),R(c.trend,'falling, clearing water holds reds in the seams','rising, dirty water scatters the seams')],
+    c=>[R(.6*c.lvl,'high water pushes reds onto the gravel bars','low water leaves the bars dry'),R(.3*c.calm,'a calm run upriver','wind makes the long run rough')],
+    null,
+    c=>[R(.5*c.cloud,'overcast keeps the reds on the bank edge','bright sun pushes them to deep water'),R(-.3*c.run,'a thin run slides along the bank shallows','a big run crowds the walkway')]],
+  silver:[
+    c=>[R(.6*c.lvl,'big water fills the deep slots','low water empties the deep slots'),R(.3*c.calm,'easy trolling','wind makes trolling rough')],
+    c=>[R(c.trend,'falling water parks silvers in the soft water','rising water drives silvers out of the soft water'),R(.4*c.cloud,'overcast helps','bright sun puts them down')],
+    c=>[R(.6*c.run,'enough silvers to spread upriver','too few silvers to bother going this far'),R(.3*c.calm,'a calm run upriver','wind on the long run')]],
+  trout:[
+    c=>[R(.5*c.sock,'spawning reds have the rainbows on the egg bite','few spawning reds yet, so no egg bite'),R(-.4*c.lvl,'clear water shows the beads','milky, high water hides the beads'),R(.2*c.cloud,'overcast helps','bright sun')],
+    c=>[R(c.trend===0?.4:-.3,'steady water fishes the riffles well','a changing river puts the fish down'),R(.3*c.cloud,'overcast helps','bright sun')],
+    c=>[R(.8*c.calm,'a calm lake','whitecaps on Skilak')]],
+  halibut:[
+    c=>[R(.6*c.slack,'slack tide at the mouth','running tide at the mouth'),R(-.2*c.calm,'sheltered water','')],
+    c=>[R(.6*c.calm,'light wind on the flats','chop on the flats'),R(.3*c.slack,'slack tide','running tide')],
+    c=>[R(.9*c.calm,'calm seas out to the Barrens','chop out toward the Barren Islands')]],
+};
+// fit of spot i of a trip type on day d: {f, why}; exact adds the day's local noise (what scouting shows), otherwise conditions only
+function spotFit(type,i,d=day(),exact=true){
+  const fn=(SPOT_FIT[type]||[])[i];if(!fn) return null;
+  const terms=fn(spotConds(type,d)),sum=terms.reduce((a,x)=>a+x[0],0),nz=exact?(hz(d,TYPE_IX[type]||0,i)-.5)*.7:0;
+  const top=terms.reduce((m,x)=>Math.abs(x[0])>Math.abs(m[0])?x:m,[0,'']);
+  return {f:clamp(sum+nz,-1,1),why:top[0]?top[1]:''};
+}
+const spotWord=f=>f>=.45?'Hot':f>=.15?'Good':f>-.15?'Fair':'Poor';
+// did you scout where this trip goes (today or yesterday)?
+const scoutedFor=(type,d=day())=>{const loc=TRIPS[type].loc;return loc==='lower'?S.scout>=d-1:!!(S.scoutAt&&S.scoutAt[loc]>=d-1)};
+// what the player knows when picking a spot: 'exact' (scouted), 'tab' (looked at the Fish tab today) or null
+const spotHint=(type,d=day())=>scoutedFor(type,d)?'exact':S.look===d?'tab':null;
+const spotsToday=d=>{const t=[...new Set(todays(d).map(b=>b.type))];return t.length?t:['reds']};
+
 // ---- 🚤 Take the boat out: booking-aware ----
 // Returns the action for the Here tab at the lower launch or Cooper Landing (null elsewhere).
 function boatAction(){
@@ -150,7 +197,7 @@ function boatHours(sp,max,illegal){
 function boatFish(sp,h,illegal){
   const loc=S.loc,t0=S.t,S_=SPECIES[sp],cost=loc==='lower'?LAUNCH_FEE:35;
   spend(cost);const got=loc==='lower'?burnSolo(bn('soloHour')*h):1;const o=avgOdds(sp,loc,t0,h*60)*got;if(got<1)h=Math.max(1,Math.round(h*got));else pass(h*60+20);adj('energy',-4*h);adj('boat',loc==='lower'?-2:-1);
-  S.skill++;S.scout=day();S.solo[day()]=(S.solo[day()]||0)+1;
+  S.skill+=2;if(loc==='lower')S.scout=day();else{S.scoutAt=S.scoutAt||{};S.scoutAt[loc]=day()}S.solo[day()]=(S.solo[day()]||0)+1;
   const lines=[],rnd=()=>.6+Math.random()*.8;
   let n=Math.round(o*S_.rate*h*rnd());
   if(sp==='king'){n=Math.min(1,n);if(n){addFish(1);S.stats.legalKings=(S.stats.legalKings||0)+1;lines.push('👑 A legal king, recorded on your harvest record. Kings are open this year.')}else lines.push('👑 No king today. They’re the fish of ten thousand casts.')}
@@ -170,7 +217,7 @@ function boatFish(sp,h,illegal){
 
 // ---- 🐟 Fish tab: conditions, tides, odds by place, run timing ----
 function fishView(){
-  const d=day(),w=wxOf(d),k=WX[S.wx[d]||'sun'],tt=tideTable(d);
+  const d=day();S.look=d;const w=wxOf(d),k=WX[S.wx[d]||'sun'],tt=tideTable(d);
   const row=(a,b)=>`<div class="kv" style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line);font-size:14px"><span>${a}</span><b style="text-align:right">${b}</b></div>`;
   let h=`<div class="sect">Today · ${dlong(d)}</div>`+row('Weather',`${k.ic} ${k.n}, ${w.temp}°F`)+row('Wind',`${w.dir} ${w.wind} kt${w.wind>18?' · small-craft advisory on Cook Inlet':''}`)+
     row('Rain',w.rain?`${w.rain} in`:'none')+row('Kenai River',waterTxt(w)+(w.level>.75?' · milky, fast':''))+row('Tide at the mouth now',tideNow())+
@@ -179,6 +226,7 @@ function fishView(){
   h+=`<div class="sect">Odds right now</div>`;
   places.forEach(([loc,n])=>{const sp=Object.keys(SPECIES).filter(x=>SPECIES[x].loc[loc]);
     h+=`<div class="todo"><span class="ck">${n.split(' ')[0]}</span><div style="flex:1"><b>${n.slice(n.indexOf(' ')+1)}</b>${sp.map(x=>{const o=fishOdds(x,loc);return `<div style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--mute);margin-top:3px"><span style="width:118px">${SPECIES[x].ic} ${SPECIES[x].n}</span><span style="flex:1;height:7px;background:var(--line);border-radius:4px"><i style="display:block;height:7px;border-radius:4px;width:${Math.round(clamp(o,0,1)*100)}%;background:${SPECIES[x].closed&&kingRule()!=='open'?'#9aa':o>.6?'#2f7d4f':o>.3?'#c98a12':'#b8402a'}"></i></span></div>`}).join('')}</div></div>`});
+  h+=`<div class="sect">Where to fish today</div><div class="rules" style="margin:0 0 8px;font-size:12.5px">${spotsToday(d).map(ty=>{const T=TRIPS[ty];return `${T.ic} <b>${T.n}</b>${scoutedFor(ty,d)?' (you scouted it: spot buttons show the exact read)':''}<br>${SPOTS[ty].map((sp,i)=>{const f=spotFit(ty,i,d,false);return f?`&nbsp;${f.f>=.15?'🟢':f.f>-.15?'🟡':'🔴'} ${sp.l.replace(/ at first light$/,'')}: <b>${spotWord(f.f)}</b>${f.why?`, ${f.why}`:''}`:''}).filter(Boolean).join('<br>')}`}).join('<br>')}<br><span style="color:var(--mute)">A read from today’s water, wind, run and tide. Scouting the river adds what the fish are doing right now.</span></div>`;
   h+=`<div class="sect">Run timing on the Kenai · ${yearOf(d)}</div><div class="rules" style="margin:0 0 8px">📣 ${REG().fc} ${evenYear(d)?'Even year: pinks coming.':'Odd year: few pinks.'}</div>${runChart(d)}<div class="rules" style="font-size:12.5px">${['sockeye','coho','pink','king','trout'].map(x=>`${SPECIES[x].ic} <b>${SPECIES[x].n}</b>: ${SPECIES[x].note}`).join('<br>')}<br>⏱️ Reds bite best at first light and in the long July evenings; at the mouth they ride the incoming tide. Halibut bite at slack water. Rain and glacial melt raise the river; rising, dirty water scatters the reds.<br><span style="color:var(--mute)">A simplified model of typical run timing, not a forecast.</span></div>`;
   return h;
 }
