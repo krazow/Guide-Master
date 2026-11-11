@@ -25,7 +25,7 @@ const GAME={
   title:'Guide Master',
   tagline:'A guide’s career on the Kenai',
   codePrefix:'GUIDEMASTER',   // transfer codes start with this, e.g. POCKETWEEK:eyJ…
-  version:'1.8.0',           // bump on every release: shown in Settings, stamped into saves and sw.js
+  version:'1.8.1',           // bump on every release: shown in Settings, stamped into saves and sw.js
   schema:2,                  // bump when the shape of S changes, and add a MIGRATIONS entry (21-story.js)
   days:14,                   // days in ONE season (the July peak, Mon–Sun twice; season 1 is Jul 13–26, 2026). A career is 14 × years: see the getter below
   wake:300,                  // default alarm for new games, in minutes after midnight (300 = 5:00 AM: guides start early; saves keep their own S.alarm)
@@ -46,6 +46,6 @@ const DIFFS={
   // mood: client happiness (tips, rep). book: off-month bookings. wear: boat wear. No difficulty changes the score.
   easy:  {n:'Rookie Season',ic:'🎣',d:'More cash, fewer troopers, cheaper bills and easygoing clients. For learning the water.',money:3000,bad:0.6,enforce:0.7,fine:0.8,esc:0.1,cost:0.8,mood:5,book:1.08,wear:0.85},
   normal:{n:'Licensed Guide',ic:'🛶',d:'The Kenai as it is: busy, beautiful and well patrolled.',money:1500,bad:1,enforce:1,fine:1,esc:0.2,cost:1,mood:0,book:1,wear:1},
-  hard:  {n:'Combat Season',ic:'🐻',d:'Thin cash, more troopers, fines that climb steeply with every citation, dearer fuel and bills, pickier clients, quieter off-months and more bad luck. Same score, tougher grade.',money:600,bad:1.5,enforce:1.4,fine:1.1,esc:0.3,cost:1.2,mood:-5,book:0.88,wear:1.25},
+  hard:  {n:'Combat Season',ic:'🐻',d:'Thin cash, more troopers, fines that climb steeply with every citation, dearer fuel and bills, pickier clients, quieter off-months and more bad luck. Same score, tougher grade.',money:600,bad:1.5,enforce:1.4,fine:1.1,esc:0.3,cost:1.08,mood:-2,book:0.97,wear:1.25},
 };
 const DF=()=>DIFFS[(typeof S!=='undefined'&&S&&S.diff)||'normal']||DIFFS.normal;

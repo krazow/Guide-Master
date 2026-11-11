@@ -26,7 +26,7 @@ module.exports = [
   { name: 'hard catches more violators and fines escalate with each citation', fn: async ctx => {
     const { page, errors } = await open(ctx, { seed: 7 });
     const r = await page.evaluate(() => {
-      const rate = k => { newGame(k); closeModals(); let n = 0; const oc = window.cite; window.cite = () => { n++; }; for (let i = 0; i < 4000; i++) violate([], { p: .3, fine: 400, what: 'x' }); window.cite = oc; return n / 4000; };
+      const rate = k => { newGame(k); closeModals(); let n = 0; const oc = window.cite; window.cite = () => { n++; }; for (let i = 0; i < 4000; i++) { S.stats.viol = 0; violate([], { p: .3, fine: 400, what: 'x' }); } window.cite = oc; return n / 4000; };
       const out = { easy: rate('easy'), normal: rate('normal'), hard: rate('hard') };
       const fineAt = (k, prior) => { newGame(k); closeModals(); S.cites = prior; S.money = 5000; const m = S.money; cite('x', 400, false, []); return m - S.money; };
       out.fn = fineAt('normal', 0); out.fn2 = fineAt('normal', 2); out.fh = fineAt('hard', 0); out.fh2 = fineAt('hard', 2);

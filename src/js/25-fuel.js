@@ -109,11 +109,12 @@ function harborActions(a){
 // You play the two-week July peak; the rest of your season is booked off your reputation.
 // (1.8.0) The rest of the summer follows how the July went, not only how many trips you ran: the average client's happiness
 // (a good day with the right spot, a full tackle box, a clean boat and a fed crew), word of mouth and your regulars all bring the off-season trade.
+// (1.8.1) Citations are public record: each one this season trims the off-season bookings (CITE_REST, 22-trips.js).
 const WEB_REST=1.12,REST_X=1.95,QUAL_SPAN=90,WOM_W=.006,REG_W=.003;
 const qualityF=p=>clamp(1+((p.hap==null?HAP0:p.hap)-HAP0)/QUAL_SPAN,.7,1.25);
 function restOfSeason(p){
   if(!p||!p.trips) return {trips:0,gross:0,costs:0,net:0};
-  const trips=Math.round(p.trips*REST_X*DF().book*clamp(S.rep/70,.5,1.25)*qualityF(p)*(1+clamp((p.wom||0)*WOM_W,-.10,.15))*(1+REG_W*Math.min(REG_MAX,(S.regs||[]).length))*rateDemand()*(S.up&&S.up.lodge?1.1:1)*(S.up&&S.up.dock?1.08:1)*(S.up&&S.up.web===p.year-2026?WEB_REST:1)),fare=(p.fares+(p.tips||0))/p.trips;
+  const trips=Math.round(p.trips*REST_X*DF().book*clamp(S.rep/70,.5,1.25)*qualityF(p)*(1+clamp((p.wom||0)*WOM_W,-.10,.15))*(1-CITE_REST*Math.min(4,p.cites||0))*(1+REG_W*Math.min(REG_MAX,(S.regs||[]).length))*rateDemand()*(S.up&&S.up.lodge?1.1:1)*(S.up&&S.up.dock?1.08:1)*(S.up&&S.up.web===p.year-2026?WEB_REST:1)),fare=(p.fares+(p.tips||0))/p.trips;
   let gross=Math.round(trips*fare),costs=Math.round(trips*(bn('reds')*fuelPrice('kenai')+LAUNCH_FEE+30));
   if(S.up&&S.up.asst){const x=Math.round(trips*.2);gross+=Math.round(x*fare*(1-ASST_CUT));costs+=Math.round(x*(bn('reds')*fuelPrice('kenai')+LAUNCH_FEE+30))}   // the assistant covers the off-month overflow
   if(S.up&&S.up.lodge){const l=lodgeSeason();gross+=l.gross;costs+=l.costs}
