@@ -1082,6 +1082,618 @@ const KenaiCamp={
   };
 })(KenaiCamp);
 // ============================================================
+//  CABIN UPKEEP, part 0: the namespace.
+//  Keeping up a cabin on the Kenai Peninsula (heat, pipes, snow, a generator, a well and septic, bears, a fish table, a garden,
+//  detectors, spring breakup, earthquakes) lives behind ONE global, CabinUpkeep. It never reads or writes anything of the game
+//  it sits in: everything it needs comes in through a ticket, and everything it produces goes out in a report that a thin
+//  adapter applies. See src/home/README.md for the contract.
+// ============================================================
+const CabinUpkeep={
+  VERSION:'1.0.0',
+  SCHEMA:1,                 // version of the ticket, report and state shapes; bump when any of them change
+  MAX_DUE:2,                // the most jobs offered at once (the guardrail: home never buries the game)
+};
+(function(C){
+  'use strict';
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const grp=n=>String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+  // money for players: whole dollars with thousands separators and a real minus sign
+  const $=x=>(x<0?'−':'')+'$'+grp(Math.abs(x));
+  const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const n0=(v,d)=>typeof v==='number'&&isFinite(v)?v:d;
+  const copy=o=>JSON.parse(JSON.stringify(o));
+  // a small seeded generator (mulberry32) for tests and the headless harness
+  function seeded(seed){let a=seed>>>0;return ()=>{a=(a+0x6D2B79F5)>>>0;let t=a;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296}}
+  C.util={clamp,grp,$,esc,n0,copy,seeded};
+})(CabinUpkeep);
+// ============================================================
+//  CABIN UPKEEP, part 1: the jobs and the shop.
+//  Every job offers three ways: do it yourself (time and energy, a little cash), pay someone (cash) or skip it (a risk).
+//  The summer is the two-week July peak (minutes of the day); the off-season is fall, winter and spring (whole free days, which the
+//  host shares with winter camping). All prices are 2026 estimates in dollars at the standard difficulty; the host's cost
+//  multiplier scales them. src/home/README.md lists each price and where it comes from.
+// ============================================================
+(function(C){
+  'use strict';
+  const D=C.data={};
+  const $c=(t,x)=>Math.round(x*t.costMult);
+
+  // The shop: things you buy once.
+  D.SHOP=[
+    {id:'stove',ic:'🔥',n:'Wood stove with an insulated chimney',cost:3400,d:'A second heat source: it keeps the cabin warm when the furnace is out of oil or the power is out. You cut or buy firewood and sweep the chimney every year.',has:s=>!!s.heat.stove},
+    {id:'station',ic:'🐟',n:'Fish processing station',cost:1900,d:'A stainless table and sink, a vacuum sealer and a bench freezer: fillet, seal and freeze clients’ fish for a small fee. It needs cleaning and a yearly defrost, or a batch spoils.',has:s=>!!s.proc},
+    {id:'bin',ic:'🗑️',n:'Bear-resistant trash bin',cost:140,d:'A latching bin for garbage and fish scraps. Bears give up on it far more often.',has:s=>!!s.bin},
+  ];
+
+  // Jobs. ph: when it can come up ('summer', 'fall', 'spring' or '*' for any time); pr: the lower, the sooner;
+  // cond: how much it restores the cabin's condition; due(s,t): is it due; o(s,t): the three ways.
+  // s is the module's state, t the ticket. A skipped yearly job does not come back until next year.
+  D.JOBS=[
+    {id:'sweep',ic:'🧹',ph:['fall'],pr:10,cond:4,
+      due:(s,t)=>!!s.heat.stove&&t.y>=1&&s.did.sweep!==t.y,
+      title:()=>'Sweep the chimney',why:()=>'Wood smoke leaves creosote in the chimney, and creosote burns.',risk:()=>'Skip it and a chimney fire gets more likely every year.',
+      o:(s,t)=>({diy:{cash:$c(t,45),days:0,min:180,e:8,s:'Rods, brush and a ladder: an afternoon.'},pay:{cash:$c(t,200),s:'A chimney sweep does it and checks the flue.'},skip:{s:'Creosote keeps building. A chimney fire gets likelier.'}})},
+    {id:'oil',ic:'🛢️',ph:['fall'],pr:12,cond:3,
+      due:(s,t)=>!!s.heat.oil&&t.y>=1&&s.did.oil!==t.y,
+      title:()=>'Top up the heating-oil tank',why:()=>'The furnace burns oil all winter. A cold snap on an empty tank means a freezing night and a rush delivery.',risk:()=>'Skip it and you order late at a higher price, and a cold snap can catch the tank low.',
+      o:(s,t)=>{const half=s.heat.stove&&s.did.wood===t.y?.5:1;return {diy:{cash:$c(t,215*half),days:1,min:240,e:10,s:'Haul it home in drums from the fuel station.'},pay:{cash:$c(t,260*half),s:'Schedule a delivery.'},skip:{s:'Coast on what is in the tank.'}}}},
+    {id:'wood',ic:'🪵',ph:['fall'],pr:14,cond:3,
+      due:(s,t)=>!!s.heat.stove&&t.y>=1&&s.did.wood!==t.y,
+      title:()=>'Firewood for the stove',why:()=>'A cord of seasoned birch or spruce heats a cabin for a good stretch of winter.',risk:()=>'Skip it and you buy green wood in January at a worse price.',
+      o:(s,t)=>({diy:{cash:$c(t,90),days:2,min:480,e:20,s:'Cut, split and stack two cords: saw gas, bar oil and a woodcutting permit.'},pay:{cash:$c(t,700),s:'Two cords delivered, split and ready to stack.'},skip:{s:'Burn whatever you can find later.'}})},
+    {id:'tape',ic:'🧵',ph:'*',pr:20,cond:8,once:true,
+      due:(s)=>!s.tape,
+      title:()=>'Heat tape on the water line',why:()=>'Thermostat-controlled heat cable keeps the line from the well or main from freezing.',risk:()=>'Skip it and a hard cold snap can freeze or burst a pipe.',
+      o:(s,t)=>({diy:{cash:$c(t,160),days:1,min:240,e:8,s:'Cable, thermostat and pipe insulation.'},pay:{cash:$c(t,450),s:'A plumber fits it properly.'},skip:{s:'Pipes stay exposed.'}})},
+    {id:'skirt',ic:'🧱',ph:'*',pr:25,cond:8,once:true,
+      due:(s)=>!s.skirt,
+      title:()=>'Skirt the crawlspace',why:()=>'Foam board and plywood around the base keep the wind out from under the floor and the pipes warm.',risk:()=>'Skip it and the floor stays cold and the pipes freeze sooner.',
+      o:(s,t)=>({diy:{cash:$c(t,300),days:1,min:300,e:12,s:'Rigid foam, plywood, screws and a long day on your back.'},pay:{cash:$c(t,900),s:'A contractor skirts it and seals the vents.'},skip:{s:'The wind keeps getting under the floor.'}})},
+    {id:'detect',ic:'🚨',ph:'*',pr:31,cond:3,once:true,
+      due:(s)=>!s.detect,
+      title:()=>'Fit smoke and carbon monoxide detectors',why:()=>'A wood stove or a generator can make carbon monoxide, which you cannot see or smell. Most people are first told by an alarm.',risk:()=>'Skip it and a smoky or gassy night can send you to the hospital.',
+      o:(s,t)=>({diy:{cash:$c(t,85),days:0,min:30,e:1,s:'Two smoke alarms and two CO alarms, on the right walls.'},pay:{cash:$c(t,120),s:'A handyman fits and tests them.'},skip:{s:'No alarms in the cabin.'}})},
+    {id:'detest',ic:'🔋',ph:['fall'],pr:30,cond:3,
+      due:(s,t)=>!!s.detect&&t.y>=1&&s.did.detest!==t.y,
+      title:()=>'Test the detectors and change the batteries',why:()=>'An alarm with a dead battery is just a plastic disc on the ceiling.',risk:()=>'Skip it and an alarm may stay quiet when it counts.',
+      o:(s,t)=>({diy:{cash:$c(t,12),days:0,min:15,e:1,s:'Press the buttons, swap the batteries.'},pay:{cash:$c(t,70),s:'A handyman checks every alarm.'},skip:{s:'Hope the batteries are fine.'}})},
+    {id:'strap',ic:'🪛',ph:'*',pr:40,cond:3,once:true,
+      due:(s)=>!s.strap,
+      title:()=>'Strap the water heater and secure the shelves',why:()=>'Southcentral Alaska has real earthquakes (the 2018 Anchorage quake was felt on the Kenai). A strapped heater stays put.',risk:()=>'Skip it and a rare quake can tip the heater and spill the shelves.',
+      o:(s,t)=>({diy:{cash:$c(t,40),days:0,min:60,e:3,s:'Two metal straps, a stud finder and an hour.'},pay:{cash:$c(t,120),s:'A plumber straps the heater and anchors the tall shelves.'},skip:{s:'Hope for a quiet century.'}})},
+    {id:'breakup',ic:'🚧',ph:['spring'],pr:10,cond:8,
+      due:(s,t)=>t.y>=1&&s.did.breakup!==t.y,
+      title:()=>'Spring breakup: fix the driveway, check the foundation',why:()=>'April and May bring mud, frost heaves and soft roads. The driveway turns to soup and the cabin can settle.',risk:()=>'Skip it and the truck can sink to the axles and the foundation can shift.',
+      o:(s,t)=>({diy:{cash:$c(t,160),days:1,min:300,e:12,s:'Haul gravel, re-crown the driveway, check the posts and skirting.'},pay:{cash:$c(t,400),s:'A neighbor with a loader fixes the driveway and looks over the foundation.'},skip:{s:'See what the thaw does.'}})},
+    {id:'well',ic:'💧',ph:['spring'],pr:20,cond:4,
+      due:(s,t)=>t.y>=1&&s.did.well!==t.y,
+      title:()=>'Test the well water',why:()=>'Many homes around Soldotna draw from their own well. A yearly test for bacteria and nitrate is cheap; a bad pump or tainted water is not.',risk:()=>'Skip it year after year and a failing pump or bad water gets likelier.',
+      o:(s,t)=>({diy:{cash:$c(t,55),days:0,min:60,e:1,s:'A mail-in lab kit: fill the bottles, send them off.'},pay:{cash:$c(t,110),s:'A water tech samples it and checks the pump and pressure tank.'},skip:{s:'It tastes fine.'}})},
+    {id:'septic',ic:'🚽',ph:['spring'],pr:25,cond:6,
+      due:(s,t)=>t.y-s.did.septic>=3,
+      title:()=>'Pump the septic tank',why:()=>'Many homes around Soldotna have septic systems, and a tank wants pumping every few years.',risk:()=>'Skip it and a backup or a failed drain field gets likelier, and the house is unusable for days.',
+      o:(s,t)=>({diy:{cash:$c(t,20),days:0,min:120,e:4,s:'Find the lids, check the level and clean the outlet filter. It buys you a year, no more.'},pay:{cash:$c(t,480),s:'A septic hauler pumps the tank and looks at the baffles.'},skip:{s:'Flush and forget.'}})},
+    {id:'bins',ic:'🗑️',ph:['summer'],pr:10,cond:2,
+      due:(s,t)=>t.sday>=1&&t.abs-Math.max(s.did.bins,s.skipAbs)>=4,
+      title:()=>'Latch the bins and clean up the fish waste',why:()=>'Cleaning clients’ fish at home leaves scraps, blood and smell. Bears on the Peninsula notice.',risk:()=>'Skip it and a bear in the yard gets likely: damage, a lost morning or a visit from Fish and Game.',
+      o:(s,t)=>({diy:{cash:0,days:0,min:30,e:2,s:'Scrape the table, bag the carcasses, latch the bins, make a dump run.'},pay:{cash:$c(t,55),s:'A neighbor with a truck takes the waste and rinses the table.'},skip:{s:'It can wait. (A bear might not.)'}})},
+    {id:'genoil',ic:'🛠️',ph:['summer'],pr:20,cond:3,
+      due:(s,t)=>t.gen.owned&&t.sday>=1&&s.did.genoil!==t.y,
+      title:()=>'Change the generator’s oil',why:()=>'A generator that has sat all year needs fresh oil and a clean filter before it carries the freezer.',risk:()=>'Skip it and the generator may not start in the next outage.',
+      o:(s,t)=>({diy:{cash:$c(t,25),days:0,min:45,e:3,s:'Oil, filter and spark plug.'},pay:{cash:$c(t,140),s:'The small-engine shop services it.'},skip:{s:'It ran last time.'}})},
+    {id:'genrun',ic:'🔌',ph:['summer'],pr:21,cond:2,
+      due:(s,t)=>t.gen.owned&&t.sday>=2&&s.did.genrun!==t.y,
+      title:()=>'Run the generator under load',why:()=>'Twenty minutes with a space heater plugged in keeps the carburetor clean. Do it outside, away from the cabin.',risk:()=>'Skip it and the generator may not start in the next outage.',
+      o:(s,t)=>({diy:{cash:0,days:0,min:20,e:1,gas:.5,dis:t.homeFuel<.5?'No home gas to run it on.':'',s:'Outside, well away from the cabin. It burns about half a gallon of home gas.'},pay:{cash:$c(t,70),s:'The small-engine shop runs and checks it.'},skip:{s:'It will start. Probably.'}})},
+    {id:'garden',ic:'🥬',ph:['summer'],pr:30,cond:2,
+      due:(s,t)=>t.sday<=6&&s.garden.y!==t.y,
+      title:()=>'Plant a small garden',why:()=>'Potatoes, kale and carrots in raised beds save a little at the grocery store. The long July light grows a lot.',risk:()=>'No garden is no risk. (Moose, though, will eat an unfenced one.)',
+      o:(s,t)=>({diy:{cash:$c(t,45),days:0,min:90,e:5,s:'Soil, seed potatoes and starts.'},pay:{cash:$c(t,80),s:'A neighbor sets up the beds and plants them.'},skip:{s:'No garden this year.'}})},
+    {id:'fence',ic:'🫎',ph:['summer'],pr:31,cond:3,once:true,
+      due:(s,t)=>s.garden.y===t.y&&!s.fence,
+      title:()=>'Fence the garden against moose',why:()=>'A moose will walk through a low fence and eat your kale like it is a salad bar. Eight feet works.',risk:()=>'Skip it and a moose will probably eat the garden.',
+      o:(s,t)=>({diy:{cash:$c(t,210),days:0,min:150,e:8,s:'Posts, mesh and a lot of zip ties.'},pay:{cash:$c(t,380),s:'A neighbor builds an eight-foot fence.'},skip:{s:'Moose are not that smart. (They are.)'}})},
+    {id:'stclean',ic:'🧽',ph:['summer'],pr:15,cond:2,
+      due:(s)=>!!s.proc&&s.station.tidy<70,
+      title:()=>'Scrub the fish table and the sealer',why:()=>'A dirty table and sealer spoil a batch, and clients remember.',risk:()=>'Skip it and a batch of clients’ fish may spoil.',
+      o:(s,t)=>({diy:{cash:$c(t,12),days:0,min:40,e:3,s:'Hot water, bleach solution and a stiff brush.'},pay:{cash:$c(t,50),s:'A neighbor’s kid scrubs everything down.'},skip:{s:'Give it a rinse in the morning.'}})},
+    {id:'stdef',ic:'❄️',ph:['summer'],pr:40,cond:3,
+      due:(s,t)=>!!s.proc&&s.did.stdef!==t.y,
+      title:()=>'Defrost the bench freezer, service the sealer',why:()=>'Frost builds up and a sealer’s gasket wears. Freezer-burned fillets are not what you sold.',risk:()=>'Skip it and fish are likelier to spoil.',
+      o:(s,t)=>({diy:{cash:$c(t,25),days:0,min:60,e:4,s:'Empty, defrost, wipe, new gasket.'},pay:{cash:$c(t,110),s:'The appliance shop services both.'},skip:{s:'It still freezes.'}})},
+  ];
+  D.job=id=>D.JOBS.find(j=>j.id===id);
+})(CabinUpkeep);
+// ============================================================
+//  CABIN UPKEEP, part 2: the engine.
+//  Pure functions over a state object this module owns. The host hands in a ticket (the player's numbers and the season) and
+//  gets a report back (cash, energy, minutes or free days, a new state, lines to show). Nothing here touches the host game.
+//
+//    CabinUpkeep.newState()                       a fresh state
+//    CabinUpkeep.normState(x)                     fill in anything an older state is missing
+//    CabinUpkeep.jobs(ticket, {all})              the jobs due now, at most MAX_DUE (events first, then by priority)
+//    CabinUpkeep.resolve(ticket, jobId, optId)    do a job one of three ways: 'diy', 'pay' or 'skip'  → report
+//    CabinUpkeep.daily(ticket)                    a July morning: drift, a bear, the garden harvest, a reminder  → report
+//    CabinUpkeep.rollWinter(ticket) / rollSpring  the off-season: cold snap and snow become prompts in the queue; the rest happens  → report
+//    CabinUpkeep.genOdds(ticket) / genFailed      will the generator start in an outage?
+//    CabinUpkeep.processing(ticket)               a finished trip's fish at the station: a fee, or a spoiled batch  → report
+//    CabinUpkeep.shop(ticket) / buy(ticket, id)   the things you buy once
+// ============================================================
+(function(C){
+  'use strict';
+  const D=C.data,U=C.util,{clamp,copy,n0,$}=U;
+  const $c=(t,x)=>Math.round(x*t.costMult);
+
+  // Tuning: how likely and how costly. Everything is scaled by the cabin's condition and the difficulty.
+  const T=D.T={
+    drift:.5,winterDrift:8,                       // condition lost a July day / a whole off-season
+    coldP:.6,snowP:.75,                           // a cold snap, a heavy snow, in a winter
+    freezeBase:.36,burstShare:.35,                // pipes: chance a snap freezes them untreated; share that burst
+    roofP:[.3,.5,.7],collapseP:.14,             // ice dam or leak by snow depth when you skip; a shed or porch roof
+    fireP:.12,coP:.03,coBase:.006,quakeP:.03,    // chimney fire, carbon monoxide (with a stove or a generator; without), a damaging quake
+    breakupP:.7,wellBase:.01,wellYear:.025,septicBase:.03,septicYear:.04,
+    bearBase:.004,bearFish:.012,bearOver:5,       // a bear in the yard: per day, with fish at home, if the bins are overdue
+    harvest:8,moosePct:.55,                       // meals from a garden, chance a moose eats an unfenced one
+    fee:4,optIn:.55,spoilBad:.3,spoilMid:.12,spoilOk:.02,
+  };
+  C.RUSH=520;
+
+  // ---- the state ----
+  C.newState=function(){return {v:1,cond:80,y:0,rolled:-1,sprung:-1,
+    heat:{oil:1,stove:0},tape:0,skirt:0,strap:0,detect:0,bin:0,fence:0,proc:0,chill:0,sweepSkips:0,bearY:-1,rem:-1,skipAbs:-99,
+    did:{sweep:-1,oil:-1,wood:-1,detest:-1,breakup:-1,well:0,septic:-1,bins:-99,genoil:-1,genrun:-1,stdef:-1},skip:{},
+    garden:{y:-1},station:{tidy:100},queue:[],
+    tot:{diy:0,pay:0,skip:0,events:0,lost:0,fees:0,spoiled:0,harvest:0,moose:0,bears:0}}};
+  C.normState=function(x){
+    const d=C.newState();if(!x||typeof x!=='object')return d;
+    for(const k of Object.keys(d)){
+      if(x[k]===undefined||x[k]===null)x[k]=copy(d[k]);
+      else if(d[k]&&typeof d[k]==='object'&&!Array.isArray(d[k])){for(const j of Object.keys(d[k]))if(x[k][j]===undefined)x[k][j]=copy(d[k][j])}
+    }
+    if(!Array.isArray(x.queue))x.queue=[];
+    x.cond=clamp(n0(x.cond,80),0,100);
+    return x;
+  };
+
+  // ---- the ticket ----
+  C.normTicket=function(t){
+    t=t||{};
+    const ph=['summer','fall','spring'].includes(t.phase)?t.phase:'summer';
+    const g=t.gen||{};
+    return {
+      v:C.SCHEMA,state:C.normState(copy(t.state||null)),phase:ph,
+      y:n0(t.season,0),sday:n0(t.sday,0),abs:n0(t.abs,0),                 // the season (July) this year belongs to, the day of it, a running day count
+      cash:n0(t.cash,0),energy:clamp(n0(t.energy,70),0,100),rep:clamp(n0(t.rep,50),0,100),
+      daysLeft:Math.max(0,n0(t.daysLeft,0)),atHome:t.atHome!==false,       // free winter days left (shared with winter camping); at the cabin in July
+      costMult:n0(t.costMult,1),bad:Math.sqrt(Math.max(.1,n0(t.bad,1))),   // bad luck, softened: a 1.5 difficulty makes the cabin about 1.22 times as unlucky
+                              // the difficulty's multipliers for prices and bad luck
+      gen:{owned:!!g.owned,gas:g.gas==='stale'?'stale':'ok'},homeFuel:n0(t.homeFuel,0),
+      outage:t.outage&&typeof t.outage==='object'?{h:n0(t.outage.h,0),gen:!!t.outage.gen}:null,   // this winter's power outage, if there was one
+      recentFish:n0(t.recentFish,0),fish:n0(t.fish,0),clients:n0(t.clients,0),
+    };
+  };
+
+  // risk multiplier from the cabin's condition: 0.7 in perfect shape up to 1.6 when it is falling apart
+  const cm=s=>.7+.9*(1-s.cond/100);
+  C.risk=s=>Math.round(cm(s)*100)/100;
+
+  // ---- reports ----
+  function newOut(){return {costs:{},cash:0,spent:0,earned:0,energy:0,rep:0,wom:0,minutes:0,days:0,daysLost:0,fuel:0,fresh:0,meals:0,lines:[],tiles:[],done:[],sev:0,remind:''}}
+  function line(out,txt){out.lines.push(txt)}
+  function cost(out,x,id){x=Math.round(x);out.cash-=x;out.spent+=x;if(id)out.costs[id]=(out.costs[id]||0)+x}
+  function report(s,out){
+    s.cond=clamp(Math.round(s.cond*10)/10,0,100);
+    return {v:C.SCHEMA,state:s,cashDelta:out.cash,spent:out.spent,earned:out.earned,energyDelta:out.energy,repDelta:out.rep,womDelta:out.wom,minutes:out.minutes,
+      daysUsed:out.days,daysLost:out.daysLost,homeFuel:out.fuel,freshLost:out.fresh,foodMeals:out.meals,lines:out.lines,tiles:out.tiles,done:out.done,severity:out.sev,remind:out.remind,cond:s.cond,costs:out.costs}}
+
+  // ---- the three ways ----
+  const dayTxt=n=>n<=0?'a few hours':n===1?'1 day':n+' days';
+  const costTxt=(o,phase)=>o.cash?$(o.cash):'Free';
+  function optList(job,s,t){
+    const cfg=job.o(s,t),summer=t.phase==='summer',out=[];
+    const d=cfg.diy;
+    let dis='',why='',days=summer?0:d.days,e=d.e;
+    if(job.kind==='event'&&!summer&&days>t.daysLeft){days=0;e=Math.round(e*1.6)}       // a storm job squeezed into the evenings
+    if(summer&&!t.atHome){dis=true;why='You are away from the cabin.'}
+    else if(!summer&&days>t.daysLeft){dis=true;why='Not enough free days left this winter.'}
+    else if(t.energy-e<12){dis=true;why='Too tired for it right now.'}
+    else if(t.cash<d.cash){dis=true;why='Not enough cash.'}
+    else if(d.dis){dis=true;why=d.dis}
+    out.push({id:'diy',l:'Do it yourself',s:`${d.s} ${summer?d.min+' min':dayTxt(days)} · energy −${e}`,cash:d.cash,min:summer?d.min:0,days,energy:e,gas:d.gas||0,dis:!!dis,why});
+    const p=cfg.pay,pdis=t.cash<p.cash;
+    out.push({id:'pay',l:'Pay someone',s:p.s,cash:p.cash,min:0,days:0,energy:0,dis:pdis,why:pdis?'Not enough cash.':''});
+    out.push({id:'skip',l:'Skip it',s:cfg.skip.s,cash:0,min:0,days:0,energy:0,dis:false,why:''});
+    return out;
+  }
+  function describe(job,s,t){return {id:job.id,ic:job.ic,kind:job.kind||'task',title:job.title(s,t),why:job.why(s,t),risk:job.risk(s,t),opts:optList(job,s,t),phase:t.phase,cond:job.cond}}
+
+  // ---- storm jobs (the queue): a cold snap and a heavy snow ----
+  const QJ={
+    cold:{id:'cold',ic:'🥶',kind:'event',pr:0,cond:2,
+      title:(s,t,q)=>`Cold snap tonight: ${['−10','−25','−35'][q.sev-1]}°F`,
+      why:()=>'Water lines freeze first where the wind gets under the floor. Dripping the taps keeps water moving, and opening the cabinet doors lets the heat in.',
+      risk:()=>'Skip it and an unprotected line can freeze or burst.',
+      o:(s,t)=>({diy:{cash:0,days:0,min:20,e:3,s:'Drip the taps, open the cabinet doors, check the crawlspace at 2 AM.'},pay:{cash:$c(t,45),s:'The neighbor looks in overnight and runs the taps.'},skip:{s:'Go to bed and hope.'}})},
+    snow:{id:'snow',ic:'🌨️',kind:'event',pr:1,cond:2,
+      title:(s,t,q)=>`${['Heavy','A foot and more of','Two feet of'][q.depth-1]} snow on the roof and driveway`,
+      why:()=>'Wet snow loads a roof and ice dams leak, and a plowed-in driveway keeps you from town and from work.',
+      risk:()=>'Skip it and the roof can leak and you are plowed in for a day or two.',
+      o:(s,t)=>({diy:{cash:0,days:1,min:240,e:16,s:'Rake the roof, then plow or shovel the drive.'},pay:{cash:$c(t,320),s:'A neighbor plows and a roof shoveler rakes.'},skip:{s:'Wait for it to melt.'}})},
+  };
+
+  // ---- which jobs are due ----
+  function inPhase(j,t){return j.ph==='*'||j.ph.includes(t.phase)}
+  function dueJobs(s,t){
+    const q=s.queue.map(e=>Object.assign({q:e},QJ[e.id])).filter(j=>j.id);
+    const tasks=D.JOBS.filter(j=>inPhase(j,t)&&(j.id==='bins'||s.skip[j.id]!==t.y)&&j.due(s,t)).sort((a,b)=>a.pr-b.pr);
+    return q.concat(tasks);
+  }
+  C.jobs=function(t,o){
+    t=C.normTicket(t);const s=t.state,list=dueJobs(s,t);
+    const all=list.map(j=>describe(j.q?Object.assign({},j,{title:()=>j.title(s,t,j.q)}):j,s,t));
+    return o&&o.all?all:all.slice(0,C.MAX_DUE);
+  };
+  C.dueCount=t=>{t=C.normTicket(t);return dueJobs(t.state,t).length};
+
+  // ---- doing a job ----
+  C.resolve=function(t0,jobId,optId,o){
+    const t=C.normTicket(t0),s=t.state,r=(o&&o.rand)||Math.random,out=newOut();
+    const list=dueJobs(s,t),j=list.find(x=>x.id===jobId);
+    if(!j)return null;
+    const jd=describe(j.q?Object.assign({},j,{title:()=>j.title(s,t,j.q)}):j,s,t),opt=jd.opts.find(x=>x.id===optId);
+    if(!opt||opt.dis)return null;
+    out.cash-=opt.cash;out.spent+=opt.cash;out.energy-=opt.energy;if(opt.cash)out.costs['job:'+optId]=(out.costs['job:'+optId]||0)+opt.cash;
+    if(t.phase==='summer')out.minutes+=opt.min;else out.days+=opt.days;
+    if(opt.gas)out.fuel+=opt.gas;
+    const y=t.y,mark=j.id==='bins'?t.abs:y;
+    s.tot[optId]++;
+    if(j.kind==='event'){
+      s.queue=s.queue.filter(e=>e!==j.q&&!(e.id===j.q.id));
+      (j.id==='cold'?coldOutcome:snowOutcome)(s,t,optId,r,out,j.q);
+      if(optId!=='skip')s.cond+=j.cond;
+    }else{
+      if(optId==='skip'){
+        if(j.id==='bins')s.skipAbs=t.abs;else s.skip[j.id]=y;
+        line(out,`⏭️ ${jd.title} skipped. ${jd.risk}`);
+      }else{
+        const f=D.FX[j.id];if(f)f(s,t,optId,out);
+        if(j.id!=='septic'||optId==='pay')s.did[j.id]=mark;
+        s.cond+=j.cond*(optId==='diy'?1:1);
+        out.done.push(j.id);
+        line(out,`${j.ic} ${DONE_TXT(j,optId,opt)}`);
+      }
+    }
+    return report(s,out);
+  };
+  const DONE_TXT=(j,optId,opt)=>`${j.title({},{})} ${optId==='diy'?'done by your own hands':'taken care of'}${opt.cash?` (${$(opt.cash)})`:''}.`;
+  // what finishing a job changes beyond its did-mark
+  D.FX={
+    sweep:(s)=>{s.sweepSkips=0},
+    tape:(s)=>{s.tape=1},skirt:(s)=>{s.skirt=1},strap:(s)=>{s.strap=1},detect:(s)=>{s.detect=1},fence:(s)=>{s.fence=1},
+    garden:(s,t)=>{s.garden.y=t.y},
+    septic:(s,t,o)=>{if(o==='diy')s.did.septic=Math.max(s.did.septic,t.y-2)},
+    stclean:(s,t,o)=>{s.station.tidy=Math.min(100,s.station.tidy+(o==='pay'?70:55))},
+  };
+
+  // ---- a cold snap: heat, pipes and drips ----
+  function coldOutcome(s,t,optId,r,out,q){
+    const m=cm(s)*t.bad,sev=q.sev,y=t.y;
+    const oilOk=!!s.heat.oil&&s.did.oil===y,woodOk=!!s.heat.stove&&s.did.wood===y,heatOk=oilOk||woodOk;
+    const drip=optId==='skip'?1:.35;
+    line(out,`🥶 A cold snap pushes the thermometer to ${['−10','−25','−35'][sev-1]}°F.`);
+    let cold=false;
+    if(!heatOk){
+      cold=true;cost(out,$c(t,C.RUSH),'rush');out.energy-=8;s.cond-=4;
+      line(out,`🛢️ The tank runs dry in the middle of the night and the furnace quits. A rush delivery at dawn costs ${$($c(t,C.RUSH))} and the cabin is down to 40°F before it warms up.`);
+    }else if(woodOk&&!oilOk)line(out,'🔥 The wood stove carries the cabin through the cold, the way it should.');
+    else line(out,'🔥 The heat holds. Nice and warm inside.');
+    if(s.chill){cold=true}
+    let pf=T.freezeBase*[.5,1,1.6][sev-1]*(s.tape?.12:1)*(s.skirt?.55:1)*drip*(cold?2.5:1)*(s.chill?1.6:1)*m;
+    pf=clamp(pf,0,.9);
+    if(r()<pf){
+      const burst=r()<clamp(T.burstShare*(s.tape?.45:1)*(cold?1.4:1),0,.8);
+      out.sev=2;
+      if(burst){cost(out,$c(t,2200),'burst');out.daysLost+=3;s.cond-=12;out.fresh=1;
+        line(out,`💦 A pipe under the floor bursts. Water everywhere until you find the shutoff. The plumber and the cleanup come to ${$($c(t,2200))}, it takes about three days to dry out, and the fridge food is a loss.`)}
+      else{cost(out,$c(t,380),'frozen');out.daysLost+=1;s.cond-=4;if(cold)out.fresh=1;
+        line(out,`🧊 The kitchen line freezes solid. A plumber thaws it for ${$($c(t,380))} and it eats a day.${cold?' The fridge got cold enough to ruin the fresh food.':''}`)}
+    }else line(out,optId==='skip'?'😮‍💨 The pipes hold, this time.':'🚰 The pipes hold. The dripping taps did their job.');
+    s.chill=0;s.tot.events++;
+  }
+
+  // ---- heavy snow: roof and driveway ----
+  function snowOutcome(s,t,optId,r,out,q){
+    const m=cm(s)*t.bad,d=q.depth,safe=optId!=='skip';
+    if(safe)line(out,optId==='diy'?'⛏️ You rake the roof and plow the drive. Your back files a complaint.':'🚜 The neighbor plows the drive and a roofer rakes the snow off the roof.');
+    const pl=T.roofP[d-1]*(safe?.1:1)*m;
+    if(r()<pl){const c=$c(t,1200*(1+.4*(d-1)));cost(out,c,'icedam');s.cond-=8;out.sev=2;
+      line(out,`💧 Snow melts and refreezes at the eaves. An ice dam lets water in and the ceiling stains. Repairs come to ${$(c)}.`)}
+    else if(!safe&&d===3&&r()<T.collapseP*m){const c=$c(t,2600);cost(out,c,'collapse');s.cond-=14;out.daysLost+=1;out.sev=2;
+      line(out,`🏚️ The shed roof gives way under two feet of wet snow. Cleanup and a new roof run ${$(c)}, and a day.`)}
+    else if(!safe)line(out,'🏠 The roof carries it. You were lucky.');
+    if(!safe){out.daysLost+=d;line(out,`🚧 The plow doesn’t come for a while. You’re snowed in for ${d===1?'a day':d===2?'two days':'three days'}: a winter job slips or a trip gets pushed.`)}
+    s.tot.events++;
+  }
+
+  // ---- the off-season: winter ----
+  C.rollWinter=function(t0,o){
+    const t=C.normTicket(t0),s=t.state,r=(o&&o.rand)||Math.random,out=newOut(),y=t.y,m=cm(s)*t.bad;
+    if(s.rolled===y)return report(s,out);
+    s.rolled=y;s.cond-=T.winterDrift;s.queue=[];
+    const oilOk=!!s.heat.oil&&s.did.oil===y,woodOk=!!s.heat.stove&&s.did.wood===y,heatOk=oilOk||woodOk;
+    // outage: a long one with no generator and no stove leaves the cabin cold
+    const O=t.outage;
+    if(O&&O.h>=12&&!O.gen&&!woodOk){s.chill=1;line(out,'🥶 The power was out long enough for the cabin to go cold: the furnace blower needs electricity. A wood stove or a generator would have kept it warm.')}
+    const coldNow=r()<T.coldP,snowNow=r()<T.snowP;
+    if(coldNow)s.queue.push({id:'cold',sev:1+(r()<.5?1:0)+(r()<.2?1:0)});
+    if(snowNow)s.queue.push({id:'snow',depth:1+(r()<.5?1:0)+(r()<.25?1:0)});
+    if(!heatOk&&!coldNow){const c=$c(t,260*1.2);cost(out,c,'late');line(out,`🛢️ You never topped up the tank, so you order a delivery in January at a worse price: ${$(c)}.`)}
+    // a chimney fire
+    if(s.heat.stove&&s.did.sweep!==y){
+      const p=clamp(T.fireP*(1+.8*Math.min(2,s.sweepSkips))*m,0,.5);s.sweepSkips++;
+      if(r()<p){const c=$c(t,s.detect?500:700);cost(out,c,'fire');out.energy-=10;s.cond-=12;out.sev=2;s.tot.events++;
+        line(out,`🔥 A roar in the stovepipe: creosote has caught. You shut the damper, get everyone out and the volunteer fire department checks the chimney. A new liner and cleanup run ${$(c)}.${s.detect?' The smoke alarm gave you the head start.':''}`)}
+    }
+    // carbon monoxide
+    const heatsWithFire=!!s.heat.stove||t.gen.owned;
+    const pco=(heatsWithFire?T.coP:T.coBase)*m;
+    if(r()<pco){
+      if(s.detect){const c=$c(t,60);cost(out,c,'co');s.tot.events++;line(out,`🚨 The CO alarm goes off in the night. You open the doors, get out and find a blocked flue cap. ${$(c)} for a new cap, and thanks to the alarm, nobody gets hurt.`)}
+      else{const c=$c(t,950);cost(out,c,'co');out.daysLost+=2;out.energy-=20;out.sev=2;s.tot.events++;
+        line(out,`☠️ You wake with a pounding headache and nausea. It is carbon monoxide from a blocked flue. The ER visit comes to ${$(c)} and a couple of days to recover. Alarms would have caught it; they are cheap.`)}
+    }
+    return report(s,out);
+  };
+
+  // ---- the off-season: spring ----
+  C.rollSpring=function(t0,o){
+    const t=C.normTicket(t0),s=t.state,r=(o&&o.rand)||Math.random,out=newOut(),y=t.y,m=cm(s)*t.bad;
+    if(s.sprung===y)return report(s,out);
+    s.sprung=y;
+    // breakup
+    if(s.did.breakup!==y&&r()<clamp(T.breakupP*m,0,.95)){
+      if(r()<.6){const c=$c(t,260);cost(out,c,'stuck');out.energy-=6;s.tot.events++;out.sev=1;line(out,`🚧 Breakup. The driveway is soup and the truck sinks to the axles on the first morning. A tow costs ${$(c)}.`)}
+      else{const c=$c(t,900);cost(out,c,'heave');s.cond-=6;s.tot.events++;out.sev=2;line(out,`🚧 Frost heaves shift a skirting panel and a post settles. The back door sticks. A carpenter sets it right for ${$(c)}.`)}
+    }
+    // the well
+    const wy=Math.max(0,y-s.did.well);
+    if(r()<clamp(s.did.well===y?.003:T.wellBase+T.wellYear*Math.max(0,wy-1),0,.2)*m){
+      const c=$c(t,1200);cost(out,c,'well');out.daysLost+=3;out.energy-=10;s.cond-=10;s.tot.events++;out.sev=2;
+      line(out,`💧 The water turns cloudy, then the pump quits. Many homes around Soldotna rely on a well, and yours needs a new pump and treatment: ${$(c)}, and three days with the house barely usable.`)}
+    // septic
+    const over=y-s.did.septic-3;
+    if(r()<clamp(over<0?.002:T.septicBase+T.septicYear*over,0,.3)*m){
+      const c=$c(t,1800);cost(out,c,'septic');out.daysLost+=2;s.cond-=10;s.tot.events++;out.sev=2;
+      line(out,`🚽 The septic tank backs up into the house. An emergency pump-out and a cleaned drain field come to ${$(c)}, and the house is unusable for a couple of days.`)}
+    // an earthquake
+    if(r()<T.quakeP*t.bad){
+      if(s.strap){line(out,'🌎 A magnitude 6 quake rattles the cabin, felt across the Kenai. Dishes jump, but the strapped water heater and the anchored shelves stay put.')}
+      else{const c=$c(t,1100);cost(out,c,'quake');out.daysLost+=1;s.cond-=15;s.tot.events++;out.sev=2;
+        line(out,`🌎 A magnitude 6 earthquake, felt across the Kenai (like the big 2018 Anchorage quake). The water heater tips, a shelf comes down and the kitchen is a mess: ${$(c)} to fix, and a day.`)}
+    }
+    s.skip={};
+    return report(s,out);
+  };
+
+  // ---- a July morning ----
+  C.daily=function(t0,o){
+    const t=C.normTicket(t0),s=t.state,r=(o&&o.rand)||Math.random,out=newOut(),y=t.y,m=cm(s)*t.bad;
+    s.cond-=T.drift;
+    // a bear: more likely with fish at home and bins overdue; once a summer
+    if(s.bearY!==y&&t.sday>=1){
+      const over=t.abs-s.did.bins>=T.bearOver;
+      let p=(T.bearBase+(t.recentFish>0?T.bearFish:0))*(over?(s.bin?3:4):s.bin?.4:1)*m;
+      if(r()<clamp(p,0,.5)){
+        s.bearY=y;s.tot.bears++;s.tot.events++;const k=r();
+        if(k<.45){const c=$c(t,120+Math.round(r()*280));cost(out,c,'bear');s.cond-=5;out.sev=1;line(out,`🐻 A black bear gets into the garbage and the fish scraps overnight. Torn bags, a dented bin and a mess all over the yard: ${$(c)} to clean and repair.`)}
+        else if(k<.8){const c=$c(t,60);cost(out,c,'bear');out.minutes+=45;out.energy-=4;out.sev=1;line(out,`🐻 You wake to a bear snorting around the yard. It takes 45 minutes and a lot of banging pots before it leaves, and ${$(c)} of cleanup.`)}
+        else{out.rep-=2;out.sev=1;line(out,'🐻 A bear gets into your garbage and a Fish and Game officer stops by to talk about attractants. Feeding bears, even by accident with trash, can mean a warning or a fine. You get a warning, and the neighbors hear about it. Rep −2.')}
+      }
+    }
+    // the garden: harvest on day 10
+    if(t.sday===10&&s.garden.y===y){
+      const eaten=!s.fence&&r()<T.moosePct;
+      if(eaten){s.tot.moose++;out.meals+=2;out.sev=1;line(out,'🫎 A cow moose and her calf stroll through the garden at dawn. They eat the kale, the carrots and half the potatoes, and leave tracks like dinner plates. You get a couple of meals out of what is left.')}
+      else{out.meals+=T.harvest;s.tot.harvest+=T.harvest;line(out,`🥬 The garden comes in: potatoes, kale and carrots. ${T.harvest} meals for the kitchen.`)}
+    }
+    // one gentle reminder a day
+    if(s.rem!==t.abs){
+      const due=dueJobs(s,Object.assign({},t,{state:s}));
+      if(due.length){s.rem=t.abs;const j=due[0],n=due.length;out.remind=`${j.ic} ${j.title(s,t,j.q)}${n>1?` (and ${n-1} more)`:''}. Home tab.`}
+    }
+    return report(s,out);
+  };
+
+  // ---- the generator ----
+  C.genOdds=function(t0){
+    const t=C.normTicket(t0),s=t.state,y=t.y,why=[];
+    if(!t.gen.owned)return {p:0,why};
+    let p=.03;
+    if(s.did.genoil!==y){p+=.12;why.push('the oil was never changed')}
+    if(s.did.genrun!==y){p+=.12;why.push('it was never run under load')}
+    if(t.gen.gas==='stale'){p+=.18;why.push('stale gas is still in the cans')}
+    return {p:clamp(p*cm(s)/1,0,.55),why};
+  };
+  // the generator would not start: the shop gets it going (oil, carburetor), and it is in shape afterwards
+  C.genFailed=function(t0,o){
+    const t=C.normTicket(t0),s=t.state,out=newOut(),c=$c(t,85);
+    cost(out,c,'gen');s.did.genoil=t.y;s.did.genrun=t.y;s.tot.events++;out.sev=1;
+    const why=C.genOdds(t0).why;
+    line(out,`🔧 The generator coughs and dies${why.length?` (${why.join(', ')})`:''}. You get it running later with a fresh carburetor clean, oil and a new plug: ${$(c)}. Next time, service it before the power goes out.`);
+    return report(s,out);
+  };
+  // a new generator is in shape
+  C.noteGen=function(t0){const t=C.normTicket(t0),s=t.state;s.did.genoil=t.y;s.did.genrun=t.y;return report(s,newOut())};
+
+  // ---- the fish processing station ----
+  C.processing=function(t0,o){
+    const t=C.normTicket(t0),s=t.state,r=(o&&o.rand)||Math.random,out=newOut();
+    if(!s.proc||t.fish<=0||t.clients<=0)return report(s,out);
+    const st=s.station,y=t.y;
+    const spoilP=(st.tidy<30?T.spoilBad:st.tidy<55?T.spoilMid:T.spoilOk)+(s.did.stdef===y?0:.05);
+    const fish=Math.min(t.fish,t.clients*3),fee=Math.round(fish*T.fee*T.optIn*t.costMult);
+    st.tidy=Math.max(0,st.tidy-6);
+    if(r()<spoilP){
+      out.wom-=1;out.rep-=1;s.tot.spoiled++;out.sev=1;
+      line(out,'🐟 A bag of fillets goes into the wrong cooler, or the sealer didn’t seal. By the time the clients unpack it at home, it’s off. You refund the fee and they tell their friends.');
+    }else{
+      out.earned+=fee;out.cash+=fee;out.energy-=2;s.tot.fees+=fee;
+      line(out,`🐟 Fillet, vacuum-seal and freeze: ${fish>1?'a few of':''} the clients’ fish go home flat-packed. ${$(fee)} in processing fees.`);
+    }
+    if(st.tidy<55)line(out,'🧽 The fish table could use a scrub.');
+    return report(s,out);
+  };
+
+  // ---- the shop ----
+  C.shop=function(t0){
+    const t=C.normTicket(t0),s=t.state;
+    return D.SHOP.map(i=>{const c=$c(t,i.cost),has=i.has(s);return {id:i.id,ic:i.ic,n:i.n,d:i.d,cost:c,has,dis:has||t.cash<c,why:has?'Done':t.cash<c?'Not enough cash':''}});
+  };
+  C.buy=function(t0,id){
+    const t=C.normTicket(t0),s=t.state,out=newOut(),it=C.shop(t0).find(x=>x.id===id);
+    if(!it||it.dis)return null;
+    cost(out,it.cost);
+    if(id==='stove'){s.heat.stove=1;s.cond+=3}
+    if(id==='station'){s.proc=1;s.station.tidy=100;s.did.stdef=t.y}
+    if(id==='bin'){s.bin=1;s.cond+=1}
+    line(out,`${it.ic} ${it.n}: ${$(it.cost)}.`);
+    return report(s,out);
+  };
+
+  // ---- what the Home tab shows ----
+  C.status=function(t0){
+    const t=C.normTicket(t0),s=t.state,rows=[];
+    const heat=[s.heat.oil?'furnace (heating oil or propane)':'',s.heat.stove?'wood stove':''].filter(Boolean).join(' and ');
+    rows.push(['🔥 Heat',heat]);
+    const prot=[s.tape?'heat tape':'',s.skirt?'skirted crawlspace':''].filter(Boolean);
+    rows.push(['🚰 Freeze-proofing',prot.length?prot.join(', '):'none yet']);
+    rows.push(['🚨 Detectors',s.detect?'fitted':'none']);
+    if(t.gen.owned)rows.push(['🔌 Generator',C.genOdds(t).p<=.1?'serviced':'overdue for service']);
+    if(s.proc)rows.push(['🐟 Fish station',`tidiness ${Math.round(s.station.tidy)}%`]);
+    if(s.garden.y===t.y)rows.push(['🥬 Garden',s.fence?'fenced':'unfenced']);
+    return rows;
+  };
+})(CabinUpkeep);
+// ============================================================
+//  CABIN UPKEEP, part 3: screens.
+//  CabinUpkeep.ui.tab(ticket)            the Home tab as an HTML string. Its buttons carry data-cab="job" (with data-id) or data-cab="shop";
+//                                        the host listens for clicks on them and calls open() or shop().
+//  CabinUpkeep.ui.open(host, jobId)      the choice pop-up for one job: do it yourself, pay someone, or skip it
+//  CabinUpkeep.ui.shop(host, back)       the things you buy once
+//  CabinUpkeep.ui.scenes(host, rep, done) a winter report followed by each storm prompt in turn, then done()
+//
+//  The host adapter: {
+//    show(title, html, buttons, lock),   required. Show a pop-up. buttons: [{l, s, dis, fn}]; fn runs after the pop-up has closed.
+//    ticket(),                           required. A fresh ticket from the host's current numbers (it changes after every report).
+//    apply(report),                      required. Apply a report to the host.
+//    rand()                              optional, [0,1)
+//  }
+//  Pop-ups should be accessible: focus inside, Tab stays in, 44 px targets.
+// ============================================================
+(function(C){
+  'use strict';
+  const U=C.util,{$,esc,clamp}=U;
+  const U2={};C.ui=U2;
+  const rnd=h=>typeof h.rand==='function'?{rand:h.rand}:undefined;
+
+  function meter(v){
+    v=clamp(Math.round(v),0,100);const c=v>60?'#2f8f4e':v>30?'#c99a1c':'#c0392b';
+    return `<div role="img" aria-label="Cabin condition ${v} out of 100" style="height:10px;border-radius:6px;background:rgba(127,127,127,.25);overflow:hidden"><i style="display:block;height:100%;width:${v}%;background:${c}"></i></div>`;
+  }
+  function jobButton(j){
+    const best=j.opts[0],cheap=j.opts[1];
+    const sub=`${j.why} ${best.dis?'':`Yourself: ${best.cash?$(best.cash):'free'}, ${best.min?best.min+' min':best.days?best.days+' day'+(best.days>1?'s':''):'a few hours'}. `}Or pay ${$(cheap.cash)}. ${j.risk}`;
+    return `<button class="act ${j.kind==='event'?'primary':''}" data-cab="job" data-id="${esc(j.id)}"><span class="ic">${j.ic}</span><span class="tx"><b>${esc(j.title)}</b><span>${esc(sub)}</span></span></button>`;
+  }
+  U2.tab=function(t0){
+    const t=C.normTicket(t0),s=t.state,jobs=C.jobs(t0),more=C.dueCount(t0)-jobs.length;
+    const rows=C.status(t0).map(([a,b])=>`<div class="kv"><span>${a}</span><b style="text-align:right">${esc(b)}</b></div>`).join('');
+    const low=s.cond<40;
+    return `<div class="sect">🏠 Cabin condition</div>
+      <div style="display:flex;align-items:center;gap:10px;margin:4px 0 10px"><div style="flex:1">${meter(s.cond)}</div><b style="min-width:3.2em;text-align:right${low?';color:var(--bad)':''}">${Math.round(s.cond)}/100</b></div>
+      <p style="font-size:13px;color:var(--mute);margin:0 0 8px">${low?'The cabin is run down, so bad luck finds it more often.':s.cond>=75?'In good shape. Things go wrong less often.':'It drifts down a little every season. Jobs bring it back up.'} Every job: do it yourself, pay someone, or skip it and take the risk.</p>
+      ${rows}
+      <div class="sect">${jobs.length?'Due now':'Nothing due'}</div>
+      ${jobs.length?jobs.map(jobButton).join(''):`<p style="font-size:13.5px;color:var(--mute)">${t.phase==='summer'?'The cabin can wait. Check back in a few days, and after the season.':'Nothing needs doing right now.'}</p>`}
+      ${more>0?`<p style="font-size:12.5px;color:var(--mute)">${more} more job${more>1?'s':''} will come up after these.</p>`:''}
+      <button class="act" data-cab="shop"><span class="ic">🏪</span><span class="tx"><b>Home upgrades</b><span>A wood stove, a fish processing station, a bear-resistant bin.</span></span></button>`;
+  };
+
+  // one job: three ways
+  U2.open=function(host,jobId,then,lock){
+    const t=host.ticket(),job=C.jobs(t,{all:true}).find(j=>j.id===jobId);
+    if(!job){if(then)then();return}
+    const run=o=>()=>{
+      const rep=C.resolve(host.ticket(),jobId,o.id,rnd(host));
+      if(!rep){if(then)then();return}
+      host.apply(rep);
+      if(job.kind==='event'||rep.severity>0)host.show(`${job.ic} ${job.title}`,rep.lines.map(l=>`<p>${l}</p>`).join('')+condLine(rep),[{l:'Continue',fn:()=>{if(then)then()}}],lock);
+      else if(then)then();
+    };
+    const btns=job.opts.map(o=>({l:`${o.l}${o.id==='skip'?'':` · ${o.cash?$(o.cash):'free'}`}`,s:o.dis&&o.why?`${o.why}`:o.s,dis:o.dis,fn:run(o)}));
+    if(!lock)btns.push({l:'Not now',s:'Decide later.',fn:()=>{if(then)then()}});
+    host.show(`${job.ic} ${job.title}`,`<p>${esc(job.why)}</p><p class="small-note" style="color:var(--mute);font-size:13px">If you skip it: ${esc(job.risk.replace(/^Skip it and /,'').replace(/^Skip it /,''))}</p>`,btns,!!lock);
+  };
+  const condLine=rep=>`<p style="font-size:13px;color:var(--mute)">Cabin condition ${Math.round(rep.cond)}/100.</p>`;
+
+  U2.shop=function(host,back){
+    const t=host.ticket(),items=C.shop(t);
+    host.show('🏪 Home upgrades',`<p style="font-size:13px;color:var(--mute)">Cash ${$(Math.round(t.cash))}. One-time buys for the cabin.</p>`,
+      items.map(i=>({l:`${i.ic} ${i.n} — ${$(i.cost)}`,s:i.why&&i.has?`${i.why}. ${i.d}`:i.d,dis:i.dis,fn:()=>{const rep=C.buy(host.ticket(),i.id);if(rep)host.apply(rep);setTimeout(()=>U2.shop(host,back),0)}}))
+        .concat([{l:'Done',fn:()=>{if(back)setTimeout(back,0)}}]));
+  };
+
+  // the winter report, then each storm prompt in turn
+  U2.scenes=function(host,rep,done){
+    const events=()=>C.jobs(host.ticket(),{all:true}).filter(j=>j.kind==='event');
+    const next=()=>{const e=events()[0];if(!e){if(done)done();return}U2.open(host,e.id,next,true)};
+    if(rep&&rep.lines&&rep.lines.length)host.show('🏠 The cabin this winter',rep.lines.map(l=>`<p>${l}</p>`).join('')+condLine(rep),[{l:'Continue',fn:next}],true);
+    else next();
+  };
+  // a plain report as a pop-up (spring, a failed generator, a summer bear)
+  U2.report=function(host,title,rep,done){
+    if(!rep||!rep.lines.length){if(done)done();return}
+    host.show(title,rep.lines.map(l=>`<p>${l}</p>`).join('')+condLine(rep),[{l:'Continue',fn:()=>{if(done)done()}}],true);
+  };
+})(CabinUpkeep);
+// ============================================================
+//  CABIN UPKEEP, part 4: headless play.
+//  CabinUpkeep.autoplay(host, {policy, rand}) does every job that is due now, using a policy, with no screen. The host's bots and
+//  the tests use it, and it is how the module is balanced. host: {ticket(), apply(report)}.
+//  Policies:
+//    'careful'  do it yourself when there is time and energy, else pay (while cash is comfortable), else skip
+//    'payall'   pay when cash is comfortable, else do it yourself, else skip
+//    'neglect'  skip everything, including the storm prompts
+//    'first'    the first option that is available (what a bot tapping the top button would do)
+//  or your own function (job, ticket) → 'diy' | 'pay' | 'skip' | null (null leaves the job for later).
+// ============================================================
+(function(C){
+  'use strict';
+  const POL={
+    careful:(j,t)=>{const d=j.opts[0],p=j.opts[1];
+      if(!d.dis&&(t.phase==='summer'||d.days<=1||t.daysLeft>=d.days+4))return 'diy';
+      if(!p.dis&&t.cash>1500+p.cash)return 'pay';return 'skip'},
+    payall:(j,t)=>{const d=j.opts[0],p=j.opts[1];if(!p.dis&&t.cash>1500+p.cash)return 'pay';if(!d.dis)return 'diy';return 'skip'},
+    neglect:()=>'skip',
+    first:j=>(j.opts.find(o=>!o.dis)||{}).id||'skip',
+  };
+  C.policies=POL;
+  C.autoplay=function(host,o){
+    o=o||{};const pol=typeof o.policy==='function'?o.policy:POL[o.policy||'careful'];
+    const handled=new Set(),reports=[];let guard=0;
+    while(guard++<40){
+      const t=host.ticket(),j=C.jobs(t,{all:true}).find(x=>!handled.has(x.id));
+      if(!j)break;
+      handled.add(j.id);
+      const pick=pol(j,C.normTicket(t));
+      if(!pick)continue;
+      const rep=C.resolve(host.ticket(),j.id,pick,o.rand?{rand:o.rand}:undefined);
+      if(rep){host.apply(rep);reports.push(rep)}
+    }
+    return reports;
+  };
+})(CabinUpkeep);
+// ============================================================
 //  GAME CONFIG: start here when you make a new game.
 //  tools/new-game.py rewrites id / title / codePrefix / colors for you
 //  (in this file, src/shell.html, the web manifest and sw.js).
@@ -1100,6 +1712,7 @@ const KenaiCamp={
 //    20-world.js     ← YOUR GAME: stats, starting state, places, actions, scenery
 //    21-story.js     ← YOUR GAME: events, tips, to-do, achievements, scoring, migrations
 //    31-supplies.js  ← YOUR GAME: food, home fuel storage, power outages and the generator
+//    32-home.js      ← YOUR GAME: the cabin (the adapter for src/home/, the CabinUpkeep module)
 //    99-boot.js      starts the app
 //  Engine files (00–09) shouldn't need much editing; your game lives in 20+.
 // ============================================================
@@ -1108,8 +1721,8 @@ const GAME={
   title:'Guide Master',
   tagline:'A guide’s career on the Kenai',
   codePrefix:'GUIDEMASTER',   // transfer codes start with this, e.g. POCKETWEEK:eyJ…
-  version:'1.9.0',           // bump on every release: shown in Settings, stamped into saves and sw.js
-  schema:3,                  // bump when the shape of S changes, and add a MIGRATIONS entry (21-story.js)
+  version:'1.10.0',           // bump on every release: shown in Settings, stamped into saves and sw.js
+  schema:4,                  // bump when the shape of S changes, and add a MIGRATIONS entry (21-story.js)
   days:14,                   // days in ONE season (the July peak, Mon–Sun twice; season 1 is Jul 13–26, 2026). A career is 14 × years: see the getter below
   wake:300,                  // default alarm for new games, in minutes after midnight (300 = 5:00 AM: guides start early; saves keep their own S.alarm)
   startLoc:'shop',
@@ -1481,7 +2094,7 @@ function render(){
   const xt=(EXTRA_TABS||[]).find(t=>t.k===tab);
   h+=`<div class="content">${tab==='act'?actView():tab==='todo'?todoView():tab==='log'?logView():xt?xt.view():actView()}</div>`;
   const pending=todoItems().filter(x=>x.urgent&&!x.ok).length,tabs=allTabs();
-  h+=`<nav class="tabs" style="grid-template-columns:repeat(${tabs.length},1fr)">${tabs.map(([k,i,l])=>`<button class="${tab===k?'on':''}" onclick="setTab('${k}')"${tab===k?' aria-current="page"':''}><span class="ti">${i}</span>${l}${k==='todo'&&pending?'<span class="dot"></span>':''}</button>`).join('')}</nav>`;
+  h+=`<nav class="tabs" style="grid-template-columns:repeat(${tabs.length},1fr)">${tabs.map(([k,i,l])=>`<button class="${tab===k?'on':''}" onclick="setTab('${k}')"${tab===k?' aria-current="page"':''}><span class="ti">${i}</span>${l}${(k==='todo'&&pending)||(k==='home'&&typeof homeDot==='function'&&homeDot())?'<span class="dot"></span>':''}</button>`).join('')}</nav>`;
   app.innerHTML=withName(h);
   achCheck();
   saveGame();
@@ -1858,6 +2471,7 @@ function newState(){
     calls:{},diner:{},report:{},office:{},dipnet:{},walks:{},
     run:[],cum:0,limit:3,eo:[],wx:[],wxd:[],noise:[],water:.5,solo:{},pu:0,
     freezer:0,skill:20,
+    cabin:CabinUpkeep.newState(),homeAsk:-1,winOut:null,   // 32-home.js: the cabin's upkeep (src/home/), the last winter its spring jobs were mentioned, this winter's outage
     home:{cans:3,tank:0,gal:10,tgal:0,stale:0,gen:0,frz:0},   // 31-supplies.js: fuel storage (gallons: untreated, stabilized, stale), generator type, big freezer
     food:{pan:24,fri:6,fd:0,fm:0,kits:0},ate:{d:-1,n:0},hungry:0,power:null,   // meals in the pantry and fridge, the day the fridge was stocked, meals left of a thawed red, client lunch kits; meals eaten away today; today's outage
     visited:{shop:true},
@@ -2055,6 +2669,7 @@ function statusTags(){
   if(heat()>=2) t.push(`<span class="tag bad">🚔 troopers know your boat (${heat()} rules broken)</span>`);
   if(S.freezer) t.push(`<span class="tag">🧊 ${S.freezer} reds in the freezer</span>`);
   t.push(...suppliesTags());
+  t.push(...homeTags());
   return t;
 }
 function alertBar(){
@@ -2209,6 +2824,7 @@ function onMorning(d){
   const w=WX[S.wx[d]];
   say(newSeason?`❄️➡️☀️ <b>${dlongY(d)}</b>, ${fmt(S.t)}. Season ${seasonOf(d)+1} of ${S.years}. ${w.ic} ${w.n}. Plan the off-season to open this year’s bookings.`:`${dlong(d)}, ${fmt(S.t)}. ${w.ic} ${w.n}.${Math.random()<.4?' '+pick(LORE):''}`);
   if(newSeason) return;
+  homeMorning();                                        // 32-home.js: cabin drift, a bear, the garden, one gentle reminder
   const t=todays(d);
   if(t.length) say('🛶 Today: '+t.map(b=>`${TRIPS[b.type].ic} ${TRIPS[b.type].n} at ${fmt(TRIPS[b.type].start)}, ${L[TRIPS[b.type].loc].name} (the ${b.who}, ${b.n})`).join(' · '));
   else say('🛶 No trips booked today. Service the boat, return calls, or go fill the freezer.');
@@ -2446,7 +3062,7 @@ function endRows(){
   return [['Difficulty',`${DF().ic} ${DF().n}: ${DF().enforce<1?'fewer patrols, cheaper bills':DF().enforce>1?'more patrols, dearer bills, pickier clients':'standard patrols and bills'}; no score bonus`],['Career',`${S.years} seasons`],['Season by season',yrs],['Cash',$(Math.round(S.money))],['Net over the career',$(Math.round(S.money-DF().money))],['Boats & permits bought',S.up&&S.up.value?$(S.up.value):'none'],['July trips played / clients',`${s.trips} / ${s.clients}`],
     ['Fish landed',s.fish],['Trips where everyone limited',s.limits],['Tips',$(s.tips)],['Reputation',S.rep],
     ['Record',`${s.citesTotal||0} citation${(s.citesTotal||0)===1?'':'s'}, ${s.warnsTotal||0} warning${(s.warnsTotal||0)===1?'':'s'}, ${$(s.fines)} in fines`],
-    ['Fuel',`${grp(s.fuelGal||0)} gal, ${$(Math.round(s.fuelCost||0))}`],['Coast Guard tows',s.tows||0],['Winter camping',campEndText()],['Kings released',s.kings],['Freezer',`${S.freezer} reds`],['Boat checks passed',s.checks]];
+    ['Fuel',`${grp(s.fuelGal||0)} gal, ${$(Math.round(s.fuelCost||0))}`],['Coast Guard tows',s.tows||0],['Winter camping',campEndText()],['The cabin',homeEndText()],['Kings released',s.kings],['Freezer',`${S.freezer} reds`],['Boat checks passed',s.checks]];
 }
 
 // ---- save migrations ----
@@ -2461,6 +3077,14 @@ const MIGRATIONS=[
     if(o&&typeof o==='object'&&typeof o.s==='number'){c.s=o.s;c.days=Math.max(1,o.nights||1);c.trips=1;c.tot.trips=1}
     c.tot.nights=(x.stats&&x.stats.campNights)||0;
     x.camp=c;
+  }},
+  // schema 4 (1.10.0): cabin upkeep (32-home.js, src/home/). An existing cabin counts as kept up this far: nothing is overdue the moment you load,
+  // a game in the middle of an off-season gets this winter's jobs, and a generator you already own is in shape.
+  {to:4,run:x=>{
+    const c=CabinUpkeep.newState(),y0=x.winter&&typeof x.winter.s==='number'?x.winter.s-1:Math.floor((typeof x.cur==='number'?x.cur:0)/14);
+    Object.keys(c.did).forEach(k=>{if(k!=='bins')c.did[k]=y0});c.did.septic=y0-1;c.y=y0;
+    if(!x.cabin||typeof x.cabin!=='object')x.cabin=c;
+    if(typeof x.homeAsk!=='number')x.homeAsk=-1;
   }},
 ];
 // ============================================================
@@ -2711,6 +3335,7 @@ function tripEnd(b,t){
     else{for(let i=0;i<fishers;i++)fish+=clamp(Math.round(2*q+(r()-.5)*1.2),0,2);S.stats.halibut+=fish;line=`${fish} halibut`}
   }
   fish+=t.kept;
+  homeProcessing(b,fish,t);                              // 32-home.js: the fish processing station
   // ---- what the day was worth ----
   // The booked fare is the base. A good day (fish, happy clients, a clean boat and tackle) earns bigger tips and word of mouth;
   // a bad one (skunked, out of tackle, a breakdown, grumpy clients) means a partial refund and a bad review.
@@ -3108,7 +3733,7 @@ const HAP0=76;
 const seasonHap=(s,o)=>{const n=(s.hapN||0)-(o.hapN||0);return n>0?((s.hapSum||0)-(o.hapSum||0))/n:HAP0};
 
 // ---- season rollover: runs on the first morning of each new season (from onMorning) ----
-const WINTER_COST=[['🏠 Living costs, Oct–May (after your winter job)',1800,'🏠 Living'],['🪪 Guide & business licenses, KRSMA permit, vessel decals',650,'🪪 Licenses & permits'],['🛡️ Liability insurance & drug-testing consortium',1950,'🛡️ Insurance']];
+const WINTER_COST=[['🏠 Living costs, Oct–May (after your winter job)',1300,'🏠 Living'],['🪪 Guide & business licenses, KRSMA permit, vessel decals',650,'🪪 Licenses & permits'],['🛡️ Liability insurance & drug-testing consortium',1950,'🛡️ Insurance']];
 const winterCosts=()=>WINTER_COST.concat(S.up&&S.up.asst?[['🧑‍🤝‍🧑 Assistant guide: license, decals, insurance, drug-testing',3000,'🧑‍🤝‍🧑 Assistant']]:[],S.up&&S.up.lodge?[['🏡 Cabins: property tax, insurance and winterizing',5500,'🏡 Cabins']]:[]).map(([n,c,sh])=>[n,Math.round(c*DF().cost),sh]);
 
 // ---- late-career money sinks (2026 Alaska prices, approximate) ----
@@ -3171,8 +3796,9 @@ function winterModal(){
     ${campHintLine()?`<p>${campHintLine()}</p>`:''}
     <p style="font-size:13px;color:var(--mute)">Season ${s+1} of ${S.years}. Bookings open when you finish planning.</p>`,[
     {l:'🛠️ Upgrades & business',s:'Boats, marketing, rates, a Homer charter permit.',fn:()=>upgradeModal()},
+    {l:`🏠 The cabin: ${homeWinterLabel()}`,s:cabinWinterBlurb(),fn:()=>homeWinterModal()},
     {l:'🏕️ Winter camping & work',s:campUsed()?'You’ve used your free days this winter. You can still look at your camping log.':`${campDaysLeft()} free days: camping trips within 100 miles (ice fishing, scouting, company), winter work, a camping log.`,fn:()=>campModal()},
-    {l:`🛶 Open bookings for ${2026+s}`,s:'Start the season.',fn:()=>finishWinter()}]);
+    {l:`🛶 Open bookings for ${2026+s}`,s:'Start the season.',fn:()=>homeOpenGate(()=>finishWinter())}]);
 }
 function upgradeModal(){
   modal(`🛠️ Off-season plans · cash ${$(Math.round(S.money))}`,`<p style="font-size:13px;color:var(--mute)">Rates now ×${S.up.rate.toFixed(1)}. Rep ${S.rep}.</p>`,
@@ -3180,6 +3806,7 @@ function upgradeModal(){
       .concat([{l:'🏠 Home: generator, fuel storage, freezer',s:`${genOf()?genOf().short+' generator, ':'No generator, '}${fuelCap()} gal of fuel storage, a ${fishCap()}-fish freezer.`,fn:()=>homeShopModal(()=>upgradeModal())},{l:'Done',s:'Back to the off-season summary.',fn:()=>setTimeout(winterModal,0)}]));
 }
 function finishWinter(){
+  homeFinishWinter();                                    // 32-home.js: spring at the cabin, before the bookings open
   const s=S.winter.s;S.winter=null;const reg=genSeasonBookings(s);
   const n=S.book.filter(b=>seasonOf(b.d)===s).length;
   say(`📅 ${2026+s} bookings are in: <b>${n} trips</b> for the season. ${REG().fc}${reg.length?'<br>'+reg.join('<br>'):''}`);
@@ -3357,6 +3984,7 @@ const HELP=[
   ['🐟','Fish & weather','The <strong>🐟 Fish</strong> tab shows today’s weather, river level, tides, the odds by place and species, where to fish today, and when each run arrives. Reds bite best at first light; silvers build late July; pinks run in even years. <strong>Read it before you launch:</strong> every spot fishes better or worse with the day’s water, wind, run and tide, and once you have looked at the tab (or scouted the river) the spot buttons show a Hot, Good, Fair or Poor read. With no clients booked, <strong>Take the boat out</strong> to fill your freezer and scout.'],
   ['🔧','Money & gear','The booked fare is your base pay; tips, refunds and word of mouth follow how the day went: the catch, happy clients, tackle and a boat in good shape. A well-kept boat and a fed crew pay: tips run from nothing at 60 happiness to 30% of the fare at 90, and the <strong>rest of your summer</strong> (June, August and September, settled in the off-season) follows how happy your clients were on average, not only how many trips you ran. Run out of tackle, skip meals (after a second hungry night you get a warning and a pricier gas-station fix) or let the boat wear down and you’ll see smaller tips, refunds, breakdowns and a quieter off-season. Restock tackle in Soldotna, service the boats at the shop, buy fuel at the harbor. Overhead is charged every night. The Boat stat warns you at 40, 20 and 10. At 0 your sled and drift boat are out of service until a major repair ($2,400), though an emergency patch ($600, back to 25 for two days, only at 10 or less) or a rented loaner ($600, for the day) keeps a booked trip running. In the off-season you can buy upgrades: a new motor (burns less gas), a new sled (trips finish 30 minutes sooner), a drift boat, marketing, a winter course (skill, which builds with practice and rusts over the winter), higher rates (more per trip, fewer bookings, pickier clients: the first step is cheap, the third is not), your own Homer charter permit and, later in a career, an assistant guide, guest cabins or a riverfront lot with a private launch.'],
   ['🏕️','Winter camping','In the off-season you have <strong>10 free days</strong> for up to three trips and two winter jobs. Pick one of ten Kenai Peninsula spots within 100 road miles of Soldotna, a month (it sets the daylight, ice and weather), who comes along, and what to <strong>pack</strong>: a bear-resistant container, a cold-rated bag, spare layers, stove fuel, a truck kit, ice picks. Each day you choose an activity (one in the dark months, two on long days): <strong>ice fish</strong> a stocked lake (you need a fishing license, and licenses restart every January), snowshoe, ski, track wildlife, scout the upper Kenai or Kasilof, or watch the northern lights. Evenings you can tie flies for tackle next season. Each night has a <strong>50% chance of an encounter</strong>, good or bad; what you packed and where you sleep (tent, wall tent, truck camper, public-use cabin) change the odds. Winter jobs pay a little; a camping log keeps the animals you have seen.'],
+  ['🏠','The cabin','The <strong>🏠 Home</strong> tab (and <strong>Home</strong> in the top bar, 0 to 100) tracks your cabin. It drifts down slowly; jobs bring it back up, and a run-down cabin has more bad luck. <strong>Never more than two jobs show at once</strong>, and every job offers three ways: <strong>do it yourself</strong> (time and energy), <strong>pay someone</strong> (cash) or <strong>skip it</strong> (a risk). In July: latch the bear bins and clean up fish waste, service the generator, plant a garden (and fence it: moose), keep the fish station clean. In the off-season: fall jobs before the cold (heating oil, or firewood and a chimney sweep if you add a wood stove; heat tape and a skirted crawlspace; smoke and CO detectors), then a cold snap and heavy snow, then spring breakup (driveway, foundation, well test, septic). Do-it-yourself jobs in the off-season spend the same <strong>10 free days</strong> as winter camping. Trouble costs money, days, energy or reputation, but it never ends your career. Never run a generator indoors: exhaust is carbon monoxide.'],
   ['💀','How you lose','Three active citations (permit pulled), reputation down to 0 (nobody books you), or $2,000 in debt (the bank takes the sled).'],
   ['💡','Tips','Rig tomorrow’s gear, read the Fish tab and scout the river for better trips. Tips (💡) appear as you play; turn them on or off in ⚙️ Settings. On a computer, number keys press buttons, <strong>Esc</strong> closes a pop-up and <strong>?</strong> lists the shortcuts. Settings has bigger text and high contrast.'],
 ];
@@ -3533,6 +4161,7 @@ function campWrap(rep){
 // the player's entry point (from the off-season summary)
 function campModal(){
   if(!S.winter) return;
+  if(cabin().rolled!==S.winter.s) return homeBeforeCamping(()=>campModal());   // the winter's first storm lands before the free days are spent
   campW();
   KenaiCamp.start({mode:'guide',ticket:campTicket(),host:{
     show:(title,html,btns,lock)=>modal(title,html,btns,lock),
@@ -3543,7 +4172,7 @@ function campModal(){
 }
 // bots and tests: play a whole winter's camping with the engine's headless policy and apply the report
 function campBot(opts){
-  if(!S.winter) return null;campW();
+  if(!S.winter) return null;homeRollWinterSync();homeAnswerStorms();campW();
   const r=KenaiCamp.sim({ticket:campTicket(),rand:(opts&&opts.rand)||(()=>Math.random()),policy:(opts&&opts.policy)||'thoughtful',opts});
   campApply(r.report);return r.report;
 }
@@ -3573,6 +4202,7 @@ const CHANGELOG={
   '1.5.4':['🎲 Dilemma options shuffle: playing it straight costs something, bending a rule can pay cash, and repeat offenders pay steeper fines. Pay now follows the day: catch, tackle and boat shape tips, refunds and word of mouth.'],
   '1.6.0':['💲 Higher rates now cost you: fewer bookings, pickier clients and a rep requirement that rises each step.','🔧 Boats at condition 0 are out of service until repaired; new motors burn less gas, new sleds finish sooner, and late-career money can buy an assistant guide, guest cabins or a riverfront launch.','⏳ New “Wait until…” action skips to the next launch or the 1 PM class. New games start with a 5:00 AM alarm.','🌙 The night summary now comes before the morning’s news, and pop-up toasts are fewer, shorter and sit below your Cash and Rep.','⭐ Longer careers: 54 client parties, regulars who come back (or don’t), six new river dilemmas, fewer repeats and three multi-season stories.'],
   '1.8.0':['🎯 Skill pays: spots fish differently with the day’s water, wind, run and tide. Read the 🐟 Fish tab or scout the river and the spot buttons show which one is hot.','⭐ The rest of your summer follows how happy your clients were, not only how many trips you ran. Tips run higher on a good day, a well-kept boat pleases clients, and a happy party may take your card and become a regular.','💲 Raising rates gets steeper after the first step, and skill builds with practice and rusts over the winter.'],
+  '1.10.0':['🏠 The cabin needs you now and then. A new Home tab lists the jobs (never more than two at a time), and each one can be done yourself, paid for, or skipped at a risk: heat for the winter, frozen pipes, snow on the roof and driveway, the generator, the well and septic tank, bears and fish waste, a garden moose, smoke and CO detectors, spring breakup and the odd earthquake.','🔥 New upgrades: a wood stove as a second heat source, a bear-resistant bin and a fish processing station that sells fillet-and-freeze to clients. Cabin condition (Home, in the top bar) drifts down slowly, and a run-down cabin has more bad luck. Your game in progress is brought up to date automatically.'],
   '1.9.0':['🏕️ Winter camping is much bigger: ten free days each winter for up to three trips, with a pack to choose (bear container, a cold-rated bag, spare layers, stove fuel), ice fishing on stocked lakes, tracking and scouting, evenings tying flies, company, public-use cabins and a truck camper, winter jobs, and a log of every animal you see.','🎣 Real rules: ice fishing needs a fishing license, and licenses start over every January. Scouting the upper Kenai or Kasilof gives a hint about next summer’s run. Your game in progress is brought up to date automatically.'],
   '1.8.1':['🚔 Bending the rules can still pay on the day, but not over a career: every rule you break in a season makes the next one likelier to be caught, guides who see it talk, and a citation is public record, so a booked party may cancel and the rest of your summer books thinner.','🍽️ After a second hungry night you get a warning first thing in the morning, with a quick (pricier) gas-station breakfast and a day of food. Going hungry is gentler on your clients than before, but groceries are still the cheap way.','🐻 Combat Season re-tuned: fuel and bills a little less steep, clients a little less picky and the off-months a little busier, so a sharp guide can earn a B. It is still clearly harder than Licensed Guide. A game in progress is brought up to date automatically.'],
   '1.7.1':['🎯 Grades re-tuned: per season A is 62,000, B 55,000, C 44,000, D 27,000, so playing by the book earns a B again and a sharp career an A. Boats and permits now count at nine tenths of what you paid, so long careers no longer outscore short ones for buying a sled or the charter permit. The Help sheet and rules list the cutoffs.'],
@@ -3892,7 +4522,9 @@ function stabilize(){
 // ---- power outages ----
 // An outage of h hours. A generator runs on home fuel for as long as the fuel lasts; the rest of the time the freezer and fridge warm up.
 function outage(h,winter){
-  const G=genOf(),out={h,run:0,burn:0,off:h,fish:0,fresh:0,energy:0,lines:[]};
+  let G=genOf(),fail=null;
+  if(G){fail=homeGenCheck(winter);if(fail)G=null}        // 32-home.js: an unserviced generator may not start
+  const out={h,run:0,burn:0,off:h,fish:0,fresh:0,energy:0,lines:[],genFail:!!fail};
   if(G){out.run=r1(Math.min(h,fuelFresh()/G.gph));out.burn=takeHomeFuel(r1(out.run*G.gph));out.off=r1(h-out.run)}
   const off=out.off,keep=S.freezer>=fishCap()/2?48:24;
   out.fish=Math.round(S.freezer*clamp((off-keep)/24,0,1));S.freezer-=out.fish;S.stats.spoiled=(S.stats.spoiled||0)+out.fish;
@@ -3900,7 +4532,8 @@ function outage(h,winter){
   if(!winter&&off>=4){out.energy=Math.min(10,Math.round(2+off/3));adj('energy',-out.energy)}
   S.stats.outages=(S.stats.outages||0)+1;
   const hrs=out.h>=48?`${r1(out.h/24)} days`:`${Math.round(out.h)} hours`;
-  if(G&&out.off<=0) out.lines.push(`🔌 The power is out about ${hrs}. You roll out the ${G.short} generator, plug it into the inlet and run it outside, well away from the cabin (exhaust is carbon monoxide). ${out.burn} gallons of home gas later the freezer, fridge and lights never missed a beat.`);
+  if(fail) out.lines.push(`⚡ The power is out about ${hrs}. ${fail}`);
+  else if(G&&out.off<=0) out.lines.push(`🔌 The power is out about ${hrs}. You roll out the ${G.short} generator, plug it into the inlet and run it outside, well away from the cabin (exhaust is carbon monoxide). ${out.burn} gallons of home gas later the freezer, fridge and lights never missed a beat.`);
   else if(G&&out.run>0) out.lines.push(`🔌 The power is out about ${hrs}. The ${G.short} generator keeps things going for ${Math.round(out.run)} hours, then the home gas runs out (${out.burn} gallons burned). The last ${Math.round(out.off)} hours are cold and dark.`);
   else if(G) out.lines.push(`🔌 The power is out about ${hrs}, and the ${G.short} generator has no gas to run on: your cans are empty.`);
   else out.lines.push(`⚡ The power is out about ${hrs}. Without a generator the freezer and fridge are on their own.`);
@@ -3919,12 +4552,13 @@ defEvent({id:'power_out',hook:'wake',tile:['⚡','Power outage','bad'],bad:true,
 // ---- the off-season ----
 // Runs once as a season rolls over (24-career.js, startSeason). Returns lines for the winter summary.
 function suppliesWinter(){
-  const H=S.home,F=S.food,bits=[];
+  const H=S.home,F=S.food,bits=[];S.winOut=null;
   if(H.gal>0){H.stale=r1(H.stale+H.gal);bits.push(`⛽ ${r1(H.gal)} gal of untreated gas went stale (dispose of it at the shop)`);H.gal=0}
   if(H.tgal>0){H.gal=H.tgal;H.tgal=0}                       // stabilized gas made it through; it is a year old now and needs treating again
   if(F.fri>0){bits.push(`🥬 ${F.fri} meals of fresh food spoiled`);F.fri=0}
   const lines=bits.length?[bits.join(' · ')+'.']:[];
   if(Math.random()<.55*DF().bad){const o=outage(outageHours(true),true);
+    S.winOut={h:o.h,gen:!!genOf()&&!o.genFail&&o.off<=0};
     lines.push(`🌨️ <b>A winter storm cut the power for ${o.h>=48?`${r1(o.h/24)} days`:`${Math.round(o.h)} hours`}.</b> ${genOf()?(o.off<=0?`The generator burned ${o.burn} gal and the freezer held.`:o.run<=0?'The generator had no gas to run on.':`The generator ran ${Math.round(o.run)} hours on ${o.burn} gal of home gas, then it was cold and dark.`):'No generator.'}${o.fish?` ${o.fish} freezer reds spoiled.`:S.freezer&&o.off>0?' The freezer held.':''}`)}
   return lines;
 }
@@ -3994,6 +4628,7 @@ function buyHome(id){
   if(id==='gen1'||id==='gen2'){const k=id==='gen1'?1:2,G=GENS[k],swap=H.gen>0;c=G.cost+(swap?0:G.install);H.gen=k;msg=`🔌 ${G.n}${swap?' swapped in for the old one':' and an electrician’s inlet and interlock'}: ${$(c)}. It runs outside on home gas, about ${G.gph} gallons an hour, and keeps the freezer going through an outage.`}
   if(id==='frz'){c=FREEZER_PRICE;H.frz=1;msg=`🧊 A big chest freezer: ${$(c)}. It holds ${FREEZER_BIG} fish instead of ${FREEZER_BASE}.`}
   spend(c);sfx('good');say(msg);
+  if(id==='gen1'||id==='gen2') homeNewGen();            // 32-home.js: a new generator is in shape
 }
 function homeItems(){
   const H=S.home,items=[];
@@ -4073,6 +4708,166 @@ function suppliesTodo(){
 STATS.splice(5,0,{l:'Food',v:()=>`${Math.floor(foodDays())}d`,m:()=>foodDays()/10*100,warn:()=>foodDays()<2,title:'Days of food at home: pantry, fridge and freezer reds. Stock up at the grocery store in Soldotna.'});
 TIPS.push({id:'food',when:()=>day()>=1&&foodDays()<3,t:'🍽️ You’re low on food at home. <b>Stock up</b> at the grocery store in Soldotna: meals come out of the pantry every night, and a hungry guide runs out of energy.'},
   {id:'cooler',when:()=>day()>=1&&todays().length>0&&foodDays()>=1,t:'🧺 Before each trip you <b>pack the cooler</b>: your own lunch keeps your energy up, and a lunch kit or a shore lunch of freezer reds makes the clients happier (and tips bigger), especially on the long trout float and halibut days.'});
+// ============================================================
+//  GUIDE MASTER, part 10: the cabin (the adapter).
+//  Keeping up the cabin lives in src/home/ (the CabinUpkeep module, which knows nothing about this game). This file is the thin
+//  bridge: it builds the module's ticket from the save (S), gives it a host made of our own pop-ups, and applies each report back
+//  to S: cash, energy, rep, minutes in July, free days in the off-season (shared with winter camping), food and fuel.
+//
+//  Save state: S.cabin is the module's own state (it is opaque here); S.homeAsk is the last winter the player was reminded about
+//  spring jobs; S.winOut is this winter's power outage (31-supplies.js), which the module reads.
+//  The year of the cabin: the July of season s, and the winter before it, are one cycle s. Fall jobs come before the winter's storms
+//  roll (they open the winter report, or the moment you leave for camping), spring jobs after, and spring happens as the bookings open.
+// ============================================================
+const HOME_DAY_VALUE=90;   // dollars a lost free winter day costs when none are left: the winter job that slipped
+const cabin=()=>S.cabin=CabinUpkeep.normState(S.cabin);
+const homeSeason=()=>S.winter?S.winter.s:seasonOf(day());
+const homePhase=()=>S.winter?(cabin().rolled===S.winter.s?'spring':'fall'):'summer';
+function homeRecentFish(){const d=day();return S.book.filter(b=>b.status==='done'&&b.d>d-4&&b.d<=d&&b.type!=='trout'&&b.out&&b.out.fish>0).length}
+function homeTicket(o){
+  const w=!!S.winter;
+  return Object.assign({
+    state:cabin(),phase:homePhase(),season:homeSeason(),sday:w?0:sday(day()),abs:day(),
+    cash:Math.round(S.money),energy:S.energy,rep:S.rep,daysLeft:w?campDaysLeft():0,atHome:S.loc==='shop'&&!S.trip,
+    costMult:DF().cost,bad:DF().bad,
+    gen:{owned:!!genOf(),gas:S.home.stale>0?'stale':'ok'},homeFuel:fuelFresh(),outage:w?(S.winOut||null):null,recentFish:homeRecentFish(),
+  },o||{});
+}
+// lost free days come out of the winter budget; with none left, the winter work that slipped costs money
+function homeDays(used,lost){
+  if(!S.winter||(used<=0&&lost<=0)) return;
+  campW();const left=campDaysLeft(),want=used+lost,take=Math.min(left,want);
+  S.camp.days+=take;
+  const unmet=want-take;
+  if(unmet>0){const c=-homeCharge(-Math.round(HOME_DAY_VALUE*unmet*DF().cost));money(-c);S.stats.spent+=c;say(`💸 No free days are left this winter, so ${unmet} day${unmet>1?'s':''} of lost winter work comes out of your pocket: ${$(c)}.`)}
+}
+// Home trouble never takes cash below this: the plumber and the neighbors let you carry the rest, so it can't end a career
+const HOME_FLOOR=-1200;
+function homeCharge(delta){
+  if(delta>=0) return delta;
+  const ok=Math.max(0,S.money-HOME_FLOOR),pay=Math.min(-delta,ok);
+  return -pay;
+}
+function homeApply(rep,quiet){
+  if(!rep) return rep;
+  S.cabin=rep.state;
+  const c=homeCharge(rep.cashDelta||0),waived=c-(rep.cashDelta||0);
+  if(c) money(c);
+  S.stats.spent+=Math.max(0,(rep.spent||0)-waived);
+  if(waived>0) say('🤝 You can’t cover all of it, so the plumber and the neighbors let you carry the rest. Nobody repossesses a cabin over it.');
+  if(rep.energyDelta) adj('energy',rep.energyDelta);
+  if(rep.repDelta) adj('rep',rep.repDelta);
+  if(rep.womDelta) S.wom=(S.wom||0)+rep.womDelta;
+  if(rep.homeFuel) takeHomeFuel(rep.homeFuel);
+  if(rep.freshLost&&S.food.fri>0){S.food.fri=0}
+  if(rep.foodMeals>0){if(S.food.fri<=0)S.food.fd=day();S.food.fri=Math.min(FRIDGE_CAP,S.food.fri+rep.foodMeals)}
+  homeDays(rep.daysUsed,rep.daysLost);
+  if(rep.minutes>0&&!S.winter) pass(rep.minutes);
+  if(!quiet) rep.lines.forEach(l=>say(l));
+  return rep;
+}
+const homeHost=()=>({show:(t,h,b,lock)=>modal(t,h,b,lock),ticket:()=>homeTicket(),apply:r=>homeApply(r),rand:()=>Math.random()});
+const homeBotHost=()=>({ticket:()=>homeTicket(),apply:r=>homeApply(r,true)});
+
+// ---- generator: will it start in an outage? (called from outage() in 31-supplies.js) ----
+function homeGenCheck(winter){
+  const t=homeTicket({season:seasonOf(day())-(winter?1:0)}),o=CabinUpkeep.genOdds(t);
+  if(!(o.p>0)||Math.random()>=o.p) return null;
+  const rep=homeApply(CabinUpkeep.genFailed(t),true);
+  return rep.lines[0];
+}
+// a generator you just bought is in shape
+function homeNewGen(){homeApply(CabinUpkeep.noteGen(homeTicket()),true)}
+
+// ---- July: a morning, the fish station ----
+function homeMorning(){
+  if(S.winter||S.over) return;
+  const rep=CabinUpkeep.daily(homeTicket());
+  homeApply(rep);
+  if(rep.severity>0) showTile('🏠','Trouble at the cabin',rep.lines[0].replace(/<[^>]+>/g,'').slice(0,80),'bad');
+  else if(rep.remind) showTile('🏠','Cabin job',rep.remind,'info');
+}
+// after a trip: the clients' fish (22-trips.js tripEnd): a fee, or a spoiled batch
+function homeProcessing(b,fish,t){
+  if(!cabin().proc||b.type==='trout'||fish<=0) return;
+  const rep=CabinUpkeep.processing(homeTicket({fish,clients:b.n}));
+  S.cabin=rep.state;
+  if(rep.earned>0)(t.x=t.x||[]).push(['Fish processing fees',rep.earned]);
+  if(rep.energyDelta) adj('energy',rep.energyDelta);
+  if(rep.womDelta) S.wom=(S.wom||0)+rep.womDelta;
+  if(rep.repDelta) adj('rep',rep.repDelta);
+  rep.lines.forEach(l=>t.notes.push(l));
+}
+
+// ---- the off-season ----
+// Fall jobs, then the winter's storms roll (once), then spring jobs; spring itself happens as bookings open.
+function homeRollWinterSync(){
+  if(!S.winter||cabin().rolled===S.winter.s) return null;
+  return homeApply(CabinUpkeep.rollWinter(homeTicket()),true);
+}
+function homeRollWinter(then){
+  const w=S.winter;if(!w||cabin().rolled===w.s){if(then)then();return}
+  const rep=homeApply(CabinUpkeep.rollWinter(homeTicket()),true);
+  rep.lines.forEach(l=>say(l));
+  CabinUpkeep.ui.scenes(homeHost(),rep,()=>{render();if(then)then()});
+}
+// answer whatever storm prompts are left with the top button (a bot, or a game left mid-prompt)
+function homeAnswerStorms(){CabinUpkeep.autoplay(homeBotHost(),{policy:(j)=>j.kind==='event'?CabinUpkeep.policies.first(j):null})}
+// leaving the off-season (finishWinter in 24-career.js): spring happens
+function homeFinishWinter(){
+  if(!S.winter) return;
+  homeRollWinterSync();homeAnswerStorms();
+  const rep=homeApply(CabinUpkeep.rollSpring(homeTicket()),true);
+  if(rep.lines.length){rep.lines.forEach(l=>say(l));CabinUpkeep.ui.report(homeHost(),'🏠 Spring at the cabin',rep)}
+}
+// the winter pop-up's own buttons
+function homeWinterModal(){
+  const t=homeTicket(),jobs=CabinUpkeep.jobs(t),more=CabinUpkeep.dueCount(t)-jobs.length,ph=t.phase;
+  modal(ph==='fall'?'🏠 Get the cabin ready for winter':'🏠 Spring breakup at the cabin',
+    `<p style="font-size:13px;color:var(--mute)">Condition ${Math.round(cabin().cond)}/100. Cash ${$(t.cash)}. ${t.daysLeft} free day${t.daysLeft===1?'':'s'} left this winter, shared with camping and winter work. ${ph==='fall'?'The first cold snap and the first big snow come when you leave for camping or open bookings.':'Last winter’s storms are behind you; breakup comes next.'}</p>${jobs.length?'':'<p>Nothing is due right now.</p>'}${more>0?`<p style="font-size:12.5px;color:var(--mute)">${more} more job${more>1?'s':''} after these.</p>`:''}`,
+    jobs.map(j=>({l:`${j.ic} ${j.title}`,s:`${j.why} ${j.risk}`,fn:()=>setTimeout(()=>CabinUpkeep.ui.open(homeHost(),j.id,()=>homeWinterModal()),0)}))
+      .concat([{l:'🏪 Home upgrades',s:'A wood stove, a fish processing station, a bear-resistant bin.',fn:()=>setTimeout(()=>CabinUpkeep.ui.shop(homeHost(),homeWinterModal),0)},{l:'Back to the off-season',fn:()=>setTimeout(winterModal,0)}]));
+}
+const cabinWinterBlurb=()=>{const ph=homePhase();return ph==='fall'?'Fall jobs before the cold: heat, pipes, detectors. Storms come when you leave for camping or open bookings.':'Spring breakup: the driveway, the foundation, the well and septic.'};
+const homeWinterLabel=()=>{const n=CabinUpkeep.dueCount(homeTicket());return n?`${n} job${n>1?'s':''} due`:'all set'};
+// "Open bookings": the winter's storms first, then a nudge about spring jobs, then the season
+function homeOpenGate(go){
+  const w=S.winter;if(!w){go();return}
+  if(cabin().rolled!==w.s){homeRollWinter(()=>setTimeout(winterModal,0));return}
+  const n=CabinUpkeep.dueCount(homeTicket());
+  if(n&&S.homeAsk!==w.s){S.homeAsk=w.s;
+    modal('🏠 Spring jobs are due',`<p>Breakup is coming, and the cabin has ${n} job${n>1?'s':''} due. You can do them yourself, pay someone, or skip them and take your chances.</p>`,
+      [{l:'Take a look',fn:()=>setTimeout(homeWinterModal,0)},{l:'Open bookings anyway',fn:go}]);return}
+  go();
+}
+// camping starts: the first storm has to land before the free days are spent
+function homeBeforeCamping(go){if(S.winter&&cabin().rolled!==S.winter.s)homeRollWinter(go);else go()}
+
+// ---- bots and tests ----
+function homeBot(policy,o){return CabinUpkeep.autoplay(homeBotHost(),{policy:policy||'careful',rand:o&&o.rand})}
+function homeBotWinter(policy,o){homeBot(policy,o);homeRollWinterSync();return homeBot(policy,o)}
+window.homeBot=homeBot;window.homeBotWinter=homeBotWinter;
+
+// ---- the Home tab, the HUD and the tab dot ----
+const homeDot=()=>{try{return !S.winter&&CabinUpkeep.dueCount(homeTicket())>0}catch(e){return false}};
+function homeView(){return CabinUpkeep.ui.tab(homeTicket())}
+EXTRA_TABS.splice(2,0,{k:'home',ic:'🏠',l:'Home',view:homeView});
+document.addEventListener('click',e=>{
+  const b=e.target&&e.target.closest?e.target.closest('[data-cab]'):null;
+  if(!b||!S||S.over) return;
+  if(b.dataset.cab==='job') CabinUpkeep.ui.open(homeHost(),b.dataset.id,()=>{afterAction();if(S&&!S.over)render()});
+  else if(b.dataset.cab==='shop') CabinUpkeep.ui.shop(homeHost(),()=>render());
+});
+function homeTags(){
+  const t=[];
+  if(cabin().cond<40&&S.loc==='shop') t.push('<span class="tag bad">🏠 cabin run down</span>');
+  return t;
+}
+function homeEndText(){
+  const T=cabin().tot,n=T.diy+T.pay+T.skip;
+  return `${T.diy} job${T.diy===1?'':'s'} done yourself, ${T.pay} paid, ${T.skip} skipped; ${T.events} mishap${T.events===1?'':'s'}<br><span style="color:var(--mute)">cabin condition ${Math.round(cabin().cond)}/100${T.fees?`, ${$(T.fees)} in fish processing fees`:''}${T.harvest?`, ${T.harvest} meals from the garden`:''}</span>`;
+}
+TIPS.push({id:'cabin',when:()=>day()>=2&&!S.winter&&CabinUpkeep.dueCount(homeTicket())>0,t:'🏠 The cabin needs a little upkeep now and then. Open the <b>Home</b> tab: each job can be done yourself, paid for, or skipped (at a risk). Never more than two at a time.'});
 // ---------------- boot ----------------
 applyPrefs();
 titleScreen();

@@ -128,7 +128,9 @@ function stabilize(){
 // ---- power outages ----
 // An outage of h hours. A generator runs on home fuel for as long as the fuel lasts; the rest of the time the freezer and fridge warm up.
 function outage(h,winter){
-  const G=genOf(),out={h,run:0,burn:0,off:h,fish:0,fresh:0,energy:0,lines:[]};
+  let G=genOf(),fail=null;
+  if(G){fail=homeGenCheck(winter);if(fail)G=null}        // 32-home.js: an unserviced generator may not start
+  const out={h,run:0,burn:0,off:h,fish:0,fresh:0,energy:0,lines:[],genFail:!!fail};
   if(G){out.run=r1(Math.min(h,fuelFresh()/G.gph));out.burn=takeHomeFuel(r1(out.run*G.gph));out.off=r1(h-out.run)}
   const off=out.off,keep=S.freezer>=fishCap()/2?48:24;
   out.fish=Math.round(S.freezer*clamp((off-keep)/24,0,1));S.freezer-=out.fish;S.stats.spoiled=(S.stats.spoiled||0)+out.fish;
@@ -136,7 +138,8 @@ function outage(h,winter){
   if(!winter&&off>=4){out.energy=Math.min(10,Math.round(2+off/3));adj('energy',-out.energy)}
   S.stats.outages=(S.stats.outages||0)+1;
   const hrs=out.h>=48?`${r1(out.h/24)} days`:`${Math.round(out.h)} hours`;
-  if(G&&out.off<=0) out.lines.push(`🔌 The power is out about ${hrs}. You roll out the ${G.short} generator, plug it into the inlet and run it outside, well away from the cabin (exhaust is carbon monoxide). ${out.burn} gallons of home gas later the freezer, fridge and lights never missed a beat.`);
+  if(fail) out.lines.push(`⚡ The power is out about ${hrs}. ${fail}`);
+  else if(G&&out.off<=0) out.lines.push(`🔌 The power is out about ${hrs}. You roll out the ${G.short} generator, plug it into the inlet and run it outside, well away from the cabin (exhaust is carbon monoxide). ${out.burn} gallons of home gas later the freezer, fridge and lights never missed a beat.`);
   else if(G&&out.run>0) out.lines.push(`🔌 The power is out about ${hrs}. The ${G.short} generator keeps things going for ${Math.round(out.run)} hours, then the home gas runs out (${out.burn} gallons burned). The last ${Math.round(out.off)} hours are cold and dark.`);
   else if(G) out.lines.push(`🔌 The power is out about ${hrs}, and the ${G.short} generator has no gas to run on: your cans are empty.`);
   else out.lines.push(`⚡ The power is out about ${hrs}. Without a generator the freezer and fridge are on their own.`);
@@ -155,12 +158,13 @@ defEvent({id:'power_out',hook:'wake',tile:['⚡','Power outage','bad'],bad:true,
 // ---- the off-season ----
 // Runs once as a season rolls over (24-career.js, startSeason). Returns lines for the winter summary.
 function suppliesWinter(){
-  const H=S.home,F=S.food,bits=[];
+  const H=S.home,F=S.food,bits=[];S.winOut=null;
   if(H.gal>0){H.stale=r1(H.stale+H.gal);bits.push(`⛽ ${r1(H.gal)} gal of untreated gas went stale (dispose of it at the shop)`);H.gal=0}
   if(H.tgal>0){H.gal=H.tgal;H.tgal=0}                       // stabilized gas made it through; it is a year old now and needs treating again
   if(F.fri>0){bits.push(`🥬 ${F.fri} meals of fresh food spoiled`);F.fri=0}
   const lines=bits.length?[bits.join(' · ')+'.']:[];
   if(Math.random()<.55*DF().bad){const o=outage(outageHours(true),true);
+    S.winOut={h:o.h,gen:!!genOf()&&!o.genFail&&o.off<=0};
     lines.push(`🌨️ <b>A winter storm cut the power for ${o.h>=48?`${r1(o.h/24)} days`:`${Math.round(o.h)} hours`}.</b> ${genOf()?(o.off<=0?`The generator burned ${o.burn} gal and the freezer held.`:o.run<=0?'The generator had no gas to run on.':`The generator ran ${Math.round(o.run)} hours on ${o.burn} gal of home gas, then it was cold and dark.`):'No generator.'}${o.fish?` ${o.fish} freezer reds spoiled.`:S.freezer&&o.off>0?' The freezer held.':''}`)}
   return lines;
 }
@@ -230,6 +234,7 @@ function buyHome(id){
   if(id==='gen1'||id==='gen2'){const k=id==='gen1'?1:2,G=GENS[k],swap=H.gen>0;c=G.cost+(swap?0:G.install);H.gen=k;msg=`🔌 ${G.n}${swap?' swapped in for the old one':' and an electrician’s inlet and interlock'}: ${$(c)}. It runs outside on home gas, about ${G.gph} gallons an hour, and keeps the freezer going through an outage.`}
   if(id==='frz'){c=FREEZER_PRICE;H.frz=1;msg=`🧊 A big chest freezer: ${$(c)}. It holds ${FREEZER_BIG} fish instead of ${FREEZER_BASE}.`}
   spend(c);sfx('good');say(msg);
+  if(id==='gen1'||id==='gen2') homeNewGen();            // 32-home.js: a new generator is in shape
 }
 function homeItems(){
   const H=S.home,items=[];

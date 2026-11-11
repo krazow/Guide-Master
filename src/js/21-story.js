@@ -89,6 +89,7 @@ function onMorning(d){
   const w=WX[S.wx[d]];
   say(newSeason?`❄️➡️☀️ <b>${dlongY(d)}</b>, ${fmt(S.t)}. Season ${seasonOf(d)+1} of ${S.years}. ${w.ic} ${w.n}. Plan the off-season to open this year’s bookings.`:`${dlong(d)}, ${fmt(S.t)}. ${w.ic} ${w.n}.${Math.random()<.4?' '+pick(LORE):''}`);
   if(newSeason) return;
+  homeMorning();                                        // 32-home.js: cabin drift, a bear, the garden, one gentle reminder
   const t=todays(d);
   if(t.length) say('🛶 Today: '+t.map(b=>`${TRIPS[b.type].ic} ${TRIPS[b.type].n} at ${fmt(TRIPS[b.type].start)}, ${L[TRIPS[b.type].loc].name} (the ${b.who}, ${b.n})`).join(' · '));
   else say('🛶 No trips booked today. Service the boat, return calls, or go fill the freezer.');
@@ -326,7 +327,7 @@ function endRows(){
   return [['Difficulty',`${DF().ic} ${DF().n}: ${DF().enforce<1?'fewer patrols, cheaper bills':DF().enforce>1?'more patrols, dearer bills, pickier clients':'standard patrols and bills'}; no score bonus`],['Career',`${S.years} seasons`],['Season by season',yrs],['Cash',$(Math.round(S.money))],['Net over the career',$(Math.round(S.money-DF().money))],['Boats & permits bought',S.up&&S.up.value?$(S.up.value):'none'],['July trips played / clients',`${s.trips} / ${s.clients}`],
     ['Fish landed',s.fish],['Trips where everyone limited',s.limits],['Tips',$(s.tips)],['Reputation',S.rep],
     ['Record',`${s.citesTotal||0} citation${(s.citesTotal||0)===1?'':'s'}, ${s.warnsTotal||0} warning${(s.warnsTotal||0)===1?'':'s'}, ${$(s.fines)} in fines`],
-    ['Fuel',`${grp(s.fuelGal||0)} gal, ${$(Math.round(s.fuelCost||0))}`],['Coast Guard tows',s.tows||0],['Winter camping',campEndText()],['Kings released',s.kings],['Freezer',`${S.freezer} reds`],['Boat checks passed',s.checks]];
+    ['Fuel',`${grp(s.fuelGal||0)} gal, ${$(Math.round(s.fuelCost||0))}`],['Coast Guard tows',s.tows||0],['Winter camping',campEndText()],['The cabin',homeEndText()],['Kings released',s.kings],['Freezer',`${S.freezer} reds`],['Boat checks passed',s.checks]];
 }
 
 // ---- save migrations ----
@@ -341,5 +342,13 @@ const MIGRATIONS=[
     if(o&&typeof o==='object'&&typeof o.s==='number'){c.s=o.s;c.days=Math.max(1,o.nights||1);c.trips=1;c.tot.trips=1}
     c.tot.nights=(x.stats&&x.stats.campNights)||0;
     x.camp=c;
+  }},
+  // schema 4 (1.10.0): cabin upkeep (32-home.js, src/home/). An existing cabin counts as kept up this far: nothing is overdue the moment you load,
+  // a game in the middle of an off-season gets this winter's jobs, and a generator you already own is in shape.
+  {to:4,run:x=>{
+    const c=CabinUpkeep.newState(),y0=x.winter&&typeof x.winter.s==='number'?x.winter.s-1:Math.floor((typeof x.cur==='number'?x.cur:0)/14);
+    Object.keys(c.did).forEach(k=>{if(k!=='bins')c.did[k]=y0});c.did.septic=y0-1;c.y=y0;
+    if(!x.cabin||typeof x.cabin!=='object')x.cabin=c;
+    if(typeof x.homeAsk!=='number')x.homeAsk=-1;
   }},
 ];
