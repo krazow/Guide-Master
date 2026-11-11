@@ -226,6 +226,7 @@ function statusTags(){
   if(S.unlogged+S.overdue) t.push(`<span class="tag ${S.overdue?'bad':''}">📓 ${S.unlogged+S.overdue} to log</span>`);
   if(S.cred.fa<d) t.push('<span class="tag bad">⛑️ first-aid card expired</span>');
   if(S.energy<25) t.push('<span class="tag bad">🥱 running on fumes</span>');
+  if(heat()>=2) t.push(`<span class="tag bad">🚔 troopers know your boat (${heat()} rules broken)</span>`);
   if(S.freezer) t.push(`<span class="tag">🧊 ${S.freezer} reds in the freezer</span>`);
   t.push(...suppliesTags());
   return t;

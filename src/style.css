@@ -25,6 +25,7 @@ button{font:inherit;cursor:pointer;touch-action:manipulation;-webkit-user-select
 .big{background:var(--cta);color:#fff;border:0;border-radius:14px;padding:16px;font-weight:700;font-size:18px;box-shadow:0 4px 0 var(--cta-dark)}
 .big:active{transform:translateY(2px);box-shadow:0 2px 0 var(--cta-dark)}
 .small-note{font-size:12px;opacity:.7}
+.heat-note,.hunger-note{color:var(--bad);opacity:1;margin:8px 0 0}
 /* hud */
 .hud{background:var(--brand-dark);color:#fff;padding:10px 14px 10px;position:sticky;top:0;z-index:5}
 .hud-top{display:flex;justify-content:space-between;align-items:center;gap:8px}

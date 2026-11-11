@@ -298,7 +298,7 @@ const ACH=[
 
 // ---- scoring and the end screen ----
 const FINISH_TEXT={h1:'{{name}}, that’s a wrap on your career',sub:()=>`${S.years} Julys on the Kenai, ${yearOf(0)}–${yearOf(day())}. The river keeps running; somebody else gets your seams now.`};
-function curSeason(){const s=S.stats,o=S.st0||{};return {hap:seasonHap(s,o),tips:(s.tipSum||0)-(o.tipSum||0),year:yearOf(day()),trips:s.trips-(o.trips||0),fares:s.earned-(o.earned||0),earned:(s.earned+s.tips)-((o.earned||0)+(o.tips||0)),wom:S.wom||0}}
+function curSeason(){const s=S.stats,o=S.st0||{};return {hap:seasonHap(s,o),tips:(s.tipSum||0)-(o.tipSum||0),year:yearOf(day()),trips:s.trips-(o.trips||0),fares:s.earned-(o.earned||0),earned:(s.earned+s.tips)-((o.earned||0)+(o.tips||0)),wom:S.wom||0,cites:(s.citesTotal||0)-(o.citesTotal||0)}}
 // The score, line by line (the end screen shows these rows and they add up to scoreOf()).
 function scoreParts(){
   const st=S.stats,cites=st.citesTotal||S.cites,rest=restOfSeason(curSeason()).net;

@@ -176,12 +176,29 @@ function suppliesNight(notes,d){
   if(got.miss){S.stats.missed=(S.stats.missed||0)+got.miss;const e=7*got.miss;adj('energy',-e);notes.push(`🍽️ The cupboards are bare: you went without ${got.miss} meal${got.miss>1?'s':''}. Energy −${e}. Stock up at the grocery store in Soldotna.`)}
   else if(foodDays()<2) notes.push('🛒 Food is running low. Stock up at the grocery store in Soldotna.');
   if(S.power&&S.power.d===d) S.power=null;
+  if(S.hungry>=2&&foodMeals()<MEALS&&!(S.ev.last.hungry_morning!=null&&d+1-S.ev.last.hungry_morning<HUNGER_WARN_GAP)) chain('hungry_morning');      // (1.8.1) a second night without: a warning, with a quick fix, first thing tomorrow
 }
 
-// A guide who has been going without is short with the clients (called from tripStart): -5 happiness a night in a row, up to 3, and a worse catch.
+// (1.8.1) Running on empty: after a second night in a row without enough to eat, the morning opens with a warning and a quick, pricier fix
+// (the 24-hour gas station on the Sterling Highway: breakfast now and a day of food for the cupboard). Groceries are still the cheap way.
+const EMERGENCY_FOOD=38, EMERGENCY_MEALS=3, HUNGER_WARN_GAP=7;   // dollars (×the difficulty's cost); pantry meals; days between warnings
+const emergencyPrice=()=>rp(EMERGENCY_FOOD);
+function hungerModal(){
+  const h=S.hungry||0,c=emergencyPrice();
+  modal('🍽️ Running on empty',`<p>${h>=3?'Three':'Two'} nights in a row without a proper dinner. You’re slow, short with the clients and running on coffee.</p><p class="small-note hunger-note">Hungry guides lose energy every night and their clients notice (−${HUNGER_HAPPY[Math.min(3,h)]} happiness on every trip). A week of groceries in Soldotna costs about ${$(Math.round(MEALS*7*mealPrice('pan')))}.</p>`,[
+    {l:`Gas station on the way: breakfast and a day of food — ${$(c)}`,s:`15 min. About twice grocery prices. Not hungry today, energy +6, and ${EMERGENCY_MEALS} meals in the cupboard.`,dis:!canAfford(c),fn:()=>{
+      spend(c);S.stats.emergencyFood=(S.stats.emergencyFood||0)+1;pass(15);ateAdd(1);adj('energy',6);S.food.pan=Math.min(PANTRY_CAP,S.food.pan+EMERGENCY_MEALS);S.hungry=0;
+      say(`⛽ Breakfast burritos, coffee and a bag of canned chili, bread and peanut butter from the 24-hour gas station: ${$(c)}. Not cheap, but you’re fed. Stock up at the grocery store when you can.`)}},
+    {l:'Not now: push through',s:`Clients −${HUNGER_HAPPY[Math.min(3,h)]} happiness today, and another night without dinner costs energy.`,fn:()=>say('🥱 You push through on coffee. The grocery store in Soldotna is open 5 AM to 10 PM.')}]);
+}
+defEvent({id:'hungry_morning',hook:'wake',tile:['🍽️','Running on empty','bad'],chance:0,max:1e6,priority:5,cooldown:HUNGER_WARN_GAP,cond:()=>!S.winter&&(S.hungry||0)>=2&&foodMeals()<MEALS,run:()=>hungerModal()});
+
+// A guide who has been going without is short with the clients (called from tripStart): −5 / −9 / −13 happiness after 1 / 2 / 3 nights in a row, and a worse catch.
+// (1.8.1: was −5 a night, up to −15; the curve is softer so going hungry hurts without ending a career on its own.)
+const HUNGER_HAPPY=[0,5,9,13];
 function hungerTrip(t){
   const h=S.hungry||0;if(h<=0) return;
-  t.happy-=5*h;t.q-=.02*h;t.notes.push(`🍽️ ${h>1?'Days':'A day'} of going without food: you’re short-tempered and slow, and the clients notice.`);
+  t.happy-=HUNGER_HAPPY[Math.min(3,h)];t.q-=.015*h;t.notes.push(`🍽️ ${h>1?'Days':'A day'} of going without food: you’re short-tempered and slow, and the clients notice.`);
 }
 
 // ---- the cooler: before each trip ----

@@ -11,14 +11,29 @@ function cite(what,fine,minor,notes,who){
   who=who||pick(COPS);let line;
   if(minor&&S.warns<1){S.warns++;S.stats.warnsTotal=(S.stats.warnsTotal||0)+1;line=`⚠️ ${who} writes you a warning for ${what}. One warning a season; the next one costs money.`}
   else{fine=Math.round(fine*DF().fine*(1+DF().esc*S.cites));S.cites++;S.citeLog.push(day());S.stats.citesTotal=(S.stats.citesTotal||0)+1;money(-fine);S.stats.fines+=fine;adj('rep',-6);
-    line=`🚨 ${who} cites you for ${what}: ${$(fine)} fine. That’s ${S.cites} active citation${S.cites>1?'s':''} of 3 before State Parks pulls your Kenai River guide permit.${S.cites>1?' Repeat offenders pay more for every citation on the record.':''} (Citations drop off after the next season.)`}
+    line=`🚨 ${who} cites you for ${what}: ${$(fine)} fine. That’s ${S.cites} active citation${S.cites>1?'s':''} of 3 before State Parks pulls your Kenai River guide permit.${S.cites>1?' Repeat offenders pay more for every citation on the record.':''} (Citations drop off after the next season.) Citations are public record, and clients look their guide up: fewer bookings for the rest of the summer.`}
   showTile('🚨',minor&&line.startsWith('⚠️')?'Warning':'Citation',what,'bad');
   if(notes) notes.push(line); else say(line);
+  if(line.startsWith('🚨')) citeCancel(notes);
+}
+// ---- (1.8.1) a habit gets noticed ----
+// Breaking a rule can pay on the day, but over a season it catches up with you:
+//  · every rule you break this July makes the next one likelier to be caught (troopers and other guides learn your boat);
+//  · a guide who sees it tells the others (word of mouth, so fewer off-season bookings);
+//  · a citation is public record: it can cost a booked July party, and each one trims the rest of the summer's bookings (25-fuel.js).
+const HEAT_P=.15, SEEN_WOM=4, CITE_CANCEL=.85, CITE_REST=.08;
+const heat=()=>Math.max(0,((S.stats&&S.stats.viol)||0)-((S.st0&&S.st0.viol)||0));   // rules broken this season (resets each winter)
+function citeCancel(notes){
+  if(!S.book||Math.random()>=CITE_CANCEL) return;
+  const end=seasonFirst()+SEASON,bs=S.book.filter(b=>b.d>day()&&b.d<end&&b.status==='booked');if(!bs.length) return;
+  const b=pick(bs);b.status='cancelled';S.stats.cancelled++;S.stats.citeCancels=(S.stats.citeCancels||0)+1;
+  const l=`📵 The ${b.who} look you up, find the citation and cancel their ${dlabel(b.d)} ${TRIPS[b.type].n}. They want the deposit back, and you give it.`;
+  if(notes) notes.push(l); else say(l);
 }
 function violate(notes,{p,fine,what,minor,who}){
-  S.stats.viol++;
-  if(Math.random()<Math.min(.95,p*DF().enforce)){cite(what,fine,minor,notes,who);return true}
-  if(Math.random()<.3){adj('rep',-2);const l='👀 Another guide saw it. Word travels fast on the Kenai.';if(notes)notes.push(l);else say(l)}
+  const h=heat();S.stats.viol++;
+  if(Math.random()<Math.min(.95,p*DF().enforce*(1+HEAT_P*h))){cite(what,fine,minor,notes,who);return true}
+  if(Math.random()<.3){adj('rep',-2);S.wom=(S.wom||0)-SEEN_WOM;const l='👀 Another guide saw it. Word travels fast on the Kenai: fewer off-season bookings, and the troopers hear about it too.';if(notes)notes.push(l);else say(l)}
   return false;
 }
 
@@ -197,7 +212,8 @@ function tripNext(){
   const v=f(b,t),T=TRIPS[b.type];
   const opts=v.o.map((o,k)=>({o,k}));
   if(!v.fixed)for(let i=opts.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[opts[i],opts[j]]=[opts[j],opts[i]]}   // shuffled every showing
-  modal(v.t,`<p class="small-note" style="color:var(--mute);margin:0 0 6px">${T.ic} ${T.n} · ${b.who}</p>${v.b}`,opts.map(({o,k})=>({l:o.l,s:o.s,legal:o.legal!==false,dis:!!o.dis,np:true,k,fn:()=>{
+  const hot=v.o.some(o=>o.legal===false)&&heat()>0?`<p class="small-note heat-note">🚔 You’ve broken ${heat()===1?'a rule':`${heat()} rules`} this season. The troopers and the other guides know your boat now: the odds of getting caught go up with every one.</p>`:'';
+  modal(v.t,`<p class="small-note" style="color:var(--mute);margin:0 0 6px">${T.ic} ${T.n} · ${b.who}</p>${v.b}${hot}`,opts.map(({o,k})=>({l:o.l,s:o.s,legal:o.legal!==false,dis:!!o.dis,np:true,k,fn:()=>{
     const tt=S.trip;if(!tt) return;const bb=bk(tt.id);if(!bb) {S.trip=null;return}
     o.fn&&o.fn(bb,tt);
     if(S.trip&&!tt.abort){tt.step++;tripNext()}}})));

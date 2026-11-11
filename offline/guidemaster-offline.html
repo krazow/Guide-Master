@@ -42,6 +42,7 @@ button{font:inherit;cursor:pointer;touch-action:manipulation;-webkit-user-select
 .big{background:var(--cta);color:#fff;border:0;border-radius:14px;padding:16px;font-weight:700;font-size:18px;box-shadow:0 4px 0 var(--cta-dark)}
 .big:active{transform:translateY(2px);box-shadow:0 2px 0 var(--cta-dark)}
 .small-note{font-size:12px;opacity:.7}
+.heat-note,.hunger-note{color:var(--bad);opacity:1;margin:8px 0 0}
 /* hud */
 .hud{background:var(--brand-dark);color:#fff;padding:10px 14px 10px;position:sticky;top:0;z-index:5}
 .hud-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
@@ -242,7 +243,7 @@ const GAME={
   title:'Guide Master',
   tagline:'A guide’s career on the Kenai',
   codePrefix:'GUIDEMASTER',   // transfer codes start with this, e.g. POCKETWEEK:eyJ…
-  version:'1.8.0',           // bump on every release: shown in Settings, stamped into saves and sw.js
+  version:'1.8.1',           // bump on every release: shown in Settings, stamped into saves and sw.js
   schema:2,                  // bump when the shape of S changes, and add a MIGRATIONS entry (21-story.js)
   days:14,                   // days in ONE season (the July peak, Mon–Sun twice; season 1 is Jul 13–26, 2026). A career is 14 × years: see the getter below
   wake:300,                  // default alarm for new games, in minutes after midnight (300 = 5:00 AM: guides start early; saves keep their own S.alarm)
@@ -263,7 +264,7 @@ const DIFFS={
   // mood: client happiness (tips, rep). book: off-month bookings. wear: boat wear. No difficulty changes the score.
   easy:  {n:'Rookie Season',ic:'🎣',d:'More cash, fewer troopers, cheaper bills and easygoing clients. For learning the water.',money:3000,bad:0.6,enforce:0.7,fine:0.8,esc:0.1,cost:0.8,mood:5,book:1.08,wear:0.85},
   normal:{n:'Licensed Guide',ic:'🛶',d:'The Kenai as it is: busy, beautiful and well patrolled.',money:1500,bad:1,enforce:1,fine:1,esc:0.2,cost:1,mood:0,book:1,wear:1},
-  hard:  {n:'Combat Season',ic:'🐻',d:'Thin cash, more troopers, fines that climb steeply with every citation, dearer fuel and bills, pickier clients, quieter off-months and more bad luck. Same score, tougher grade.',money:600,bad:1.5,enforce:1.4,fine:1.1,esc:0.3,cost:1.2,mood:-5,book:0.88,wear:1.25},
+  hard:  {n:'Combat Season',ic:'🐻',d:'Thin cash, more troopers, fines that climb steeply with every citation, dearer fuel and bills, pickier clients, quieter off-months and more bad luck. Same score, tougher grade.',money:600,bad:1.5,enforce:1.4,fine:1.1,esc:0.3,cost:1.08,mood:-2,book:0.97,wear:1.25},
 };
 const DF=()=>DIFFS[(typeof S!=='undefined'&&S&&S.diff)||'normal']||DIFFS.normal;
 // ---------------- state ----------------
@@ -1186,6 +1187,7 @@ function statusTags(){
   if(S.unlogged+S.overdue) t.push(`<span class="tag ${S.overdue?'bad':''}">📓 ${S.unlogged+S.overdue} to log</span>`);
   if(S.cred.fa<d) t.push('<span class="tag bad">⛑️ first-aid card expired</span>');
   if(S.energy<25) t.push('<span class="tag bad">🥱 running on fumes</span>');
+  if(heat()>=2) t.push(`<span class="tag bad">🚔 troopers know your boat (${heat()} rules broken)</span>`);
   if(S.freezer) t.push(`<span class="tag">🧊 ${S.freezer} reds in the freezer</span>`);
   t.push(...suppliesTags());
   return t;
@@ -1551,7 +1553,7 @@ const ACH=[
 
 // ---- scoring and the end screen ----
 const FINISH_TEXT={h1:'{{name}}, that’s a wrap on your career',sub:()=>`${S.years} Julys on the Kenai, ${yearOf(0)}–${yearOf(day())}. The river keeps running; somebody else gets your seams now.`};
-function curSeason(){const s=S.stats,o=S.st0||{};return {hap:seasonHap(s,o),tips:(s.tipSum||0)-(o.tipSum||0),year:yearOf(day()),trips:s.trips-(o.trips||0),fares:s.earned-(o.earned||0),earned:(s.earned+s.tips)-((o.earned||0)+(o.tips||0)),wom:S.wom||0}}
+function curSeason(){const s=S.stats,o=S.st0||{};return {hap:seasonHap(s,o),tips:(s.tipSum||0)-(o.tipSum||0),year:yearOf(day()),trips:s.trips-(o.trips||0),fares:s.earned-(o.earned||0),earned:(s.earned+s.tips)-((o.earned||0)+(o.tips||0)),wom:S.wom||0,cites:(s.citesTotal||0)-(o.citesTotal||0)}}
 // The score, line by line (the end screen shows these rows and they add up to scoreOf()).
 function scoreParts(){
   const st=S.stats,cites=st.citesTotal||S.cites,rest=restOfSeason(curSeason()).net;
@@ -1598,14 +1600,29 @@ function cite(what,fine,minor,notes,who){
   who=who||pick(COPS);let line;
   if(minor&&S.warns<1){S.warns++;S.stats.warnsTotal=(S.stats.warnsTotal||0)+1;line=`⚠️ ${who} writes you a warning for ${what}. One warning a season; the next one costs money.`}
   else{fine=Math.round(fine*DF().fine*(1+DF().esc*S.cites));S.cites++;S.citeLog.push(day());S.stats.citesTotal=(S.stats.citesTotal||0)+1;money(-fine);S.stats.fines+=fine;adj('rep',-6);
-    line=`🚨 ${who} cites you for ${what}: ${$(fine)} fine. That’s ${S.cites} active citation${S.cites>1?'s':''} of 3 before State Parks pulls your Kenai River guide permit.${S.cites>1?' Repeat offenders pay more for every citation on the record.':''} (Citations drop off after the next season.)`}
+    line=`🚨 ${who} cites you for ${what}: ${$(fine)} fine. That’s ${S.cites} active citation${S.cites>1?'s':''} of 3 before State Parks pulls your Kenai River guide permit.${S.cites>1?' Repeat offenders pay more for every citation on the record.':''} (Citations drop off after the next season.) Citations are public record, and clients look their guide up: fewer bookings for the rest of the summer.`}
   showTile('🚨',minor&&line.startsWith('⚠️')?'Warning':'Citation',what,'bad');
   if(notes) notes.push(line); else say(line);
+  if(line.startsWith('🚨')) citeCancel(notes);
+}
+// ---- (1.8.1) a habit gets noticed ----
+// Breaking a rule can pay on the day, but over a season it catches up with you:
+//  · every rule you break this July makes the next one likelier to be caught (troopers and other guides learn your boat);
+//  · a guide who sees it tells the others (word of mouth, so fewer off-season bookings);
+//  · a citation is public record: it can cost a booked July party, and each one trims the rest of the summer's bookings (25-fuel.js).
+const HEAT_P=.15, SEEN_WOM=4, CITE_CANCEL=.85, CITE_REST=.08;
+const heat=()=>Math.max(0,((S.stats&&S.stats.viol)||0)-((S.st0&&S.st0.viol)||0));   // rules broken this season (resets each winter)
+function citeCancel(notes){
+  if(!S.book||Math.random()>=CITE_CANCEL) return;
+  const end=seasonFirst()+SEASON,bs=S.book.filter(b=>b.d>day()&&b.d<end&&b.status==='booked');if(!bs.length) return;
+  const b=pick(bs);b.status='cancelled';S.stats.cancelled++;S.stats.citeCancels=(S.stats.citeCancels||0)+1;
+  const l=`📵 The ${b.who} look you up, find the citation and cancel their ${dlabel(b.d)} ${TRIPS[b.type].n}. They want the deposit back, and you give it.`;
+  if(notes) notes.push(l); else say(l);
 }
 function violate(notes,{p,fine,what,minor,who}){
-  S.stats.viol++;
-  if(Math.random()<Math.min(.95,p*DF().enforce)){cite(what,fine,minor,notes,who);return true}
-  if(Math.random()<.3){adj('rep',-2);const l='👀 Another guide saw it. Word travels fast on the Kenai.';if(notes)notes.push(l);else say(l)}
+  const h=heat();S.stats.viol++;
+  if(Math.random()<Math.min(.95,p*DF().enforce*(1+HEAT_P*h))){cite(what,fine,minor,notes,who);return true}
+  if(Math.random()<.3){adj('rep',-2);S.wom=(S.wom||0)-SEEN_WOM;const l='👀 Another guide saw it. Word travels fast on the Kenai: fewer off-season bookings, and the troopers hear about it too.';if(notes)notes.push(l);else say(l)}
   return false;
 }
 
@@ -1784,7 +1801,8 @@ function tripNext(){
   const v=f(b,t),T=TRIPS[b.type];
   const opts=v.o.map((o,k)=>({o,k}));
   if(!v.fixed)for(let i=opts.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[opts[i],opts[j]]=[opts[j],opts[i]]}   // shuffled every showing
-  modal(v.t,`<p class="small-note" style="color:var(--mute);margin:0 0 6px">${T.ic} ${T.n} · ${b.who}</p>${v.b}`,opts.map(({o,k})=>({l:o.l,s:o.s,legal:o.legal!==false,dis:!!o.dis,np:true,k,fn:()=>{
+  const hot=v.o.some(o=>o.legal===false)&&heat()>0?`<p class="small-note heat-note">🚔 You’ve broken ${heat()===1?'a rule':`${heat()} rules`} this season. The troopers and the other guides know your boat now: the odds of getting caught go up with every one.</p>`:'';
+  modal(v.t,`<p class="small-note" style="color:var(--mute);margin:0 0 6px">${T.ic} ${T.n} · ${b.who}</p>${v.b}${hot}`,opts.map(({o,k})=>({l:o.l,s:o.s,legal:o.legal!==false,dis:!!o.dis,np:true,k,fn:()=>{
     const tt=S.trip;if(!tt) return;const bb=bk(tt.id);if(!bb) {S.trip=null;return}
     o.fn&&o.fn(bb,tt);
     if(S.trip&&!tt.abort){tt.step++;tripNext()}}})));
@@ -2432,11 +2450,12 @@ function harborActions(a){
 // You play the two-week July peak; the rest of your season is booked off your reputation.
 // (1.8.0) The rest of the summer follows how the July went, not only how many trips you ran: the average client's happiness
 // (a good day with the right spot, a full tackle box, a clean boat and a fed crew), word of mouth and your regulars all bring the off-season trade.
+// (1.8.1) Citations are public record: each one this season trims the off-season bookings (CITE_REST, 22-trips.js).
 const WEB_REST=1.12,REST_X=1.95,QUAL_SPAN=90,WOM_W=.006,REG_W=.003;
 const qualityF=p=>clamp(1+((p.hap==null?HAP0:p.hap)-HAP0)/QUAL_SPAN,.7,1.25);
 function restOfSeason(p){
   if(!p||!p.trips) return {trips:0,gross:0,costs:0,net:0};
-  const trips=Math.round(p.trips*REST_X*DF().book*clamp(S.rep/70,.5,1.25)*qualityF(p)*(1+clamp((p.wom||0)*WOM_W,-.10,.15))*(1+REG_W*Math.min(REG_MAX,(S.regs||[]).length))*rateDemand()*(S.up&&S.up.lodge?1.1:1)*(S.up&&S.up.dock?1.08:1)*(S.up&&S.up.web===p.year-2026?WEB_REST:1)),fare=(p.fares+(p.tips||0))/p.trips;
+  const trips=Math.round(p.trips*REST_X*DF().book*clamp(S.rep/70,.5,1.25)*qualityF(p)*(1+clamp((p.wom||0)*WOM_W,-.10,.15))*(1-CITE_REST*Math.min(4,p.cites||0))*(1+REG_W*Math.min(REG_MAX,(S.regs||[]).length))*rateDemand()*(S.up&&S.up.lodge?1.1:1)*(S.up&&S.up.dock?1.08:1)*(S.up&&S.up.web===p.year-2026?WEB_REST:1)),fare=(p.fares+(p.tips||0))/p.trips;
   let gross=Math.round(trips*fare),costs=Math.round(trips*(bn('reds')*fuelPrice('kenai')+LAUNCH_FEE+30));
   if(S.up&&S.up.asst){const x=Math.round(trips*.2);gross+=Math.round(x*fare*(1-ASST_CUT));costs+=Math.round(x*(bn('reds')*fuelPrice('kenai')+LAUNCH_FEE+30))}   // the assistant covers the off-month overflow
   if(S.up&&S.up.lodge){const l=lodgeSeason();gross+=l.gross;costs+=l.costs}
@@ -2453,13 +2472,13 @@ const HELP=[
   ['🕐','How a day works','Time moves only when you act. Tap an action on the <strong>🧭 Here</strong> tab, or <strong>Go somewhere</strong> to travel. Guides start early: the alarm is 5:00 AM (change it at the shop). To skip ahead, use <strong>⏳ Wait until…</strong>: the next launch, the 1 PM first-aid class, or 30 or 60 minutes. <strong>Go to bed</strong> at the shop to end the day; staying up past midnight costs you.'],
   ['🛶','Trips','Your schedule is on the <strong>📅 Bookings</strong> tab. Be at the launch spot by launch time: sockeye and silvers from the <strong>Lower Kenai launch</strong>, trout floats from <strong>Cooper Landing</strong>, halibut from the <strong>Homer Spit</strong>. On the water you pick a spot, then face a few choices, shuffled every time. Playing it straight costs something (time, fish or a smaller tip); bending a rule can pay cash, but if a trooper catches you the fine hurts.'],
   ['⭐','Regulars & stories','Clients who have a great day may come back next July, and they remember how it went. If a happy party doesn’t offer its number, you can hand them your card at the dock. Over the years you may also meet a rival guide, a family that returns every summer and an invitation to the local fish and game advisory committee. No dilemma comes up more than twice a season.'],
-  ['📖','The rules','The <strong>📖 Regs</strong> tab lists your credentials and every rule you guide by: king status, single-hook/no-bait, no guide-boat fishing below Skilak on Sundays and Mondays, 6 AM–6 PM, five people a boat in July, bag limits, halibut rules. Break one and you may get a warning (the first minor offense each season) or a citation, and every citation on your record makes the next fine bigger. <strong>Three active citations</strong> and State Parks pulls your permit.'],
+  ['📖','The rules','The <strong>📖 Regs</strong> tab lists your credentials and every rule you guide by: king status, single-hook/no-bait, no guide-boat fishing below Skilak on Sundays and Mondays, 6 AM–6 PM, five people a boat in July, bag limits, halibut rules. Break one and you may get a warning (the first minor offense each season) or a citation, and every citation on your record makes the next fine bigger. Bending a rule can pay on the day, but it doesn’t pay over a career: every rule you break in a season makes the next one likelier to be caught, other guides talk, and citations are public record, so clients cancel and the rest of your summer books thinner. <strong>Three active citations</strong> and State Parks pulls your permit.'],
   ['📓','Paperwork','Fill out your <strong>ADF&G logbook</strong> at the shop after every trip, before bed. Keep your <strong>first-aid/CPR card</strong> current: classes are in Soldotna, Monday, Tuesday and Thursday, 1–4 PM (join by 1:30), and a card lasts two years.'],
   ['⛽','Fuel','The jet sled burns about 9 gallons on a sockeye trip and 11 on a silver trip. You can fill up <strong>only at the Kenai Harbor fuel dock</strong> (6 AM–10 PM). The game warns you when the tank won’t cover a trip, counting wind and long runs, and reminds you in the evening if tomorrow needs more than you have. Run dry and the Coast Guard tows you in: half the fare refunded, a $102 assist and a hit to your reputation. Watch the <strong>Fuel</strong> gauge in the top bar. (Home fuel is below.)'],
   ['🍽️','Food','You eat three meals a day, and the kitchen runs on stores: a <strong>pantry</strong> (keeps), a <strong>fridge</strong> (fresh food goes off after about 6 days) and the <strong>freezer</strong> (your dipnet and solo-trip reds, about 4 meals each). The <strong>Food</strong> gauge in the top bar shows how many days you have. In <strong>Soldotna</strong>, <strong>Stock up</strong> buys about a week of groceries (about $18 a day, Peninsula prices). Meals come out of the stores every night on their own; a meal you can’t eat costs energy. <strong>Before each trip you pack the cooler:</strong> your own lunch keeps your energy up, and a lunch kit or a shore lunch of freezer reds makes the clients happier (bigger tips). On a long day, the trout float or the halibut charter, clients with no lunch are unhappy.'],
   ['⚡','Home fuel, outages & the generator','Fuel is still sold only at the Kenai Harbor dock, but you can <strong>haul extra home</strong> into approved cans (you start with three) or a 100-gallon tank, and fuel the sled from them at the shop. Gas left untreated all winter goes <strong>stale</strong>: add <strong>stabilizer</strong> before the season ends. Wind and winter storms knock the power out now and then: a long outage spoils fresh food and, after a day or two, the freezer. A <strong>generator</strong> (Soldotna, Home supplies) runs on your home gas and keeps the freezer going; fuel and generator both stay outside, away from the cabin.'],
   ['🐟','Fish & weather','The <strong>🐟 Fish</strong> tab shows today’s weather, river level, tides, the odds by place and species, where to fish today, and when each run arrives. Reds bite best at first light; silvers build late July; pinks run in even years. <strong>Read it before you launch:</strong> every spot fishes better or worse with the day’s water, wind, run and tide, and once you have looked at the tab (or scouted the river) the spot buttons show a Hot, Good, Fair or Poor read. With no clients booked, <strong>Take the boat out</strong> to fill your freezer and scout.'],
-  ['🔧','Money & gear','The booked fare is your base pay; tips, refunds and word of mouth follow how the day went: the catch, happy clients, tackle and a boat in good shape. A well-kept boat and a fed crew pay: tips run from nothing at 60 happiness to 30% of the fare at 90, and the <strong>rest of your summer</strong> (June, August and September, settled in the off-season) follows how happy your clients were on average, not only how many trips you ran. Run out of tackle, skip meals or let the boat wear down and you’ll see smaller tips, refunds, breakdowns and a quieter off-season. Restock tackle in Soldotna, service the boats at the shop, buy fuel at the harbor. Overhead is charged every night. The Boat stat warns you at 40, 20 and 10. At 0 your sled and drift boat are out of service until a major repair ($2,400), though an emergency patch ($600, back to 25 for two days, only at 10 or less) or a rented loaner ($600, for the day) keeps a booked trip running. In the off-season you can buy upgrades: a new motor (burns less gas), a new sled (trips finish 30 minutes sooner), a drift boat, marketing, a winter course (skill, which builds with practice and rusts over the winter), higher rates (more per trip, fewer bookings, pickier clients: the first step is cheap, the third is not), your own Homer charter permit and, later in a career, an assistant guide, guest cabins or a riverfront lot with a private launch.'],
+  ['🔧','Money & gear','The booked fare is your base pay; tips, refunds and word of mouth follow how the day went: the catch, happy clients, tackle and a boat in good shape. A well-kept boat and a fed crew pay: tips run from nothing at 60 happiness to 30% of the fare at 90, and the <strong>rest of your summer</strong> (June, August and September, settled in the off-season) follows how happy your clients were on average, not only how many trips you ran. Run out of tackle, skip meals (after a second hungry night you get a warning and a pricier gas-station fix) or let the boat wear down and you’ll see smaller tips, refunds, breakdowns and a quieter off-season. Restock tackle in Soldotna, service the boats at the shop, buy fuel at the harbor. Overhead is charged every night. The Boat stat warns you at 40, 20 and 10. At 0 your sled and drift boat are out of service until a major repair ($2,400), though an emergency patch ($600, back to 25 for two days, only at 10 or less) or a rented loaner ($600, for the day) keeps a booked trip running. In the off-season you can buy upgrades: a new motor (burns less gas), a new sled (trips finish 30 minutes sooner), a drift boat, marketing, a winter course (skill, which builds with practice and rusts over the winter), higher rates (more per trip, fewer bookings, pickier clients: the first step is cheap, the third is not), your own Homer charter permit and, later in a career, an assistant guide, guest cabins or a riverfront lot with a private launch.'],
   ['🏕️','Winter camping','In the off-season you can <strong>go winter camping</strong> once per winter: pick one of ten real Kenai Peninsula spots within 100 road miles of Soldotna and 1–7 nights. You pay gas, campsite fees (most places are unserviced in winter) and supplies. Each night has a <strong>50% chance of a wildlife encounter</strong>, good or bad, that nudges your energy, skill, rep or cash going into the new season.'],
   ['💀','How you lose','Three active citations (permit pulled), reputation down to 0 (nobody books you), or $2,000 in debt (the bank takes the sled).'],
   ['💡','Tips','Rig tomorrow’s gear, read the Fish tab and scout the river for better trips. Tips (💡) appear as you play; turn them on or off in ⚙️ Settings. On a computer, number keys press buttons, <strong>Esc</strong> closes a pop-up and <strong>?</strong> lists the shortcuts. Settings has bigger text and high contrast.'],
@@ -2675,6 +2694,7 @@ const CHANGELOG={
   '1.5.4':['🎲 Dilemma options shuffle: playing it straight costs something, bending a rule can pay cash, and repeat offenders pay steeper fines. Pay now follows the day: catch, tackle and boat shape tips, refunds and word of mouth.'],
   '1.6.0':['💲 Higher rates now cost you: fewer bookings, pickier clients and a rep requirement that rises each step.','🔧 Boats at condition 0 are out of service until repaired; new motors burn less gas, new sleds finish sooner, and late-career money can buy an assistant guide, guest cabins or a riverfront launch.','⏳ New “Wait until…” action skips to the next launch or the 1 PM class. New games start with a 5:00 AM alarm.','🌙 The night summary now comes before the morning’s news, and pop-up toasts are fewer, shorter and sit below your Cash and Rep.','⭐ Longer careers: 54 client parties, regulars who come back (or don’t), six new river dilemmas, fewer repeats and three multi-season stories.'],
   '1.8.0':['🎯 Skill pays: spots fish differently with the day’s water, wind, run and tide. Read the 🐟 Fish tab or scout the river and the spot buttons show which one is hot.','⭐ The rest of your summer follows how happy your clients were, not only how many trips you ran. Tips run higher on a good day, a well-kept boat pleases clients, and a happy party may take your card and become a regular.','💲 Raising rates gets steeper after the first step, and skill builds with practice and rusts over the winter.'],
+  '1.8.1':['🚔 Bending the rules can still pay on the day, but not over a career: every rule you break in a season makes the next one likelier to be caught, guides who see it talk, and a citation is public record, so a booked party may cancel and the rest of your summer books thinner.','🍽️ After a second hungry night you get a warning first thing in the morning, with a quick (pricier) gas-station breakfast and a day of food. Going hungry is gentler on your clients than before, but groceries are still the cheap way.','🐻 Combat Season re-tuned: fuel and bills a little less steep, clients a little less picky and the off-months a little busier, so a sharp guide can earn a B. It is still clearly harder than Licensed Guide. A game in progress is brought up to date automatically.'],
   '1.7.1':['🎯 Grades re-tuned: per season A is 62,000, B 55,000, C 44,000, D 27,000, so playing by the book earns a B again and a sharp career an A. Boats and permits now count at nine tenths of what you paid, so long careers no longer outscore short ones for buying a sled or the charter permit. The Help sheet and rules list the cutoffs.'],
   '1.7.0':['🍽️ Food: stock the pantry and fridge at the Soldotna grocery store, pack a lunch (and lunches for the clients) before each trip, and watch the new Food gauge. Skip meals and you run out of energy.','⛽ Home fuel: haul extra gas home from the harbor into cans (or buy a 100-gallon tank), fuel the sled from it at the shop, and add stabilizer before winter or it goes stale.','⚡ Power outages: wind and winter storms can spoil the freezer. A portable generator runs on your home gas and keeps it going.'],
   '1.6.2':['🧹 Tidier end screen: labels and values no longer run together.'],
@@ -3040,12 +3060,29 @@ function suppliesNight(notes,d){
   if(got.miss){S.stats.missed=(S.stats.missed||0)+got.miss;const e=7*got.miss;adj('energy',-e);notes.push(`🍽️ The cupboards are bare: you went without ${got.miss} meal${got.miss>1?'s':''}. Energy −${e}. Stock up at the grocery store in Soldotna.`)}
   else if(foodDays()<2) notes.push('🛒 Food is running low. Stock up at the grocery store in Soldotna.');
   if(S.power&&S.power.d===d) S.power=null;
+  if(S.hungry>=2&&foodMeals()<MEALS&&!(S.ev.last.hungry_morning!=null&&d+1-S.ev.last.hungry_morning<HUNGER_WARN_GAP)) chain('hungry_morning');      // (1.8.1) a second night without: a warning, with a quick fix, first thing tomorrow
 }
 
-// A guide who has been going without is short with the clients (called from tripStart): -5 happiness a night in a row, up to 3, and a worse catch.
+// (1.8.1) Running on empty: after a second night in a row without enough to eat, the morning opens with a warning and a quick, pricier fix
+// (the 24-hour gas station on the Sterling Highway: breakfast now and a day of food for the cupboard). Groceries are still the cheap way.
+const EMERGENCY_FOOD=38, EMERGENCY_MEALS=3, HUNGER_WARN_GAP=7;   // dollars (×the difficulty's cost); pantry meals; days between warnings
+const emergencyPrice=()=>rp(EMERGENCY_FOOD);
+function hungerModal(){
+  const h=S.hungry||0,c=emergencyPrice();
+  modal('🍽️ Running on empty',`<p>${h>=3?'Three':'Two'} nights in a row without a proper dinner. You’re slow, short with the clients and running on coffee.</p><p class="small-note hunger-note">Hungry guides lose energy every night and their clients notice (−${HUNGER_HAPPY[Math.min(3,h)]} happiness on every trip). A week of groceries in Soldotna costs about ${$(Math.round(MEALS*7*mealPrice('pan')))}.</p>`,[
+    {l:`Gas station on the way: breakfast and a day of food — ${$(c)}`,s:`15 min. About twice grocery prices. Not hungry today, energy +6, and ${EMERGENCY_MEALS} meals in the cupboard.`,dis:!canAfford(c),fn:()=>{
+      spend(c);S.stats.emergencyFood=(S.stats.emergencyFood||0)+1;pass(15);ateAdd(1);adj('energy',6);S.food.pan=Math.min(PANTRY_CAP,S.food.pan+EMERGENCY_MEALS);S.hungry=0;
+      say(`⛽ Breakfast burritos, coffee and a bag of canned chili, bread and peanut butter from the 24-hour gas station: ${$(c)}. Not cheap, but you’re fed. Stock up at the grocery store when you can.`)}},
+    {l:'Not now: push through',s:`Clients −${HUNGER_HAPPY[Math.min(3,h)]} happiness today, and another night without dinner costs energy.`,fn:()=>say('🥱 You push through on coffee. The grocery store in Soldotna is open 5 AM to 10 PM.')}]);
+}
+defEvent({id:'hungry_morning',hook:'wake',tile:['🍽️','Running on empty','bad'],chance:0,max:1e6,priority:5,cooldown:HUNGER_WARN_GAP,cond:()=>!S.winter&&(S.hungry||0)>=2&&foodMeals()<MEALS,run:()=>hungerModal()});
+
+// A guide who has been going without is short with the clients (called from tripStart): −5 / −9 / −13 happiness after 1 / 2 / 3 nights in a row, and a worse catch.
+// (1.8.1: was −5 a night, up to −15; the curve is softer so going hungry hurts without ending a career on its own.)
+const HUNGER_HAPPY=[0,5,9,13];
 function hungerTrip(t){
   const h=S.hungry||0;if(h<=0) return;
-  t.happy-=5*h;t.q-=.02*h;t.notes.push(`🍽️ ${h>1?'Days':'A day'} of going without food: you’re short-tempered and slow, and the clients notice.`);
+  t.happy-=HUNGER_HAPPY[Math.min(3,h)];t.q-=.015*h;t.notes.push(`🍽️ ${h>1?'Days':'A day'} of going without food: you’re short-tempered and slow, and the clients notice.`);
 }
 
 // ---- the cooler: before each trip ----

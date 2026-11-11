@@ -112,10 +112,11 @@ module.exports = [
       const run = (diff, bump) => { S.diff = diff; S.book = []; const { b, t } = mk('reds', 3); b.d = 1; S.book.push(b); S.trip = t; t.happy = bump; t.steps = []; t.q = .2; fixRand(.5); const n0 = S.stats.hapN || 0, s0 = S.stats.hapSum || 0; tripEnd(b, t); closeModals(); return { dn: S.stats.hapN - n0, dh: S.stats.hapSum - s0, out: b.out.happy }; };
       o.normal = run('normal', 10); o.hard = run('hard', 10);
       const n0 = S.stats.hapN, s0 = S.stats.hapSum; S.book = []; const { b } = mk('reds'); b.d = day(); b.id = 77; S.book.push(b); onNight('home', [], day()); o.noshow = { dn: S.stats.hapN - n0, dh: S.stats.hapSum - s0, status: b.status };
-      S.diff = 'normal'; return o;
+      S.diff = 'normal'; o.hardMood = DIFFS.hard.mood; return o;
     })()`);
     assert.strictEqual(r.normal.dn, 1); assert.ok(Math.abs(r.normal.dh - r.normal.out) <= 1, 'quality is the day’s happiness');
-    assert.ok(Math.abs(r.hard.dh - (r.hard.out + 5)) <= 1, 'Combat Season’s client mood (−5) is taken out: ' + JSON.stringify(r.hard));
+    assert.ok(Math.abs(r.hard.dh - (r.hard.out - r.hardMood)) <= 1, 'Combat Season’s client mood is taken out: ' + JSON.stringify(r));
+    assert.ok(r.hardMood < 0, 'Combat Season clients are pickier');
     assert.deepStrictEqual(r.noshow, { dn: 1, dh: 20, status: 'noshow' });
     noErrors(errors);
   } },
