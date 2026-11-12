@@ -212,9 +212,9 @@ Numbers in the game were compared against 2025-2026 sources; a number changed on
 | Item | Before | Now | Source |
 |---|---|---|---|
 | Alaska resident sport fishing license | $29 | $20 | [ADF&G license price list](https://www.adfg.alaska.gov/index.cfm?adfg=license.pricinglist), [2026 sport fishing regulations, licensing](https://www.wafwa.adfg.alaska.gov/static/regulations/fishregulations/PDFs/Southwest/2026sw_sfregs_licensing.pdf) |
-| Public-use cabins on the Kenai | $45-65 a night | $50-75 a night | [Chugach National Forest cabin fee notices](https://www.fs.usda.gov/r10/chugach/newsroom/releases/public-input-requested-proposed-cabin-fee-changes) and [Kenai refuge cabins on recreation.gov](https://www.recreation.gov/camping/campgrounds/233317) |
-| Wall tent with a stove | $1,100 | $1,200 | typical retail price for a 10x12 canvas wall tent and small stove |
-| Septic pump-out (hired) | $480 | $400 | Kenai Peninsula quotes on [Homeyou](https://www.homeyou.com/ak/septic-pumping-kenai-costs) and [HomeAdvisor](https://homeadvisor.com/cost/plumbing/clean-septic-tank) |
+| Public-use cabins on the Kenai | $45-65 a night | $50-75 a night (an estimate) | Confirmed only for the Forest Service's Crescent Lake Cabin: $75 a night in the main season, $50 in the shoulder season ([Chugach fee proposal, 2025](https://www.fs.usda.gov/r10/chugach/newsroom/releases/public-input-requested-proposed-cabin-fee-changes)). The Swanson River, Skilak and Quartz Creek rates are not confirmed (the [recreation.gov refuge page](https://www.recreation.gov/camping/campgrounds/233317) lists no nightly fees), so the range is an estimate |
+| Wall tent with a stove | $1,100 | $1,200 (an estimate) | not verified against a source in this pass |
+| Septic pump-out (hired) | $480 | $400 | [Homeyou, Kenai](https://www.homeyou.com/ak/septic-pumping-kenai-costs): average about $380, most jobs $280 to $520 |
 | Tustumena 200 | "runs every winter" | "does not run every winter" | [Peninsula Clarion](https://www.peninsulaclarion.com/news/its-happening-tustumena-200-gets-to-30th-anniversary-after-4-tries/): cancelled four years for lack of snow |
 
 Not verified (left unchanged): truck camper price, heating oil and propane prices, firewood price per cord, well test price, winter job pay, Stormy Lake and Johnson Lake stocking schedules, and this winter's Kenai Peninsula Winter Games status. No 2025-2026 source that could be confirmed was found for them in this pass, so they stay as earlier estimates.
@@ -223,14 +223,14 @@ Not verified (left unchanged): truck camper price, heating oil and propane price
 
 | style | Licensed Guide (normal) | Combat Season (hard) |
 |---|---|---|
-| skilled | A 40 of 40 | A7 B31 C1 F1 |
-| expert | A7 B33 | A1 B24 C13 F2 (60% B) |
-| phone | A12 B26 C1 F1 | B25 C15 (62% B) |
-| by the book (food) | A4 B29 C7 (82% A or B) | A1 B13 C25 F1 |
-| passive | B17 C23 | C30 D10 |
-| ignores food | B1 C31 D7 F1 | C16 D22 F2 |
+| skilled | A 40 of 40 | A13 B25 C1 F1 |
+| expert | A7 B33 | A5 B27 C6 F2 |
+| phone | A12 B26 C1 F1 | A1 B30 C6 F3 |
+| by the book (food) | A4 B29 C7 (82% A or B) | A1 B20 C19 (52% A or B) |
+| passive | B17 C23 | C36 D3 F1 |
+| ignores food | B1 C31 D7 F1 | C24 D16 |
 
-Neglecting the cabin against careful upkeep costs 4.0 to 6.9% on normal and 5.9 to 8.5% on Combat Season for the main styles (ignores-food and the rule-breaker lose more). Two-year Rookie careers that ignore food score A17 B33 C10 against A57 B3 for the by-the-book bot. Combat Season's gap between skilled and expert narrowed because the price-rise trap ("rates" upgrade) and camping and spot-reading credit are tuned on hard only; the normal ladder is unchanged in kind.
+Neglecting the cabin against careful upkeep costs 4.0 to 6.9% on normal and 5.7 to 8.8% on Combat Season (expert 8.8, within noise of the 8% line) for the main styles (ignores-food and the rule-breaker lose more). Two-year Rookie careers that ignore food score A17 B33 C10 against A57 B3 for the by-the-book bot. Combat Season's gap between skilled and expert narrowed because the price-rise trap ("rates" upgrade) and camping and spot-reading credit are tuned on hard only; the normal ladder is unchanged in kind.
 
 ## Cabin upkeep
 
