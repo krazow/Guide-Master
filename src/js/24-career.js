@@ -26,7 +26,20 @@ const dlongY=d=>`${dlong(d)}, ${yearOf(d)}`;
 const isSunMon=d=>{const w=((d%7)+7)%7;return w===6||w===0};   // DAYS starts on Monday; seasons are whole weeks
 function doyOf(d){const x=dateOf(d);return Math.round((x-Date.UTC(x.getUTCFullYear(),0,1))/864e5)+1}
 const evenYear=d=>yearOf(d)%2===0;
-function hudDay(d){return `Season ${seasonOf(d)+1}/${S.years} · ${dlabel(d)}, ${yearOf(d)}`}
+// In the off-season the clock is the winter's, not next July's: October for the fall jobs, the month of your latest camping trip while
+// free days are left, April (breakup) once the camping is done or the storms have rolled with no trip. (The days of the week are July's.)
+function winterMonth(){
+  const W=S.winter;if(!W) return null;
+  const C=S.camp&&S.camp.v===2?S.camp:null,trip=C&&C.s===W.s&&C.trips>0&&C.lastMon&&C.lastMon.s===W.s?C.lastMon:null;
+  if(cabin().rolled!==W.s) return {name:'October',year:2025+W.s};
+  if(trip&&campDaysLeft()>0) return {name:trip.name,year:trip.year};
+  return {name:'April',year:2026+W.s};
+}
+function hudDay(d){
+  const w=winterMonth();
+  if(w) return `Season ${seasonOf(d)}/${S.years} done · off-season, ${w.name} ${w.year}`;
+  return `Season ${seasonOf(d)+1}/${S.years} · ${dlabel(d)}, ${yearOf(d)}`;
+}
 
 // ---- the rules and the runs change every season ----
 // Season 1 is 2026 as it really is. Later seasons are invented: forecasts vary, kings may reopen,

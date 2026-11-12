@@ -627,7 +627,7 @@ const KenaiCamp={
     function iceCatchUse(use){
       const T=ss.trip,n=T.fishN||0;let html;
       T.acts.push('icefish');T.today.push('icefish');
-      if(use==='freezer'){const room=Math.max(0,t.food.freezerRoom-R.fish),put=Math.min(n,room);R.fish+=put;T.fish+=put;T.log.push(`Ice fished: ${n}, ${put} to the freezer.`);html=`<p>You clean ${n} fish on the ice and carry ${put} home for the freezer.${put<n?` The rest go to the neighbors; the freezer is full.`:''}</p>`}
+      if(use==='freezer'){const room=Math.max(0,t.food.freezerRoom-R.fish),put=Math.min(n,room);R.fish+=put;T.fish+=put;T.log.push(`Ice fished: ${n}, ${put} taken home.`);html=`<p>You clean ${n} fish on the ice and carry ${put} home for winter dinners.${put<n?` The rest go to the neighbors; that is all the room there is.`:''}</p>`}
       else if(use==='fry'){adjE(6);if(T.company)T.rel+=1;T.log.push(`Ice fished: ${n}, a fish fry.`);html=`<p>You fry ${n} fish in a skillet over the stove, right there on the shore: crisp, hot and eaten with your fingers. (Energy +6)${T.company?' Your company will remember it.':''}</p>`}
       else{adjR(1);R.wom+=n>=3?1:0;T.log.push(`Ice fished: ${n}, a story.`);html=`<p>You let the fish go (the bigger ones, anyway) and keep the story: ${n} on the ice in a day, and a hole you can describe to anybody. (Rep +1)</p>`}
       actDone('🧊 Ice fishing: '+n+' on the ice',html);
@@ -688,7 +688,7 @@ const KenaiCamp={
       const acts=[...new Set(s.acts)].map(a=>A[a]).filter(Boolean);
       const rows=[`<b>${s.nights} night${s.nights===1?'':'s'}</b> at ${esc(s.placeName)} in ${s.monthName}${s.extra?`, plus ${s.extra} snowed-in day${s.extra>1?'s':''}`:''}. ${s.enc} encounter${s.enc===1?'':'s'}${s.enc?` (${s.good} good, ${s.bad} bad)`:''}.`,
         acts.length?`You ${acts.join(', ')}${s.aurora?' and watched for the northern lights':''}.`:'',
-        s.fish?`🐟 ${s.fish} fish in the freezer.`:'',s.tackle?`🪶 Tackle credit +${s.tackle} for next season.`:'',s.scout?`🔭 You know the ${D.place(s.place).scout==='kasilof'?'Kasilof':'upper Kenai'} better for July.`:'',
+        s.fish?`🐟 ${s.fish} fish taken home.`:'',s.tackle?`🪶 Tackle credit +${s.tackle} for next season.`:'',s.scout?`🔭 You know the ${D.place(s.place).scout==='kasilof'?'Kasilof':'upper Kenai'} better for July.`:'',
         s.rel?`🤝 ${s.rel.delta>=2?'A good trip with':s.rel.delta<0?'A rough trip with':'A quiet trip with'} ${esc(s.rel.name)}.`:'',
         s.fresh.length?`📖 New in your log: ${s.fresh.map(id=>sp(id).ic+' '+sp(id).n).join(', ')}.`:'',
         s.noTrace?'🌲 No trace: you broke camp with nothing left behind.':s.messy?'🗑️ The camp was left a little messy.':'',
@@ -789,7 +789,7 @@ const KenaiCamp={
         const pl=D.place(T.place),m=mon(),left=T.slots-T.slotsUsed,bs=[];
         if(pl.ice&&!T.today.includes('icefish')){
           const need=ss.lic<D.calYear(m,t.year),thin=m.ice<.3;
-          bs.push(B('icefish',`🧊 Ice fishing${need?' (license first)':''}`,`Stocked fish for the freezer, a fish fry or a story. ${need?`A fishing license is required, and licenses run by calendar year: ${$(D.LICENSE)}. `:''}${thin?'The ice is thin this early. ':''}Check the ice before you walk out.`));
+          bs.push(B('icefish',`🧊 Ice fishing${need?' (license first)':''}`,`Stocked fish to take home, a fish fry or a story. ${need?`A fishing license is required, and licenses run by calendar year: ${$(D.LICENSE)}. `:''}${thin?'The ice is thin this early. ':''}Check the ice before you walk out.`));
         }
         if(pl.ski)bs.push(B('ski','⛷️ Cross-country skiing','Trails and quiet. Energy up, a small chance of a fall.'));
         bs.push(B('snowshoe','🥾 Snowshoeing','Break trail through the spruce. Energy up, a small chance of a twist.'));
@@ -815,7 +815,7 @@ const KenaiCamp={
       }
       if(ph==='icecatch'){
         const room=Math.max(0,t.food.freezerRoom-R.fish);
-        return {title:`🧊 ${T.fishN} on the ice`,exit:null,meta:{},html:`<p>You land ${T.fishN} stocked fish, rainbow trout and char, and the sun is low. What will you do with them?</p>${T.checkedMsg||''}`,buttons:[B('freezer','Take them home for the freezer',room>0?`Up to ${room} fit. Freezer fish count as food next season.`:'The freezer is full.',room<=0),B('fry','Fry them on the shore','A fish fry. Energy up.'),B('story','Release them and keep the story','Rep +1.')]};
+        return {title:`🧊 ${T.fishN} on the ice`,exit:null,meta:{},html:`<p>You land ${T.fishN} stocked fish, rainbow trout and char, and the sun is low. What will you do with them?</p>${T.checkedMsg||''}`,buttons:[B('freezer','Take them home for dinners',room>0?`Up to ${room} fit. Eaten fresh, they spare some of the groceries.`:'There is no room for any more.',room<=0),B('fry','Fry them on the shore','A fish fry. Energy up.'),B('story','Release them and keep the story','Rep +1.')]};
       }
       if(ph==='evening'){
         const bs=[B('rest','🌙 Early to bed','Energy +3.')];
@@ -2102,7 +2102,7 @@ function sceneSVG(){
 function hud(){
   const d=day(),n=STATS.length;
   const sub=`{{name}} · ${DF().ic} ${DF().n} · ${typeof hudDay==='function'?hudDay(d):`Day ${d+1} of ${GAME.days}`}`;
-  return `<div class="hud"><div class="hud-top"><div class="hud-day">${dayName(d)}</div><div class="hud-right"><div class="hud-time">${fmt(S.t)}</div><button class="gear" onclick="openSettings()" aria-label="Settings">⚙️</button></div></div><div class="hud-sub" title="${esc(sub)}">${sub}</div>
+  return `<div class="hud"><div class="hud-top"><div class="hud-day">${S.winter&&typeof winterMonth==='function'?'Off-season':dayName(d)}</div><div class="hud-right"><div class="hud-time">${fmt(S.t)}</div><button class="gear" onclick="openSettings()" aria-label="Settings">⚙️</button></div></div><div class="hud-sub" title="${esc(sub)}">${sub}</div>
   <div class="stats">${STATS.map(s=>`<div class="stat"${s.title?` title="${esc(s.title)}"`:''}><small>${s.l}</small><b${s.warn&&s.warn()?' style="color:#ff8a70"':''}>${s.v()}</b>${s.m?meter(s.m(),s.good!==false):''}</div>`).join('')}</div></div>`;
 }
 function allTabs(){return [['act','🧭','Here'],...(EXTRA_TABS||[]).map(t=>[t.k,t.ic,t.l]),['todo','📋','To-do'],['log','📜','Log']]}
@@ -3668,7 +3668,20 @@ const dlongY=d=>`${dlong(d)}, ${yearOf(d)}`;
 const isSunMon=d=>{const w=((d%7)+7)%7;return w===6||w===0};   // DAYS starts on Monday; seasons are whole weeks
 function doyOf(d){const x=dateOf(d);return Math.round((x-Date.UTC(x.getUTCFullYear(),0,1))/864e5)+1}
 const evenYear=d=>yearOf(d)%2===0;
-function hudDay(d){return `Season ${seasonOf(d)+1}/${S.years} · ${dlabel(d)}, ${yearOf(d)}`}
+// In the off-season the clock is the winter's, not next July's: October for the fall jobs, the month of your latest camping trip while
+// free days are left, April (breakup) once the camping is done or the storms have rolled with no trip. (The days of the week are July's.)
+function winterMonth(){
+  const W=S.winter;if(!W) return null;
+  const C=S.camp&&S.camp.v===2?S.camp:null,trip=C&&C.s===W.s&&C.trips>0&&C.lastMon&&C.lastMon.s===W.s?C.lastMon:null;
+  if(cabin().rolled!==W.s) return {name:'October',year:2025+W.s};
+  if(trip&&campDaysLeft()>0) return {name:trip.name,year:trip.year};
+  return {name:'April',year:2026+W.s};
+}
+function hudDay(d){
+  const w=winterMonth();
+  if(w) return `Season ${seasonOf(d)}/${S.years} done · off-season, ${w.name} ${w.year}`;
+  return `Season ${seasonOf(d)+1}/${S.years} · ${dlabel(d)}, ${yearOf(d)}`;
+}
 
 // ---- the rules and the runs change every season ----
 // Season 1 is 2026 as it really is. Later seasons are invented: forecasts vary, kings may reopen,
@@ -4139,7 +4152,10 @@ function campApply(rep){
   S.energy=clamp(S.energy+rep.energyDelta,Math.min(S.energy,40),100);
   if(rep.repDelta)adj('rep',rep.repDelta);
   S.skill+=rep.skillDelta;S.wom=(S.wom||0)+rep.womDelta;
-  if(rep.foodFish)S.freezer=Math.min(fishCap(),S.freezer+Math.round(rep.foodFish/CAMP_FISH_PER_RED));
+  // Stocked trout and char are eaten fresh over the winter; they do not keep. They only spare the pantry you already stocked (a
+  // careful kitchen), so a guide who never buys food gets nothing for it. (Before 1.11.0 they went into the freezer as reds' worth of meals.)
+  rep.pantrySaved=0;
+  if(rep.foodFish&&S.food.pan>=MEALS){rep.pantrySaved=Math.min(Math.round(rep.foodFish/CAMP_FISH_PER_RED)*FISH_MEALS,PANTRY_CAP-S.food.pan);S.food.pan+=rep.pantrySaved}
   if(rep.tackleCredit)S.gear=Math.min(Math.max(S.gear,CAMP_MAX_TACKLE),S.gear+rep.tackleCredit);
   if(rep.firstTripBoost||rep.bookingBoost){
     const B=C.boost.s===W.s?C.boost:(C.boost={s:W.s,q:0,book:0});
@@ -4156,6 +4172,7 @@ function campApply(rep){
   st.encounters=(st.encounters||0)+rep.encounters;st.campNights=(st.campNights||0)+rep.nights;
   rep.gearBought.forEach(g=>{if(!C.gear.includes(g))C.gear.push(g)});if(rep.license)C.lic=Math.max(C.lic,rep.license.year);
   rep.achievements.forEach(a=>{if(!C.ach.includes(a))C.ach.push(a)});C.noTrace+=rep.noTraceTrips;
+  if(rep.trips&&rep.trips.length){const L=rep.trips[rep.trips.length-1],mo=KenaiCamp.data.month(L.month);if(mo)C.lastMon={s:W.s,name:mo.n,year:KenaiCamp.data.calYear(mo,2025+W.s)}}
   C.days+=rep.daysUsed;C.trips+=rep.tripsTaken;C.gigs+=rep.gigs.length;C.gigsDone=C.gigsDone.concat(rep.gigs);
   const T=C.tot;T.trips+=rep.tripsTaken;T.nights+=rep.nights;T.fish+=rep.foodFish;T.tackle+=rep.tackleCredit;T.gigs+=rep.gigs.length;T.spent+=rep.spent;T.net+=rep.cashDelta;
   return rep;
@@ -4165,7 +4182,7 @@ function campWrapHtml(rep){
   const f=n=>n>0?'+'+n:String(n),L=[];
   L.push(`${rep.tripsTaken} camping trip${rep.tripsTaken===1?'':'s'}, ${rep.nights} night${rep.nights===1?'':'s'}${rep.gigs.length?`, ${rep.gigs.length} winter job${rep.gigs.length===1?'':'s'}`:''}.`);
   L.push(`Cash ${rep.cashDelta<0?'−':'+'}${$(Math.abs(Math.round(rep.cashDelta)))} · Energy ${f(rep.energyDelta)} · Rep ${f(rep.repDelta)}${rep.skillDelta?` · Skill ${f(rep.skillDelta)}`:''}.`);
-  if(rep.foodFish)L.push(`🐟 ${rep.foodFish} stocked fish in the freezer: about ${Math.round(rep.foodFish/CAMP_FISH_PER_RED)} red${Math.round(rep.foodFish/CAMP_FISH_PER_RED)===1?'':'s'}’ worth of meals.`);
+  if(rep.foodFish)L.push(`🐟 ${rep.foodFish} stocked fish, eaten fresh at the cabin and over the camp stove. ${rep.pantrySaved>0?`They spared ${rep.pantrySaved} meals in your pantry.`:'They don’t keep, and with no pantry stocked there is nothing to spare.'}`);
   if(rep.tackleCredit)L.push(`🪶 Tackle +${rep.tackleCredit}: that many trips’ worth of flies and leaders you won’t have to buy.`);
   if(rep.firstTripBoost)L.push(`🎯 Better first trips in July (about ${Math.round(rep.firstTripBoost*100)}% more catch on your first three trips).`);
   if(rep.bookingBoost)L.push(`📅 A few more bookings next season.`);

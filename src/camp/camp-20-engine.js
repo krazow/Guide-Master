@@ -208,7 +208,7 @@
     function iceCatchUse(use){
       const T=ss.trip,n=T.fishN||0;let html;
       T.acts.push('icefish');T.today.push('icefish');
-      if(use==='freezer'){const room=Math.max(0,t.food.freezerRoom-R.fish),put=Math.min(n,room);R.fish+=put;T.fish+=put;T.log.push(`Ice fished: ${n}, ${put} to the freezer.`);html=`<p>You clean ${n} fish on the ice and carry ${put} home for the freezer.${put<n?` The rest go to the neighbors; the freezer is full.`:''}</p>`}
+      if(use==='freezer'){const room=Math.max(0,t.food.freezerRoom-R.fish),put=Math.min(n,room);R.fish+=put;T.fish+=put;T.log.push(`Ice fished: ${n}, ${put} taken home.`);html=`<p>You clean ${n} fish on the ice and carry ${put} home for winter dinners.${put<n?` The rest go to the neighbors; that is all the room there is.`:''}</p>`}
       else if(use==='fry'){adjE(6);if(T.company)T.rel+=1;T.log.push(`Ice fished: ${n}, a fish fry.`);html=`<p>You fry ${n} fish in a skillet over the stove, right there on the shore: crisp, hot and eaten with your fingers. (Energy +6)${T.company?' Your company will remember it.':''}</p>`}
       else{adjR(1);R.wom+=n>=3?1:0;T.log.push(`Ice fished: ${n}, a story.`);html=`<p>You let the fish go (the bigger ones, anyway) and keep the story: ${n} on the ice in a day, and a hole you can describe to anybody. (Rep +1)</p>`}
       actDone('🧊 Ice fishing: '+n+' on the ice',html);
@@ -269,7 +269,7 @@
       const acts=[...new Set(s.acts)].map(a=>A[a]).filter(Boolean);
       const rows=[`<b>${s.nights} night${s.nights===1?'':'s'}</b> at ${esc(s.placeName)} in ${s.monthName}${s.extra?`, plus ${s.extra} snowed-in day${s.extra>1?'s':''}`:''}. ${s.enc} encounter${s.enc===1?'':'s'}${s.enc?` (${s.good} good, ${s.bad} bad)`:''}.`,
         acts.length?`You ${acts.join(', ')}${s.aurora?' and watched for the northern lights':''}.`:'',
-        s.fish?`🐟 ${s.fish} fish in the freezer.`:'',s.tackle?`🪶 Tackle credit +${s.tackle} for next season.`:'',s.scout?`🔭 You know the ${D.place(s.place).scout==='kasilof'?'Kasilof':'upper Kenai'} better for July.`:'',
+        s.fish?`🐟 ${s.fish} fish taken home.`:'',s.tackle?`🪶 Tackle credit +${s.tackle} for next season.`:'',s.scout?`🔭 You know the ${D.place(s.place).scout==='kasilof'?'Kasilof':'upper Kenai'} better for July.`:'',
         s.rel?`🤝 ${s.rel.delta>=2?'A good trip with':s.rel.delta<0?'A rough trip with':'A quiet trip with'} ${esc(s.rel.name)}.`:'',
         s.fresh.length?`📖 New in your log: ${s.fresh.map(id=>sp(id).ic+' '+sp(id).n).join(', ')}.`:'',
         s.noTrace?'🌲 No trace: you broke camp with nothing left behind.':s.messy?'🗑️ The camp was left a little messy.':'',
@@ -370,7 +370,7 @@
         const pl=D.place(T.place),m=mon(),left=T.slots-T.slotsUsed,bs=[];
         if(pl.ice&&!T.today.includes('icefish')){
           const need=ss.lic<D.calYear(m,t.year),thin=m.ice<.3;
-          bs.push(B('icefish',`🧊 Ice fishing${need?' (license first)':''}`,`Stocked fish for the freezer, a fish fry or a story. ${need?`A fishing license is required, and licenses run by calendar year: ${$(D.LICENSE)}. `:''}${thin?'The ice is thin this early. ':''}Check the ice before you walk out.`));
+          bs.push(B('icefish',`🧊 Ice fishing${need?' (license first)':''}`,`Stocked fish to take home, a fish fry or a story. ${need?`A fishing license is required, and licenses run by calendar year: ${$(D.LICENSE)}. `:''}${thin?'The ice is thin this early. ':''}Check the ice before you walk out.`));
         }
         if(pl.ski)bs.push(B('ski','⛷️ Cross-country skiing','Trails and quiet. Energy up, a small chance of a fall.'));
         bs.push(B('snowshoe','🥾 Snowshoeing','Break trail through the spruce. Energy up, a small chance of a twist.'));
@@ -396,7 +396,7 @@
       }
       if(ph==='icecatch'){
         const room=Math.max(0,t.food.freezerRoom-R.fish);
-        return {title:`🧊 ${T.fishN} on the ice`,exit:null,meta:{},html:`<p>You land ${T.fishN} stocked fish, rainbow trout and char, and the sun is low. What will you do with them?</p>${T.checkedMsg||''}`,buttons:[B('freezer','Take them home for the freezer',room>0?`Up to ${room} fit. Freezer fish count as food next season.`:'The freezer is full.',room<=0),B('fry','Fry them on the shore','A fish fry. Energy up.'),B('story','Release them and keep the story','Rep +1.')]};
+        return {title:`🧊 ${T.fishN} on the ice`,exit:null,meta:{},html:`<p>You land ${T.fishN} stocked fish, rainbow trout and char, and the sun is low. What will you do with them?</p>${T.checkedMsg||''}`,buttons:[B('freezer','Take them home for dinners',room>0?`Up to ${room} fit. Eaten fresh, they spare some of the groceries.`:'There is no room for any more.',room<=0),B('fry','Fry them on the shore','A fish fry. Energy up.'),B('story','Release them and keep the story','Rep +1.')]};
       }
       if(ph==='evening'){
         const bs=[B('rest','🌙 Early to bed','Energy +3.')];
