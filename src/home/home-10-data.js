@@ -64,7 +64,7 @@
     {id:'septic',ic:'🚽',ph:['spring'],pr:25,cond:6,
       due:(s,t)=>t.y-s.did.septic>=3,
       title:()=>'Pump the septic tank',why:()=>'Many homes around Soldotna have septic systems, and a tank wants pumping every few years.',risk:()=>'Skip it and a backup or a failed drain field gets likelier, and the house is unusable for days.',
-      o:(s,t)=>({diy:{cash:$c(t,20),days:0,min:120,e:4,s:'Find the lids, check the level and clean the outlet filter. It buys you a year, no more.'},pay:{cash:$c(t,480),s:'A septic hauler pumps the tank and looks at the baffles.'},skip:{s:'Flush and forget.'}})},
+      o:(s,t)=>({diy:{cash:$c(t,20),days:0,min:120,e:4,s:'Find the lids, check the level and clean the outlet filter. It buys you a year, no more.'},pay:{cash:$c(t,400),s:'A septic hauler pumps the tank and looks at the baffles.'},skip:{s:'Flush and forget.'}})},
     {id:'bins',ic:'🗑️',ph:['summer'],pr:10,cond:2,
       due:(s,t)=>t.sday>=1&&t.abs-Math.max(s.did.bins,s.skipAbs)>=4,
       title:()=>'Latch the bins and clean up the fish waste',why:()=>'Cleaning clients’ fish at home leaves scraps, blood and smell. Bears on the Peninsula notice.',risk:()=>'Skip it and a bear in the yard gets likely: damage, a lost morning or a visit from Fish and Game.',

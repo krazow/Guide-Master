@@ -14,7 +14,7 @@
   D.MPG=15; D.SUPPLIES=25; D.NIGHTS=[1,2,3,5]; D.WINTER_DAYS=10; D.MAX_TRIPS=3; D.MAX_GIGS=2;
   D.MAX_BOOK=.02;            // the most a winter can add to next season's daily chance of a booking
   D.MAX_FIRST=.03;           // the most it can add to the catch on the first few trips
-  D.LICENSE=29;               // an Alaska resident sport fishing license (about $29); licenses run by calendar year
+  D.LICENSE=20;               // an Alaska resident sport fishing license ($20 in ADF&G's 2025 and 2026 regulations; it was $29 before 1.11.0); licenses run by calendar year
   D.ICE_WALK=4;               // inches of clear, hard ice for a person on foot
   D.CAPACITY=12;              // load points the truck and sled carry; every item and companion uses some
   D.RENT_ICE=15;              // renting an ice kit at the Soldotna tackle shop
@@ -28,7 +28,7 @@
     {id:'skilak',ic:'⛰️',n:'Lower Skilak Lake Campground',miles:33,fee:0,h:'mtn',scout:'upper',cabin:55,d:'13.3 miles along Skilak Lake Road from the west end. A summer campground (May to September) with no fee. In winter you’re on your own on a big, windy lake shore; a public-use cabin in the area can be reserved ahead.'},
     {id:'cook',ic:'🌲',n:'Captain Cook State Rec Area',miles:36,fee:0,h:'forest',ice:'Stormy Lake',ski:true,d:'About 25 miles north of Kenai, near Stormy Lake, where winter visitors ice fish stocked fish. Discovery Campground is $20 a site in summer; in winter you camp unserviced.'},
     {id:'deep',ic:'🦅',n:'Deep Creek State Rec Area',miles:42,fee:0,h:'coast',d:'MP 137.3 on the Sterling Hwy, on the Cook Inlet bluff above the beach. Summer sites are $20; in winter there is no service, and the beach is a cold, bright place for eagles.'},
-    {id:'quartz',ic:'🏔️',n:'Quartz Creek (Kenai Lake)',miles:51,fee:0,h:'mtn',scout:'upper',cabin:65,d:'Quartz Creek Campground sits at MP 44.9 near Cooper Landing, a summer Forest Service campground. In winter it is unserviced with steep mountain slopes on all sides. Dall sheep and goats are in the high country, and the upper Kenai River runs below.'},
+    {id:'quartz',ic:'🏔️',n:'Quartz Creek (Kenai Lake)',miles:51,fee:0,h:'mtn',scout:'upper',cabin:65,d:'Quartz Creek Campground sits at MP 44.9 near Cooper Landing, a summer Forest Service campground. In winter it is unserviced with steep mountain slopes on all sides. The campground has no cabin of its own, but the Forest Service rents public-use cabins in the area ($50 to $75 a night). Dall sheep and goats are in the high country, and the upper Kenai River runs below.'},
     {id:'anchor',ic:'🎣',n:'Anchor River State Rec Area',miles:66,fee:20,h:'river',d:'MP 161, the westernmost highway point in North America. The state campgrounds charge $20 a site; the Anchor River runs open under ice shelves and steelhead and Dolly Varden are in it.'},
     {id:'spit',ic:'⚓',n:'Homer Spit',miles:83,fee:0,h:'coast',d:'The city’s Spit campgrounds are open April through October only, so in winter you park rough with no hookups and no dump station. Expect sea ducks, sea otters, eagles and a hard wind off Kachemak Bay.'},
   ];
@@ -63,9 +63,9 @@
   // ---- where you sleep (comfort lowers the odds of a bad night; load and cap use truck space) ----
   D.SHELTERS={
     tent:{id:'tent',ic:'⛺',n:'Four-season tent and stove',comfort:0,load:2,cap:0,cost:0,d:'What you already own. Cold, but light.'},
-    wall:{id:'wall',ic:'🏕️',n:'Wall tent with a wood stove',comfort:1,load:3,cap:0,cost:1100,d:'A canvas wall tent and a small stove: you can stand up, dry your boots and keep a pot hot. About $1,100.'},
+    wall:{id:'wall',ic:'🏕️',n:'Wall tent with a wood stove',comfort:1,load:3,cap:0,cost:1200,d:'A canvas wall tent and a small stove: you can stand up, dry your boots and keep a pot hot. About $1,200.'},
     camper:{id:'camper',ic:'🚐',n:'Truck camper',comfort:2,load:0,cap:4,cost:7500,d:'A used, insulated pickup camper with a furnace. It carries your gear, too. About $7,500.'},
-    cabin:{id:'cabin',ic:'🛖',n:'Public-use cabin',comfort:2,load:0,cap:0,cost:0,d:'A refuge or State Parks cabin reserved ahead: bunks, a stove and four walls.'},
+    cabin:{id:'cabin',ic:'🛖',n:'Public-use cabin',comfort:2,load:0,cap:0,cost:0,d:'A refuge, State Parks or Forest Service cabin reserved ahead: bunks, a stove and four walls.'},
   };
 
   // ---- the animals (every wildlife encounter is a species for the camping log) ----
@@ -158,7 +158,7 @@
   D.GIGS=[
     {id:'iceguide',ic:'🧊',n:'Guide ice fishers on a stocked lake',d:'Two clients, a day on the ice, about $70 each, and gas to the lake.',need:'You need an ice kit (you can rent one for $15) and a current fishing license.'},
     {id:'snowmachine',ic:'🛷',n:'Run a snowmachine tour for visitors',d:'A day showing visitors the refuge by snowmachine, about $80 a rider, less fuel. A machine can break down, and riders’ tips vary.',need:'You need a little reputation to be trusted with a rental sled.'},
-    {id:'event',ic:'🏁',n:'Help at a winter event',d:'Winter Games in Soldotna or the Tustumena 200 sled dog race in Kasilof, whenever they run: a stipend and meals, and a lot of people who will remember you.',need:''},
+    {id:'event',ic:'🏁',n:'Help at a winter event',d:'Winter Games in Soldotna or the Tustumena 200 sled dog race in Kasilof, whenever they run (neither runs every winter): a stipend and meals, and a lot of people who will remember you.',need:''},
   ];
 
   // ---- achievements the engine itself can award (the host may add its own) ----
