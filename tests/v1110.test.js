@@ -28,4 +28,16 @@ module.exports = [
     assert.ok(/fewer bookings/.test(await page.evaluate(() => DIFFS.hard.d)) && /camping pay less/.test(await page.evaluate(() => DIFFS.hard.d)), 'the difficulty description says so');
     noErrors(errors);
   } },
+  { name: 'cabin: the first week of a career is quiet, and the winter jobs wait for the first fall', fn: async ctx => {
+    const { page, errors } = await open(ctx);
+    const r = await page.evaluate(() => {
+      newGame('normal'); closeModals(); const out = {};
+      for (const d of [0, 3, 6]) { S.cur = d; S.t = d * 1440 + 400; out['d' + d] = CabinUpkeep.dueCount(homeTicket()) }
+      S.cur = 9; S.t = 9 * 1440 + 400; const all = CabinUpkeep.jobs(homeTicket(), { all: true }).map(j => j.id);
+      out.late = all; return out;
+    });
+    assert.strictEqual(r.d0 + r.d3 + r.d6, 0, 'no cabin jobs due in the first week: ' + JSON.stringify(r));
+    assert.ok(!r.late.some(id => ['tape', 'skirt', 'detect', 'strap'].includes(id)), 'the cold-weather jobs wait for fall: ' + r.late);
+    noErrors(errors);
+  } },
 ];

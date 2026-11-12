@@ -36,7 +36,7 @@ async function winterGame(ctx, diff) {
   });
   return { page, errors };
 }
-const quiet = async (ctx, diff) => { const o = await open(ctx); await newGame(o.page, diff); await o.page.evaluate(() => { closeModals(); S.cur = 2; S.t = 2 * 1440 + 600; S.book = []; S.loc = 'shop'; }); return o; };
+const quiet = async (ctx, diff) => { const o = await open(ctx); await newGame(o.page, diff); await o.page.evaluate(() => { closeModals(); S.cur = 9; S.t = 9 * 1440 + 600; S.book = []; S.loc = 'shop'; }); return o; };
 
 module.exports = [
   // ---------- the module on its own ----------
@@ -391,11 +391,11 @@ module.exports = [
     const r = await page.evaluate(() => {
       const out = {}, id = () => homeTicket() && CabinUpkeep.jobs(homeTicket())[0].id;
       closeModals(); const j0 = CabinUpkeep.jobs(homeTicket())[0]; out.first = j0.id;
+      S.loc = 'town'; const j3 = CabinUpkeep.jobs(homeTicket(), { all: true })[0]; out.away = j3 && j3.opts.map(o => o.dis); S.loc = 'shop';
       let t0 = S.t, e0 = S.energy, m0 = S.money; CabinUpkeep.ui.open(homeHost(), j0.id); MBTN(0); out.diy = { min: S.t - t0, energy: Math.round(e0 - S.energy), cash: Math.round(m0 - S.money) };
       const j1 = CabinUpkeep.jobs(homeTicket())[0]; out.next = j1 && j1.id;
       t0 = S.t; e0 = S.energy; m0 = S.money; if (j1) { CabinUpkeep.ui.open(homeHost(), j1.id); MBTN(1); out.pay = { min: S.t - t0, energy: Math.round(e0 - S.energy), cash: Math.round(m0 - S.money), price: j1.opts[1].cash } }
       const j2 = CabinUpkeep.jobs(homeTicket())[0]; if (j2) { CabinUpkeep.ui.open(homeHost(), j2.id); MBTN(2); out.skipped = j2.id; out.stillDue = CabinUpkeep.jobs(homeTicket(), { all: true }).some(x => x.id === j2.id) }
-      S.loc = 'town'; const j3 = CabinUpkeep.jobs(homeTicket(), { all: true })[0]; out.away = j3 && j3.opts.map(o => o.dis);
       out.cond = cabin().cond; return out;
     });
     assert.ok(r.diy.min > 0 && r.diy.energy > 0 && r.diy.cash >= 0, JSON.stringify(r)); if (r.pay) { assert.strictEqual(r.pay.min, 0); assert.strictEqual(r.pay.cash, r.pay.price) }
@@ -407,7 +407,7 @@ module.exports = [
     const { page, errors } = await quiet(ctx);
     const r = await page.evaluate(() => {
       closeModals(); clearTiles(); const out = {};
-      S.cur = 3; S.t = 3 * 1440 + 300; S.cabin.did.bins = -99;
+      S.cur = 9; S.t = 9 * 1440 + 300; S.cabin.did.bins = -99;
       homeMorning(); homeMorning(); homeMorning(); out.tiles = document.querySelectorAll('#tiles .tile').length + tileQ.length;
       out.reminded = S.cabin.rem; out.jobs = CabinUpkeep.jobs(homeTicket()).length; out.due = CabinUpkeep.dueCount(homeTicket());
       return out;
@@ -418,7 +418,7 @@ module.exports = [
   { name: 'game: a bad July morning (a bear) costs money, a morning and rep, and can never end the career', fn: async ctx => {
     const { page, errors } = await quiet(ctx);
     const r = await page.evaluate(() => {
-      closeModals(); S.cabin.did.bins = -99; S.cur = 4; S.t = 4 * 1440 + 300; S.money = -1100; S.rep = 30;
+      closeModals(); S.cabin.did.bins = -99; S.cur = 9; S.t = 9 * 1440 + 300; S.money = -1100; S.rep = 30;
       const rr = Math.random; Math.random = () => 0; const m0 = S.money;
       try { homeMorning(); } finally { Math.random = rr }
       return { bear: S.cabin.bearY === seasonOf(day()), money: S.money, over: S.over, loss: checkLoss(), log: S.log.slice(-3).map(x => x.s).join(' ') };
