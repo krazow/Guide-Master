@@ -36,7 +36,7 @@ async function winterGame(ctx, diff) {
   });
   return { page, errors };
 }
-const quiet = async (ctx, diff) => { const o = await open(ctx); await newGame(o.page, diff); await o.page.evaluate(() => { closeModals(); S.cur = 2; S.t = 2 * 1440 + 600; S.book = []; S.loc = 'shop'; }); return o; };
+const quiet = async (ctx, diff) => { const o = await open(ctx); await newGame(o.page, diff); await o.page.evaluate(() => { closeModals(); S.cur = 9; S.t = 9 * 1440 + 600; S.book = []; S.loc = 'shop'; }); return o; };
 
 module.exports = [
   // ---------- the module on its own ----------
@@ -257,8 +257,8 @@ module.exports = [
   { name: 'condition: drifts down slowly, jobs restore it, and a run-down cabin has more bad luck', fn: async () => {
     let st = C.newState(); const c0 = st.cond;
     for (let d = 1; d < 14; d++) st = C.daily(tk({ state: st, phase: 'summer', sday: d, abs: 28 + d, recentFish: 0 }), { rand: K(.99) }).state;
-    assert.ok(c0 - st.cond > 5 && c0 - st.cond < 9, `a July costs ${c0 - st.cond}`);
-    const w = C.rollWinter(tk({ state: st }), { rand: K(.99) }); assert.ok(st.cond - w.cond >= 7 && st.cond - w.cond <= 12);
+    assert.ok(c0 - st.cond > 2 && c0 - st.cond < 4, `a July costs ${c0 - st.cond}`);   // 1.11.0: 0.2 a July day (was 0.5)
+    const w = C.rollWinter(tk({ state: st }), { rand: K(.99) }); assert.ok(st.cond - w.cond >= 2.5 && st.cond - w.cond <= 4, `a winter costs ${st.cond - w.cond}`);   // 3 (was 8)
     assert.ok(C.risk({ cond: 0 }) > C.risk({ cond: 50 }) && C.risk({ cond: 50 }) > C.risk({ cond: 100 }) && C.risk({ cond: 100 }) <= .66 && C.risk({ cond: 0 }) >= 1.89);
     assert.ok(C.risk({ cond: 20 }) - C.risk({ cond: 50 }) > C.risk({ cond: 80 }) - C.risk({ cond: 100 }) , 'the curve bends: wear compounds');
     const rate = cond => rolls(r => /ice dam/.test(lines(C.resolve(withState(tk(), s => { s.cond = cond; s.queue = [{ id: 'snow', depth: 1 }] }), 'snow', 'skip', { rand: r }))), 6000);
@@ -275,6 +275,28 @@ module.exports = [
     const year = pol => { let st = C.newState(); for (const ph of ['fall', 'spring']) { C.autoplay({ ticket: () => tk({ state: st, phase: ph, season: 1, daysLeft: 10 }), apply: r => { st = r.state } }, { policy: pol, rand: K(.99) }) } return st };
     const a = year('neglect'), b = year('careful');
     assert.ok(b.cond - a.cond > 15, `${b.cond} vs ${a.cond}`);
+  } },
+  { name: 'default play (the Home tab never opened, storm prompts answered with the top button) leaves a cabin worn but not run down after four years; skipping everything does', fn: async () => {
+    // 1.11.0: not doing a job is gentler than skipping it, so a guide who never opens the Home tab is not punished like one who skips on purpose
+    const stormsOnly = j => j.kind === 'event' ? C.policies.first(j) : null;
+    const years = (pol, seed) => {
+      const r = C.util.seeded(seed); let st = C.newState(), cash = 0, energy = 0;
+      const take = x => { st = x.state; cash += x.cashDelta; energy += x.energyDelta };
+      const play = (ph, y) => C.autoplay({ ticket: () => tk({ state: st, phase: ph, season: y, daysLeft: 10, cash: 9000 }), apply: take }, { policy: pol === 'default' ? stormsOnly : pol, rand: r });
+      for (let y = 1; y <= 4; y++) {
+        for (let d = 1; d < 14; d++) take(C.daily(tk({ state: st, phase: 'summer', season: y, sday: d, abs: y * 14 + d, recentFish: 0 }), { rand: r }));
+        play('fall', y); take(C.rollWinter(tk({ state: st, phase: 'fall', season: y }), { rand: r })); play('spring', y); take(C.rollSpring(tk({ state: st, phase: 'spring', season: y }), { rand: r }));
+      }
+      return { cond: st.cond, cash, energy };
+    };
+    const mean = (pol, f) => { let t = 0; for (let k = 1; k <= 40; k++) t += f(years(pol, k)); return t / 40; };
+    const dc = mean('default', x => x.cond), nc = mean('neglect', x => x.cond), cc = mean('careful', x => x.cond);
+    assert.ok(dc > 35 && dc < 85, `default cabin condition ${dc}`);
+    assert.ok(nc < 20, `neglected cabin condition ${nc}`);
+    assert.ok(cc > 90, `careful cabin condition ${cc}`);
+    assert.ok(dc > nc + 25, `default ${dc} vs neglect ${nc}`);
+    const dm = mean('default', x => x.cash + 40 * x.energy), nm = mean('neglect', x => x.cash + 40 * x.energy);
+    assert.ok(dm > nm, `default costs less than neglect: ${dm} vs ${nm}`);
   } },
   { name: 'a failure that closes the cabin can cost a booked trip: a stuck truck, a dead well pump, a septic backup and, in July, a dead pump', fn: async () => {
     const sp = f => withState(tk({ phase: 'spring' }), f);
@@ -369,11 +391,11 @@ module.exports = [
     const r = await page.evaluate(() => {
       const out = {}, id = () => homeTicket() && CabinUpkeep.jobs(homeTicket())[0].id;
       closeModals(); const j0 = CabinUpkeep.jobs(homeTicket())[0]; out.first = j0.id;
+      S.loc = 'town'; const j3 = CabinUpkeep.jobs(homeTicket(), { all: true })[0]; out.away = j3 && j3.opts.map(o => o.dis); S.loc = 'shop';
       let t0 = S.t, e0 = S.energy, m0 = S.money; CabinUpkeep.ui.open(homeHost(), j0.id); MBTN(0); out.diy = { min: S.t - t0, energy: Math.round(e0 - S.energy), cash: Math.round(m0 - S.money) };
       const j1 = CabinUpkeep.jobs(homeTicket())[0]; out.next = j1 && j1.id;
       t0 = S.t; e0 = S.energy; m0 = S.money; if (j1) { CabinUpkeep.ui.open(homeHost(), j1.id); MBTN(1); out.pay = { min: S.t - t0, energy: Math.round(e0 - S.energy), cash: Math.round(m0 - S.money), price: j1.opts[1].cash } }
       const j2 = CabinUpkeep.jobs(homeTicket())[0]; if (j2) { CabinUpkeep.ui.open(homeHost(), j2.id); MBTN(2); out.skipped = j2.id; out.stillDue = CabinUpkeep.jobs(homeTicket(), { all: true }).some(x => x.id === j2.id) }
-      S.loc = 'town'; const j3 = CabinUpkeep.jobs(homeTicket(), { all: true })[0]; out.away = j3 && j3.opts.map(o => o.dis);
       out.cond = cabin().cond; return out;
     });
     assert.ok(r.diy.min > 0 && r.diy.energy > 0 && r.diy.cash >= 0, JSON.stringify(r)); if (r.pay) { assert.strictEqual(r.pay.min, 0); assert.strictEqual(r.pay.cash, r.pay.price) }
@@ -385,7 +407,7 @@ module.exports = [
     const { page, errors } = await quiet(ctx);
     const r = await page.evaluate(() => {
       closeModals(); clearTiles(); const out = {};
-      S.cur = 3; S.t = 3 * 1440 + 300; S.cabin.did.bins = -99;
+      S.cur = 9; S.t = 9 * 1440 + 300; S.cabin.did.bins = -99;
       homeMorning(); homeMorning(); homeMorning(); out.tiles = document.querySelectorAll('#tiles .tile').length + tileQ.length;
       out.reminded = S.cabin.rem; out.jobs = CabinUpkeep.jobs(homeTicket()).length; out.due = CabinUpkeep.dueCount(homeTicket());
       return out;
@@ -396,7 +418,7 @@ module.exports = [
   { name: 'game: a bad July morning (a bear) costs money, a morning and rep, and can never end the career', fn: async ctx => {
     const { page, errors } = await quiet(ctx);
     const r = await page.evaluate(() => {
-      closeModals(); S.cabin.did.bins = -99; S.cur = 4; S.t = 4 * 1440 + 300; S.money = -1100; S.rep = 30;
+      closeModals(); S.cabin.did.bins = -99; S.cur = 9; S.t = 9 * 1440 + 300; S.money = -1100; S.rep = 30;
       const rr = Math.random; Math.random = () => 0; const m0 = S.money;
       try { homeMorning(); } finally { Math.random = rr }
       return { bear: S.cabin.bearY === seasonOf(day()), money: S.money, over: S.over, loss: checkLoss(), log: S.log.slice(-3).map(x => x.s).join(' ') };
@@ -478,11 +500,11 @@ module.exports = [
       let g = 0; while (document.getElementById('mbg') && g++ < 10) MBTN(0);
       out.rolled = cabin().rolled === S.winter.s; out.went1 = went; out.queue = cabin().queue.length;
       homeOpenGate(() => went++); out.second = document.getElementById('mbg') ? document.querySelector('#mbg h2').textContent : '(none)';
-      if (document.getElementById('mbg')) MBTN(1); out.went2 = went;
+      out.single = document.querySelectorAll('#mbg button.act').length >= 3; [...document.querySelectorAll('#mbg button.act')].find(b => /Open bookings/.test(b.textContent)).click(); out.went2 = went;
       homeOpenGate(() => went++); out.third = !!document.getElementById('mbg'); out.went3 = went; return out;
     });
     assert.ok(r.rolled && r.went1 === 0 && r.queue === 0, JSON.stringify(r));
-    assert.ok(/Spring jobs are due/.test(r.second) && r.went2 === 1 && !r.third && r.went3 === 2, JSON.stringify(r));
+    assert.ok(/Spring jobs are due/.test(r.second) && r.single && r.went2 === 1 && !r.third && r.went3 === 2, JSON.stringify(r));
     noErrors(errors);
   } },
   { name: 'game: outage and generator: an unserviced generator may not start (the freezer is on its own, $85 at the shop); a serviced one runs', fn: async ctx => {
@@ -559,16 +581,24 @@ module.exports = [
     assert.strictEqual(r.y, 1); assert.ok(!r.summerIds.includes('genoil') || true);
     noErrors(errors);
   } },
-  { name: 'game: version 1.10.1, save schema 4, a changelog line, a Help section, an end-screen row and a tip', fn: async ctx => {
+  { name: 'game: version 1.11.0, save schema 4, a changelog line, a Help section, an end-screen row and a tip', fn: async ctx => {
     const { page, errors } = await open(ctx);
     const r = await page.evaluate(() => ({ v: APP_VERSION, s: SAVE_SCHEMA, c: CHANGELOG['1.10.0'].join(' '), c1: CHANGELOG['1.10.1'].join(' '), h: HELP.find(x => /cabin/i.test(x[1]))[2], tip: TIPS.some(t => t.id === 'cabin'), sw: null }));
-    assert.strictEqual(r.v, '1.10.1'); assert.strictEqual(r.s, 4);
+    assert.strictEqual(r.v, '1.11.0'); assert.strictEqual(r.s, 4);
     assert.ok(/booked trip/.test(r.c1) && /bad sleep/.test(r.c1) && /\$800/.test(r.c1) && /never ends a career/.test(r.c1) && /game in progress/.test(r.c1), r.c1);
     assert.ok(/Home tab/.test(r.c) && /two at a time/.test(r.c) && /game in progress/.test(r.c));
     assert.ok(/three ways/.test(r.h) && /Never more than two/.test(r.h) && /never ends your career/.test(r.h) && /10 free days/.test(r.h) && /generator indoors/.test(r.h) && /booked party that cancels/.test(r.h) && r.tip);
     await newGame(page); assert.strictEqual(await page.evaluate(() => winterCosts()[0][1]), 800, 'living costs'); const row = await page.evaluate(() => endRows().find(x => x[0] === 'The cabin')[1]); assert.ok(/0 jobs done yourself/.test(row) && /condition 80/.test(row), row);
-    assert.ok(/1\.10\.1/.test(fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8')));
+    assert.ok(/1\.11\.0/.test(fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8')));
     noErrors(errors);
+  } },
+  { name: 'generator: a fresh state counts the generator as serviced in the first season, the way the migration and a newly bought one do', fn: async () => {
+    const s0 = C.newState(); assert.deepStrictEqual([s0.did.genoil, s0.did.genrun], [0, 0]);
+    const t = tk({ state: s0, season: 0, phase: 'summer', sday: 4, gen: { owned: true, gas: 'ok' } });
+    assert.deepStrictEqual(ids(t).filter(i => /^gen/.test(i)), [], 'no generator job in the first season');
+    assert.ok(C.genOdds(t).p < .06 && C.genOdds(t).why.length === 0, JSON.stringify(C.genOdds(t)));
+    const next = Object.assign({}, t, { season: 1 }); assert.deepStrictEqual(ids(next).filter(i => /^gen/.test(i)), ['genoil', 'genrun'], 'a year later it is due');
+    assert.deepStrictEqual([C.noteGen(next).state.did.genoil, C.noteGen(next).state.did.genrun], [1, 1]);
   } },
   { name: 'game: bots play careers with careful and neglectful cabin policies, no page errors, no career lost to the cabin', fn: async ctx => {
     const { page, errors } = await open(ctx);
@@ -591,7 +621,12 @@ module.exports = [
       return out;
     });
     res.forEach(r => { assert.ok(!r.over && r.loss == null && !r.winter, JSON.stringify(r)); });
-    assert.ok(res[0].cond > res[1].cond + 30, JSON.stringify(res)); assert.strictEqual(res[1].tot.diy + res[1].tot.pay, 0); assert.ok(res[0].tot.diy + res[0].tot.pay >= 5 && res[2].tot.diy + res[2].tot.pay >= 5, JSON.stringify(res));
+    assert.ok(res[0].cond > res[1].cond + 30, JSON.stringify(res)); assert.strictEqual(res[1].tot.diy + res[1].tot.pay, 0);
+    // careful upkeep really is upkeep: four years of every job (about 7 a year), none skipped, the cabin in top shape; neglect skips nearly all of them and lets it fall apart
+    const [care, neg, pay] = res.map(r => r.tot);
+    assert.ok(care.diy + care.pay >= 20 && care.skip === 0 && care.diy > care.pay && res[0].cond >= 90, JSON.stringify(res[0]));
+    assert.ok(pay.diy + pay.pay >= 20 && pay.pay > pay.diy && pay.skip <= 4 && res[2].cond >= 85, JSON.stringify(res[2]));
+    assert.ok(neg.skip >= 20 && res[1].cond <= 20, JSON.stringify(res[1]));
     noErrors(errors);
   } },
 ];

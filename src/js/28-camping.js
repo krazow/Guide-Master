@@ -26,9 +26,9 @@ const campUsed=()=>!S.winter||campDaysLeft()<=0||(campTripsLeft()<=0&&campW().gi
 // effects on next season's trips and bookings (used by 22-trips.js and genSeasonBookings in 24-career.js)
 function campQ(){
   const C=S.camp;if(!C||!C.boost||C.boost.s<0||C.boost.s!==seasonOf(day())) return 0;
-  return S.stats.trips-((S.st0&&S.st0.trips)||0)<3?C.boost.q:0;
+  return S.stats.trips-((S.st0&&S.st0.trips)||0)<3?C.boost.q*DF().craft:0;
 }
-const campBook=s=>{const C=S.camp;return C&&C.boost&&C.boost.s===s?C.boost.book:0};
+const campBook=s=>{const C=S.camp;return C&&C.boost&&C.boost.s===s?C.boost.book*DF().craft:0};
 
 function campTicket(){
   const C=campW(),A=S.arcs&&S.arcs.rival,W=S.winter;
@@ -49,7 +49,10 @@ function campApply(rep){
   S.energy=clamp(S.energy+rep.energyDelta,Math.min(S.energy,40),100);
   if(rep.repDelta)adj('rep',rep.repDelta);
   S.skill+=rep.skillDelta;S.wom=(S.wom||0)+rep.womDelta;
-  if(rep.foodFish)S.freezer=Math.min(fishCap(),S.freezer+Math.round(rep.foodFish/CAMP_FISH_PER_RED));
+  // Stocked trout and char are eaten fresh over the winter; they do not keep. They only spare the pantry you already stocked (a
+  // careful kitchen), so a guide who never buys food gets nothing for it. (Before 1.11.0 they went into the freezer as reds' worth of meals.)
+  rep.pantrySaved=0;
+  if(rep.foodFish&&S.food.pan>=MEALS){rep.pantrySaved=Math.min(Math.round(rep.foodFish/CAMP_FISH_PER_RED)*FISH_MEALS,PANTRY_CAP-S.food.pan);S.food.pan+=rep.pantrySaved}
   if(rep.tackleCredit)S.gear=Math.min(Math.max(S.gear,CAMP_MAX_TACKLE),S.gear+rep.tackleCredit);
   if(rep.firstTripBoost||rep.bookingBoost){
     const B=C.boost.s===W.s?C.boost:(C.boost={s:W.s,q:0,book:0});
@@ -66,6 +69,7 @@ function campApply(rep){
   st.encounters=(st.encounters||0)+rep.encounters;st.campNights=(st.campNights||0)+rep.nights;
   rep.gearBought.forEach(g=>{if(!C.gear.includes(g))C.gear.push(g)});if(rep.license)C.lic=Math.max(C.lic,rep.license.year);
   rep.achievements.forEach(a=>{if(!C.ach.includes(a))C.ach.push(a)});C.noTrace+=rep.noTraceTrips;
+  if(rep.trips&&rep.trips.length){const L=rep.trips[rep.trips.length-1],mo=KenaiCamp.data.month(L.month);if(mo)C.lastMon={s:W.s,name:mo.n,year:KenaiCamp.data.calYear(mo,2025+W.s)}}
   C.days+=rep.daysUsed;C.trips+=rep.tripsTaken;C.gigs+=rep.gigs.length;C.gigsDone=C.gigsDone.concat(rep.gigs);
   const T=C.tot;T.trips+=rep.tripsTaken;T.nights+=rep.nights;T.fish+=rep.foodFish;T.tackle+=rep.tackleCredit;T.gigs+=rep.gigs.length;T.spent+=rep.spent;T.net+=rep.cashDelta;
   return rep;
@@ -75,7 +79,7 @@ function campWrapHtml(rep){
   const f=n=>n>0?'+'+n:String(n),L=[];
   L.push(`${rep.tripsTaken} camping trip${rep.tripsTaken===1?'':'s'}, ${rep.nights} night${rep.nights===1?'':'s'}${rep.gigs.length?`, ${rep.gigs.length} winter job${rep.gigs.length===1?'':'s'}`:''}.`);
   L.push(`Cash ${rep.cashDelta<0?'−':'+'}${$(Math.abs(Math.round(rep.cashDelta)))} · Energy ${f(rep.energyDelta)} · Rep ${f(rep.repDelta)}${rep.skillDelta?` · Skill ${f(rep.skillDelta)}`:''}.`);
-  if(rep.foodFish)L.push(`🐟 ${rep.foodFish} stocked fish in the freezer: about ${Math.round(rep.foodFish/CAMP_FISH_PER_RED)} red${Math.round(rep.foodFish/CAMP_FISH_PER_RED)===1?'':'s'}’ worth of meals.`);
+  if(rep.foodFish)L.push(`🐟 ${rep.foodFish} stocked fish, eaten fresh at the cabin and over the camp stove. ${rep.pantrySaved>0?`They spared ${rep.pantrySaved} meals in your pantry.`:'They don’t keep, and with no pantry stocked there is nothing to spare.'}`);
   if(rep.tackleCredit)L.push(`🪶 Tackle +${rep.tackleCredit}: that many trips’ worth of flies and leaders you won’t have to buy.`);
   if(rep.firstTripBoost)L.push(`🎯 Better first trips in July (about ${Math.round(rep.firstTripBoost*100)}% more catch on your first three trips).`);
   if(rep.bookingBoost)L.push(`📅 A few more bookings next season.`);

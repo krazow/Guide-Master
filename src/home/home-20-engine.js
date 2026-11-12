@@ -20,7 +20,7 @@
 
   // Tuning: how likely and how costly. Everything is scaled by the cabin's condition and the difficulty.
   const T=D.T={
-    drift:.5,winterDrift:8,                       // condition lost a July day / a whole off-season
+    drift:.2,winterDrift:3,                       // condition lost a July day / a whole off-season
     coldP:.6,snowP:.75,                           // a cold snap, a heavy snow, in a winter
     freezeBase:.36,burstShare:.35,                // pipes: chance a snap freezes them untreated; share that burst
     roofP:[.3,.5,.7],collapseP:.14,             // ice dam or leak by snow depth when you skip; a shed or porch roof
@@ -37,11 +37,12 @@
     tiredAt:35,                                   // July: below this condition a cold, damp cabin costs sleep every night
   };
   C.RUSH=520;
+  C.GRACE=7;     // the first week of a career is for the river: no cabin jobs, reminders, bears or trouble until day 7 (and the winter jobs wait for the first fall)
 
   // ---- the state ----
   C.newState=function(){return {v:1,cond:80,y:0,rolled:-1,sprung:-1,
     heat:{oil:1,stove:0},tape:0,skirt:0,strap:0,detect:0,bin:0,fence:0,proc:0,chill:0,sweepSkips:0,bearY:-1,troubleY:-1,troubles:0,tiredY:-1,restY:-1,rem:-1,skipAbs:-99,
-    did:{sweep:-1,oil:-1,wood:-1,detest:-1,breakup:-1,well:0,septic:-1,bins:-99,genoil:-1,genrun:-1,stdef:-1},skip:{},
+    did:{sweep:-1,oil:-1,wood:-1,detest:-1,breakup:-1,well:0,septic:-1,bins:-99,genoil:0,genrun:0,stdef:-1},skip:{},
     garden:{y:-1},station:{tidy:100},queue:[],
     tot:{diy:0,pay:0,skip:0,events:0,lost:0,fees:0,spoiled:0,harvest:0,moose:0,bears:0}}};
   C.normState=function(x){
@@ -123,10 +124,13 @@
   };
 
   // ---- which jobs are due ----
-  function inPhase(j,t){return j.ph==='*'||j.ph.includes(t.phase)}
+  // the first July of a career: the first week is quiet, and the jobs for the cold (heat tape, skirting, alarms, straps) wait for the first fall
+  const quiet=t=>t.phase==='summer'&&t.y===0&&t.abs<C.GRACE;
+  const firstJuly=t=>t.phase==='summer'&&t.y===0;
+  function inPhase(j,t){return j.ph==='*'?!firstJuly(t):j.ph.includes(t.phase)}
   function dueJobs(s,t){
     const q=s.queue.map(e=>Object.assign({q:e},QJ[e.id])).filter(j=>j.id);
-    const tasks=D.JOBS.filter(j=>inPhase(j,t)&&(j.id==='bins'||s.skip[j.id]!==t.y)&&j.due(s,t)).sort((a,b)=>a.pr-b.pr);
+    const tasks=quiet(t)?[]:D.JOBS.filter(j=>inPhase(j,t)&&(j.id==='bins'||s.skip[j.id]!==t.y)&&j.due(s,t)).sort((a,b)=>a.pr-b.pr);
     return q.concat(tasks);
   }
   C.jobs=function(t,o){
@@ -284,7 +288,7 @@
     const t=C.normTicket(t0),s=t.state,r=(o&&o.rand)||Math.random,out=newOut(),y=t.y,m=cm(s)*t.bad;
     s.cond-=T.drift;
     // a bear: more likely with fish at home and bins overdue; once a summer
-    if(s.bearY!==y&&t.sday>=1){
+    if(s.bearY!==y&&t.sday>=1&&!quiet(t)){
       const over=t.abs-s.did.bins>=T.bearOver;
       let p=(T.bearBase+(t.recentFish>0?T.bearFish:0))*(over?(s.bin?3:4):s.bin?.4:1)*m;
       if(r()<clamp(p,0,.5)){
@@ -298,7 +302,7 @@
     if(s.cond>=T.restAt){out.energy+=T.rest;if(s.restY!==y){s.restY=y;line(out,'☕ The cabin is warm, dry and tidy, and you wake rested. Energy +'+T.rest+' a morning while it stays that way.')}}
     // a run-down cabin gets in the way of the season: nights are cold and damp, and now and then something fails on a guiding morning
     if(s.cond<T.tiredAt){const e=s.cond<15?4:2;out.energy-=e;if(s.tiredY!==y){s.tiredY=y;line(out,'🥶 The cabin is cold and damp and the roof drips onto a pan. You sleep badly, and it shows on the river.')}}
-    if(s.cond<T.troubleAt&&t.sday>=1){
+    if(s.cond<T.troubleAt&&t.sday>=1&&!quiet(t)){
       if(s.troubleY!==y){s.troubleY=y;s.troubles=0}
       if(s.troubles<T.troubleMax&&r()<clamp(T.troubleP*m*(1+(T.troubleAt-s.cond)/25),0,.5)){
         s.troubles++;s.tot.events++;out.sev=1;const k=r();
@@ -314,7 +318,7 @@
       else{out.meals+=T.harvest;s.tot.harvest+=T.harvest;line(out,`🥬 The garden comes in: potatoes, kale and carrots. ${T.harvest} meals for the kitchen.`)}
     }
     // one gentle reminder a day
-    if(s.rem!==t.abs){
+    if(s.rem!==t.abs&&t.abs-s.rem>=(t.y===0?3:1)){
       const due=dueJobs(s,Object.assign({},t,{state:s}));
       if(due.length){s.rem=t.abs;const j=due[0],n=due.length;out.remind=`${j.ic} ${j.title(s,t,j.q)}${n>1?` (and ${n-1} more)`:''}. Home tab.`}
     }

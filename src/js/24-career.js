@@ -26,7 +26,20 @@ const dlongY=d=>`${dlong(d)}, ${yearOf(d)}`;
 const isSunMon=d=>{const w=((d%7)+7)%7;return w===6||w===0};   // DAYS starts on Monday; seasons are whole weeks
 function doyOf(d){const x=dateOf(d);return Math.round((x-Date.UTC(x.getUTCFullYear(),0,1))/864e5)+1}
 const evenYear=d=>yearOf(d)%2===0;
-function hudDay(d){return `Season ${seasonOf(d)+1}/${S.years} · ${dlabel(d)}, ${yearOf(d)}`}
+// In the off-season the clock is the winter's, not next July's: October for the fall jobs, the month of your latest camping trip while
+// free days are left, April (breakup) once the camping is done or the storms have rolled with no trip. (The days of the week are July's.)
+function winterMonth(){
+  const W=S.winter;if(!W) return null;
+  const C=S.camp&&S.camp.v===2?S.camp:null,trip=C&&C.s===W.s&&C.trips>0&&C.lastMon&&C.lastMon.s===W.s?C.lastMon:null;
+  if(cabin().rolled!==W.s) return {name:'October',year:2025+W.s};
+  if(trip&&campDaysLeft()>0) return {name:trip.name,year:trip.year};
+  return {name:'April',year:2026+W.s};
+}
+function hudDay(d){
+  const w=winterMonth();
+  if(w) return `Season ${seasonOf(d)}/${S.years} done · off-season, ${w.name} ${w.year}`;
+  return `Season ${seasonOf(d)+1}/${S.years} · ${dlabel(d)}, ${yearOf(d)}`;
+}
 
 // ---- the rules and the runs change every season ----
 // Season 1 is 2026 as it really is. Later seasons are invented: forecasts vary, kings may reopen,
@@ -99,7 +112,7 @@ function buyUp(u){const U=S.up,s=seasonOf(day());money(-u.cost);S.stats.spent+=u
 const RATE_BOOK=.08,RATE_STEEP=.025,RATE_MOOD=3;
 const rateSteps=()=>Math.round((((S.up&&S.up.rate)||1)-1)*10);
 const rateRep=()=>65+5*rateSteps();                          // rep needed to buy the NEXT step
-const rateDemand=()=>{const n=rateSteps();return Math.max(.4,1-RATE_BOOK*n-RATE_STEEP*n*(n-1)/2)};   // share of bookings that survive the price
+const rateDemand=()=>{const n=rateSteps();return Math.max(.4,1-DF().rateK*(RATE_BOOK*n+RATE_STEEP*n*(n-1)/2))};   // rateK: 1 = bookings fall as described below   // share of bookings that survive the price
 // effects used by the trip engine and payOf()
 const upQ=type=>(S.up.sled&&(type==='reds'||type==='silver')?.03:0)+(S.up.drift&&type==='trout'?.06:0);
 const upH=type=>(S.up.sled&&(type==='reds'||type==='silver')?2:0)+(S.up.drift&&type==='trout'?5:0)+(S.up.dock&&(type==='reds'||type==='silver')?3:0);

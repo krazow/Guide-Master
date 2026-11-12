@@ -22,6 +22,7 @@ const HOOK_SCALE={wake:0.85}; // chance that a hook call lets any event through 
 const HOOK_SUB={wake:'This morning',night:'Overnight'};
 function fireHook(hook,ctx={}){
   ctx.hook=hook;let res=null;const popItems=[];
+  const capped=infoPopsToday()>=INFO_POP_CAP;   // enough "OK" pop-ups today: the rest show as tiles and go in the log
   const scale=HOOK_SCALE[hook]??1,open=scale>=1||Math.random()<scale;
   const list=EV.filter(e=>e.hook===hook||(Array.isArray(e.hook)&&e.hook.includes(hook))).sort((a,b)=>b.priority-a.priority);
   for(const e of list){
@@ -41,7 +42,7 @@ function fireHook(hook,ctx={}){
     const ownModal=MQ.length+(document.getElementById('mbg')?1:0)!==mBefore;
     if(!ownModal) popItems.push({e,lines:uiNarr.slice(nBefore)});
     const [ic,title,kind]=e.tile||['📍',e.id.replace(/_/g,' '),'info'];
-    const dup=ownModal||hook==='night'||popupsOn();   // the event's own modal, the night summary or the OK pop-up already tells the player
+    const dup=ownModal||hook==='night'||(popupsOn()&&!capped);   // the event's own modal, the night summary or the OK pop-up already tells the player
     const cause=S.ev.cause&&S.ev.cause[e.id],ce=cause&&EV.find(x=>x.id===cause);
     if(!dup)showTile(ic,title,ce?`Because of: ${ce.tile?ce.tile[1]:cause}`:(ctx.sub||HOOK_SUB[hook]||''),kind,hook==='night'?`${dayName(day()).slice(0,3)} night`:null);
     if(S.ev.cause)delete S.ev.cause[e.id];
@@ -49,14 +50,18 @@ function fireHook(hook,ctx={}){
     if(r.stop){res=r;break}
     res=res||r;
   }
-  eventPopup(hook,popItems);
+  eventPopup(hook,popItems,capped);
   return res;
 }
 // ---- OK pop-up for events (on by default; Settings → Event pop-ups) ----
 const POPUP_KEY=KEY('popups');
 function popupsOn(){try{return localStorage.getItem(POPUP_KEY)!=='off'}catch(e){return true}}
-function eventPopup(hook,items){
-  if(!items.length||hook==='night'||!popupsOn()||!S||S.over) return; // night events go in the "Good night" summary
+// At most INFO_POP_CAP of these information-only pop-ups a day (decisions, trips and the night summary are never counted or held back).
+const INFO_POP_CAP=1;
+function infoPopsToday(){const p=S&&S.ev&&S.ev.pop;return p&&p.d===day()?p.n:0}
+function eventPopup(hook,items,capped){
+  if(!items.length||hook==='night'||!popupsOn()||!S||S.over||capped) return;
+  S.ev.pop={d:day(),n:infoPopsToday()+1}; // night events go in the "Good night" summary
   const meta=e=>e.tile||['📍',e.id.replace(/_/g,' ')];
   const body=items.map(it=>{const m=meta(it.e);const txt=it.lines.map(l=>`<p style="margin:4px 0 0">${l}</p>`).join('');
     return items.length>1?`<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)"><span style="font-size:24px">${m[0]}</span><div><b>${m[1]}</b>${txt}</div></div>`:txt}).join('');

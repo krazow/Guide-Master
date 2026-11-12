@@ -159,7 +159,7 @@ module.exports = [
     const dec = startTrip(K, { place: 'johnson', month: 'dec', rand: konst(.5), pack: ['ice'], ticket: { gear: ALLGEAR, licYear: 2026 } }); go(dec, 'icefish'); assert.strictEqual(dec.phase, 'icesafe', 'a 2026 license covers December 2026');
     const jan = startTrip(K, { place: 'johnson', month: 'jan', rand: konst(.5), pack: ['ice'], ticket: { gear: ALLGEAR, licYear: 2026 } });
     go(jan, 'icefish'); assert.strictEqual(jan.phase, 'lic'); assert.ok(/calendar year/.test(jan.view().html) && /2027/.test(jan.view().html), jan.view().html);
-    const c0 = jan.state.cash; go(jan, 'buy'); assert.strictEqual(jan.state.cash, c0 - 29); assert.strictEqual(jan.phase, 'icesafe'); assert.strictEqual(jan.report().license.year, 2027);
+    const c0 = jan.state.cash; go(jan, 'buy'); assert.strictEqual(jan.state.cash, c0 - 20); assert.strictEqual(jan.phase, 'icesafe'); assert.strictEqual(jan.report().license.year, 2027);
     const poor = startTrip(K, { place: 'johnson', month: 'jan', rand: konst(.5), pack: ['ice'], ticket: { gear: ALLGEAR, licYear: 0, cash: 330 } }); poor.state.cash = 10; go(poor, 'icefish'); assert.ok(btn(poor, 'buy').dis, 'cannot afford the license');
     go(poor, 'no'); assert.strictEqual(poor.phase, 'day');
     // no kit packed: rent one
@@ -283,7 +283,7 @@ module.exports = [
     const t2 = K.session(T0(), { rand: konst(.9) }); go(t2, 'plan', 'p:cook', 'm:jan', 'n:1', 'c:none'); assert.strictEqual(t2.phase, 'pack', 'no choice to make without a cabin or a bought shelter');
     // outfitters: buy a wall tent and a camper; money is spent, the shelter shows up next trip, and it counts in the report
     const o = K.session(T0({ cash: 9000 }), { rand: konst(.9) }); go(o, 'shop', 'b:wall', 'ok', 'b:camper', 'ok', 'back');
-    deq(o.report().gearBought, ['wall', 'camper']); assert.strictEqual(o.report().cashDelta, -(1100 + 7500));
+    deq(o.report().gearBought, ['wall', 'camper']); assert.strictEqual(o.report().cashDelta, -(1200 + 7500));
     const poor = K.session(T0({ cash: 500 }), { rand: konst(.9) }); go(poor, 'shop'); assert.ok(btn(poor, 'b:wall').dis && btn(poor, 'b:camper').dis);
     // comfort lowers bad nights: many one-night trips at the same place, tent against camper
     const bad = shelter => { let b = 0, nn = 0; for (let seed = 1; seed <= 400; seed++) { const r = play(K, { place: 'cook', month: 'jan', nights: 1, shelter, pack: [], ticket: { gear: ALLGEAR, cash: 20000 }, rand: K.util.seeded(seed) }).report(); r.trips.forEach(t => { b += t.bad; nn++ }) } return b / nn };

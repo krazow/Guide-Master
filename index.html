@@ -266,7 +266,7 @@ const KenaiCamp={
   D.MPG=15; D.SUPPLIES=25; D.NIGHTS=[1,2,3,5]; D.WINTER_DAYS=10; D.MAX_TRIPS=3; D.MAX_GIGS=2;
   D.MAX_BOOK=.02;            // the most a winter can add to next season's daily chance of a booking
   D.MAX_FIRST=.03;           // the most it can add to the catch on the first few trips
-  D.LICENSE=29;               // an Alaska resident sport fishing license (about $29); licenses run by calendar year
+  D.LICENSE=20;               // an Alaska resident sport fishing license ($20 in ADF&G's 2025 and 2026 regulations; it was $29 before 1.11.0); licenses run by calendar year
   D.ICE_WALK=4;               // inches of clear, hard ice for a person on foot
   D.CAPACITY=12;              // load points the truck and sled carry; every item and companion uses some
   D.RENT_ICE=15;              // renting an ice kit at the Soldotna tackle shop
@@ -280,7 +280,7 @@ const KenaiCamp={
     {id:'skilak',ic:'⛰️',n:'Lower Skilak Lake Campground',miles:33,fee:0,h:'mtn',scout:'upper',cabin:55,d:'13.3 miles along Skilak Lake Road from the west end. A summer campground (May to September) with no fee. In winter you’re on your own on a big, windy lake shore; a public-use cabin in the area can be reserved ahead.'},
     {id:'cook',ic:'🌲',n:'Captain Cook State Rec Area',miles:36,fee:0,h:'forest',ice:'Stormy Lake',ski:true,d:'About 25 miles north of Kenai, near Stormy Lake, where winter visitors ice fish stocked fish. Discovery Campground is $20 a site in summer; in winter you camp unserviced.'},
     {id:'deep',ic:'🦅',n:'Deep Creek State Rec Area',miles:42,fee:0,h:'coast',d:'MP 137.3 on the Sterling Hwy, on the Cook Inlet bluff above the beach. Summer sites are $20; in winter there is no service, and the beach is a cold, bright place for eagles.'},
-    {id:'quartz',ic:'🏔️',n:'Quartz Creek (Kenai Lake)',miles:51,fee:0,h:'mtn',scout:'upper',cabin:65,d:'Quartz Creek Campground sits at MP 44.9 near Cooper Landing, a summer Forest Service campground. In winter it is unserviced with steep mountain slopes on all sides. Dall sheep and goats are in the high country, and the upper Kenai River runs below.'},
+    {id:'quartz',ic:'🏔️',n:'Quartz Creek (Kenai Lake)',miles:51,fee:0,h:'mtn',scout:'upper',cabin:65,d:'Quartz Creek Campground sits at MP 44.9 near Cooper Landing, a summer Forest Service campground. In winter it is unserviced with steep mountain slopes on all sides. The campground has no cabin of its own, but the Forest Service rents public-use cabins in the area ($50 to $75 a night). Dall sheep and goats are in the high country, and the upper Kenai River runs below.'},
     {id:'anchor',ic:'🎣',n:'Anchor River State Rec Area',miles:66,fee:20,h:'river',d:'MP 161, the westernmost highway point in North America. The state campgrounds charge $20 a site; the Anchor River runs open under ice shelves and steelhead and Dolly Varden are in it.'},
     {id:'spit',ic:'⚓',n:'Homer Spit',miles:83,fee:0,h:'coast',d:'The city’s Spit campgrounds are open April through October only, so in winter you park rough with no hookups and no dump station. Expect sea ducks, sea otters, eagles and a hard wind off Kachemak Bay.'},
   ];
@@ -315,9 +315,9 @@ const KenaiCamp={
   // ---- where you sleep (comfort lowers the odds of a bad night; load and cap use truck space) ----
   D.SHELTERS={
     tent:{id:'tent',ic:'⛺',n:'Four-season tent and stove',comfort:0,load:2,cap:0,cost:0,d:'What you already own. Cold, but light.'},
-    wall:{id:'wall',ic:'🏕️',n:'Wall tent with a wood stove',comfort:1,load:3,cap:0,cost:1100,d:'A canvas wall tent and a small stove: you can stand up, dry your boots and keep a pot hot. About $1,100.'},
+    wall:{id:'wall',ic:'🏕️',n:'Wall tent with a wood stove',comfort:1,load:3,cap:0,cost:1200,d:'A canvas wall tent and a small stove: you can stand up, dry your boots and keep a pot hot. About $1,200.'},
     camper:{id:'camper',ic:'🚐',n:'Truck camper',comfort:2,load:0,cap:4,cost:7500,d:'A used, insulated pickup camper with a furnace. It carries your gear, too. About $7,500.'},
-    cabin:{id:'cabin',ic:'🛖',n:'Public-use cabin',comfort:2,load:0,cap:0,cost:0,d:'A refuge or State Parks cabin reserved ahead: bunks, a stove and four walls.'},
+    cabin:{id:'cabin',ic:'🛖',n:'Public-use cabin',comfort:2,load:0,cap:0,cost:0,d:'A refuge, State Parks or Forest Service cabin reserved ahead: bunks, a stove and four walls.'},
   };
 
   // ---- the animals (every wildlife encounter is a species for the camping log) ----
@@ -410,7 +410,7 @@ const KenaiCamp={
   D.GIGS=[
     {id:'iceguide',ic:'🧊',n:'Guide ice fishers on a stocked lake',d:'Two clients, a day on the ice, about $70 each, and gas to the lake.',need:'You need an ice kit (you can rent one for $15) and a current fishing license.'},
     {id:'snowmachine',ic:'🛷',n:'Run a snowmachine tour for visitors',d:'A day showing visitors the refuge by snowmachine, about $80 a rider, less fuel. A machine can break down, and riders’ tips vary.',need:'You need a little reputation to be trusted with a rental sled.'},
-    {id:'event',ic:'🏁',n:'Help at a winter event',d:'Winter Games in Soldotna or the Tustumena 200 sled dog race in Kasilof, whenever they run: a stipend and meals, and a lot of people who will remember you.',need:''},
+    {id:'event',ic:'🏁',n:'Help at a winter event',d:'Winter Games in Soldotna or the Tustumena 200 sled dog race in Kasilof, whenever they run (neither runs every winter): a stipend and meals, and a lot of people who will remember you.',need:''},
   ];
 
   // ---- achievements the engine itself can award (the host may add its own) ----
@@ -629,7 +629,7 @@ const KenaiCamp={
     function iceCatchUse(use){
       const T=ss.trip,n=T.fishN||0;let html;
       T.acts.push('icefish');T.today.push('icefish');
-      if(use==='freezer'){const room=Math.max(0,t.food.freezerRoom-R.fish),put=Math.min(n,room);R.fish+=put;T.fish+=put;T.log.push(`Ice fished: ${n}, ${put} to the freezer.`);html=`<p>You clean ${n} fish on the ice and carry ${put} home for the freezer.${put<n?` The rest go to the neighbors; the freezer is full.`:''}</p>`}
+      if(use==='freezer'){const room=Math.max(0,t.food.freezerRoom-R.fish),put=Math.min(n,room);R.fish+=put;T.fish+=put;T.log.push(`Ice fished: ${n}, ${put} taken home.`);html=`<p>You clean ${n} fish on the ice and carry ${put} home for winter dinners.${put<n?` The rest go to the neighbors; that is all the room there is.`:''}</p>`}
       else if(use==='fry'){adjE(6);if(T.company)T.rel+=1;T.log.push(`Ice fished: ${n}, a fish fry.`);html=`<p>You fry ${n} fish in a skillet over the stove, right there on the shore: crisp, hot and eaten with your fingers. (Energy +6)${T.company?' Your company will remember it.':''}</p>`}
       else{adjR(1);R.wom+=n>=3?1:0;T.log.push(`Ice fished: ${n}, a story.`);html=`<p>You let the fish go (the bigger ones, anyway) and keep the story: ${n} on the ice in a day, and a hole you can describe to anybody. (Rep +1)</p>`}
       actDone('🧊 Ice fishing: '+n+' on the ice',html);
@@ -690,7 +690,7 @@ const KenaiCamp={
       const acts=[...new Set(s.acts)].map(a=>A[a]).filter(Boolean);
       const rows=[`<b>${s.nights} night${s.nights===1?'':'s'}</b> at ${esc(s.placeName)} in ${s.monthName}${s.extra?`, plus ${s.extra} snowed-in day${s.extra>1?'s':''}`:''}. ${s.enc} encounter${s.enc===1?'':'s'}${s.enc?` (${s.good} good, ${s.bad} bad)`:''}.`,
         acts.length?`You ${acts.join(', ')}${s.aurora?' and watched for the northern lights':''}.`:'',
-        s.fish?`🐟 ${s.fish} fish in the freezer.`:'',s.tackle?`🪶 Tackle credit +${s.tackle} for next season.`:'',s.scout?`🔭 You know the ${D.place(s.place).scout==='kasilof'?'Kasilof':'upper Kenai'} better for July.`:'',
+        s.fish?`🐟 ${s.fish} fish taken home.`:'',s.tackle?`🪶 Tackle credit +${s.tackle} for next season.`:'',s.scout?`🔭 You know the ${D.place(s.place).scout==='kasilof'?'Kasilof':'upper Kenai'} better for July.`:'',
         s.rel?`🤝 ${s.rel.delta>=2?'A good trip with':s.rel.delta<0?'A rough trip with':'A quiet trip with'} ${esc(s.rel.name)}.`:'',
         s.fresh.length?`📖 New in your log: ${s.fresh.map(id=>sp(id).ic+' '+sp(id).n).join(', ')}.`:'',
         s.noTrace?'🌲 No trace: you broke camp with nothing left behind.':s.messy?'🗑️ The camp was left a little messy.':'',
@@ -791,7 +791,7 @@ const KenaiCamp={
         const pl=D.place(T.place),m=mon(),left=T.slots-T.slotsUsed,bs=[];
         if(pl.ice&&!T.today.includes('icefish')){
           const need=ss.lic<D.calYear(m,t.year),thin=m.ice<.3;
-          bs.push(B('icefish',`🧊 Ice fishing${need?' (license first)':''}`,`Stocked fish for the freezer, a fish fry or a story. ${need?`A fishing license is required, and licenses run by calendar year: ${$(D.LICENSE)}. `:''}${thin?'The ice is thin this early. ':''}Check the ice before you walk out.`));
+          bs.push(B('icefish',`🧊 Ice fishing${need?' (license first)':''}`,`Stocked fish to take home, a fish fry or a story. ${need?`A fishing license is required, and licenses run by calendar year: ${$(D.LICENSE)}. `:''}${thin?'The ice is thin this early. ':''}Check the ice before you walk out.`));
         }
         if(pl.ski)bs.push(B('ski','⛷️ Cross-country skiing','Trails and quiet. Energy up, a small chance of a fall.'));
         bs.push(B('snowshoe','🥾 Snowshoeing','Break trail through the spruce. Energy up, a small chance of a twist.'));
@@ -817,7 +817,7 @@ const KenaiCamp={
       }
       if(ph==='icecatch'){
         const room=Math.max(0,t.food.freezerRoom-R.fish);
-        return {title:`🧊 ${T.fishN} on the ice`,exit:null,meta:{},html:`<p>You land ${T.fishN} stocked fish, rainbow trout and char, and the sun is low. What will you do with them?</p>${T.checkedMsg||''}`,buttons:[B('freezer','Take them home for the freezer',room>0?`Up to ${room} fit. Freezer fish count as food next season.`:'The freezer is full.',room<=0),B('fry','Fry them on the shore','A fish fry. Energy up.'),B('story','Release them and keep the story','Rep +1.')]};
+        return {title:`🧊 ${T.fishN} on the ice`,exit:null,meta:{},html:`<p>You land ${T.fishN} stocked fish, rainbow trout and char, and the sun is low. What will you do with them?</p>${T.checkedMsg||''}`,buttons:[B('freezer','Take them home for dinners',room>0?`Up to ${room} fit. Eaten fresh, they spare some of the groceries.`:'There is no room for any more.',room<=0),B('fry','Fry them on the shore','A fish fry. Energy up.'),B('story','Release them and keep the story','Rep +1.')]};
       }
       if(ph==='evening'){
         const bs=[B('rest','🌙 Early to bed','Energy +3.')];
@@ -1172,7 +1172,7 @@ const CabinUpkeep={
     {id:'septic',ic:'🚽',ph:['spring'],pr:25,cond:6,
       due:(s,t)=>t.y-s.did.septic>=3,
       title:()=>'Pump the septic tank',why:()=>'Many homes around Soldotna have septic systems, and a tank wants pumping every few years.',risk:()=>'Skip it and a backup or a failed drain field gets likelier, and the house is unusable for days.',
-      o:(s,t)=>({diy:{cash:$c(t,20),days:0,min:120,e:4,s:'Find the lids, check the level and clean the outlet filter. It buys you a year, no more.'},pay:{cash:$c(t,480),s:'A septic hauler pumps the tank and looks at the baffles.'},skip:{s:'Flush and forget.'}})},
+      o:(s,t)=>({diy:{cash:$c(t,20),days:0,min:120,e:4,s:'Find the lids, check the level and clean the outlet filter. It buys you a year, no more.'},pay:{cash:$c(t,400),s:'A septic hauler pumps the tank and looks at the baffles.'},skip:{s:'Flush and forget.'}})},
     {id:'bins',ic:'🗑️',ph:['summer'],pr:10,cond:2,
       due:(s,t)=>t.sday>=1&&t.abs-Math.max(s.did.bins,s.skipAbs)>=4,
       title:()=>'Latch the bins and clean up the fish waste',why:()=>'Cleaning clients’ fish at home leaves scraps, blood and smell. Bears on the Peninsula notice.',risk:()=>'Skip it and a bear in the yard gets likely: damage, a lost morning or a visit from Fish and Game.',
@@ -1226,7 +1226,7 @@ const CabinUpkeep={
 
   // Tuning: how likely and how costly. Everything is scaled by the cabin's condition and the difficulty.
   const T=D.T={
-    drift:.5,winterDrift:8,                       // condition lost a July day / a whole off-season
+    drift:.2,winterDrift:3,                       // condition lost a July day / a whole off-season
     coldP:.6,snowP:.75,                           // a cold snap, a heavy snow, in a winter
     freezeBase:.36,burstShare:.35,                // pipes: chance a snap freezes them untreated; share that burst
     roofP:[.3,.5,.7],collapseP:.14,             // ice dam or leak by snow depth when you skip; a shed or porch roof
@@ -1243,11 +1243,12 @@ const CabinUpkeep={
     tiredAt:35,                                   // July: below this condition a cold, damp cabin costs sleep every night
   };
   C.RUSH=520;
+  C.GRACE=7;     // the first week of a career is for the river: no cabin jobs, reminders, bears or trouble until day 7 (and the winter jobs wait for the first fall)
 
   // ---- the state ----
   C.newState=function(){return {v:1,cond:80,y:0,rolled:-1,sprung:-1,
     heat:{oil:1,stove:0},tape:0,skirt:0,strap:0,detect:0,bin:0,fence:0,proc:0,chill:0,sweepSkips:0,bearY:-1,troubleY:-1,troubles:0,tiredY:-1,restY:-1,rem:-1,skipAbs:-99,
-    did:{sweep:-1,oil:-1,wood:-1,detest:-1,breakup:-1,well:0,septic:-1,bins:-99,genoil:-1,genrun:-1,stdef:-1},skip:{},
+    did:{sweep:-1,oil:-1,wood:-1,detest:-1,breakup:-1,well:0,septic:-1,bins:-99,genoil:0,genrun:0,stdef:-1},skip:{},
     garden:{y:-1},station:{tidy:100},queue:[],
     tot:{diy:0,pay:0,skip:0,events:0,lost:0,fees:0,spoiled:0,harvest:0,moose:0,bears:0}}};
   C.normState=function(x){
@@ -1329,10 +1330,13 @@ const CabinUpkeep={
   };
 
   // ---- which jobs are due ----
-  function inPhase(j,t){return j.ph==='*'||j.ph.includes(t.phase)}
+  // the first July of a career: the first week is quiet, and the jobs for the cold (heat tape, skirting, alarms, straps) wait for the first fall
+  const quiet=t=>t.phase==='summer'&&t.y===0&&t.abs<C.GRACE;
+  const firstJuly=t=>t.phase==='summer'&&t.y===0;
+  function inPhase(j,t){return j.ph==='*'?!firstJuly(t):j.ph.includes(t.phase)}
   function dueJobs(s,t){
     const q=s.queue.map(e=>Object.assign({q:e},QJ[e.id])).filter(j=>j.id);
-    const tasks=D.JOBS.filter(j=>inPhase(j,t)&&(j.id==='bins'||s.skip[j.id]!==t.y)&&j.due(s,t)).sort((a,b)=>a.pr-b.pr);
+    const tasks=quiet(t)?[]:D.JOBS.filter(j=>inPhase(j,t)&&(j.id==='bins'||s.skip[j.id]!==t.y)&&j.due(s,t)).sort((a,b)=>a.pr-b.pr);
     return q.concat(tasks);
   }
   C.jobs=function(t,o){
@@ -1490,7 +1494,7 @@ const CabinUpkeep={
     const t=C.normTicket(t0),s=t.state,r=(o&&o.rand)||Math.random,out=newOut(),y=t.y,m=cm(s)*t.bad;
     s.cond-=T.drift;
     // a bear: more likely with fish at home and bins overdue; once a summer
-    if(s.bearY!==y&&t.sday>=1){
+    if(s.bearY!==y&&t.sday>=1&&!quiet(t)){
       const over=t.abs-s.did.bins>=T.bearOver;
       let p=(T.bearBase+(t.recentFish>0?T.bearFish:0))*(over?(s.bin?3:4):s.bin?.4:1)*m;
       if(r()<clamp(p,0,.5)){
@@ -1504,7 +1508,7 @@ const CabinUpkeep={
     if(s.cond>=T.restAt){out.energy+=T.rest;if(s.restY!==y){s.restY=y;line(out,'☕ The cabin is warm, dry and tidy, and you wake rested. Energy +'+T.rest+' a morning while it stays that way.')}}
     // a run-down cabin gets in the way of the season: nights are cold and damp, and now and then something fails on a guiding morning
     if(s.cond<T.tiredAt){const e=s.cond<15?4:2;out.energy-=e;if(s.tiredY!==y){s.tiredY=y;line(out,'🥶 The cabin is cold and damp and the roof drips onto a pan. You sleep badly, and it shows on the river.')}}
-    if(s.cond<T.troubleAt&&t.sday>=1){
+    if(s.cond<T.troubleAt&&t.sday>=1&&!quiet(t)){
       if(s.troubleY!==y){s.troubleY=y;s.troubles=0}
       if(s.troubles<T.troubleMax&&r()<clamp(T.troubleP*m*(1+(T.troubleAt-s.cond)/25),0,.5)){
         s.troubles++;s.tot.events++;out.sev=1;const k=r();
@@ -1520,7 +1524,7 @@ const CabinUpkeep={
       else{out.meals+=T.harvest;s.tot.harvest+=T.harvest;line(out,`🥬 The garden comes in: potatoes, kale and carrots. ${T.harvest} meals for the kitchen.`)}
     }
     // one gentle reminder a day
-    if(s.rem!==t.abs){
+    if(s.rem!==t.abs&&t.abs-s.rem>=(t.y===0?3:1)){
       const due=dueJobs(s,Object.assign({},t,{state:s}));
       if(due.length){s.rem=t.abs;const j=due[0],n=due.length;out.remind=`${j.ic} ${j.title(s,t,j.q)}${n>1?` (and ${n-1} more)`:''}. Home tab.`}
     }
@@ -1657,6 +1661,22 @@ const CabinUpkeep={
     if(!lock)btns.push({l:'Not now',s:'Decide later.',fn:()=>{if(then)then()}});
     host.show(`${job.ic} ${job.title}`,`<p>${esc(job.why)}</p><p class="small-note" style="color:var(--mute);font-size:13px">If you skip it: ${esc(job.risk.replace(/^Skip it and /,'').replace(/^Skip it /,''))}</p>`,btns,!!lock);
   };
+  // every job that is due, on one screen: each with its own three ways. A choice is applied and the screen comes back with what is left.
+  U2.batch=function(host,o){
+    o=o||{};const t=host.ticket(),jobs=C.jobs(t).filter(j=>j.kind!=='event'),again=()=>U2.batch(host,o);
+    const btns=[];
+    jobs.forEach(job=>{
+      const run=op=>()=>{
+        const rep=C.resolve(host.ticket(),job.id,op.id,rnd(host));
+        if(!rep){again();return}
+        host.apply(rep);
+        if(rep.severity>0)host.show(`${job.ic} ${job.title}`,rep.lines.map(l=>`<p>${l}</p>`).join('')+condLine(rep),[{l:'Continue',fn:again}]);else again();
+      };
+      job.opts.forEach(op=>btns.push({l:`${job.ic} ${job.title}: ${op.l}${op.id==='skip'?'':` · ${op.cash?$(op.cash):'free'}`}`,s:op.dis&&op.why?op.why:(op.id==='skip'?job.risk:op.s),dis:op.dis,fn:run(op)}));
+    });
+    (o.extra||[]).forEach(b=>btns.push(b));
+    host.show(o.title||'🏠 The cabin',`<p style="font-size:13px;color:var(--mute)">${o.intro||''}</p>${jobs.length?`<p>${jobs.length} job${jobs.length>1?'s':''} due. Pick a way for each one.</p>`:'<p>Nothing else is due.</p>'}`,btns);
+  };
   const condLine=rep=>`<p style="font-size:13px;color:var(--mute)">Cabin condition ${Math.round(rep.cond)}/100.</p>`;
 
   U2.shop=function(host,back){
@@ -1745,7 +1765,7 @@ const GAME={
   title:'Guide Master',
   tagline:'A guide’s career on the Kenai',
   codePrefix:'GUIDEMASTER',   // transfer codes start with this, e.g. POCKETWEEK:eyJ…
-  version:'1.10.1',           // bump on every release: shown in Settings, stamped into saves and sw.js
+  version:'1.11.0',           // bump on every release: shown in Settings, stamped into saves and sw.js
   schema:4,                  // bump when the shape of S changes, and add a MIGRATIONS entry (21-story.js)
   days:14,                   // days in ONE season (the July peak, Mon–Sun twice; season 1 is Jul 13–26, 2026). A career is 14 × years: see the getter below
   wake:300,                  // default alarm for new games, in minutes after midnight (300 = 5:00 AM: guides start early; saves keep their own S.alarm)
@@ -1763,10 +1783,10 @@ const DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunda
 const DIFFS={
   // money: starting cash. bad: random-event multiplier. enforce: catch-chance multiplier. fine: fine multiplier;
   // esc: extra fine per citation already on your record. cost: fuel, overhead, winter bills and repairs.
-  // mood: client happiness (tips, rep). book: off-month bookings. wear: boat wear. No difficulty changes the score.
-  easy:  {n:'Rookie Season',ic:'🎣',d:'More cash, fewer troopers, cheaper bills and easygoing clients. For learning the water.',money:3000,bad:0.6,enforce:0.7,fine:0.8,esc:0.1,cost:0.8,mood:5,book:1.08,wear:0.85},
-  normal:{n:'Licensed Guide',ic:'🛶',d:'The Kenai as it is: busy, beautiful and well patrolled.',money:1500,bad:1,enforce:1,fine:1,esc:0.2,cost:1,mood:0,book:1,wear:1},
-  hard:  {n:'Combat Season',ic:'🐻',d:'Thin cash, more troopers, fines that climb steeply with every citation, dearer fuel and bills, pickier clients, quieter off-months and more bad luck. Same score, tougher grade.',money:600,bad:1.5,enforce:1.4,fine:1.1,esc:0.3,cost:1.08,mood:-2,book:0.97,wear:1.25},
+  // mood: client happiness (tips, rep). book: off-month bookings. wear: boat wear. rateK: how many bookings a price rise loses (1 = the usual). craft: how much reading the water, skill and winter camping pay (1 = fully). No difficulty changes the score.
+  easy:  {n:'Rookie Season',ic:'🎣',d:'More cash, fewer troopers, cheaper bills and easygoing clients. For learning the water.',money:3000,bad:0.6,enforce:0.7,fine:0.8,esc:0.1,cost:0.8,mood:5,book:1.08,wear:0.85,craft:1,rateK:1},
+  normal:{n:'Licensed Guide',ic:'🛶',d:'The Kenai as it is: busy, beautiful and well patrolled.',money:1500,bad:1,enforce:1,fine:1,esc:0.2,cost:1,mood:0,book:1,wear:1,craft:1,rateK:1},
+  hard:  {n:'Combat Season',ic:'🐻',d:'Thin cash, more troopers, fines that climb steeply with every citation, dearer fuel and bills, pickier clients, quieter off-months and more bad luck. The crowded river means a price rise loses fewer bookings, but the fish have seen every lure: reading the water and winter camping pay less. Same score, tougher grade.',money:600,bad:1.5,enforce:1.4,fine:1.1,esc:0.3,cost:1.15,mood:-3,book:0.95,wear:1.25,craft:0,rateK:0.8},
 };
 const DF=()=>DIFFS[(typeof S!=='undefined'&&S&&S.diff)||'normal']||DIFFS.normal;
 // ---------------- state ----------------
@@ -1961,6 +1981,7 @@ const HOOK_SCALE={wake:0.85}; // chance that a hook call lets any event through 
 const HOOK_SUB={wake:'This morning',night:'Overnight'};
 function fireHook(hook,ctx={}){
   ctx.hook=hook;let res=null;const popItems=[];
+  const capped=infoPopsToday()>=INFO_POP_CAP;   // enough "OK" pop-ups today: the rest show as tiles and go in the log
   const scale=HOOK_SCALE[hook]??1,open=scale>=1||Math.random()<scale;
   const list=EV.filter(e=>e.hook===hook||(Array.isArray(e.hook)&&e.hook.includes(hook))).sort((a,b)=>b.priority-a.priority);
   for(const e of list){
@@ -1980,7 +2001,7 @@ function fireHook(hook,ctx={}){
     const ownModal=MQ.length+(document.getElementById('mbg')?1:0)!==mBefore;
     if(!ownModal) popItems.push({e,lines:uiNarr.slice(nBefore)});
     const [ic,title,kind]=e.tile||['📍',e.id.replace(/_/g,' '),'info'];
-    const dup=ownModal||hook==='night'||popupsOn();   // the event's own modal, the night summary or the OK pop-up already tells the player
+    const dup=ownModal||hook==='night'||(popupsOn()&&!capped);   // the event's own modal, the night summary or the OK pop-up already tells the player
     const cause=S.ev.cause&&S.ev.cause[e.id],ce=cause&&EV.find(x=>x.id===cause);
     if(!dup)showTile(ic,title,ce?`Because of: ${ce.tile?ce.tile[1]:cause}`:(ctx.sub||HOOK_SUB[hook]||''),kind,hook==='night'?`${dayName(day()).slice(0,3)} night`:null);
     if(S.ev.cause)delete S.ev.cause[e.id];
@@ -1988,14 +2009,18 @@ function fireHook(hook,ctx={}){
     if(r.stop){res=r;break}
     res=res||r;
   }
-  eventPopup(hook,popItems);
+  eventPopup(hook,popItems,capped);
   return res;
 }
 // ---- OK pop-up for events (on by default; Settings → Event pop-ups) ----
 const POPUP_KEY=KEY('popups');
 function popupsOn(){try{return localStorage.getItem(POPUP_KEY)!=='off'}catch(e){return true}}
-function eventPopup(hook,items){
-  if(!items.length||hook==='night'||!popupsOn()||!S||S.over) return; // night events go in the "Good night" summary
+// At most INFO_POP_CAP of these information-only pop-ups a day (decisions, trips and the night summary are never counted or held back).
+const INFO_POP_CAP=1;
+function infoPopsToday(){const p=S&&S.ev&&S.ev.pop;return p&&p.d===day()?p.n:0}
+function eventPopup(hook,items,capped){
+  if(!items.length||hook==='night'||!popupsOn()||!S||S.over||capped) return;
+  S.ev.pop={d:day(),n:infoPopsToday()+1}; // night events go in the "Good night" summary
   const meta=e=>e.tile||['📍',e.id.replace(/_/g,' ')];
   const body=items.map(it=>{const m=meta(it.e);const txt=it.lines.map(l=>`<p style="margin:4px 0 0">${l}</p>`).join('');
     return items.length>1?`<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)"><span style="font-size:24px">${m[0]}</span><div><b>${m[1]}</b>${txt}</div></div>`:txt}).join('');
@@ -2104,7 +2129,7 @@ function sceneSVG(){
 function hud(){
   const d=day(),n=STATS.length;
   const sub=`{{name}} · ${DF().ic} ${DF().n} · ${typeof hudDay==='function'?hudDay(d):`Day ${d+1} of ${GAME.days}`}`;
-  return `<div class="hud"><div class="hud-top"><div class="hud-day">${dayName(d)}</div><div class="hud-right"><div class="hud-time">${fmt(S.t)}</div><button class="gear" onclick="openSettings()" aria-label="Settings">⚙️</button></div></div><div class="hud-sub" title="${esc(sub)}">${sub}</div>
+  return `<div class="hud"><div class="hud-top"><div class="hud-day">${S.winter&&typeof winterMonth==='function'?'Off-season':dayName(d)}</div><div class="hud-right"><div class="hud-time">${fmt(S.t)}</div><button class="gear" onclick="openSettings()" aria-label="Settings">⚙️</button></div></div><div class="hud-sub" title="${esc(sub)}">${sub}</div>
   <div class="stats">${STATS.map(s=>`<div class="stat"${s.title?` title="${esc(s.title)}"`:''}><small>${s.l}</small><b${s.warn&&s.warn()?' style="color:#ff8a70"':''}>${s.v()}</b>${s.m?meter(s.m(),s.good!==false):''}</div>`).join('')}</div></div>`;
 }
 function allTabs(){return [['act','🧭','Here'],...(EXTRA_TABS||[]).map(t=>[t.k,t.ic,t.l]),['todo','📋','To-do'],['log','📜','Log']]}
@@ -2151,12 +2176,12 @@ window.ACT=i=>{uiNarr=[];sfx('tap');const f=ACTS[i];f&&f();afterAction();if(S&&!
 
 // ---- tips: one at a time, each shown once per game (TIPS in 21-story.js) ----
 function tipView(){
-  if(!prefs().tips||!S) return '';
+  if(!prefs().tips||!S||S.tips.day===day()) return '';   // one new tip a day: each day teaches one new thing
   const t=TIPS.find(x=>!S.tips.seen.includes(x.id)&&(()=>{try{return x.when()}catch(e){return false}})());
   if(!t) return '';
   return `<div class="tip">💡 ${t.t}<div class="tb"><button onclick="tipSeen('${t.id}')">Got it</button><button onclick="setPref('tips',false);render()">Turn off tips</button></div></div>`;
 }
-window.tipSeen=id=>{if(!S.tips.seen.includes(id))S.tips.seen.push(id);render()};
+window.tipSeen=id=>{if(!S.tips.seen.includes(id))S.tips.seen.push(id);S.tips.day=day();render()};
 
 // ---- To-do tab: your goals + the player's own priority list ----
 const PRIO_MAX=15,PRIO_LEN=80;let PRIO_ED='';
@@ -3202,7 +3227,7 @@ const STEP={
     const read=hint?spotFit(b.type,i,d,hint==='exact'):null,pre=read?`${hint==='exact'?'🔭':'🐟'} ${spotWord(read.f)}${read.why?`: ${read.why}`:''}. `:'';
     return O(sp.l,pre+sp.s,(b,t)=>{
     const fit=spotFit(b.type,i,d,true);
-    t.q+=sp.q+(fit?fit.f*SPOT_Q:0);t.happy+=sp.h||0;t.fuelx=(t.fuelx||0)+(sp.fuel||0);t.notes.push(`📍 ${sp.l}.`);
+    t.q+=sp.q+(fit?fit.f*SPOT_Q*DF().craft:0);t.happy+=sp.h||0;t.fuelx=(t.fuelx||0)+(sp.fuel||0);t.notes.push(`📍 ${sp.l}.`);
     if(fit&&Math.abs(fit.f)>=.3)t.notes.push(fit.f>0?`🎯 ${fit.why?fit.why.charAt(0).toUpperCase()+fit.why.slice(1):'The water suits it'}: the fish are there.`:`🌫️ ${fit.why?fit.why.charAt(0).toUpperCase()+fit.why.slice(1):'The water is wrong for it'}: it fishes slowly today.`);
     if(sp.viol){fx(t,60,'Tip for the empty water');violate(t.notes,sp.viol)}
     if(sp.risk&&Math.random()<sp.risk.p*windRisk()){t.notes.push(sp.risk.txt);t.happy+=sp.risk.h;adj('boat',sp.risk.boat||0);adj('energy',sp.risk.energy||0)}
@@ -3670,7 +3695,20 @@ const dlongY=d=>`${dlong(d)}, ${yearOf(d)}`;
 const isSunMon=d=>{const w=((d%7)+7)%7;return w===6||w===0};   // DAYS starts on Monday; seasons are whole weeks
 function doyOf(d){const x=dateOf(d);return Math.round((x-Date.UTC(x.getUTCFullYear(),0,1))/864e5)+1}
 const evenYear=d=>yearOf(d)%2===0;
-function hudDay(d){return `Season ${seasonOf(d)+1}/${S.years} · ${dlabel(d)}, ${yearOf(d)}`}
+// In the off-season the clock is the winter's, not next July's: October for the fall jobs, the month of your latest camping trip while
+// free days are left, April (breakup) once the camping is done or the storms have rolled with no trip. (The days of the week are July's.)
+function winterMonth(){
+  const W=S.winter;if(!W) return null;
+  const C=S.camp&&S.camp.v===2?S.camp:null,trip=C&&C.s===W.s&&C.trips>0&&C.lastMon&&C.lastMon.s===W.s?C.lastMon:null;
+  if(cabin().rolled!==W.s) return {name:'October',year:2025+W.s};
+  if(trip&&campDaysLeft()>0) return {name:trip.name,year:trip.year};
+  return {name:'April',year:2026+W.s};
+}
+function hudDay(d){
+  const w=winterMonth();
+  if(w) return `Season ${seasonOf(d)}/${S.years} done · off-season, ${w.name} ${w.year}`;
+  return `Season ${seasonOf(d)+1}/${S.years} · ${dlabel(d)}, ${yearOf(d)}`;
+}
 
 // ---- the rules and the runs change every season ----
 // Season 1 is 2026 as it really is. Later seasons are invented: forecasts vary, kings may reopen,
@@ -3743,7 +3781,7 @@ function buyUp(u){const U=S.up,s=seasonOf(day());money(-u.cost);S.stats.spent+=u
 const RATE_BOOK=.08,RATE_STEEP=.025,RATE_MOOD=3;
 const rateSteps=()=>Math.round((((S.up&&S.up.rate)||1)-1)*10);
 const rateRep=()=>65+5*rateSteps();                          // rep needed to buy the NEXT step
-const rateDemand=()=>{const n=rateSteps();return Math.max(.4,1-RATE_BOOK*n-RATE_STEEP*n*(n-1)/2)};   // share of bookings that survive the price
+const rateDemand=()=>{const n=rateSteps();return Math.max(.4,1-DF().rateK*(RATE_BOOK*n+RATE_STEEP*n*(n-1)/2))};   // rateK: 1 = bookings fall as described below   // share of bookings that survive the price
 // effects used by the trip engine and payOf()
 const upQ=type=>(S.up.sled&&(type==='reds'||type==='silver')?.03:0)+(S.up.drift&&type==='trout'?.06:0);
 const upH=type=>(S.up.sled&&(type==='reds'||type==='silver')?2:0)+(S.up.drift&&type==='trout'?5:0)+(S.up.dock&&(type==='reds'||type==='silver')?3:0);
@@ -4008,7 +4046,7 @@ const HELP=[
   ['🐟','Fish & weather','The <strong>🐟 Fish</strong> tab shows today’s weather, river level, tides, the odds by place and species, where to fish today, and when each run arrives. Reds bite best at first light; silvers build late July; pinks run in even years. <strong>Read it before you launch:</strong> every spot fishes better or worse with the day’s water, wind, run and tide, and once you have looked at the tab (or scouted the river) the spot buttons show a Hot, Good, Fair or Poor read. With no clients booked, <strong>Take the boat out</strong> to fill your freezer and scout.'],
   ['🔧','Money & gear','The booked fare is your base pay; tips, refunds and word of mouth follow how the day went: the catch, happy clients, tackle and a boat in good shape. A well-kept boat and a fed crew pay: tips run from nothing at 60 happiness to 30% of the fare at 90, and the <strong>rest of your summer</strong> (June, August and September, settled in the off-season) follows how happy your clients were on average, not only how many trips you ran. Run out of tackle, skip meals (after a second hungry night you get a warning and a pricier gas-station fix) or let the boat wear down and you’ll see smaller tips, refunds, breakdowns and a quieter off-season. Restock tackle in Soldotna, service the boats at the shop, buy fuel at the harbor. Overhead is charged every night. The Boat stat warns you at 40, 20 and 10. At 0 your sled and drift boat are out of service until a major repair ($2,400), though an emergency patch ($600, back to 25 for two days, only at 10 or less) or a rented loaner ($600, for the day) keeps a booked trip running. In the off-season you can buy upgrades: a new motor (burns less gas), a new sled (trips finish 30 minutes sooner), a drift boat, marketing, a winter course (skill, which builds with practice and rusts over the winter), higher rates (more per trip, fewer bookings, pickier clients: the first step is cheap, the third is not), your own Homer charter permit and, later in a career, an assistant guide, guest cabins or a riverfront lot with a private launch.'],
   ['🏕️','Winter camping','In the off-season you have <strong>10 free days</strong> for up to three trips and two winter jobs. Pick one of ten Kenai Peninsula spots within 100 road miles of Soldotna, a month (it sets the daylight, ice and weather), who comes along, and what to <strong>pack</strong>: a bear-resistant container, a cold-rated bag, spare layers, stove fuel, a truck kit, ice picks. Each day you choose an activity (one in the dark months, two on long days): <strong>ice fish</strong> a stocked lake (you need a fishing license, and licenses restart every January), snowshoe, ski, track wildlife, scout the upper Kenai or Kasilof, or watch the northern lights. Evenings you can tie flies for tackle next season. Each night has a <strong>50% chance of an encounter</strong>, good or bad; what you packed and where you sleep (tent, wall tent, truck camper, public-use cabin) change the odds. Winter jobs pay a little; a camping log keeps the animals you have seen.'],
-  ['🏠','The cabin','The <strong>🏠 Home</strong> tab (and <strong>Home</strong> in the top bar, 0 to 100) tracks your cabin. It drifts down slowly; jobs bring it back up, skipping them wears it down faster, and a run-down cabin has more bad luck, which can land in the guiding season: bad sleep, a repair on a guiding morning or a booked party that cancels. A cabin in good shape sends you out rested. <strong>Never more than two jobs show at once</strong>, and every job offers three ways: <strong>do it yourself</strong> (time and energy), <strong>pay someone</strong> (cash) or <strong>skip it</strong> (a risk). In July: latch the bear bins and clean up fish waste, service the generator, plant a garden (and fence it: moose), keep the fish station clean. In the off-season: fall jobs before the cold (heating oil, or firewood and a chimney sweep if you add a wood stove; heat tape and a skirted crawlspace; smoke and CO detectors), then a cold snap and heavy snow, then spring breakup (driveway, foundation, well test, septic). Do-it-yourself jobs in the off-season spend the same <strong>10 free days</strong> as winter camping. Trouble costs money, days, energy or reputation, but it never ends your career. Never run a generator indoors: exhaust is carbon monoxide.'],
+  ['🏠','The cabin','The <strong>🏠 Home</strong> tab (and <strong>Home</strong> in the top bar, 0 to 100) tracks your cabin. It leaves you alone for your first week. It drifts down slowly; jobs bring it back up, skipping them wears it down faster, and a run-down cabin has more bad luck, which can land in the guiding season: bad sleep, a repair on a guiding morning or a booked party that cancels. A cabin in good shape sends you out rested. <strong>Never more than two jobs show at once</strong>, and every job offers three ways: <strong>do it yourself</strong> (time and energy), <strong>pay someone</strong> (cash) or <strong>skip it</strong> (a risk). In July: latch the bear bins and clean up fish waste, service the generator, plant a garden (and fence it: moose), keep the fish station clean. In the off-season: fall jobs before the cold (heating oil, or firewood and a chimney sweep if you add a wood stove; heat tape and a skirted crawlspace; smoke and CO detectors), then a cold snap and heavy snow, then spring breakup (driveway, foundation, well test, septic). Do-it-yourself jobs in the off-season spend the same <strong>10 free days</strong> as winter camping. Trouble costs money, days, energy or reputation, but it never ends your career. Never run a generator indoors: exhaust is carbon monoxide.'],
   ['💀','How you lose','Three active citations (permit pulled), reputation down to 0 (nobody books you), or $2,000 in debt (the bank takes the sled).'],
   ['💡','Tips','Rig tomorrow’s gear, read the Fish tab and scout the river for better trips. Tips (💡) appear as you play; turn them on or off in ⚙️ Settings. On a computer, number keys press buttons, <strong>Esc</strong> closes a pop-up and <strong>?</strong> lists the shortcuts. Settings has bigger text and high contrast.'],
 ];
@@ -4118,9 +4156,9 @@ const campUsed=()=>!S.winter||campDaysLeft()<=0||(campTripsLeft()<=0&&campW().gi
 // effects on next season's trips and bookings (used by 22-trips.js and genSeasonBookings in 24-career.js)
 function campQ(){
   const C=S.camp;if(!C||!C.boost||C.boost.s<0||C.boost.s!==seasonOf(day())) return 0;
-  return S.stats.trips-((S.st0&&S.st0.trips)||0)<3?C.boost.q:0;
+  return S.stats.trips-((S.st0&&S.st0.trips)||0)<3?C.boost.q*DF().craft:0;
 }
-const campBook=s=>{const C=S.camp;return C&&C.boost&&C.boost.s===s?C.boost.book:0};
+const campBook=s=>{const C=S.camp;return C&&C.boost&&C.boost.s===s?C.boost.book*DF().craft:0};
 
 function campTicket(){
   const C=campW(),A=S.arcs&&S.arcs.rival,W=S.winter;
@@ -4141,7 +4179,10 @@ function campApply(rep){
   S.energy=clamp(S.energy+rep.energyDelta,Math.min(S.energy,40),100);
   if(rep.repDelta)adj('rep',rep.repDelta);
   S.skill+=rep.skillDelta;S.wom=(S.wom||0)+rep.womDelta;
-  if(rep.foodFish)S.freezer=Math.min(fishCap(),S.freezer+Math.round(rep.foodFish/CAMP_FISH_PER_RED));
+  // Stocked trout and char are eaten fresh over the winter; they do not keep. They only spare the pantry you already stocked (a
+  // careful kitchen), so a guide who never buys food gets nothing for it. (Before 1.11.0 they went into the freezer as reds' worth of meals.)
+  rep.pantrySaved=0;
+  if(rep.foodFish&&S.food.pan>=MEALS){rep.pantrySaved=Math.min(Math.round(rep.foodFish/CAMP_FISH_PER_RED)*FISH_MEALS,PANTRY_CAP-S.food.pan);S.food.pan+=rep.pantrySaved}
   if(rep.tackleCredit)S.gear=Math.min(Math.max(S.gear,CAMP_MAX_TACKLE),S.gear+rep.tackleCredit);
   if(rep.firstTripBoost||rep.bookingBoost){
     const B=C.boost.s===W.s?C.boost:(C.boost={s:W.s,q:0,book:0});
@@ -4158,6 +4199,7 @@ function campApply(rep){
   st.encounters=(st.encounters||0)+rep.encounters;st.campNights=(st.campNights||0)+rep.nights;
   rep.gearBought.forEach(g=>{if(!C.gear.includes(g))C.gear.push(g)});if(rep.license)C.lic=Math.max(C.lic,rep.license.year);
   rep.achievements.forEach(a=>{if(!C.ach.includes(a))C.ach.push(a)});C.noTrace+=rep.noTraceTrips;
+  if(rep.trips&&rep.trips.length){const L=rep.trips[rep.trips.length-1],mo=KenaiCamp.data.month(L.month);if(mo)C.lastMon={s:W.s,name:mo.n,year:KenaiCamp.data.calYear(mo,2025+W.s)}}
   C.days+=rep.daysUsed;C.trips+=rep.tripsTaken;C.gigs+=rep.gigs.length;C.gigsDone=C.gigsDone.concat(rep.gigs);
   const T=C.tot;T.trips+=rep.tripsTaken;T.nights+=rep.nights;T.fish+=rep.foodFish;T.tackle+=rep.tackleCredit;T.gigs+=rep.gigs.length;T.spent+=rep.spent;T.net+=rep.cashDelta;
   return rep;
@@ -4167,7 +4209,7 @@ function campWrapHtml(rep){
   const f=n=>n>0?'+'+n:String(n),L=[];
   L.push(`${rep.tripsTaken} camping trip${rep.tripsTaken===1?'':'s'}, ${rep.nights} night${rep.nights===1?'':'s'}${rep.gigs.length?`, ${rep.gigs.length} winter job${rep.gigs.length===1?'':'s'}`:''}.`);
   L.push(`Cash ${rep.cashDelta<0?'−':'+'}${$(Math.abs(Math.round(rep.cashDelta)))} · Energy ${f(rep.energyDelta)} · Rep ${f(rep.repDelta)}${rep.skillDelta?` · Skill ${f(rep.skillDelta)}`:''}.`);
-  if(rep.foodFish)L.push(`🐟 ${rep.foodFish} stocked fish in the freezer: about ${Math.round(rep.foodFish/CAMP_FISH_PER_RED)} red${Math.round(rep.foodFish/CAMP_FISH_PER_RED)===1?'':'s'}’ worth of meals.`);
+  if(rep.foodFish)L.push(`🐟 ${rep.foodFish} stocked fish, eaten fresh at the cabin and over the camp stove. ${rep.pantrySaved>0?`They spared ${rep.pantrySaved} meals in your pantry.`:'They don’t keep, and with no pantry stocked there is nothing to spare.'}`);
   if(rep.tackleCredit)L.push(`🪶 Tackle +${rep.tackleCredit}: that many trips’ worth of flies and leaders you won’t have to buy.`);
   if(rep.firstTripBoost)L.push(`🎯 Better first trips in July (about ${Math.round(rep.firstTripBoost*100)}% more catch on your first three trips).`);
   if(rep.bookingBoost)L.push(`📅 A few more bookings next season.`);
@@ -4227,6 +4269,7 @@ const CHANGELOG={
   '1.6.0':['💲 Higher rates now cost you: fewer bookings, pickier clients and a rep requirement that rises each step.','🔧 Boats at condition 0 are out of service until repaired; new motors burn less gas, new sleds finish sooner, and late-career money can buy an assistant guide, guest cabins or a riverfront launch.','⏳ New “Wait until…” action skips to the next launch or the 1 PM class. New games start with a 5:00 AM alarm.','🌙 The night summary now comes before the morning’s news, and pop-up toasts are fewer, shorter and sit below your Cash and Rep.','⭐ Longer careers: 54 client parties, regulars who come back (or don’t), six new river dilemmas, fewer repeats and three multi-season stories.'],
   '1.8.0':['🎯 Skill pays: spots fish differently with the day’s water, wind, run and tide. Read the 🐟 Fish tab or scout the river and the spot buttons show which one is hot.','⭐ The rest of your summer follows how happy your clients were, not only how many trips you ran. Tips run higher on a good day, a well-kept boat pleases clients, and a happy party may take your card and become a regular.','💲 Raising rates gets steeper after the first step, and skill builds with practice and rusts over the winter.'],
   '1.10.0':['🏠 The cabin needs you now and then. A new Home tab lists the jobs (never more than two at a time), and each one can be done yourself, paid for, or skipped at a risk: heat for the winter, frozen pipes, snow on the roof and driveway, the generator, the well and septic tank, bears and fish waste, a garden moose, smoke and CO detectors, spring breakup and the odd earthquake.','🔥 New upgrades: a wood stove as a second heat source, a bear-resistant bin and a fish processing station that sells fillet-and-freeze to clients. Cabin condition (Home, in the top bar) drifts down slowly, and a run-down cabin has more bad luck. Your game in progress is brought up to date automatically.'],
+  '1.11.0':['🌅 A quieter first week: the cabin leaves you alone for your first seven days, and the cold-weather jobs wait until fall.','📅 The off-season top bar now shows the real month and year of the winter you are in.','🏕️ Fish from a winter trip only spare the pantry when you have meals to spare, and a guide who never stocks food now feels it in the season.','⚖️ Combat Season is tougher but fairer: cheaper price rises, less credit for camping and reading the water. License is $20, a wall tent $1,200, and public-use cabins run $50 to $75 a night. Your game in progress is brought up to date.'],
   '1.10.1':['🏠 Letting the cabin go now costs you more, and some of it lands in the guiding season. Skipping a job wears the cabin down, a run-down one has more bad luck, and a stuck truck, a dead well pump, a septic backup, a failed pump in July or a sagging, stained cabin can cost you a booked trip.','🥶 A cold, damp cabin means bad sleep in July, and a warm, dry, tidy one sends you out rested. A bear in your trash now hurts your rep and word of mouth more. Burst pipe, ice dam, well and septic bills are bigger.','💵 Winter living costs are $800 now (they were $1,300), so a player who keeps the place up comes out well ahead. Home trouble still never ends a career. Your game in progress is brought up to date automatically.'],
   '1.9.0':['🏕️ Winter camping is much bigger: ten free days each winter for up to three trips, with a pack to choose (bear container, a cold-rated bag, spare layers, stove fuel), ice fishing on stocked lakes, tracking and scouting, evenings tying flies, company, public-use cabins and a truck camper, winter jobs, and a log of every animal you see.','🎣 Real rules: ice fishing needs a fishing license, and licenses start over every January. Scouting the upper Kenai or Kasilof gives a hint about next summer’s run. Your game in progress is brought up to date automatically.'],
   '1.8.1':['🚔 Bending the rules can still pay on the day, but not over a career: every rule you break in a season makes the next one likelier to be caught, guides who see it talk, and a citation is public record, so a booked party may cancel and the rest of your summer books thinner.','🍽️ After a second hungry night you get a warning first thing in the morning, with a quick (pricier) gas-station breakfast and a day of food. Going hungry is gentler on your clients than before, but groceries are still the cheap way.','🐻 Combat Season re-tuned: fuel and bills a little less steep, clients a little less picky and the off-months a little busier, so a sharp guide can earn a B. It is still clearly harder than Licensed Guide. A game in progress is brought up to date automatically.'],
@@ -4860,6 +4903,11 @@ function homeFinishWinter(){
 // the winter pop-up's own buttons
 function homeWinterModal(){
   const t=homeTicket(),jobs=CabinUpkeep.jobs(t),more=CabinUpkeep.dueCount(t)-jobs.length,ph=t.phase;
+  if(ph==='spring'){
+    CabinUpkeep.ui.batch(homeHost(),{title:'🏠 Spring breakup at the cabin',intro:`Condition ${Math.round(cabin().cond)}/100. Cash ${$(t.cash)}. ${t.daysLeft} free day${t.daysLeft===1?'':'s'} left, shared with camping and winter work.`,
+      extra:[{l:'🏪 Home upgrades',s:'A wood stove, a fish processing station, a bear-resistant bin.',fn:()=>setTimeout(()=>CabinUpkeep.ui.shop(homeHost(),homeWinterModal),0)},{l:'Back to the off-season',fn:()=>setTimeout(winterModal,0)}]});
+    return;
+  }
   modal(ph==='fall'?'🏠 Get the cabin ready for winter':'🏠 Spring breakup at the cabin',
     `<p style="font-size:13px;color:var(--mute)">Condition ${Math.round(cabin().cond)}/100. Cash ${$(t.cash)}. ${t.daysLeft} free day${t.daysLeft===1?'':'s'} left this winter, shared with camping and winter work. ${ph==='fall'?'The first cold snap and the first big snow come when you leave for camping or open bookings.':'Last winter’s storms are behind you; breakup comes next.'}</p>${jobs.length?'':'<p>Nothing is due right now.</p>'}${more>0?`<p style="font-size:12.5px;color:var(--mute)">${more} more job${more>1?'s':''} after these.</p>`:''}`,
     jobs.map(j=>({l:`${j.ic} ${j.title}`,s:`${j.why} ${j.risk}`,fn:()=>setTimeout(()=>CabinUpkeep.ui.open(homeHost(),j.id,()=>homeWinterModal()),0)}))
@@ -4873,8 +4921,7 @@ function homeOpenGate(go){
   if(cabin().rolled!==w.s){homeRollWinter(()=>setTimeout(winterModal,0));return}
   const n=CabinUpkeep.dueCount(homeTicket());
   if(n&&S.homeAsk!==w.s){S.homeAsk=w.s;
-    modal('🏠 Spring jobs are due',`<p>Breakup is coming, and the cabin has ${n} job${n>1?'s':''} due. You can do them yourself, pay someone, or skip them and take your chances.</p>`,
-      [{l:'Take a look',fn:()=>setTimeout(homeWinterModal,0)},{l:'Open bookings anyway',fn:go}]);return}
+    CabinUpkeep.ui.batch(homeHost(),{title:'🏠 Spring jobs are due',intro:'Breakup is coming. Do them yourself, pay someone, or skip them and take your chances.',extra:[{l:'Open bookings',fn:go}]});return}
   go();
 }
 // camping starts: the first storm has to land before the free days are spent

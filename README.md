@@ -160,9 +160,9 @@ Camping is its own engine, **KenaiCamp**, in `src/camp/` (see `src/camp/README.m
 **A trip:** a place (ten, all within 100 road miles of Soldotna), a month (Nov to Mar: sets daylight, ice, weather and the fishing license year), 1, 2, 3 or 5 nights, who comes, where you sleep, what you pack, then each day an activity and an evening, and a night.
 - **Daylight:** about 7.3 h in November, 5.8 in December, 6.8 in January, 9 in February, 11.5 in March (Soldotna, approximate). Under 9 h you get **one** daylight activity a day, from 9 h **two**. The evening is separate.
 - **Activities:** ice fishing (Johnson Lake and Captain Cook's Stormy Lake only; ADF&G stocks them), cross-country skiing (Swanson River and Captain Cook), snowshoeing, tracking wildlife, scouting next season's water (upper Kenai from Hidden Lake, Skilak and Quartz Creek; Kasilof from Johnson Lake), keeping camp. Evenings: early to bed, a talk by the fire (with company), tie flies and fix gear (tackle credit toward next season: +2 with a vise, +1 without), photograph the northern lights (clear nights, 70% to see them).
-- **Ice fishing rules:** it needs a **fishing license, which runs by calendar year** (about $29 for a resident; the game charges $29): a license bought in December does not cover January. Rent an ice kit for $15 or pack your own. **Ice safety:** check the thickness (4 inches of clear ice holds a person on foot) or walk out: a fall is 45% / 30% / 6% / 1% by thickness under 3 / 4 / 5 / more inches, and ice picks turn a dangerous soak into a bad hour. What you catch goes to the freezer, a fish fry (energy) or a story (rep).
+- **Ice fishing rules:** it needs a **fishing license, which runs by calendar year** ($20 for an Alaska resident, the game charges $20): a license bought in December does not cover January. Rent an ice kit for $15 or pack your own. **Ice safety:** check the thickness (4 inches of clear ice holds a person on foot) or walk out: a fall is 45% / 30% / 6% / 1% by thickness under 3 / 4 / 5 / more inches, and ice picks turn a dangerous soak into a bad hour. What you catch goes to the freezer, a fish fry (energy) or a story (rep).
 - **Packing:** the truck takes 12 load points (a camper adds 4); the tent takes 2, a wall tent 3, each guest 2. Bear container 3 ($80), extra stove fuel 2 ($14 a trip), a -20°F bag 3 ($160), spare layers 2 ($70), a truck kit 2 ($70), ice kit 4 ($90), ice picks and rope 1 ($25), fly vise 1 ($40). Gear is bought once and kept (the fuel is a per-trip cost). Items make specific bad nights rarer and gentler: the container for foxes, ravens, wolverines and bears, the bag, layers and fuel for a cold snap, the truck kit for a dead battery or a drifted-in road, picks for the ice. "Pack the usual" fills the pack in that order.
-- **Where you sleep:** tent (comfort 0), wall tent with a stove ($1,100, comfort 1), truck camper ($7,500, comfort 2), or a public-use cabin at Swanson River, Skilak or Quartz Creek ($45-65 a night; comfort 2). Each point of comfort has a 20% chance of turning a bad night into a quiet one.
+- **Where you sleep:** tent (comfort 0), wall tent with a stove ($1,200, comfort 1), truck camper ($7,500, comfort 2), or a public-use cabin at Swanson River, Skilak or Quartz Creek ($50-75 a night; comfort 2). Each point of comfort has a 20% chance of turning a bad night into a quiet one.
 - **Company:** a regular client, a fellow guide, or the rival (once the arc has started, and only if he is friendly). Guests cost 60% more in supplies. A good trip lifts a regular's last-trip mood (so next July's rebooking odds), earns a little rep and bookings; a bad night costs goodwill.
 - **Encounters:** each night still rolls once, 50% for an encounter, weighted by the habitat of the place. The original ten are unchanged; added: river otters, a wolverine, snowshoe hares, ptarmigan, sea otters (the Spit only), chickadees, and three weather events: a cold snap, a snowstorm (an extra night and a tow without a truck kit) and a chinook thaw (softens ice). Over all places and months about 49% of the odds are bad unpacked (it was 58%), and about 38% with a bear container and truck kit.
 - **Winter jobs** (a day each): guide ice fishers (about $140 plus tips, with a license and kit), run a snowmachine tour (about $240 less fuel; needs rep 45), help at a winter event (Soldotna's Peninsula Winter Games or Kasilof's Tustumena 200, whenever they run: $60, rep +1, word of mouth, a few bookings).
@@ -201,9 +201,36 @@ Miles are estimates from Sterling Highway mileposts (Soldotna about MP 95.2; Qua
 | by the book (food stocked) | 55,622 | 54,102 | +2.8% |
 | phone | 56,752 | 56,156 | +1.1% |
 | skilled | 65,590 | 64,701 | +1.4% |
-| opportunist | 51,118 | 52,345 | -2.3% (6 permits lost against 1: rule-breakers with a few more trips) |
+| opportunist | 51,118 | 52,345 | -2.3% (checked again in 1.11.0 with 120+ paired careers: the 6-against-1 permit losses were noise, no real effect) |
 
-That averages about +2.1% (normal) and +0.8% (hard); a winter nets about -$80 to -$100 in cash (gear is bought once), +2 rep, 7 stocked fish and 2 tackle credits. A guide who **never stocks food** gains 6-9% because freezer fish keep them fed (a loophole for a style that is already punished). A bot that never camps (the "expert" and "passive" styles) scores exactly what it did in 1.8.1 (same seeds, identical scores): camping draws no random numbers and changes no state until you open it. The truck camper ($7,500) is a luxury, not an investment: it lowers bad nights, but it costs more than it returns in score.
+That averages about +2.1% (normal) and +0.8% (hard); a winter nets about -$80 to -$100 in cash (gear is bought once), +2 rep, 7 stocked fish and 2 tackle credits. Since 1.11.0 stocked fish only spare pantry meals when there are meals to spare, so a guide who **never stocks food** no longer eats from the freezer: that style now scores C and D on normal and Combat Season. A bot that never camps (the "expert" and "passive" styles) scores exactly what it did in 1.8.1 (same seeds, identical scores): camping draws no random numbers and changes no state until you open it. The truck camper ($7,500) is a luxury, not an investment: it lowers bad nights, but it costs more than it returns in score.
+
+## Facts checked for 1.11.0
+
+Numbers in the game were compared against 2025-2026 sources; a number changed only where a source supports it.
+
+| Item | Before | Now | Source |
+|---|---|---|---|
+| Alaska resident sport fishing license | $29 | $20 | [ADF&G license price list](https://www.adfg.alaska.gov/index.cfm?adfg=license.pricinglist), [2026 sport fishing regulations, licensing](https://www.wafwa.adfg.alaska.gov/static/regulations/fishregulations/PDFs/Southwest/2026sw_sfregs_licensing.pdf) |
+| Public-use cabins on the Kenai | $45-65 a night | $50-75 a night (an estimate) | Confirmed only for the Forest Service's Crescent Lake Cabin: $75 a night in the main season, $50 in the shoulder season ([Chugach fee proposal, 2025](https://www.fs.usda.gov/r10/chugach/newsroom/releases/public-input-requested-proposed-cabin-fee-changes)). The Swanson River, Skilak and Quartz Creek rates are not confirmed (the [recreation.gov refuge page](https://www.recreation.gov/camping/campgrounds/233317) lists no nightly fees), so the range is an estimate |
+| Wall tent with a stove | $1,100 | $1,200 (an estimate) | not verified against a source in this pass |
+| Septic pump-out (hired) | $480 | $400 | [Homeyou, Kenai](https://www.homeyou.com/ak/septic-pumping-kenai-costs): average about $380, most jobs $280 to $520 |
+| Tustumena 200 | "runs every winter" | "does not run every winter" | [Peninsula Clarion](https://www.peninsulaclarion.com/news/its-happening-tustumena-200-gets-to-30th-anniversary-after-4-tries/): cancelled four years for lack of snow |
+
+Not verified (left unchanged): truck camper price, heating oil and propane prices, firewood price per cord, well test price, winter job pay, Stormy Lake and Johnson Lake stocking schedules, and this winter's Kenai Peninsula Winter Games status. No 2025-2026 source that could be confirmed was found for them in this pass, so they stay as earlier estimates.
+
+### Grades in 1.11.0 (5-year careers, 40 per cell, default cabin play, season score; the noise is about plus or minus 500 points)
+
+| style | Licensed Guide (normal) | Combat Season (hard) |
+|---|---|---|
+| skilled | A 40 of 40 | A13 B25 C1 F1 |
+| expert | A7 B33 | A5 B27 C6 F2 |
+| phone | A12 B26 C1 F1 | A1 B30 C6 F3 |
+| by the book (food) | A4 B29 C7 (82% A or B) | A1 B20 C19 (52% A or B) |
+| passive | B17 C23 | C36 D3 F1 |
+| ignores food | B1 C31 D7 F1 | C24 D16 |
+
+Neglecting the cabin against careful upkeep costs 4.0 to 6.9% on normal and 5.7 to 8.8% on Combat Season (expert 8.8, within noise of the 8% line) for the main styles (ignores-food and the rule-breaker lose more). Two-year Rookie careers that ignore food score A17 B33 C10 against A57 B3 for the by-the-book bot. Combat Season's gap between skilled and expert narrowed because the price-rise trap ("rates" upgrade) and camping and spot-reading credit are tuned on hard only; the normal ladder is unchanged in kind.
 
 ## Cabin upkeep
 

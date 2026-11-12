@@ -140,7 +140,7 @@ All prices are **2026 estimates at the standard difficulty** (the host's cost mu
 | Strap the water heater | $40 | $120 | straps and anchors; a plumber |
 | Spring breakup | $160, a day | $400 | gravel; a neighbor with a loader |
 | Well water test | $55 | $110 | a mail-in lab kit; a tech's sample |
-| Pump the septic tank | $20 (a year's reprieve) | $480 | a pump-out; a few hundred dollars is typical |
+| Pump the septic tank | $20 (a year's reprieve) | $400 | a pump-out; a few hundred dollars is typical |
 | Bear bins and fish waste | free, 30 min | $55 | a dump run |
 | Generator oil change | $25, 45 min | $140 | oil, filter and plug; the small-engine shop |
 | Generator test run | free, 20 min | $70 | half a gallon of home gas; the shop |

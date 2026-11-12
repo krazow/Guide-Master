@@ -81,7 +81,7 @@ module.exports = [
   { name: 'camping: applying a report moves cash, energy, rep, skill, freezer, tackle, regulars, the rival and the log', fn: async ctx => {
     const { page, errors } = await winterGame(ctx);
     const r = await page.evaluate(() => {
-      closeModals(); S.energy = 60; S.rep = 60; S.freezer = 2; S.gear = 1; S.skill = 20; S.wom = 0;
+      closeModals(); S.energy = 60; S.rep = 60; S.freezer = 2; S.food.pan = 20; S.gear = 1; S.skill = 20; S.wom = 0;
       S.regs = [{ who: 'Garza family', from: 'Texas', res: false, type: 'reds', n: 4, trips: 2, last: { h: 70, s: 0 }, arc: null }];
       S.arcs.rival.st = 2; S.arcs.rival.mood = -1;
       const m0 = S.money, st0 = S.stats.spent, cur = S.cur;
@@ -91,25 +91,64 @@ module.exports = [
         gearBought: ['bear', 'bag'], license: { year: 2026 }, log: [], trips: [] };
       campApply(rep);
       const C = S.camp;
-      return { dm: S.money - m0, spent: S.stats.spent - st0, e: S.energy, rep: S.rep, skill: S.skill, wom: S.wom, fz: S.freezer, gear: S.gear, h: S.regs[0].last.h, mood: S.arcs.rival.mood, seen: S.stats.seen, nights: S.stats.campNights, enc: S.stats.encounters,
+      return { dm: S.money - m0, spent: S.stats.spent - st0, e: S.energy, rep: S.rep, skill: S.skill, wom: S.wom, fz: S.freezer, pan: S.food.pan, saved: rep.pantrySaved, gear: S.gear, h: S.regs[0].last.h, mood: S.arcs.rival.mood, seen: S.stats.seen, nights: S.stats.campNights, enc: S.stats.encounters,
         days: C.days, trips: C.trips, gigs: C.gigs, gd: C.gigsDone, cg: C.gear, lic: C.lic, boost: C.boost, ach: C.ach, nt: C.noTrace, hint: campHintLine(), tot: C.tot, cur: S.cur - cur, left: campDaysLeft(), ach2: ACH.find(a => a.id === 'no_trace').test({}) };
     });
     assert.strictEqual(r.dm, -150); assert.strictEqual(r.spent, 190); assert.strictEqual(r.e, 68); assert.strictEqual(r.rep, 62); assert.strictEqual(r.skill, 21); assert.strictEqual(r.wom, 1);
-    assert.strictEqual(r.fz, 4, '5 stocked fish are about 2 reds of meals'); assert.strictEqual(r.gear, 4); assert.strictEqual(r.h, 85, 'a good trip lifts the regular’s last-trip mood'); assert.strictEqual(r.mood, 1);
+    assert.strictEqual(r.fz, 2, 'stocked fish no longer go in the freezer'); assert.strictEqual(r.saved, 8, '5 stocked fish are about 2 reds: 8 pantry meals spared'); assert.strictEqual(r.pan, 28); assert.strictEqual(r.gear, 4); assert.strictEqual(r.h, 85, 'a good trip lifts the regular’s last-trip mood'); assert.strictEqual(r.mood, 1);
     assert.strictEqual(r.seen.moose, 2); assert.strictEqual(r.seen.wolverine, 1); assert.strictEqual(r.nights, 2); assert.strictEqual(r.enc, 3);
     assert.strictEqual(r.days, 3); assert.strictEqual(r.left, 7); assert.strictEqual(r.trips, 1); assert.strictEqual(r.gigs, 1); assert.deepStrictEqual(r.gd, ['event']);
     assert.deepStrictEqual(r.cg, ['bear', 'bag']); assert.strictEqual(r.lic, 2026); assert.strictEqual(r.boost.q, .025); assert.strictEqual(r.boost.book, .02);
     assert.ok(r.ach.includes('no_trace') && r.nt === 1 && r.ach2); assert.ok(/late run/.test(r.hint), r.hint); assert.strictEqual(r.tot.nights, 2); assert.strictEqual(r.cur, 0);
     noErrors(errors);
   } },
-  { name: 'camping: energy never drops below 40 from camping, and tackle and the freezer are capped', fn: async ctx => {
+  { name: 'camping: the top bar shows the winter month in the off-season, not next July’s date', fn: async ctx => {
+    const { page, errors } = await open(ctx);
+    await page.evaluate(() => setPref('years', 5));
+    await newGame(page);
+    const hud = () => page.evaluate(() => ({ day: document.querySelector('.hud-day').textContent, sub: document.querySelector('.hud-sub').textContent }));
+    const jul = await hud(); assert.ok(/Jul/.test(jul.sub) && !/Off-season/.test(jul.day), JSON.stringify(jul));
+    await page.evaluate(async () => {
+      closeModals(); S.money = 20000; S.cur = 13; S.t = 13 * 1440 + 1300; S.loc = 'shop';
+      S.book.forEach(b => { if (b.status === 'booked') b.status = 'done'; });
+      endDay('home'); await new Promise(r => setTimeout(r, 10)); closeModals(); render();
+    });
+    const fall = await hud(); assert.ok(/October 2026/.test(fall.sub) && /Season 1\/5 done/.test(fall.sub) && !/Jul|Aug/.test(fall.sub) && fall.day === 'Off-season', JSON.stringify(fall));
+    const m = await page.evaluate(() => {
+      S.cabin.rolled = S.winter.s; render(); const a = winterMonth();
+      campApply({ cashDelta: 0, spent: 0, energyDelta: 0, repDelta: 0, skillDelta: 0, womDelta: 0, bookingBoost: 0, firstTripBoost: 0, foodFish: 0, tackleCredit: 0, scout: null, relations: [], speciesSeen: {}, newSpecies: [], achievements: [], daysUsed: 2, tripsTaken: 1, gigs: [], nights: 1, encounters: 0, noTraceTrips: 0, gearBought: [], license: null, trips: [{ month: 'jan' }] });
+      render(); const b = winterMonth(), h = document.querySelector('.hud-sub').textContent;
+      S.camp.days = 10; const c = winterMonth();
+      return { a, b, h, c };
+    });
+    assert.strictEqual(m.a.name, 'April', 'storms rolled, no trip yet: spring');
+    assert.deepStrictEqual([m.b.name, m.b.year], ['January', 2027], 'days left after a January trip');
+    assert.ok(/January 2027/.test(m.h), m.h); assert.strictEqual(m.c.name, 'April', 'free days used up: spring breakup');
+    await page.evaluate(() => { closeModals(); finishWinter(); closeModals(); render(); });
+    const back = await hud(); assert.ok(/Jul/.test(back.sub) && !/Off-season/.test(back.day), JSON.stringify(back));
+    noErrors(errors);
+  } },
+  { name: 'camping: energy never drops below 40 from camping, and tackle and the pantry are capped', fn: async ctx => {
     const { page, errors } = await winterGame(ctx);
     const r = await page.evaluate(() => {
-      closeModals(); S.energy = 90; S.freezer = fishCap() - 1; S.gear = 11;
+      closeModals(); S.energy = 90; S.freezer = fishCap() - 1; S.food.pan = PANTRY_CAP - 3; S.gear = 11;
       const base = { cashDelta: 0, spent: 0, energyDelta: -80, repDelta: 0, skillDelta: 0, womDelta: 0, bookingBoost: 0, firstTripBoost: 0, foodFish: 9, tackleCredit: 9, scout: null, relations: [], speciesSeen: {}, newSpecies: [], achievements: [], daysUsed: 0, tripsTaken: 0, gigs: [], nights: 0, encounters: 0, noTraceTrips: 0, gearBought: [], license: null };
-      campApply(base); return { e: S.energy, fz: S.freezer, cap: fishCap(), gear: S.gear };
+      campApply(base); return { e: S.energy, fz: S.freezer, cap: fishCap(), pan: S.food.pan, gear: S.gear };
     });
-    assert.strictEqual(r.e, 40); assert.strictEqual(r.fz, r.cap); assert.strictEqual(r.gear, 12);
+    assert.strictEqual(r.e, 40); assert.strictEqual(r.fz, r.cap - 1, 'the freezer is not touched'); assert.strictEqual(r.pan, 60, 'the pantry is capped'); assert.strictEqual(r.gear, 12);
+    noErrors(errors);
+  } },
+  { name: 'camping: stocked fish only spare a pantry you already stocked: a guide who never buys food gets no free meals', fn: async ctx => {
+    const { page, errors } = await winterGame(ctx);
+    const r = await page.evaluate(() => {
+      closeModals(); const mk = () => ({ cashDelta: 0, spent: 0, energyDelta: 0, repDelta: 0, skillDelta: 0, womDelta: 0, bookingBoost: 0, firstTripBoost: 0, foodFish: 12, tackleCredit: 0, scout: null, relations: [], speciesSeen: {}, newSpecies: [], achievements: [], daysUsed: 0, tripsTaken: 0, gigs: [], nights: 0, encounters: 0, noTraceTrips: 0, gearBought: [], license: null, trips: [] });
+      S.food = { pan: 0, fri: 0, fd: 0, fm: 0, kits: 0 }; S.freezer = 0;
+      const a = mk(); campApply(a); const bare = { pan: S.food.pan, fz: S.freezer, meals: foodMeals(), saved: a.pantrySaved, txt: campWrapHtml(a) };
+      S.food.pan = 30; const b = mk(); campApply(b); const stocked = { pan: S.food.pan, fz: S.freezer, saved: b.pantrySaved, txt: campWrapHtml(b) };
+      return { bare, stocked };
+    });
+    assert.deepStrictEqual([r.bare.pan, r.bare.fz, r.bare.meals, r.bare.saved], [0, 0, 0, 0]); assert.ok(/nothing to spare/.test(r.bare.txt), r.bare.txt);
+    assert.deepStrictEqual([r.stocked.pan, r.stocked.fz, r.stocked.saved], [46, 0, 16], '12 fish = 4 reds = 16 meals'); assert.ok(/spared 16 meals/.test(r.stocked.txt));
     noErrors(errors);
   } },
   { name: 'camping: the winter day budget, three trips at most, restarts every winter', fn: async ctx => {

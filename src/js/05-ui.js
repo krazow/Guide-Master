@@ -18,7 +18,7 @@ function sceneSVG(){
 function hud(){
   const d=day(),n=STATS.length;
   const sub=`{{name}} · ${DF().ic} ${DF().n} · ${typeof hudDay==='function'?hudDay(d):`Day ${d+1} of ${GAME.days}`}`;
-  return `<div class="hud"><div class="hud-top"><div class="hud-day">${dayName(d)}</div><div class="hud-right"><div class="hud-time">${fmt(S.t)}</div><button class="gear" onclick="openSettings()" aria-label="Settings">⚙️</button></div></div><div class="hud-sub" title="${esc(sub)}">${sub}</div>
+  return `<div class="hud"><div class="hud-top"><div class="hud-day">${S.winter&&typeof winterMonth==='function'?'Off-season':dayName(d)}</div><div class="hud-right"><div class="hud-time">${fmt(S.t)}</div><button class="gear" onclick="openSettings()" aria-label="Settings">⚙️</button></div></div><div class="hud-sub" title="${esc(sub)}">${sub}</div>
   <div class="stats">${STATS.map(s=>`<div class="stat"${s.title?` title="${esc(s.title)}"`:''}><small>${s.l}</small><b${s.warn&&s.warn()?' style="color:#ff8a70"':''}>${s.v()}</b>${s.m?meter(s.m(),s.good!==false):''}</div>`).join('')}</div></div>`;
 }
 function allTabs(){return [['act','🧭','Here'],...(EXTRA_TABS||[]).map(t=>[t.k,t.ic,t.l]),['todo','📋','To-do'],['log','📜','Log']]}
@@ -65,12 +65,12 @@ window.ACT=i=>{uiNarr=[];sfx('tap');const f=ACTS[i];f&&f();afterAction();if(S&&!
 
 // ---- tips: one at a time, each shown once per game (TIPS in 21-story.js) ----
 function tipView(){
-  if(!prefs().tips||!S) return '';
+  if(!prefs().tips||!S||S.tips.day===day()) return '';   // one new tip a day: each day teaches one new thing
   const t=TIPS.find(x=>!S.tips.seen.includes(x.id)&&(()=>{try{return x.when()}catch(e){return false}})());
   if(!t) return '';
   return `<div class="tip">💡 ${t.t}<div class="tb"><button onclick="tipSeen('${t.id}')">Got it</button><button onclick="setPref('tips',false);render()">Turn off tips</button></div></div>`;
 }
-window.tipSeen=id=>{if(!S.tips.seen.includes(id))S.tips.seen.push(id);render()};
+window.tipSeen=id=>{if(!S.tips.seen.includes(id))S.tips.seen.push(id);S.tips.day=day();render()};
 
 // ---- To-do tab: your goals + the player's own priority list ----
 const PRIO_MAX=15,PRIO_LEN=80;let PRIO_ED='';
