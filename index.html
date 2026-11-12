@@ -1661,6 +1661,22 @@ const CabinUpkeep={
     if(!lock)btns.push({l:'Not now',s:'Decide later.',fn:()=>{if(then)then()}});
     host.show(`${job.ic} ${job.title}`,`<p>${esc(job.why)}</p><p class="small-note" style="color:var(--mute);font-size:13px">If you skip it: ${esc(job.risk.replace(/^Skip it and /,'').replace(/^Skip it /,''))}</p>`,btns,!!lock);
   };
+  // every job that is due, on one screen: each with its own three ways. A choice is applied and the screen comes back with what is left.
+  U2.batch=function(host,o){
+    o=o||{};const t=host.ticket(),jobs=C.jobs(t).filter(j=>j.kind!=='event'),again=()=>U2.batch(host,o);
+    const btns=[];
+    jobs.forEach(job=>{
+      const run=op=>()=>{
+        const rep=C.resolve(host.ticket(),job.id,op.id,rnd(host));
+        if(!rep){again();return}
+        host.apply(rep);
+        if(rep.severity>0)host.show(`${job.ic} ${job.title}`,rep.lines.map(l=>`<p>${l}</p>`).join('')+condLine(rep),[{l:'Continue',fn:again}]);else again();
+      };
+      job.opts.forEach(op=>btns.push({l:`${job.ic} ${job.title}: ${op.l}${op.id==='skip'?'':` · ${op.cash?$(op.cash):'free'}`}`,s:op.dis&&op.why?op.why:(op.id==='skip'?job.risk:op.s),dis:op.dis,fn:run(op)}));
+    });
+    (o.extra||[]).forEach(b=>btns.push(b));
+    host.show(o.title||'🏠 The cabin',`<p style="font-size:13px;color:var(--mute)">${o.intro||''}</p>${jobs.length?`<p>${jobs.length} job${jobs.length>1?'s':''} due. Pick a way for each one.</p>`:'<p>Nothing else is due.</p>'}`,btns);
+  };
   const condLine=rep=>`<p style="font-size:13px;color:var(--mute)">Cabin condition ${Math.round(rep.cond)}/100.</p>`;
 
   U2.shop=function(host,back){
@@ -1965,6 +1981,7 @@ const HOOK_SCALE={wake:0.85}; // chance that a hook call lets any event through 
 const HOOK_SUB={wake:'This morning',night:'Overnight'};
 function fireHook(hook,ctx={}){
   ctx.hook=hook;let res=null;const popItems=[];
+  const capped=infoPopsToday()>=INFO_POP_CAP;   // enough "OK" pop-ups today: the rest show as tiles and go in the log
   const scale=HOOK_SCALE[hook]??1,open=scale>=1||Math.random()<scale;
   const list=EV.filter(e=>e.hook===hook||(Array.isArray(e.hook)&&e.hook.includes(hook))).sort((a,b)=>b.priority-a.priority);
   for(const e of list){
@@ -1984,7 +2001,7 @@ function fireHook(hook,ctx={}){
     const ownModal=MQ.length+(document.getElementById('mbg')?1:0)!==mBefore;
     if(!ownModal) popItems.push({e,lines:uiNarr.slice(nBefore)});
     const [ic,title,kind]=e.tile||['📍',e.id.replace(/_/g,' '),'info'];
-    const dup=ownModal||hook==='night'||popupsOn();   // the event's own modal, the night summary or the OK pop-up already tells the player
+    const dup=ownModal||hook==='night'||(popupsOn()&&!capped);   // the event's own modal, the night summary or the OK pop-up already tells the player
     const cause=S.ev.cause&&S.ev.cause[e.id],ce=cause&&EV.find(x=>x.id===cause);
     if(!dup)showTile(ic,title,ce?`Because of: ${ce.tile?ce.tile[1]:cause}`:(ctx.sub||HOOK_SUB[hook]||''),kind,hook==='night'?`${dayName(day()).slice(0,3)} night`:null);
     if(S.ev.cause)delete S.ev.cause[e.id];
@@ -1992,14 +2009,18 @@ function fireHook(hook,ctx={}){
     if(r.stop){res=r;break}
     res=res||r;
   }
-  eventPopup(hook,popItems);
+  eventPopup(hook,popItems,capped);
   return res;
 }
 // ---- OK pop-up for events (on by default; Settings → Event pop-ups) ----
 const POPUP_KEY=KEY('popups');
 function popupsOn(){try{return localStorage.getItem(POPUP_KEY)!=='off'}catch(e){return true}}
-function eventPopup(hook,items){
-  if(!items.length||hook==='night'||!popupsOn()||!S||S.over) return; // night events go in the "Good night" summary
+// At most INFO_POP_CAP of these information-only pop-ups a day (decisions, trips and the night summary are never counted or held back).
+const INFO_POP_CAP=1;
+function infoPopsToday(){const p=S&&S.ev&&S.ev.pop;return p&&p.d===day()?p.n:0}
+function eventPopup(hook,items,capped){
+  if(!items.length||hook==='night'||!popupsOn()||!S||S.over||capped) return;
+  S.ev.pop={d:day(),n:infoPopsToday()+1}; // night events go in the "Good night" summary
   const meta=e=>e.tile||['📍',e.id.replace(/_/g,' ')];
   const body=items.map(it=>{const m=meta(it.e);const txt=it.lines.map(l=>`<p style="margin:4px 0 0">${l}</p>`).join('');
     return items.length>1?`<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)"><span style="font-size:24px">${m[0]}</span><div><b>${m[1]}</b>${txt}</div></div>`:txt}).join('');
@@ -2155,12 +2176,12 @@ window.ACT=i=>{uiNarr=[];sfx('tap');const f=ACTS[i];f&&f();afterAction();if(S&&!
 
 // ---- tips: one at a time, each shown once per game (TIPS in 21-story.js) ----
 function tipView(){
-  if(!prefs().tips||!S) return '';
+  if(!prefs().tips||!S||S.tips.day===day()) return '';   // one new tip a day: each day teaches one new thing
   const t=TIPS.find(x=>!S.tips.seen.includes(x.id)&&(()=>{try{return x.when()}catch(e){return false}})());
   if(!t) return '';
   return `<div class="tip">💡 ${t.t}<div class="tb"><button onclick="tipSeen('${t.id}')">Got it</button><button onclick="setPref('tips',false);render()">Turn off tips</button></div></div>`;
 }
-window.tipSeen=id=>{if(!S.tips.seen.includes(id))S.tips.seen.push(id);render()};
+window.tipSeen=id=>{if(!S.tips.seen.includes(id))S.tips.seen.push(id);S.tips.day=day();render()};
 
 // ---- To-do tab: your goals + the player's own priority list ----
 const PRIO_MAX=15,PRIO_LEN=80;let PRIO_ED='';
@@ -4882,6 +4903,11 @@ function homeFinishWinter(){
 // the winter pop-up's own buttons
 function homeWinterModal(){
   const t=homeTicket(),jobs=CabinUpkeep.jobs(t),more=CabinUpkeep.dueCount(t)-jobs.length,ph=t.phase;
+  if(ph==='spring'){
+    CabinUpkeep.ui.batch(homeHost(),{title:'🏠 Spring breakup at the cabin',intro:`Condition ${Math.round(cabin().cond)}/100. Cash ${$(t.cash)}. ${t.daysLeft} free day${t.daysLeft===1?'':'s'} left, shared with camping and winter work.`,
+      extra:[{l:'🏪 Home upgrades',s:'A wood stove, a fish processing station, a bear-resistant bin.',fn:()=>setTimeout(()=>CabinUpkeep.ui.shop(homeHost(),homeWinterModal),0)},{l:'Back to the off-season',fn:()=>setTimeout(winterModal,0)}]});
+    return;
+  }
   modal(ph==='fall'?'🏠 Get the cabin ready for winter':'🏠 Spring breakup at the cabin',
     `<p style="font-size:13px;color:var(--mute)">Condition ${Math.round(cabin().cond)}/100. Cash ${$(t.cash)}. ${t.daysLeft} free day${t.daysLeft===1?'':'s'} left this winter, shared with camping and winter work. ${ph==='fall'?'The first cold snap and the first big snow come when you leave for camping or open bookings.':'Last winter’s storms are behind you; breakup comes next.'}</p>${jobs.length?'':'<p>Nothing is due right now.</p>'}${more>0?`<p style="font-size:12.5px;color:var(--mute)">${more} more job${more>1?'s':''} after these.</p>`:''}`,
     jobs.map(j=>({l:`${j.ic} ${j.title}`,s:`${j.why} ${j.risk}`,fn:()=>setTimeout(()=>CabinUpkeep.ui.open(homeHost(),j.id,()=>homeWinterModal()),0)}))
@@ -4895,8 +4921,7 @@ function homeOpenGate(go){
   if(cabin().rolled!==w.s){homeRollWinter(()=>setTimeout(winterModal,0));return}
   const n=CabinUpkeep.dueCount(homeTicket());
   if(n&&S.homeAsk!==w.s){S.homeAsk=w.s;
-    modal('🏠 Spring jobs are due',`<p>Breakup is coming, and the cabin has ${n} job${n>1?'s':''} due. You can do them yourself, pay someone, or skip them and take your chances.</p>`,
-      [{l:'Take a look',fn:()=>setTimeout(homeWinterModal,0)},{l:'Open bookings anyway',fn:go}]);return}
+    CabinUpkeep.ui.batch(homeHost(),{title:'🏠 Spring jobs are due',intro:'Breakup is coming. Do them yourself, pay someone, or skip them and take your chances.',extra:[{l:'Open bookings',fn:go}]});return}
   go();
 }
 // camping starts: the first storm has to land before the free days are spent

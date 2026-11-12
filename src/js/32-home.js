@@ -125,6 +125,11 @@ function homeFinishWinter(){
 // the winter pop-up's own buttons
 function homeWinterModal(){
   const t=homeTicket(),jobs=CabinUpkeep.jobs(t),more=CabinUpkeep.dueCount(t)-jobs.length,ph=t.phase;
+  if(ph==='spring'){
+    CabinUpkeep.ui.batch(homeHost(),{title:'🏠 Spring breakup at the cabin',intro:`Condition ${Math.round(cabin().cond)}/100. Cash ${$(t.cash)}. ${t.daysLeft} free day${t.daysLeft===1?'':'s'} left, shared with camping and winter work.`,
+      extra:[{l:'🏪 Home upgrades',s:'A wood stove, a fish processing station, a bear-resistant bin.',fn:()=>setTimeout(()=>CabinUpkeep.ui.shop(homeHost(),homeWinterModal),0)},{l:'Back to the off-season',fn:()=>setTimeout(winterModal,0)}]});
+    return;
+  }
   modal(ph==='fall'?'🏠 Get the cabin ready for winter':'🏠 Spring breakup at the cabin',
     `<p style="font-size:13px;color:var(--mute)">Condition ${Math.round(cabin().cond)}/100. Cash ${$(t.cash)}. ${t.daysLeft} free day${t.daysLeft===1?'':'s'} left this winter, shared with camping and winter work. ${ph==='fall'?'The first cold snap and the first big snow come when you leave for camping or open bookings.':'Last winter’s storms are behind you; breakup comes next.'}</p>${jobs.length?'':'<p>Nothing is due right now.</p>'}${more>0?`<p style="font-size:12.5px;color:var(--mute)">${more} more job${more>1?'s':''} after these.</p>`:''}`,
     jobs.map(j=>({l:`${j.ic} ${j.title}`,s:`${j.why} ${j.risk}`,fn:()=>setTimeout(()=>CabinUpkeep.ui.open(homeHost(),j.id,()=>homeWinterModal()),0)}))
@@ -138,8 +143,7 @@ function homeOpenGate(go){
   if(cabin().rolled!==w.s){homeRollWinter(()=>setTimeout(winterModal,0));return}
   const n=CabinUpkeep.dueCount(homeTicket());
   if(n&&S.homeAsk!==w.s){S.homeAsk=w.s;
-    modal('🏠 Spring jobs are due',`<p>Breakup is coming, and the cabin has ${n} job${n>1?'s':''} due. You can do them yourself, pay someone, or skip them and take your chances.</p>`,
-      [{l:'Take a look',fn:()=>setTimeout(homeWinterModal,0)},{l:'Open bookings anyway',fn:go}]);return}
+    CabinUpkeep.ui.batch(homeHost(),{title:'🏠 Spring jobs are due',intro:'Breakup is coming. Do them yourself, pay someone, or skip them and take your chances.',extra:[{l:'Open bookings',fn:go}]});return}
   go();
 }
 // camping starts: the first storm has to land before the free days are spent

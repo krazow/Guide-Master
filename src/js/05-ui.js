@@ -65,12 +65,12 @@ window.ACT=i=>{uiNarr=[];sfx('tap');const f=ACTS[i];f&&f();afterAction();if(S&&!
 
 // ---- tips: one at a time, each shown once per game (TIPS in 21-story.js) ----
 function tipView(){
-  if(!prefs().tips||!S) return '';
+  if(!prefs().tips||!S||S.tips.day===day()) return '';   // one new tip a day: each day teaches one new thing
   const t=TIPS.find(x=>!S.tips.seen.includes(x.id)&&(()=>{try{return x.when()}catch(e){return false}})());
   if(!t) return '';
   return `<div class="tip">💡 ${t.t}<div class="tb"><button onclick="tipSeen('${t.id}')">Got it</button><button onclick="setPref('tips',false);render()">Turn off tips</button></div></div>`;
 }
-window.tipSeen=id=>{if(!S.tips.seen.includes(id))S.tips.seen.push(id);render()};
+window.tipSeen=id=>{if(!S.tips.seen.includes(id))S.tips.seen.push(id);S.tips.day=day();render()};
 
 // ---- To-do tab: your goals + the player's own priority list ----
 const PRIO_MAX=15,PRIO_LEN=80;let PRIO_ED='';

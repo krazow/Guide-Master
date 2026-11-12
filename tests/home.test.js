@@ -500,11 +500,11 @@ module.exports = [
       let g = 0; while (document.getElementById('mbg') && g++ < 10) MBTN(0);
       out.rolled = cabin().rolled === S.winter.s; out.went1 = went; out.queue = cabin().queue.length;
       homeOpenGate(() => went++); out.second = document.getElementById('mbg') ? document.querySelector('#mbg h2').textContent : '(none)';
-      if (document.getElementById('mbg')) MBTN(1); out.went2 = went;
+      out.single = document.querySelectorAll('#mbg button.act').length >= 3; [...document.querySelectorAll('#mbg button.act')].find(b => /Open bookings/.test(b.textContent)).click(); out.went2 = went;
       homeOpenGate(() => went++); out.third = !!document.getElementById('mbg'); out.went3 = went; return out;
     });
     assert.ok(r.rolled && r.went1 === 0 && r.queue === 0, JSON.stringify(r));
-    assert.ok(/Spring jobs are due/.test(r.second) && r.went2 === 1 && !r.third && r.went3 === 2, JSON.stringify(r));
+    assert.ok(/Spring jobs are due/.test(r.second) && r.single && r.went2 === 1 && !r.third && r.went3 === 2, JSON.stringify(r));
     noErrors(errors);
   } },
   { name: 'game: outage and generator: an unserviced generator may not start (the freezer is on its own, $85 at the shop); a serviced one runs', fn: async ctx => {

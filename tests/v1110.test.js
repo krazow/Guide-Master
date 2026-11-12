@@ -40,4 +40,19 @@ module.exports = [
     assert.ok(!r.late.some(id => ['tape', 'skirt', 'detect', 'strap'].includes(id)), 'the cold-weather jobs wait for fall: ' + r.late);
     noErrors(errors);
   } },
+  { name: 'pop-ups: at most one information-only event pop-up a day, one new tip a day', fn: async ctx => {
+    const { page, errors } = await open(ctx);
+    const r = await page.evaluate(() => {
+      newGame('normal'); closeModals(); localStorage.removeItem(POPUP_KEY); S.cur = 3; const out = {};
+      const ev = [{ e: { id: 'x', tile: ['📍', 'A'] }, lines: ['one'] }];
+      eventPopup('travel', ev, false); out.first = !!document.getElementById('mbg'); closeModals();
+      eventPopup('travel', ev, infoPopsToday() >= INFO_POP_CAP); out.second = !!document.getElementById('mbg');
+      S.cur = 4; out.nextDay = infoPopsToday();
+      S.tips.seen = []; const t = TIPS.find(x => { try { return x.when() } catch (e) { return false } });
+      if (t) { tipSeen(t.id); out.tipHidden = tipView() === '' }
+      return out;
+    });
+    assert.ok(r.first && !r.second && r.nextDay === 0, JSON.stringify(r)); if ('tipHidden' in r) assert.ok(r.tipHidden);
+    noErrors(errors);
+  } },
 ];

@@ -58,6 +58,22 @@
     if(!lock)btns.push({l:'Not now',s:'Decide later.',fn:()=>{if(then)then()}});
     host.show(`${job.ic} ${job.title}`,`<p>${esc(job.why)}</p><p class="small-note" style="color:var(--mute);font-size:13px">If you skip it: ${esc(job.risk.replace(/^Skip it and /,'').replace(/^Skip it /,''))}</p>`,btns,!!lock);
   };
+  // every job that is due, on one screen: each with its own three ways. A choice is applied and the screen comes back with what is left.
+  U2.batch=function(host,o){
+    o=o||{};const t=host.ticket(),jobs=C.jobs(t).filter(j=>j.kind!=='event'),again=()=>U2.batch(host,o);
+    const btns=[];
+    jobs.forEach(job=>{
+      const run=op=>()=>{
+        const rep=C.resolve(host.ticket(),job.id,op.id,rnd(host));
+        if(!rep){again();return}
+        host.apply(rep);
+        if(rep.severity>0)host.show(`${job.ic} ${job.title}`,rep.lines.map(l=>`<p>${l}</p>`).join('')+condLine(rep),[{l:'Continue',fn:again}]);else again();
+      };
+      job.opts.forEach(op=>btns.push({l:`${job.ic} ${job.title}: ${op.l}${op.id==='skip'?'':` · ${op.cash?$(op.cash):'free'}`}`,s:op.dis&&op.why?op.why:(op.id==='skip'?job.risk:op.s),dis:op.dis,fn:run(op)}));
+    });
+    (o.extra||[]).forEach(b=>btns.push(b));
+    host.show(o.title||'🏠 The cabin',`<p style="font-size:13px;color:var(--mute)">${o.intro||''}</p>${jobs.length?`<p>${jobs.length} job${jobs.length>1?'s':''} due. Pick a way for each one.</p>`:'<p>Nothing else is due.</p>'}`,btns);
+  };
   const condLine=rep=>`<p style="font-size:13px;color:var(--mute)">Cabin condition ${Math.round(rep.cond)}/100.</p>`;
 
   U2.shop=function(host,back){
