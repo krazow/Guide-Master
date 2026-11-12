@@ -26,9 +26,9 @@ const campUsed=()=>!S.winter||campDaysLeft()<=0||(campTripsLeft()<=0&&campW().gi
 // effects on next season's trips and bookings (used by 22-trips.js and genSeasonBookings in 24-career.js)
 function campQ(){
   const C=S.camp;if(!C||!C.boost||C.boost.s<0||C.boost.s!==seasonOf(day())) return 0;
-  return S.stats.trips-((S.st0&&S.st0.trips)||0)<3?C.boost.q:0;
+  return S.stats.trips-((S.st0&&S.st0.trips)||0)<3?C.boost.q*DF().craft:0;
 }
-const campBook=s=>{const C=S.camp;return C&&C.boost&&C.boost.s===s?C.boost.book:0};
+const campBook=s=>{const C=S.camp;return C&&C.boost&&C.boost.s===s?C.boost.book*DF().craft:0};
 
 function campTicket(){
   const C=campW(),A=S.arcs&&S.arcs.rival,W=S.winter;

@@ -266,7 +266,7 @@ const KenaiCamp={
   D.MPG=15; D.SUPPLIES=25; D.NIGHTS=[1,2,3,5]; D.WINTER_DAYS=10; D.MAX_TRIPS=3; D.MAX_GIGS=2;
   D.MAX_BOOK=.02;            // the most a winter can add to next season's daily chance of a booking
   D.MAX_FIRST=.03;           // the most it can add to the catch on the first few trips
-  D.LICENSE=29;               // an Alaska resident sport fishing license (about $29); licenses run by calendar year
+  D.LICENSE=20;               // an Alaska resident sport fishing license ($20 in ADF&G's 2025 and 2026 regulations; it was $29 before 1.11.0); licenses run by calendar year
   D.ICE_WALK=4;               // inches of clear, hard ice for a person on foot
   D.CAPACITY=12;              // load points the truck and sled carry; every item and companion uses some
   D.RENT_ICE=15;              // renting an ice kit at the Soldotna tackle shop
@@ -280,7 +280,7 @@ const KenaiCamp={
     {id:'skilak',ic:'⛰️',n:'Lower Skilak Lake Campground',miles:33,fee:0,h:'mtn',scout:'upper',cabin:55,d:'13.3 miles along Skilak Lake Road from the west end. A summer campground (May to September) with no fee. In winter you’re on your own on a big, windy lake shore; a public-use cabin in the area can be reserved ahead.'},
     {id:'cook',ic:'🌲',n:'Captain Cook State Rec Area',miles:36,fee:0,h:'forest',ice:'Stormy Lake',ski:true,d:'About 25 miles north of Kenai, near Stormy Lake, where winter visitors ice fish stocked fish. Discovery Campground is $20 a site in summer; in winter you camp unserviced.'},
     {id:'deep',ic:'🦅',n:'Deep Creek State Rec Area',miles:42,fee:0,h:'coast',d:'MP 137.3 on the Sterling Hwy, on the Cook Inlet bluff above the beach. Summer sites are $20; in winter there is no service, and the beach is a cold, bright place for eagles.'},
-    {id:'quartz',ic:'🏔️',n:'Quartz Creek (Kenai Lake)',miles:51,fee:0,h:'mtn',scout:'upper',cabin:65,d:'Quartz Creek Campground sits at MP 44.9 near Cooper Landing, a summer Forest Service campground. In winter it is unserviced with steep mountain slopes on all sides. Dall sheep and goats are in the high country, and the upper Kenai River runs below.'},
+    {id:'quartz',ic:'🏔️',n:'Quartz Creek (Kenai Lake)',miles:51,fee:0,h:'mtn',scout:'upper',cabin:65,d:'Quartz Creek Campground sits at MP 44.9 near Cooper Landing, a summer Forest Service campground. In winter it is unserviced with steep mountain slopes on all sides. The campground has no cabin of its own, but the Forest Service rents public-use cabins in the area ($50 to $75 a night). Dall sheep and goats are in the high country, and the upper Kenai River runs below.'},
     {id:'anchor',ic:'🎣',n:'Anchor River State Rec Area',miles:66,fee:20,h:'river',d:'MP 161, the westernmost highway point in North America. The state campgrounds charge $20 a site; the Anchor River runs open under ice shelves and steelhead and Dolly Varden are in it.'},
     {id:'spit',ic:'⚓',n:'Homer Spit',miles:83,fee:0,h:'coast',d:'The city’s Spit campgrounds are open April through October only, so in winter you park rough with no hookups and no dump station. Expect sea ducks, sea otters, eagles and a hard wind off Kachemak Bay.'},
   ];
@@ -315,9 +315,9 @@ const KenaiCamp={
   // ---- where you sleep (comfort lowers the odds of a bad night; load and cap use truck space) ----
   D.SHELTERS={
     tent:{id:'tent',ic:'⛺',n:'Four-season tent and stove',comfort:0,load:2,cap:0,cost:0,d:'What you already own. Cold, but light.'},
-    wall:{id:'wall',ic:'🏕️',n:'Wall tent with a wood stove',comfort:1,load:3,cap:0,cost:1100,d:'A canvas wall tent and a small stove: you can stand up, dry your boots and keep a pot hot. About $1,100.'},
+    wall:{id:'wall',ic:'🏕️',n:'Wall tent with a wood stove',comfort:1,load:3,cap:0,cost:1200,d:'A canvas wall tent and a small stove: you can stand up, dry your boots and keep a pot hot. About $1,200.'},
     camper:{id:'camper',ic:'🚐',n:'Truck camper',comfort:2,load:0,cap:4,cost:7500,d:'A used, insulated pickup camper with a furnace. It carries your gear, too. About $7,500.'},
-    cabin:{id:'cabin',ic:'🛖',n:'Public-use cabin',comfort:2,load:0,cap:0,cost:0,d:'A refuge or State Parks cabin reserved ahead: bunks, a stove and four walls.'},
+    cabin:{id:'cabin',ic:'🛖',n:'Public-use cabin',comfort:2,load:0,cap:0,cost:0,d:'A refuge, State Parks or Forest Service cabin reserved ahead: bunks, a stove and four walls.'},
   };
 
   // ---- the animals (every wildlife encounter is a species for the camping log) ----
@@ -410,7 +410,7 @@ const KenaiCamp={
   D.GIGS=[
     {id:'iceguide',ic:'🧊',n:'Guide ice fishers on a stocked lake',d:'Two clients, a day on the ice, about $70 each, and gas to the lake.',need:'You need an ice kit (you can rent one for $15) and a current fishing license.'},
     {id:'snowmachine',ic:'🛷',n:'Run a snowmachine tour for visitors',d:'A day showing visitors the refuge by snowmachine, about $80 a rider, less fuel. A machine can break down, and riders’ tips vary.',need:'You need a little reputation to be trusted with a rental sled.'},
-    {id:'event',ic:'🏁',n:'Help at a winter event',d:'Winter Games in Soldotna or the Tustumena 200 sled dog race in Kasilof, whenever they run: a stipend and meals, and a lot of people who will remember you.',need:''},
+    {id:'event',ic:'🏁',n:'Help at a winter event',d:'Winter Games in Soldotna or the Tustumena 200 sled dog race in Kasilof, whenever they run (neither runs every winter): a stipend and meals, and a lot of people who will remember you.',need:''},
   ];
 
   // ---- achievements the engine itself can award (the host may add its own) ----
@@ -1172,7 +1172,7 @@ const CabinUpkeep={
     {id:'septic',ic:'🚽',ph:['spring'],pr:25,cond:6,
       due:(s,t)=>t.y-s.did.septic>=3,
       title:()=>'Pump the septic tank',why:()=>'Many homes around Soldotna have septic systems, and a tank wants pumping every few years.',risk:()=>'Skip it and a backup or a failed drain field gets likelier, and the house is unusable for days.',
-      o:(s,t)=>({diy:{cash:$c(t,20),days:0,min:120,e:4,s:'Find the lids, check the level and clean the outlet filter. It buys you a year, no more.'},pay:{cash:$c(t,480),s:'A septic hauler pumps the tank and looks at the baffles.'},skip:{s:'Flush and forget.'}})},
+      o:(s,t)=>({diy:{cash:$c(t,20),days:0,min:120,e:4,s:'Find the lids, check the level and clean the outlet filter. It buys you a year, no more.'},pay:{cash:$c(t,400),s:'A septic hauler pumps the tank and looks at the baffles.'},skip:{s:'Flush and forget.'}})},
     {id:'bins',ic:'🗑️',ph:['summer'],pr:10,cond:2,
       due:(s,t)=>t.sday>=1&&t.abs-Math.max(s.did.bins,s.skipAbs)>=4,
       title:()=>'Latch the bins and clean up the fish waste',why:()=>'Cleaning clients’ fish at home leaves scraps, blood and smell. Bears on the Peninsula notice.',risk:()=>'Skip it and a bear in the yard gets likely: damage, a lost morning or a visit from Fish and Game.',
@@ -1226,7 +1226,7 @@ const CabinUpkeep={
 
   // Tuning: how likely and how costly. Everything is scaled by the cabin's condition and the difficulty.
   const T=D.T={
-    drift:.5,winterDrift:8,                       // condition lost a July day / a whole off-season
+    drift:.2,winterDrift:3,                       // condition lost a July day / a whole off-season
     coldP:.6,snowP:.75,                           // a cold snap, a heavy snow, in a winter
     freezeBase:.36,burstShare:.35,                // pipes: chance a snap freezes them untreated; share that burst
     roofP:[.3,.5,.7],collapseP:.14,             // ice dam or leak by snow depth when you skip; a shed or porch roof
@@ -1763,10 +1763,10 @@ const DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunda
 const DIFFS={
   // money: starting cash. bad: random-event multiplier. enforce: catch-chance multiplier. fine: fine multiplier;
   // esc: extra fine per citation already on your record. cost: fuel, overhead, winter bills and repairs.
-  // mood: client happiness (tips, rep). book: off-month bookings. wear: boat wear. No difficulty changes the score.
-  easy:  {n:'Rookie Season',ic:'🎣',d:'More cash, fewer troopers, cheaper bills and easygoing clients. For learning the water.',money:3000,bad:0.6,enforce:0.7,fine:0.8,esc:0.1,cost:0.8,mood:5,book:1.08,wear:0.85},
-  normal:{n:'Licensed Guide',ic:'🛶',d:'The Kenai as it is: busy, beautiful and well patrolled.',money:1500,bad:1,enforce:1,fine:1,esc:0.2,cost:1,mood:0,book:1,wear:1},
-  hard:  {n:'Combat Season',ic:'🐻',d:'Thin cash, more troopers, fines that climb steeply with every citation, dearer fuel and bills, pickier clients, quieter off-months and more bad luck. Same score, tougher grade.',money:600,bad:1.5,enforce:1.4,fine:1.1,esc:0.3,cost:1.08,mood:-2,book:0.97,wear:1.25},
+  // mood: client happiness (tips, rep). book: off-month bookings. wear: boat wear. rateK: how many bookings a price rise loses (1 = the usual). craft: how much reading the water, skill and winter camping pay (1 = fully). No difficulty changes the score.
+  easy:  {n:'Rookie Season',ic:'🎣',d:'More cash, fewer troopers, cheaper bills and easygoing clients. For learning the water.',money:3000,bad:0.6,enforce:0.7,fine:0.8,esc:0.1,cost:0.8,mood:5,book:1.08,wear:0.85,craft:1,rateK:1},
+  normal:{n:'Licensed Guide',ic:'🛶',d:'The Kenai as it is: busy, beautiful and well patrolled.',money:1500,bad:1,enforce:1,fine:1,esc:0.2,cost:1,mood:0,book:1,wear:1,craft:1,rateK:1},
+  hard:  {n:'Combat Season',ic:'🐻',d:'Thin cash, more troopers, fines that climb steeply with every citation, dearer fuel and bills, pickier clients, quieter off-months and more bad luck. The crowded river means a price rise loses fewer bookings, but the fish have seen every lure: reading the water and winter camping pay less. Same score, tougher grade.',money:600,bad:1.5,enforce:1.4,fine:1.1,esc:0.3,cost:1.15,mood:-4,book:0.95,wear:1.25,craft:0,rateK:0.8},
 };
 const DF=()=>DIFFS[(typeof S!=='undefined'&&S&&S.diff)||'normal']||DIFFS.normal;
 // ---------------- state ----------------
@@ -3202,7 +3202,7 @@ const STEP={
     const read=hint?spotFit(b.type,i,d,hint==='exact'):null,pre=read?`${hint==='exact'?'🔭':'🐟'} ${spotWord(read.f)}${read.why?`: ${read.why}`:''}. `:'';
     return O(sp.l,pre+sp.s,(b,t)=>{
     const fit=spotFit(b.type,i,d,true);
-    t.q+=sp.q+(fit?fit.f*SPOT_Q:0);t.happy+=sp.h||0;t.fuelx=(t.fuelx||0)+(sp.fuel||0);t.notes.push(`📍 ${sp.l}.`);
+    t.q+=sp.q+(fit?fit.f*SPOT_Q*DF().craft:0);t.happy+=sp.h||0;t.fuelx=(t.fuelx||0)+(sp.fuel||0);t.notes.push(`📍 ${sp.l}.`);
     if(fit&&Math.abs(fit.f)>=.3)t.notes.push(fit.f>0?`🎯 ${fit.why?fit.why.charAt(0).toUpperCase()+fit.why.slice(1):'The water suits it'}: the fish are there.`:`🌫️ ${fit.why?fit.why.charAt(0).toUpperCase()+fit.why.slice(1):'The water is wrong for it'}: it fishes slowly today.`);
     if(sp.viol){fx(t,60,'Tip for the empty water');violate(t.notes,sp.viol)}
     if(sp.risk&&Math.random()<sp.risk.p*windRisk()){t.notes.push(sp.risk.txt);t.happy+=sp.risk.h;adj('boat',sp.risk.boat||0);adj('energy',sp.risk.energy||0)}
@@ -3756,7 +3756,7 @@ function buyUp(u){const U=S.up,s=seasonOf(day());money(-u.cost);S.stats.spent+=u
 const RATE_BOOK=.08,RATE_STEEP=.025,RATE_MOOD=3;
 const rateSteps=()=>Math.round((((S.up&&S.up.rate)||1)-1)*10);
 const rateRep=()=>65+5*rateSteps();                          // rep needed to buy the NEXT step
-const rateDemand=()=>{const n=rateSteps();return Math.max(.4,1-RATE_BOOK*n-RATE_STEEP*n*(n-1)/2)};   // share of bookings that survive the price
+const rateDemand=()=>{const n=rateSteps();return Math.max(.4,1-DF().rateK*(RATE_BOOK*n+RATE_STEEP*n*(n-1)/2))};   // rateK: 1 = bookings fall as described below   // share of bookings that survive the price
 // effects used by the trip engine and payOf()
 const upQ=type=>(S.up.sled&&(type==='reds'||type==='silver')?.03:0)+(S.up.drift&&type==='trout'?.06:0);
 const upH=type=>(S.up.sled&&(type==='reds'||type==='silver')?2:0)+(S.up.drift&&type==='trout'?5:0)+(S.up.dock&&(type==='reds'||type==='silver')?3:0);
@@ -4131,9 +4131,9 @@ const campUsed=()=>!S.winter||campDaysLeft()<=0||(campTripsLeft()<=0&&campW().gi
 // effects on next season's trips and bookings (used by 22-trips.js and genSeasonBookings in 24-career.js)
 function campQ(){
   const C=S.camp;if(!C||!C.boost||C.boost.s<0||C.boost.s!==seasonOf(day())) return 0;
-  return S.stats.trips-((S.st0&&S.st0.trips)||0)<3?C.boost.q:0;
+  return S.stats.trips-((S.st0&&S.st0.trips)||0)<3?C.boost.q*DF().craft:0;
 }
-const campBook=s=>{const C=S.camp;return C&&C.boost&&C.boost.s===s?C.boost.book:0};
+const campBook=s=>{const C=S.camp;return C&&C.boost&&C.boost.s===s?C.boost.book*DF().craft:0};
 
 function campTicket(){
   const C=campW(),A=S.arcs&&S.arcs.rival,W=S.winter;

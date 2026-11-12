@@ -257,8 +257,8 @@ module.exports = [
   { name: 'condition: drifts down slowly, jobs restore it, and a run-down cabin has more bad luck', fn: async () => {
     let st = C.newState(); const c0 = st.cond;
     for (let d = 1; d < 14; d++) st = C.daily(tk({ state: st, phase: 'summer', sday: d, abs: 28 + d, recentFish: 0 }), { rand: K(.99) }).state;
-    assert.ok(c0 - st.cond > 5 && c0 - st.cond < 9, `a July costs ${c0 - st.cond}`);
-    const w = C.rollWinter(tk({ state: st }), { rand: K(.99) }); assert.ok(st.cond - w.cond >= 7 && st.cond - w.cond <= 12);
+    assert.ok(c0 - st.cond > 2 && c0 - st.cond < 4, `a July costs ${c0 - st.cond}`);   // 1.11.0: 0.2 a July day (was 0.5)
+    const w = C.rollWinter(tk({ state: st }), { rand: K(.99) }); assert.ok(st.cond - w.cond >= 2.5 && st.cond - w.cond <= 4, `a winter costs ${st.cond - w.cond}`);   // 3 (was 8)
     assert.ok(C.risk({ cond: 0 }) > C.risk({ cond: 50 }) && C.risk({ cond: 50 }) > C.risk({ cond: 100 }) && C.risk({ cond: 100 }) <= .66 && C.risk({ cond: 0 }) >= 1.89);
     assert.ok(C.risk({ cond: 20 }) - C.risk({ cond: 50 }) > C.risk({ cond: 80 }) - C.risk({ cond: 100 }) , 'the curve bends: wear compounds');
     const rate = cond => rolls(r => /ice dam/.test(lines(C.resolve(withState(tk(), s => { s.cond = cond; s.queue = [{ id: 'snow', depth: 1 }] }), 'snow', 'skip', { rand: r }))), 6000);
@@ -275,6 +275,28 @@ module.exports = [
     const year = pol => { let st = C.newState(); for (const ph of ['fall', 'spring']) { C.autoplay({ ticket: () => tk({ state: st, phase: ph, season: 1, daysLeft: 10 }), apply: r => { st = r.state } }, { policy: pol, rand: K(.99) }) } return st };
     const a = year('neglect'), b = year('careful');
     assert.ok(b.cond - a.cond > 15, `${b.cond} vs ${a.cond}`);
+  } },
+  { name: 'default play (the Home tab never opened, storm prompts answered with the top button) leaves a cabin worn but not run down after four years; skipping everything does', fn: async () => {
+    // 1.11.0: not doing a job is gentler than skipping it, so a guide who never opens the Home tab is not punished like one who skips on purpose
+    const stormsOnly = j => j.kind === 'event' ? C.policies.first(j) : null;
+    const years = (pol, seed) => {
+      const r = C.util.seeded(seed); let st = C.newState(), cash = 0, energy = 0;
+      const take = x => { st = x.state; cash += x.cashDelta; energy += x.energyDelta };
+      const play = (ph, y) => C.autoplay({ ticket: () => tk({ state: st, phase: ph, season: y, daysLeft: 10, cash: 9000 }), apply: take }, { policy: pol === 'default' ? stormsOnly : pol, rand: r });
+      for (let y = 1; y <= 4; y++) {
+        for (let d = 1; d < 14; d++) take(C.daily(tk({ state: st, phase: 'summer', season: y, sday: d, abs: y * 14 + d, recentFish: 0 }), { rand: r }));
+        play('fall', y); take(C.rollWinter(tk({ state: st, phase: 'fall', season: y }), { rand: r })); play('spring', y); take(C.rollSpring(tk({ state: st, phase: 'spring', season: y }), { rand: r }));
+      }
+      return { cond: st.cond, cash, energy };
+    };
+    const mean = (pol, f) => { let t = 0; for (let k = 1; k <= 40; k++) t += f(years(pol, k)); return t / 40; };
+    const dc = mean('default', x => x.cond), nc = mean('neglect', x => x.cond), cc = mean('careful', x => x.cond);
+    assert.ok(dc > 35 && dc < 85, `default cabin condition ${dc}`);
+    assert.ok(nc < 20, `neglected cabin condition ${nc}`);
+    assert.ok(cc > 90, `careful cabin condition ${cc}`);
+    assert.ok(dc > nc + 25, `default ${dc} vs neglect ${nc}`);
+    const dm = mean('default', x => x.cash + 40 * x.energy), nm = mean('neglect', x => x.cash + 40 * x.energy);
+    assert.ok(dm > nm, `default costs less than neglect: ${dm} vs ${nm}`);
   } },
   { name: 'a failure that closes the cabin can cost a booked trip: a stuck truck, a dead well pump, a septic backup and, in July, a dead pump', fn: async () => {
     const sp = f => withState(tk({ phase: 'spring' }), f);
@@ -591,7 +613,8 @@ module.exports = [
       return out;
     });
     res.forEach(r => { assert.ok(!r.over && r.loss == null && !r.winter, JSON.stringify(r)); });
-    assert.ok(res[0].cond > res[1].cond + 30, JSON.stringify(res)); assert.strictEqual(res[1].tot.diy + res[1].tot.pay, 0); assert.ok(res[0].tot.diy + res[0].tot.pay >= 5 && res[2].tot.diy + res[2].tot.pay >= 5, JSON.stringify(res));
+    assert.ok(res[0].cond > res[1].cond + 30, JSON.stringify(res)); assert.strictEqual(res[1].tot.diy + res[1].tot.pay, 0);
+    assert.ok(res[0].tot.diy + res[0].tot.pay >= 5 && res[2].tot.diy + res[2].tot.pay >= 5, JSON.stringify(res));
     noErrors(errors);
   } },
 ];

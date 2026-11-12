@@ -20,7 +20,7 @@
 
   // Tuning: how likely and how costly. Everything is scaled by the cabin's condition and the difficulty.
   const T=D.T={
-    drift:.5,winterDrift:8,                       // condition lost a July day / a whole off-season
+    drift:.2,winterDrift:3,                       // condition lost a July day / a whole off-season
     coldP:.6,snowP:.75,                           // a cold snap, a heavy snow, in a winter
     freezeBase:.36,burstShare:.35,                // pipes: chance a snap freezes them untreated; share that burst
     roofP:[.3,.5,.7],collapseP:.14,             // ice dam or leak by snow depth when you skip; a shed or porch roof

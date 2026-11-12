@@ -200,7 +200,8 @@ module.exports = [
       const night = document.querySelector('#mbg') && document.querySelector('#mbg').textContent;
       return { oh, delta: Math.round((m0 - S.money) * 100) / 100, spent: S.stats.spent - sp0, night };
     });
-    assert.deepStrictEqual(r.oh, { easy: 46, normal: 57, hard: 62 });   // 1.8.1: Combat Season's costs ×1.2 → ×1.08 assert.strictEqual(r.delta, 57, 'a night at home costs the overhead and nothing else: the meals come from the pantry you already paid for');
+    assert.deepStrictEqual(r.oh, { easy: 46, normal: 57, hard: 66 });   // 1.8.1: Combat Season's costs ×1.2 → ×1.08; 1.11.0: ×1.15 (with a lower client mood and fewer off-month bookings, in exchange for cheaper price rises)
+    assert.strictEqual(r.delta, 57, 'a night at home costs the overhead and nothing else: the meals come from the pantry you already paid for');
     assert.strictEqual(r.spent, 57); assert.ok(!/groceries/.test(r.night) && /utilities/.test(r.night), r.night);
     noErrors(errors);
   } },
