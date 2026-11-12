@@ -1786,7 +1786,7 @@ const DIFFS={
   // mood: client happiness (tips, rep). book: off-month bookings. wear: boat wear. rateK: how many bookings a price rise loses (1 = the usual). craft: how much reading the water, skill and winter camping pay (1 = fully). No difficulty changes the score.
   easy:  {n:'Rookie Season',ic:'🎣',d:'More cash, fewer troopers, cheaper bills and easygoing clients. For learning the water.',money:3000,bad:0.6,enforce:0.7,fine:0.8,esc:0.1,cost:0.8,mood:5,book:1.08,wear:0.85,craft:1,rateK:1},
   normal:{n:'Licensed Guide',ic:'🛶',d:'The Kenai as it is: busy, beautiful and well patrolled.',money:1500,bad:1,enforce:1,fine:1,esc:0.2,cost:1,mood:0,book:1,wear:1,craft:1,rateK:1},
-  hard:  {n:'Combat Season',ic:'🐻',d:'Thin cash, more troopers, fines that climb steeply with every citation, dearer fuel and bills, pickier clients, quieter off-months and more bad luck. The crowded river means a price rise loses fewer bookings, but the fish have seen every lure: reading the water and winter camping pay less. Same score, tougher grade.',money:600,bad:1.5,enforce:1.4,fine:1.1,esc:0.3,cost:1.15,mood:-4,book:0.95,wear:1.25,craft:0,rateK:0.8},
+  hard:  {n:'Combat Season',ic:'🐻',d:'Thin cash, more troopers, fines that climb steeply with every citation, dearer fuel and bills, pickier clients, quieter off-months and more bad luck. The crowded river means a price rise loses fewer bookings, but the fish have seen every lure: reading the water and winter camping pay less. Same score, tougher grade.',money:600,bad:1.5,enforce:1.4,fine:1.1,esc:0.3,cost:1.15,mood:-3,book:0.95,wear:1.25,craft:0,rateK:0.8},
 };
 const DF=()=>DIFFS[(typeof S!=='undefined'&&S&&S.diff)||'normal']||DIFFS.normal;
 // ---------------- state ----------------
