@@ -34,7 +34,7 @@ module.exports = [
         booked: S.book.filter(b => seasonOf(b.d) === 1).length, seasons: S.seasons.length, limit: S.limit };
     });
     assert.strictEqual(r.cur, 14); assert.strictEqual(r.season, 1); assert.strictEqual(r.year, 2027);
-    assert.ok(r.paid >= 4400, 'winter bills paid'); assert.ok(r.winter, 'off-season pending');
+    assert.ok(r.paid >= 3900, 'winter bills paid');   // 1.10.1: living costs $800 (was $1,300), so $500 less than before assert.ok(r.winter, 'off-season pending');
     assert.deepStrictEqual(r.acts, ['Plan the off-season']); assert.strictEqual(r.req, null, 'no calls during the off-season');
     assert.ok(r.booked > 0, 'new bookings'); assert.strictEqual(r.seasons, 1); assert.strictEqual(r.limit, 3);
     noErrors(errors);

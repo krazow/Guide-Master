@@ -29,12 +29,18 @@
     bearBase:.004,bearFish:.012,bearOver:5,       // a bear in the yard: per day, with fish at home, if the bins are overdue
     harvest:8,moosePct:.55,                       // meals from a garden, chance a moose eats an unfenced one
     fee:4,optIn:.55,spoilBad:.3,spoilMid:.12,spoilOk:.02,
+    skipWear:.75,stormWear:2,                     // condition lost when you skip a job (this share of what doing it would restore) or a storm prompt
+    troubleAt:35,troubleP:.03,troubleMax:1,       // July: below this condition the cabin itself gets in the way (a chance a day, at most this many a summer)
+    cancelP:.25,                                   // a spring or July failure that closes the cabin loses a booked trip this often
+    restAt:75,rest:3,                             // July: a warm, dry, tidy cabin (this condition and up) sends you out rested: energy a morning
+    shabbyAt:40,shabbyP:.2,                       // spring: below this condition a party may walk away from the first days of the season (a chance up to this, at 0)
+    tiredAt:35,                                   // July: below this condition a cold, damp cabin costs sleep every night
   };
   C.RUSH=520;
 
   // ---- the state ----
   C.newState=function(){return {v:1,cond:80,y:0,rolled:-1,sprung:-1,
-    heat:{oil:1,stove:0},tape:0,skirt:0,strap:0,detect:0,bin:0,fence:0,proc:0,chill:0,sweepSkips:0,bearY:-1,rem:-1,skipAbs:-99,
+    heat:{oil:1,stove:0},tape:0,skirt:0,strap:0,detect:0,bin:0,fence:0,proc:0,chill:0,sweepSkips:0,bearY:-1,troubleY:-1,troubles:0,tiredY:-1,restY:-1,rem:-1,skipAbs:-99,
     did:{sweep:-1,oil:-1,wood:-1,detest:-1,breakup:-1,well:0,septic:-1,bins:-99,genoil:-1,genrun:-1,stdef:-1},skip:{},
     garden:{y:-1},station:{tidy:100},queue:[],
     tot:{diy:0,pay:0,skip:0,events:0,lost:0,fees:0,spoiled:0,harvest:0,moose:0,bears:0}}};
@@ -67,18 +73,19 @@
     };
   };
 
-  // risk multiplier from the cabin's condition: 0.7 in perfect shape up to 1.6 when it is falling apart
-  const cm=s=>.7+.9*(1-s.cond/100);
+  // risk multiplier from the cabin's condition: 0.65 in perfect shape, about 0.8 at 80, 1.15 at 50, 1.6 at 20 and 1.9 when it is falling
+  // apart. The curve bends: a little wear costs little, a run-down cabin compounds.
+  const cm=s=>.65+1.25*Math.pow(1-s.cond/100,1.3);
   C.risk=s=>Math.round(cm(s)*100)/100;
 
   // ---- reports ----
-  function newOut(){return {costs:{},cash:0,spent:0,earned:0,energy:0,rep:0,wom:0,minutes:0,days:0,daysLost:0,fuel:0,fresh:0,meals:0,lines:[],tiles:[],done:[],sev:0,remind:''}}
+  function newOut(){return {costs:{},cash:0,spent:0,earned:0,energy:0,rep:0,wom:0,minutes:0,days:0,daysLost:0,fuel:0,fresh:0,meals:0,lines:[],tiles:[],done:[],sev:0,remind:'',cancels:0}}
   function line(out,txt){out.lines.push(txt)}
   function cost(out,x,id){x=Math.round(x);out.cash-=x;out.spent+=x;if(id)out.costs[id]=(out.costs[id]||0)+x}
   function report(s,out){
     s.cond=clamp(Math.round(s.cond*10)/10,0,100);
     return {v:C.SCHEMA,state:s,cashDelta:out.cash,spent:out.spent,earned:out.earned,energyDelta:out.energy,repDelta:out.rep,womDelta:out.wom,minutes:out.minutes,
-      daysUsed:out.days,daysLost:out.daysLost,homeFuel:out.fuel,freshLost:out.fresh,foodMeals:out.meals,lines:out.lines,tiles:out.tiles,done:out.done,severity:out.sev,remind:out.remind,cond:s.cond,costs:out.costs}}
+      daysUsed:out.days,daysLost:out.daysLost,homeFuel:out.fuel,freshLost:out.fresh,foodMeals:out.meals,lines:out.lines,tiles:out.tiles,done:out.done,severity:out.sev,remind:out.remind,cancels:out.cancels,cond:s.cond,costs:out.costs}}
 
   // ---- the three ways ----
   const dayTxt=n=>n<=0?'a few hours':n===1?'1 day':n+' days';
@@ -144,10 +151,11 @@
     if(j.kind==='event'){
       s.queue=s.queue.filter(e=>e!==j.q&&!(e.id===j.q.id));
       (j.id==='cold'?coldOutcome:snowOutcome)(s,t,optId,r,out,j.q);
-      if(optId!=='skip')s.cond+=j.cond;
+      if(optId!=='skip')s.cond+=j.cond;else s.cond-=T.stormWear;
     }else{
       if(optId==='skip'){
         if(j.id==='bins')s.skipAbs=t.abs;else s.skip[j.id]=y;
+        s.cond-=Math.ceil(j.cond*T.skipWear);
         line(out,`⏭️ ${jd.title} skipped. ${jd.risk}`);
       }else{
         const f=D.FX[j.id];if(f)f(s,t,optId,out);
@@ -187,8 +195,8 @@
     if(r()<pf){
       const burst=r()<clamp(T.burstShare*(s.tape?.45:1)*(cold?1.4:1),0,.8);
       out.sev=2;
-      if(burst){cost(out,$c(t,2200),'burst');out.daysLost+=3;s.cond-=12;out.fresh=1;
-        line(out,`💦 A pipe under the floor bursts. Water everywhere until you find the shutoff. The plumber and the cleanup come to ${$($c(t,2200))}, it takes about three days to dry out, and the fridge food is a loss.`)}
+      if(burst){cost(out,$c(t,2400),'burst');out.daysLost+=3;s.cond-=12;out.fresh=1;
+        line(out,`💦 A pipe under the floor bursts. Water everywhere until you find the shutoff. The plumber and the cleanup come to ${$($c(t,2400))}, it takes about three days to dry out, and the fridge food is a loss.`)}
       else{cost(out,$c(t,380),'frozen');out.daysLost+=1;s.cond-=4;if(cold)out.fresh=1;
         line(out,`🧊 The kitchen line freezes solid. A plumber thaws it for ${$($c(t,380))} and it eats a day.${cold?' The fridge got cold enough to ruin the fresh food.':''}`)}
     }else line(out,optId==='skip'?'😮‍💨 The pipes hold, this time.':'🚰 The pipes hold. The dripping taps did their job.');
@@ -200,7 +208,7 @@
     const m=cm(s)*t.bad,d=q.depth,safe=optId!=='skip';
     if(safe)line(out,optId==='diy'?'⛏️ You rake the roof and plow the drive. Your back files a complaint.':'🚜 The neighbor plows the drive and a roofer rakes the snow off the roof.');
     const pl=T.roofP[d-1]*(safe?.1:1)*m;
-    if(r()<pl){const c=$c(t,1200*(1+.4*(d-1)));cost(out,c,'icedam');s.cond-=8;out.sev=2;
+    if(r()<pl){const c=$c(t,1400*(1+.4*(d-1)));cost(out,c,'icedam');s.cond-=8;out.sev=2;
       line(out,`💧 Snow melts and refreezes at the eaves. An ice dam lets water in and the ceiling stains. Repairs come to ${$(c)}.`)}
     else if(!safe&&d===3&&r()<T.collapseP*m){const c=$c(t,2600);cost(out,c,'collapse');s.cond-=14;out.daysLost+=1;out.sev=2;
       line(out,`🏚️ The shed roof gives way under two feet of wet snow. Cleanup and a new roof run ${$(c)}, and a day.`)}
@@ -246,25 +254,27 @@
     s.sprung=y;
     // breakup
     if(s.did.breakup!==y&&r()<clamp(T.breakupP*m,0,.95)){
-      if(r()<.6){const c=$c(t,260);cost(out,c,'stuck');out.energy-=6;s.tot.events++;out.sev=1;line(out,`🚧 Breakup. The driveway is soup and the truck sinks to the axles on the first morning. A tow costs ${$(c)}.`)}
+      if(r()<.6){const c=$c(t,260),x=r()<T.cancelP;cost(out,c,'stuck');out.energy-=6;if(x)out.cancels++;s.tot.events++;out.sev=1;line(out,`🚧 Breakup. The driveway is soup and the truck sinks to the axles on the first morning. A tow costs ${$(c)}.${x?' A party coming for the first days of July will not make it down the drive.':''}`)}
       else{const c=$c(t,900);cost(out,c,'heave');s.cond-=6;s.tot.events++;out.sev=2;line(out,`🚧 Frost heaves shift a skirting panel and a post settles. The back door sticks. A carpenter sets it right for ${$(c)}.`)}
     }
     // the well
     const wy=Math.max(0,y-s.did.well);
     if(r()<clamp(s.did.well===y?.003:T.wellBase+T.wellYear*Math.max(0,wy-1),0,.2)*m){
-      const c=$c(t,1200);cost(out,c,'well');out.daysLost+=3;out.energy-=10;s.cond-=10;s.tot.events++;out.sev=2;
-      line(out,`💧 The water turns cloudy, then the pump quits. Many homes around Soldotna rely on a well, and yours needs a new pump and treatment: ${$(c)}, and three days with the house barely usable.`)}
+      const c=$c(t,1500),x=r()<T.cancelP;if(x)out.cancels++;cost(out,c,'well');out.daysLost+=3;out.energy-=10;s.cond-=10;s.tot.events++;out.sev=2;
+      line(out,`💧 The water turns cloudy, then the pump quits. Many homes around Soldotna rely on a well, and yours needs a new pump and treatment: ${$(c)}, and three days with the house barely usable.${x?' A booked party will not stay at a place with no water.':''}`)}
     // septic
     const over=y-s.did.septic-3;
     if(r()<clamp(over<0?.002:T.septicBase+T.septicYear*over,0,.3)*m){
-      const c=$c(t,1800);cost(out,c,'septic');out.daysLost+=2;s.cond-=10;s.tot.events++;out.sev=2;
-      line(out,`🚽 The septic tank backs up into the house. An emergency pump-out and a cleaned drain field come to ${$(c)}, and the house is unusable for a couple of days.`)}
+      const c=$c(t,2100),x=r()<T.cancelP;if(x)out.cancels++;cost(out,c,'septic');out.daysLost+=2;s.cond-=10;s.tot.events++;out.sev=2;
+      line(out,`🚽 The septic tank backs up into the house. An emergency pump-out and a cleaned drain field come to ${$(c)}, and the house is unusable for a couple of days.${x?' A booked party hears about it and cancels.':''}`)}
     // an earthquake
     if(r()<T.quakeP*t.bad){
       if(s.strap){line(out,'🌎 A magnitude 6 quake rattles the cabin, felt across the Kenai. Dishes jump, but the strapped water heater and the anchored shelves stay put.')}
       else{const c=$c(t,1100);cost(out,c,'quake');out.daysLost+=1;s.cond-=15;s.tot.events++;out.sev=2;
         line(out,`🌎 A magnitude 6 earthquake, felt across the Kenai (like the big 2018 Anchorage quake). The water heater tips, a shelf comes down and the kitchen is a mess: ${$(c)} to fix, and a day.`)}
     }
+    // a run-down place puts off the first parties of the season: the lower the condition, the likelier one looks elsewhere
+    if(s.cond<T.shabbyAt&&r()<(T.shabbyAt-s.cond)/T.shabbyAt*T.shabbyP){out.cancels++;out.sev=Math.max(out.sev,1);line(out,'🏚️ A party drives out to see where they will be staying, takes a look at the sagging porch and the stained ceiling, and books another guide. A run-down cabin costs you a trip.')}
     s.skip={};
     return report(s,out);
   };
@@ -281,7 +291,20 @@
         s.bearY=y;s.tot.bears++;s.tot.events++;const k=r();
         if(k<.45){const c=$c(t,120+Math.round(r()*280));cost(out,c,'bear');s.cond-=5;out.sev=1;line(out,`🐻 A black bear gets into the garbage and the fish scraps overnight. Torn bags, a dented bin and a mess all over the yard: ${$(c)} to clean and repair.`)}
         else if(k<.8){const c=$c(t,60);cost(out,c,'bear');out.minutes+=45;out.energy-=4;out.sev=1;line(out,`🐻 You wake to a bear snorting around the yard. It takes 45 minutes and a lot of banging pots before it leaves, and ${$(c)} of cleanup.`)}
-        else{out.rep-=2;out.sev=1;line(out,'🐻 A bear gets into your garbage and a Fish and Game officer stops by to talk about attractants. Feeding bears, even by accident with trash, can mean a warning or a fine. You get a warning, and the neighbors hear about it. Rep −2.')}
+        else{out.rep-=3;out.wom-=4;out.sev=1;line(out,'🐻 A bear gets into your garbage and a Fish and Game officer stops by to talk about attractants. Feeding bears, even by accident with trash, can mean a warning or a fine. You get a warning, and the neighbors hear about it. Rep −3, and word of mouth takes a hit.')}
+      }
+    }
+    // a cabin in good shape sends you out rested
+    if(s.cond>=T.restAt){out.energy+=T.rest;if(s.restY!==y){s.restY=y;line(out,'☕ The cabin is warm, dry and tidy, and you wake rested. Energy +'+T.rest+' a morning while it stays that way.')}}
+    // a run-down cabin gets in the way of the season: nights are cold and damp, and now and then something fails on a guiding morning
+    if(s.cond<T.tiredAt){const e=s.cond<15?4:2;out.energy-=e;if(s.tiredY!==y){s.tiredY=y;line(out,'🥶 The cabin is cold and damp and the roof drips onto a pan. You sleep badly, and it shows on the river.')}}
+    if(s.cond<T.troubleAt&&t.sday>=1){
+      if(s.troubleY!==y){s.troubleY=y;s.troubles=0}
+      if(s.troubles<T.troubleMax&&r()<clamp(T.troubleP*m*(1+(T.troubleAt-s.cond)/25),0,.5)){
+        s.troubles++;s.tot.events++;out.sev=1;const k=r();
+        if(k<.4){const c=$c(t,380),x=r()<T.cancelP;cost(out,c,'trouble');if(x)out.cancels++;out.energy-=6;s.cond+=3;line(out,`🚰 The pump and pressure tank give out in the night. No water for the coffee, the dishes or the clients’ lunch bag. A plumber on a Saturday costs ${$(c)}.${x?' The next party cancels rather than wait.':''}`)}
+        else if(k<.75){const c=$c(t,420);cost(out,c,'trouble');out.minutes+=60;out.energy-=6;s.cond+=3;line(out,`💧 The roof leaks onto the stove and the wiring trips the breaker. An hour on a ladder in the rain and ${$(c)} in parts, and you start the day late and wet.`)}
+        else{const c=$c(t,260);cost(out,c,'trouble');out.energy-=10;out.rep-=1;s.cond+=2;line(out,`🥶 The furnace blower quits on the coldest night of the month. You get no sleep, a clean-up and a repair of ${$(c)}, and the clients notice how tired you look. Energy −10, rep −1.`)}
       }
     }
     // the garden: harvest on day 10
