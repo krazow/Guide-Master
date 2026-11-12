@@ -1233,12 +1233,18 @@ const CabinUpkeep={
     bearBase:.004,bearFish:.012,bearOver:5,       // a bear in the yard: per day, with fish at home, if the bins are overdue
     harvest:8,moosePct:.55,                       // meals from a garden, chance a moose eats an unfenced one
     fee:4,optIn:.55,spoilBad:.3,spoilMid:.12,spoilOk:.02,
+    skipWear:.75,stormWear:2,                     // condition lost when you skip a job (this share of what doing it would restore) or a storm prompt
+    troubleAt:35,troubleP:.03,troubleMax:1,       // July: below this condition the cabin itself gets in the way (a chance a day, at most this many a summer)
+    cancelP:.25,                                   // a spring or July failure that closes the cabin loses a booked trip this often
+    restAt:75,rest:3,                             // July: a warm, dry, tidy cabin (this condition and up) sends you out rested: energy a morning
+    shabbyAt:40,shabbyP:.2,                       // spring: below this condition a party may walk away from the first days of the season (a chance up to this, at 0)
+    tiredAt:35,                                   // July: below this condition a cold, damp cabin costs sleep every night
   };
   C.RUSH=520;
 
   // ---- the state ----
   C.newState=function(){return {v:1,cond:80,y:0,rolled:-1,sprung:-1,
-    heat:{oil:1,stove:0},tape:0,skirt:0,strap:0,detect:0,bin:0,fence:0,proc:0,chill:0,sweepSkips:0,bearY:-1,rem:-1,skipAbs:-99,
+    heat:{oil:1,stove:0},tape:0,skirt:0,strap:0,detect:0,bin:0,fence:0,proc:0,chill:0,sweepSkips:0,bearY:-1,troubleY:-1,troubles:0,tiredY:-1,restY:-1,rem:-1,skipAbs:-99,
     did:{sweep:-1,oil:-1,wood:-1,detest:-1,breakup:-1,well:0,septic:-1,bins:-99,genoil:-1,genrun:-1,stdef:-1},skip:{},
     garden:{y:-1},station:{tidy:100},queue:[],
     tot:{diy:0,pay:0,skip:0,events:0,lost:0,fees:0,spoiled:0,harvest:0,moose:0,bears:0}}};
@@ -1271,18 +1277,19 @@ const CabinUpkeep={
     };
   };
 
-  // risk multiplier from the cabin's condition: 0.7 in perfect shape up to 1.6 when it is falling apart
-  const cm=s=>.7+.9*(1-s.cond/100);
+  // risk multiplier from the cabin's condition: 0.65 in perfect shape, about 0.8 at 80, 1.15 at 50, 1.6 at 20 and 1.9 when it is falling
+  // apart. The curve bends: a little wear costs little, a run-down cabin compounds.
+  const cm=s=>.65+1.25*Math.pow(1-s.cond/100,1.3);
   C.risk=s=>Math.round(cm(s)*100)/100;
 
   // ---- reports ----
-  function newOut(){return {costs:{},cash:0,spent:0,earned:0,energy:0,rep:0,wom:0,minutes:0,days:0,daysLost:0,fuel:0,fresh:0,meals:0,lines:[],tiles:[],done:[],sev:0,remind:''}}
+  function newOut(){return {costs:{},cash:0,spent:0,earned:0,energy:0,rep:0,wom:0,minutes:0,days:0,daysLost:0,fuel:0,fresh:0,meals:0,lines:[],tiles:[],done:[],sev:0,remind:'',cancels:0}}
   function line(out,txt){out.lines.push(txt)}
   function cost(out,x,id){x=Math.round(x);out.cash-=x;out.spent+=x;if(id)out.costs[id]=(out.costs[id]||0)+x}
   function report(s,out){
     s.cond=clamp(Math.round(s.cond*10)/10,0,100);
     return {v:C.SCHEMA,state:s,cashDelta:out.cash,spent:out.spent,earned:out.earned,energyDelta:out.energy,repDelta:out.rep,womDelta:out.wom,minutes:out.minutes,
-      daysUsed:out.days,daysLost:out.daysLost,homeFuel:out.fuel,freshLost:out.fresh,foodMeals:out.meals,lines:out.lines,tiles:out.tiles,done:out.done,severity:out.sev,remind:out.remind,cond:s.cond,costs:out.costs}}
+      daysUsed:out.days,daysLost:out.daysLost,homeFuel:out.fuel,freshLost:out.fresh,foodMeals:out.meals,lines:out.lines,tiles:out.tiles,done:out.done,severity:out.sev,remind:out.remind,cancels:out.cancels,cond:s.cond,costs:out.costs}}
 
   // ---- the three ways ----
   const dayTxt=n=>n<=0?'a few hours':n===1?'1 day':n+' days';
@@ -1348,10 +1355,11 @@ const CabinUpkeep={
     if(j.kind==='event'){
       s.queue=s.queue.filter(e=>e!==j.q&&!(e.id===j.q.id));
       (j.id==='cold'?coldOutcome:snowOutcome)(s,t,optId,r,out,j.q);
-      if(optId!=='skip')s.cond+=j.cond;
+      if(optId!=='skip')s.cond+=j.cond;else s.cond-=T.stormWear;
     }else{
       if(optId==='skip'){
         if(j.id==='bins')s.skipAbs=t.abs;else s.skip[j.id]=y;
+        s.cond-=Math.ceil(j.cond*T.skipWear);
         line(out,`⏭️ ${jd.title} skipped. ${jd.risk}`);
       }else{
         const f=D.FX[j.id];if(f)f(s,t,optId,out);
@@ -1391,8 +1399,8 @@ const CabinUpkeep={
     if(r()<pf){
       const burst=r()<clamp(T.burstShare*(s.tape?.45:1)*(cold?1.4:1),0,.8);
       out.sev=2;
-      if(burst){cost(out,$c(t,2200),'burst');out.daysLost+=3;s.cond-=12;out.fresh=1;
-        line(out,`💦 A pipe under the floor bursts. Water everywhere until you find the shutoff. The plumber and the cleanup come to ${$($c(t,2200))}, it takes about three days to dry out, and the fridge food is a loss.`)}
+      if(burst){cost(out,$c(t,2400),'burst');out.daysLost+=3;s.cond-=12;out.fresh=1;
+        line(out,`💦 A pipe under the floor bursts. Water everywhere until you find the shutoff. The plumber and the cleanup come to ${$($c(t,2400))}, it takes about three days to dry out, and the fridge food is a loss.`)}
       else{cost(out,$c(t,380),'frozen');out.daysLost+=1;s.cond-=4;if(cold)out.fresh=1;
         line(out,`🧊 The kitchen line freezes solid. A plumber thaws it for ${$($c(t,380))} and it eats a day.${cold?' The fridge got cold enough to ruin the fresh food.':''}`)}
     }else line(out,optId==='skip'?'😮‍💨 The pipes hold, this time.':'🚰 The pipes hold. The dripping taps did their job.');
@@ -1404,7 +1412,7 @@ const CabinUpkeep={
     const m=cm(s)*t.bad,d=q.depth,safe=optId!=='skip';
     if(safe)line(out,optId==='diy'?'⛏️ You rake the roof and plow the drive. Your back files a complaint.':'🚜 The neighbor plows the drive and a roofer rakes the snow off the roof.');
     const pl=T.roofP[d-1]*(safe?.1:1)*m;
-    if(r()<pl){const c=$c(t,1200*(1+.4*(d-1)));cost(out,c,'icedam');s.cond-=8;out.sev=2;
+    if(r()<pl){const c=$c(t,1400*(1+.4*(d-1)));cost(out,c,'icedam');s.cond-=8;out.sev=2;
       line(out,`💧 Snow melts and refreezes at the eaves. An ice dam lets water in and the ceiling stains. Repairs come to ${$(c)}.`)}
     else if(!safe&&d===3&&r()<T.collapseP*m){const c=$c(t,2600);cost(out,c,'collapse');s.cond-=14;out.daysLost+=1;out.sev=2;
       line(out,`🏚️ The shed roof gives way under two feet of wet snow. Cleanup and a new roof run ${$(c)}, and a day.`)}
@@ -1450,25 +1458,27 @@ const CabinUpkeep={
     s.sprung=y;
     // breakup
     if(s.did.breakup!==y&&r()<clamp(T.breakupP*m,0,.95)){
-      if(r()<.6){const c=$c(t,260);cost(out,c,'stuck');out.energy-=6;s.tot.events++;out.sev=1;line(out,`🚧 Breakup. The driveway is soup and the truck sinks to the axles on the first morning. A tow costs ${$(c)}.`)}
+      if(r()<.6){const c=$c(t,260),x=r()<T.cancelP;cost(out,c,'stuck');out.energy-=6;if(x)out.cancels++;s.tot.events++;out.sev=1;line(out,`🚧 Breakup. The driveway is soup and the truck sinks to the axles on the first morning. A tow costs ${$(c)}.${x?' A party coming for the first days of July will not make it down the drive.':''}`)}
       else{const c=$c(t,900);cost(out,c,'heave');s.cond-=6;s.tot.events++;out.sev=2;line(out,`🚧 Frost heaves shift a skirting panel and a post settles. The back door sticks. A carpenter sets it right for ${$(c)}.`)}
     }
     // the well
     const wy=Math.max(0,y-s.did.well);
     if(r()<clamp(s.did.well===y?.003:T.wellBase+T.wellYear*Math.max(0,wy-1),0,.2)*m){
-      const c=$c(t,1200);cost(out,c,'well');out.daysLost+=3;out.energy-=10;s.cond-=10;s.tot.events++;out.sev=2;
-      line(out,`💧 The water turns cloudy, then the pump quits. Many homes around Soldotna rely on a well, and yours needs a new pump and treatment: ${$(c)}, and three days with the house barely usable.`)}
+      const c=$c(t,1500),x=r()<T.cancelP;if(x)out.cancels++;cost(out,c,'well');out.daysLost+=3;out.energy-=10;s.cond-=10;s.tot.events++;out.sev=2;
+      line(out,`💧 The water turns cloudy, then the pump quits. Many homes around Soldotna rely on a well, and yours needs a new pump and treatment: ${$(c)}, and three days with the house barely usable.${x?' A booked party will not stay at a place with no water.':''}`)}
     // septic
     const over=y-s.did.septic-3;
     if(r()<clamp(over<0?.002:T.septicBase+T.septicYear*over,0,.3)*m){
-      const c=$c(t,1800);cost(out,c,'septic');out.daysLost+=2;s.cond-=10;s.tot.events++;out.sev=2;
-      line(out,`🚽 The septic tank backs up into the house. An emergency pump-out and a cleaned drain field come to ${$(c)}, and the house is unusable for a couple of days.`)}
+      const c=$c(t,2100),x=r()<T.cancelP;if(x)out.cancels++;cost(out,c,'septic');out.daysLost+=2;s.cond-=10;s.tot.events++;out.sev=2;
+      line(out,`🚽 The septic tank backs up into the house. An emergency pump-out and a cleaned drain field come to ${$(c)}, and the house is unusable for a couple of days.${x?' A booked party hears about it and cancels.':''}`)}
     // an earthquake
     if(r()<T.quakeP*t.bad){
       if(s.strap){line(out,'🌎 A magnitude 6 quake rattles the cabin, felt across the Kenai. Dishes jump, but the strapped water heater and the anchored shelves stay put.')}
       else{const c=$c(t,1100);cost(out,c,'quake');out.daysLost+=1;s.cond-=15;s.tot.events++;out.sev=2;
         line(out,`🌎 A magnitude 6 earthquake, felt across the Kenai (like the big 2018 Anchorage quake). The water heater tips, a shelf comes down and the kitchen is a mess: ${$(c)} to fix, and a day.`)}
     }
+    // a run-down place puts off the first parties of the season: the lower the condition, the likelier one looks elsewhere
+    if(s.cond<T.shabbyAt&&r()<(T.shabbyAt-s.cond)/T.shabbyAt*T.shabbyP){out.cancels++;out.sev=Math.max(out.sev,1);line(out,'🏚️ A party drives out to see where they will be staying, takes a look at the sagging porch and the stained ceiling, and books another guide. A run-down cabin costs you a trip.')}
     s.skip={};
     return report(s,out);
   };
@@ -1485,7 +1495,20 @@ const CabinUpkeep={
         s.bearY=y;s.tot.bears++;s.tot.events++;const k=r();
         if(k<.45){const c=$c(t,120+Math.round(r()*280));cost(out,c,'bear');s.cond-=5;out.sev=1;line(out,`🐻 A black bear gets into the garbage and the fish scraps overnight. Torn bags, a dented bin and a mess all over the yard: ${$(c)} to clean and repair.`)}
         else if(k<.8){const c=$c(t,60);cost(out,c,'bear');out.minutes+=45;out.energy-=4;out.sev=1;line(out,`🐻 You wake to a bear snorting around the yard. It takes 45 minutes and a lot of banging pots before it leaves, and ${$(c)} of cleanup.`)}
-        else{out.rep-=2;out.sev=1;line(out,'🐻 A bear gets into your garbage and a Fish and Game officer stops by to talk about attractants. Feeding bears, even by accident with trash, can mean a warning or a fine. You get a warning, and the neighbors hear about it. Rep −2.')}
+        else{out.rep-=3;out.wom-=4;out.sev=1;line(out,'🐻 A bear gets into your garbage and a Fish and Game officer stops by to talk about attractants. Feeding bears, even by accident with trash, can mean a warning or a fine. You get a warning, and the neighbors hear about it. Rep −3, and word of mouth takes a hit.')}
+      }
+    }
+    // a cabin in good shape sends you out rested
+    if(s.cond>=T.restAt){out.energy+=T.rest;if(s.restY!==y){s.restY=y;line(out,'☕ The cabin is warm, dry and tidy, and you wake rested. Energy +'+T.rest+' a morning while it stays that way.')}}
+    // a run-down cabin gets in the way of the season: nights are cold and damp, and now and then something fails on a guiding morning
+    if(s.cond<T.tiredAt){const e=s.cond<15?4:2;out.energy-=e;if(s.tiredY!==y){s.tiredY=y;line(out,'🥶 The cabin is cold and damp and the roof drips onto a pan. You sleep badly, and it shows on the river.')}}
+    if(s.cond<T.troubleAt&&t.sday>=1){
+      if(s.troubleY!==y){s.troubleY=y;s.troubles=0}
+      if(s.troubles<T.troubleMax&&r()<clamp(T.troubleP*m*(1+(T.troubleAt-s.cond)/25),0,.5)){
+        s.troubles++;s.tot.events++;out.sev=1;const k=r();
+        if(k<.4){const c=$c(t,380),x=r()<T.cancelP;cost(out,c,'trouble');if(x)out.cancels++;out.energy-=6;s.cond+=3;line(out,`🚰 The pump and pressure tank give out in the night. No water for the coffee, the dishes or the clients’ lunch bag. A plumber on a Saturday costs ${$(c)}.${x?' The next party cancels rather than wait.':''}`)}
+        else if(k<.75){const c=$c(t,420);cost(out,c,'trouble');out.minutes+=60;out.energy-=6;s.cond+=3;line(out,`💧 The roof leaks onto the stove and the wiring trips the breaker. An hour on a ladder in the rain and ${$(c)} in parts, and you start the day late and wet.`)}
+        else{const c=$c(t,260);cost(out,c,'trouble');out.energy-=10;out.rep-=1;s.cond+=2;line(out,`🥶 The furnace blower quits on the coldest night of the month. You get no sleep, a clean-up and a repair of ${$(c)}, and the clients notice how tired you look. Energy −10, rep −1.`)}
       }
     }
     // the garden: harvest on day 10
@@ -1659,7 +1682,7 @@ const CabinUpkeep={
 //  CabinUpkeep.autoplay(host, {policy, rand}) does every job that is due now, using a policy, with no screen. The host's bots and
 //  the tests use it, and it is how the module is balanced. host: {ticket(), apply(report)}.
 //  Policies:
-//    'careful'  do it yourself when there is time and energy, else pay (while cash is comfortable), else skip
+//    'careful'  do it yourself when there is time and energy and a $400 cushion of cash, else pay (while cash is comfortable), else skip
 //    'payall'   pay when cash is comfortable, else do it yourself, else skip
 //    'neglect'  skip everything, including the storm prompts
 //    'first'    the first option that is available (what a bot tapping the top button would do)
@@ -1667,9 +1690,10 @@ const CabinUpkeep={
 // ============================================================
 (function(C){
   'use strict';
+  const CUSHION=400;     // a careful player does not spend the last of the cash on a chore (a start on thin cash waits for the first fares)
   const POL={
     careful:(j,t)=>{const d=j.opts[0],p=j.opts[1];
-      if(!d.dis&&(t.phase==='summer'||d.days<=1||t.daysLeft>=d.days+4))return 'diy';
+      if(!d.dis&&t.cash>=d.cash+CUSHION&&(t.phase==='summer'||d.days<=1||t.daysLeft>=d.days+4))return 'diy';
       if(!p.dis&&t.cash>1500+p.cash)return 'pay';return 'skip'},
     payall:(j,t)=>{const d=j.opts[0],p=j.opts[1];if(!p.dis&&t.cash>1500+p.cash)return 'pay';if(!d.dis)return 'diy';return 'skip'},
     neglect:()=>'skip',
@@ -1719,7 +1743,7 @@ const GAME={
   title:'Guide Master',
   tagline:'A guide’s career on the Kenai',
   codePrefix:'GUIDEMASTER',   // transfer codes start with this, e.g. POCKETWEEK:eyJ…
-  version:'1.10.0',           // bump on every release: shown in Settings, stamped into saves and sw.js
+  version:'1.10.1',           // bump on every release: shown in Settings, stamped into saves and sw.js
   schema:4,                  // bump when the shape of S changes, and add a MIGRATIONS entry (21-story.js)
   days:14,                   // days in ONE season (the July peak, Mon–Sun twice; season 1 is Jul 13–26, 2026). A career is 14 × years: see the getter below
   wake:300,                  // default alarm for new games, in minutes after midnight (300 = 5:00 AM: guides start early; saves keep their own S.alarm)
@@ -3731,7 +3755,7 @@ const HAP0=76;
 const seasonHap=(s,o)=>{const n=(s.hapN||0)-(o.hapN||0);return n>0?((s.hapSum||0)-(o.hapSum||0))/n:HAP0};
 
 // ---- season rollover: runs on the first morning of each new season (from onMorning) ----
-const WINTER_COST=[['🏠 Living costs, Oct–May (after your winter job)',1300,'🏠 Living'],['🪪 Guide & business licenses, KRSMA permit, vessel decals',650,'🪪 Licenses & permits'],['🛡️ Liability insurance & drug-testing consortium',1950,'🛡️ Insurance']];
+const WINTER_COST=[['🏠 Living costs, Oct–May (after your winter job)',800,'🏠 Living'],['🪪 Guide & business licenses, KRSMA permit, vessel decals',650,'🪪 Licenses & permits'],['🛡️ Liability insurance & drug-testing consortium',1950,'🛡️ Insurance']];
 const winterCosts=()=>WINTER_COST.concat(S.up&&S.up.asst?[['🧑‍🤝‍🧑 Assistant guide: license, decals, insurance, drug-testing',3000,'🧑‍🤝‍🧑 Assistant']]:[],S.up&&S.up.lodge?[['🏡 Cabins: property tax, insurance and winterizing',5500,'🏡 Cabins']]:[]).map(([n,c,sh])=>[n,Math.round(c*DF().cost),sh]);
 
 // ---- late-career money sinks (2026 Alaska prices, approximate) ----
@@ -3805,7 +3829,7 @@ function upgradeModal(){
 }
 function finishWinter(){
   homeFinishWinter();                                    // 32-home.js: spring at the cabin, before the bookings open
-  const s=S.winter.s;S.winter=null;const reg=genSeasonBookings(s);
+  const s=S.winter.s;S.winter=null;const reg=genSeasonBookings(s);homeSeasonOpens(s);
   const n=S.book.filter(b=>seasonOf(b.d)===s).length;
   say(`📅 ${2026+s} bookings are in: <b>${n} trips</b> for the season. ${REG().fc}${reg.length?'<br>'+reg.join('<br>'):''}`);
   showTile('📅',`${n} trips booked`,`Season ${s+1} of ${S.years}`,'good');
@@ -3982,7 +4006,7 @@ const HELP=[
   ['🐟','Fish & weather','The <strong>🐟 Fish</strong> tab shows today’s weather, river level, tides, the odds by place and species, where to fish today, and when each run arrives. Reds bite best at first light; silvers build late July; pinks run in even years. <strong>Read it before you launch:</strong> every spot fishes better or worse with the day’s water, wind, run and tide, and once you have looked at the tab (or scouted the river) the spot buttons show a Hot, Good, Fair or Poor read. With no clients booked, <strong>Take the boat out</strong> to fill your freezer and scout.'],
   ['🔧','Money & gear','The booked fare is your base pay; tips, refunds and word of mouth follow how the day went: the catch, happy clients, tackle and a boat in good shape. A well-kept boat and a fed crew pay: tips run from nothing at 60 happiness to 30% of the fare at 90, and the <strong>rest of your summer</strong> (June, August and September, settled in the off-season) follows how happy your clients were on average, not only how many trips you ran. Run out of tackle, skip meals (after a second hungry night you get a warning and a pricier gas-station fix) or let the boat wear down and you’ll see smaller tips, refunds, breakdowns and a quieter off-season. Restock tackle in Soldotna, service the boats at the shop, buy fuel at the harbor. Overhead is charged every night. The Boat stat warns you at 40, 20 and 10. At 0 your sled and drift boat are out of service until a major repair ($2,400), though an emergency patch ($600, back to 25 for two days, only at 10 or less) or a rented loaner ($600, for the day) keeps a booked trip running. In the off-season you can buy upgrades: a new motor (burns less gas), a new sled (trips finish 30 minutes sooner), a drift boat, marketing, a winter course (skill, which builds with practice and rusts over the winter), higher rates (more per trip, fewer bookings, pickier clients: the first step is cheap, the third is not), your own Homer charter permit and, later in a career, an assistant guide, guest cabins or a riverfront lot with a private launch.'],
   ['🏕️','Winter camping','In the off-season you have <strong>10 free days</strong> for up to three trips and two winter jobs. Pick one of ten Kenai Peninsula spots within 100 road miles of Soldotna, a month (it sets the daylight, ice and weather), who comes along, and what to <strong>pack</strong>: a bear-resistant container, a cold-rated bag, spare layers, stove fuel, a truck kit, ice picks. Each day you choose an activity (one in the dark months, two on long days): <strong>ice fish</strong> a stocked lake (you need a fishing license, and licenses restart every January), snowshoe, ski, track wildlife, scout the upper Kenai or Kasilof, or watch the northern lights. Evenings you can tie flies for tackle next season. Each night has a <strong>50% chance of an encounter</strong>, good or bad; what you packed and where you sleep (tent, wall tent, truck camper, public-use cabin) change the odds. Winter jobs pay a little; a camping log keeps the animals you have seen.'],
-  ['🏠','The cabin','The <strong>🏠 Home</strong> tab (and <strong>Home</strong> in the top bar, 0 to 100) tracks your cabin. It drifts down slowly; jobs bring it back up, and a run-down cabin has more bad luck. <strong>Never more than two jobs show at once</strong>, and every job offers three ways: <strong>do it yourself</strong> (time and energy), <strong>pay someone</strong> (cash) or <strong>skip it</strong> (a risk). In July: latch the bear bins and clean up fish waste, service the generator, plant a garden (and fence it: moose), keep the fish station clean. In the off-season: fall jobs before the cold (heating oil, or firewood and a chimney sweep if you add a wood stove; heat tape and a skirted crawlspace; smoke and CO detectors), then a cold snap and heavy snow, then spring breakup (driveway, foundation, well test, septic). Do-it-yourself jobs in the off-season spend the same <strong>10 free days</strong> as winter camping. Trouble costs money, days, energy or reputation, but it never ends your career. Never run a generator indoors: exhaust is carbon monoxide.'],
+  ['🏠','The cabin','The <strong>🏠 Home</strong> tab (and <strong>Home</strong> in the top bar, 0 to 100) tracks your cabin. It drifts down slowly; jobs bring it back up, skipping them wears it down faster, and a run-down cabin has more bad luck, which can land in the guiding season: bad sleep, a repair on a guiding morning or a booked party that cancels. A cabin in good shape sends you out rested. <strong>Never more than two jobs show at once</strong>, and every job offers three ways: <strong>do it yourself</strong> (time and energy), <strong>pay someone</strong> (cash) or <strong>skip it</strong> (a risk). In July: latch the bear bins and clean up fish waste, service the generator, plant a garden (and fence it: moose), keep the fish station clean. In the off-season: fall jobs before the cold (heating oil, or firewood and a chimney sweep if you add a wood stove; heat tape and a skirted crawlspace; smoke and CO detectors), then a cold snap and heavy snow, then spring breakup (driveway, foundation, well test, septic). Do-it-yourself jobs in the off-season spend the same <strong>10 free days</strong> as winter camping. Trouble costs money, days, energy or reputation, but it never ends your career. Never run a generator indoors: exhaust is carbon monoxide.'],
   ['💀','How you lose','Three active citations (permit pulled), reputation down to 0 (nobody books you), or $2,000 in debt (the bank takes the sled).'],
   ['💡','Tips','Rig tomorrow’s gear, read the Fish tab and scout the river for better trips. Tips (💡) appear as you play; turn them on or off in ⚙️ Settings. On a computer, number keys press buttons, <strong>Esc</strong> closes a pop-up and <strong>?</strong> lists the shortcuts. Settings has bigger text and high contrast.'],
 ];
@@ -4201,6 +4225,7 @@ const CHANGELOG={
   '1.6.0':['💲 Higher rates now cost you: fewer bookings, pickier clients and a rep requirement that rises each step.','🔧 Boats at condition 0 are out of service until repaired; new motors burn less gas, new sleds finish sooner, and late-career money can buy an assistant guide, guest cabins or a riverfront launch.','⏳ New “Wait until…” action skips to the next launch or the 1 PM class. New games start with a 5:00 AM alarm.','🌙 The night summary now comes before the morning’s news, and pop-up toasts are fewer, shorter and sit below your Cash and Rep.','⭐ Longer careers: 54 client parties, regulars who come back (or don’t), six new river dilemmas, fewer repeats and three multi-season stories.'],
   '1.8.0':['🎯 Skill pays: spots fish differently with the day’s water, wind, run and tide. Read the 🐟 Fish tab or scout the river and the spot buttons show which one is hot.','⭐ The rest of your summer follows how happy your clients were, not only how many trips you ran. Tips run higher on a good day, a well-kept boat pleases clients, and a happy party may take your card and become a regular.','💲 Raising rates gets steeper after the first step, and skill builds with practice and rusts over the winter.'],
   '1.10.0':['🏠 The cabin needs you now and then. A new Home tab lists the jobs (never more than two at a time), and each one can be done yourself, paid for, or skipped at a risk: heat for the winter, frozen pipes, snow on the roof and driveway, the generator, the well and septic tank, bears and fish waste, a garden moose, smoke and CO detectors, spring breakup and the odd earthquake.','🔥 New upgrades: a wood stove as a second heat source, a bear-resistant bin and a fish processing station that sells fillet-and-freeze to clients. Cabin condition (Home, in the top bar) drifts down slowly, and a run-down cabin has more bad luck. Your game in progress is brought up to date automatically.'],
+  '1.10.1':['🏠 Letting the cabin go now costs you more, and some of it lands in the guiding season. Skipping a job wears the cabin down, a run-down one has more bad luck, and a stuck truck, a dead well pump, a septic backup, a failed pump in July or a sagging, stained cabin can cost you a booked trip.','🥶 A cold, damp cabin means bad sleep in July, and a warm, dry, tidy one sends you out rested. A bear in your trash now hurts your rep and word of mouth more. Burst pipe, ice dam, well and septic bills are bigger.','💵 Winter living costs are $800 now (they were $1,300), so a player who keeps the place up comes out well ahead. Home trouble still never ends a career. Your game in progress is brought up to date automatically.'],
   '1.9.0':['🏕️ Winter camping is much bigger: ten free days each winter for up to three trips, with a pack to choose (bear container, a cold-rated bag, spare layers, stove fuel), ice fishing on stocked lakes, tracking and scouting, evenings tying flies, company, public-use cabins and a truck camper, winter jobs, and a log of every animal you see.','🎣 Real rules: ice fishing needs a fishing license, and licenses start over every January. Scouting the upper Kenai or Kasilof gives a hint about next summer’s run. Your game in progress is brought up to date automatically.'],
   '1.8.1':['🚔 Bending the rules can still pay on the day, but not over a career: every rule you break in a season makes the next one likelier to be caught, guides who see it talk, and a citation is public record, so a booked party may cancel and the rest of your summer books thinner.','🍽️ After a second hungry night you get a warning first thing in the morning, with a quick (pricier) gas-station breakfast and a day of food. Going hungry is gentler on your clients than before, but groceries are still the cheap way.','🐻 Combat Season re-tuned: fuel and bills a little less steep, clients a little less picky and the off-months a little busier, so a sharp guide can earn a B. It is still clearly harder than Licensed Guide. A game in progress is brought up to date automatically.'],
   '1.7.1':['🎯 Grades re-tuned: per season A is 62,000, B 55,000, C 44,000, D 27,000, so playing by the book earns a B again and a sharp career an A. Boats and permits now count at nine tenths of what you paid, so long careers no longer outscore short ones for buying a sled or the charter permit. The Help sheet and rules list the cutoffs.'],
@@ -4746,6 +4771,17 @@ function homeCharge(delta){
   const ok=Math.max(0,S.money-HOME_FLOOR),pay=Math.min(-delta,ok);
   return -pay;
 }
+// a party that cannot reach or stay at the cabin cancels: the soonest booked trips from d0 to d1, and the deposit goes back
+function homeCancel(n,d0,d1){
+  if(!(n>0)||!S.book) return;
+  const bs=S.book.filter(b=>b.status==='booked'&&b.d>=d0&&b.d<=d1);
+  for(let i=0;i<n&&i<bs.length;i++){
+    const b=bs[i];b.status='cancelled';S.stats.cancelled++;
+    say(`📵 The ${b.who} cancel their ${dlabel(b.d)} ${TRIPS[b.type].n}: they heard about the trouble at your place. You refund the deposit.`);
+  }
+}
+// spring trouble waits for the bookings: when the season opens, the first days' parties cancel
+function homeSeasonOpens(s){const n=S.homeCancel||0;S.homeCancel=0;homeCancel(n,seasonFirst(s),seasonFirst(s)+3)}
 function homeApply(rep,quiet){
   if(!rep) return rep;
   S.cabin=rep.state;
@@ -4760,6 +4796,7 @@ function homeApply(rep,quiet){
   if(rep.freshLost&&S.food.fri>0){S.food.fri=0}
   if(rep.foodMeals>0){if(S.food.fri<=0)S.food.fd=day();S.food.fri=Math.min(FRIDGE_CAP,S.food.fri+rep.foodMeals)}
   homeDays(rep.daysUsed,rep.daysLost);
+  if(rep.cancels>0){if(S.winter)S.homeCancel=(S.homeCancel||0)+rep.cancels;else homeCancel(rep.cancels,day(),day()+2)}
   if(rep.minutes>0&&!S.winter) pass(rep.minutes);
   if(!quiet) rep.lines.forEach(l=>say(l));
   return rep;

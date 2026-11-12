@@ -38,6 +38,17 @@ function homeCharge(delta){
   const ok=Math.max(0,S.money-HOME_FLOOR),pay=Math.min(-delta,ok);
   return -pay;
 }
+// a party that cannot reach or stay at the cabin cancels: the soonest booked trips from d0 to d1, and the deposit goes back
+function homeCancel(n,d0,d1){
+  if(!(n>0)||!S.book) return;
+  const bs=S.book.filter(b=>b.status==='booked'&&b.d>=d0&&b.d<=d1);
+  for(let i=0;i<n&&i<bs.length;i++){
+    const b=bs[i];b.status='cancelled';S.stats.cancelled++;
+    say(`📵 The ${b.who} cancel their ${dlabel(b.d)} ${TRIPS[b.type].n}: they heard about the trouble at your place. You refund the deposit.`);
+  }
+}
+// spring trouble waits for the bookings: when the season opens, the first days' parties cancel
+function homeSeasonOpens(s){const n=S.homeCancel||0;S.homeCancel=0;homeCancel(n,seasonFirst(s),seasonFirst(s)+3)}
 function homeApply(rep,quiet){
   if(!rep) return rep;
   S.cabin=rep.state;
@@ -52,6 +63,7 @@ function homeApply(rep,quiet){
   if(rep.freshLost&&S.food.fri>0){S.food.fri=0}
   if(rep.foodMeals>0){if(S.food.fri<=0)S.food.fd=day();S.food.fri=Math.min(FRIDGE_CAP,S.food.fri+rep.foodMeals)}
   homeDays(rep.daysUsed,rep.daysLost);
+  if(rep.cancels>0){if(S.winter)S.homeCancel=(S.homeCancel||0)+rep.cancels;else homeCancel(rep.cancels,day(),day()+2)}
   if(rep.minutes>0&&!S.winter) pass(rep.minutes);
   if(!quiet) rep.lines.forEach(l=>say(l));
   return rep;

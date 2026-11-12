@@ -3,7 +3,7 @@
 //  CabinUpkeep.autoplay(host, {policy, rand}) does every job that is due now, using a policy, with no screen. The host's bots and
 //  the tests use it, and it is how the module is balanced. host: {ticket(), apply(report)}.
 //  Policies:
-//    'careful'  do it yourself when there is time and energy, else pay (while cash is comfortable), else skip
+//    'careful'  do it yourself when there is time and energy and a $400 cushion of cash, else pay (while cash is comfortable), else skip
 //    'payall'   pay when cash is comfortable, else do it yourself, else skip
 //    'neglect'  skip everything, including the storm prompts
 //    'first'    the first option that is available (what a bot tapping the top button would do)
@@ -11,9 +11,10 @@
 // ============================================================
 (function(C){
   'use strict';
+  const CUSHION=400;     // a careful player does not spend the last of the cash on a chore (a start on thin cash waits for the first fares)
   const POL={
     careful:(j,t)=>{const d=j.opts[0],p=j.opts[1];
-      if(!d.dis&&(t.phase==='summer'||d.days<=1||t.daysLeft>=d.days+4))return 'diy';
+      if(!d.dis&&t.cash>=d.cash+CUSHION&&(t.phase==='summer'||d.days<=1||t.daysLeft>=d.days+4))return 'diy';
       if(!p.dis&&t.cash>1500+p.cash)return 'pay';return 'skip'},
     payall:(j,t)=>{const d=j.opts[0],p=j.opts[1];if(!p.dis&&t.cash>1500+p.cash)return 'pay';if(!d.dis)return 'diy';return 'skip'},
     neglect:()=>'skip',

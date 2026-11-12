@@ -1,4 +1,4 @@
-// Cabin upkeep (src/home/, the CabinUpkeep module; src/js/32-home.js, the Guide Master adapter; v1.10.0).
+// Cabin upkeep (src/home/, the CabinUpkeep module; src/js/32-home.js, the Guide Master adapter; v1.10.0, balanced in v1.10.1).
 // The first half runs the module on its own in Node, in an empty `vm` context, with no browser and no Guide Master;
 // the second half plays the adapter in the real game.
 const fs = require('fs'), path = require('path'), vm = require('vm'), cp = require('child_process');
@@ -83,7 +83,7 @@ module.exports = [
     const rd = C.resolve(t, 'bins', 'diy'); assert.strictEqual(rd.minutes, d.min); assert.strictEqual(rd.energyDelta, -d.energy); assert.strictEqual(rd.cashDelta, 0); assert.strictEqual(rd.daysUsed, 0);
     const rp = C.resolve(t, 'bins', 'pay'); assert.strictEqual(rp.cashDelta, -p.cash); assert.strictEqual(rp.minutes, 0); assert.strictEqual(rp.energyDelta, 0);
     assert.ok(rd.cond > t.state.cond && rp.cond > t.state.cond, 'a job restores condition');
-    const rs = C.resolve(t, 'bins', 'skip'); assert.strictEqual(rs.cashDelta, 0); assert.strictEqual(rs.cond, t.state.cond); assert.ok(/bear/.test(lines(rs)));
+    const rs = C.resolve(t, 'bins', 'skip'); assert.strictEqual(rs.cashDelta, 0); assert.strictEqual(rs.cond, t.state.cond - 2, 'skipping wears the cabin down'); assert.ok(/bear/.test(lines(rs)));
     // in the off-season yourself costs free days, and it is not offered without them
     const w = tk({ phase: 'fall' }), oil = C.jobs(w).find(x => x.id === 'oil');
     assert.strictEqual(oil.opts[0].days, 1); assert.strictEqual(C.resolve(w, 'oil', 'diy').daysUsed, 1);
@@ -124,7 +124,7 @@ module.exports = [
     const dripped = rolls(r => /freezes solid|bursts/.test(lines(mk(() => {}, 'diy')(r))), 4000); assert.ok(dripped < none * .5, `${dripped} vs ${none}`);
     const frozen = mk(() => {}, 'skip')(seq(.01, .99)), burst = mk(() => {}, 'skip')(seq(.01, .01));
     assert.strictEqual(frozen.cashDelta, -380); assert.strictEqual(frozen.daysLost, 1); assert.strictEqual(frozen.freshLost, 0);
-    assert.strictEqual(burst.cashDelta, -2200); assert.strictEqual(burst.daysLost, 3); assert.strictEqual(burst.freshLost, 1); assert.strictEqual(burst.severity, 2);
+    assert.strictEqual(burst.cashDelta, -2400); assert.strictEqual(burst.daysLost, 3); assert.strictEqual(burst.freshLost, 1); assert.strictEqual(burst.severity, 2);
     // the prompt is consumed, and it is one of the two ways to prepare that cost nothing or $45
     assert.strictEqual(burst.state.queue.length, 0);
     const o = C.jobs(withState(tk(), s => { s.queue = [{ id: 'cold', sev: 1 }] }))[0].opts; assert.strictEqual(o[0].cash, 0); assert.strictEqual(o[1].cash, 45);
@@ -192,7 +192,7 @@ module.exports = [
     assert.strictEqual(over, 1, 'once a summer at most');
     const seen = new Set(); for (let i = 0; i < 300; i++) { const rr = C.util.seeded(100 + i), rep = day(withState(tk(), s => { s.did.bins = -99 }).state, 5, rr); if (/🐻/.test(lines(rep))) seen.add(rep.minutes > 0 ? 'morning' : rep.repDelta < 0 ? 'fg' : 'damage') }
     assert.deepStrictEqual([...seen].sort(), ['damage', 'fg', 'morning']);
-    const fg = day(C.newState(), 5, seq(0, .9)); assert.ok(/Fish and Game/.test(lines(fg)) && /attractants/.test(lines(fg)) && fg.repDelta === -2 && fg.cashDelta === 0, lines(fg));
+    const fg = day(C.newState(), 5, seq(0, .9)); assert.ok(/Fish and Game/.test(lines(fg)) && /attractants/.test(lines(fg)) && fg.repDelta === -3 && fg.womDelta === -4 && fg.cashDelta === 0, lines(fg));
     assert.ok(!/ordinance|law|illegal/i.test(lines(fg)), 'general about local rules');
   } },
   { name: 'fish station: a modest fee per trip from the clients’ fish, upkeep jobs, and a spoiled batch when it is neglected', fn: async () => {
@@ -259,10 +259,65 @@ module.exports = [
     for (let d = 1; d < 14; d++) st = C.daily(tk({ state: st, phase: 'summer', sday: d, abs: 28 + d, recentFish: 0 }), { rand: K(.99) }).state;
     assert.ok(c0 - st.cond > 5 && c0 - st.cond < 9, `a July costs ${c0 - st.cond}`);
     const w = C.rollWinter(tk({ state: st }), { rand: K(.99) }); assert.ok(st.cond - w.cond >= 7 && st.cond - w.cond <= 12);
-    assert.ok(C.risk({ cond: 0 }) > C.risk({ cond: 50 }) && C.risk({ cond: 50 }) > C.risk({ cond: 100 }) && C.risk({ cond: 100 }) <= .71 && C.risk({ cond: 0 }) >= 1.59);
+    assert.ok(C.risk({ cond: 0 }) > C.risk({ cond: 50 }) && C.risk({ cond: 50 }) > C.risk({ cond: 100 }) && C.risk({ cond: 100 }) <= .66 && C.risk({ cond: 0 }) >= 1.89);
+    assert.ok(C.risk({ cond: 20 }) - C.risk({ cond: 50 }) > C.risk({ cond: 80 }) - C.risk({ cond: 100 }) , 'the curve bends: wear compounds');
     const rate = cond => rolls(r => /ice dam/.test(lines(C.resolve(withState(tk(), s => { s.cond = cond; s.queue = [{ id: 'snow', depth: 1 }] }), 'snow', 'skip', { rand: r }))), 6000);
     assert.ok(rate(5) > rate(95) * 1.6, `${rate(5)} vs ${rate(95)}`);
     assert.ok(C.status(tk()).length >= 3);
+  } },
+  { name: 'neglect wears the cabin down faster: skipping a job or a storm prompt costs condition, doing it does not', fn: async () => {
+    const t = withState(tk({ phase: 'spring' }), s => { s.cond = 60 });
+    const skip = C.resolve(t, 'breakup', 'skip', { rand: K(.99) }), pay = C.resolve(t, 'breakup', 'pay', { rand: K(.99) });
+    assert.strictEqual(skip.cond, 60 - Math.ceil(8 * .75)); assert.strictEqual(pay.cond, 68);
+    const storm = withState(tk(), s => { s.cond = 60; s.did.oil = 2; s.queue = [{ id: 'snow', depth: 1 }] });
+    assert.strictEqual(C.resolve(storm, 'snow', 'skip', { rand: K(.99) }).cond, 58); assert.strictEqual(C.resolve(storm, 'snow', 'pay', { rand: K(.99) }).cond, 62);
+    // a year of skipping everything leaves a cabin far below one kept up
+    const year = pol => { let st = C.newState(); for (const ph of ['fall', 'spring']) { C.autoplay({ ticket: () => tk({ state: st, phase: ph, season: 1, daysLeft: 10 }), apply: r => { st = r.state } }, { policy: pol, rand: K(.99) }) } return st };
+    const a = year('neglect'), b = year('careful');
+    assert.ok(b.cond - a.cond > 15, `${b.cond} vs ${a.cond}`);
+  } },
+  { name: 'a failure that closes the cabin can cost a booked trip: a stuck truck, a dead well pump, a septic backup and, in July, a dead pump', fn: async () => {
+    const sp = f => withState(tk({ phase: 'spring' }), f);
+    const stuck = C.rollSpring(sp(s => { s.did.breakup = -1; s.did.well = 2; s.did.septic = 2 }), { rand: seq(.1, .1, .1, .99, .99, .99) });
+    assert.ok(/sinks to the axles/.test(lines(stuck)) && stuck.cancels === 1 && /will not make it down the drive/.test(lines(stuck)), lines(stuck));
+    const worst = C.rollSpring(sp(s => { s.did.well = -2; s.did.septic = -3 }), { rand: K(0) });
+    assert.ok(worst.cancels >= 2 && /no water|cancels/.test(lines(worst)), lines(worst));
+    const kept = C.rollSpring(sp(s => { s.did.breakup = 2; s.did.well = 2; s.did.septic = 2 }), { rand: K(.99) }); assert.strictEqual(kept.cancels, 0);
+    // the text only says a party cancels when one does
+    const lucky = C.rollSpring(sp(s => { s.did.breakup = -1; s.did.well = 2; s.did.septic = 2 }), { rand: seq(.1, .1, .99, .99, .99, .99) });
+    assert.ok(lucky.cancels === 0 && !/make it down the drive/.test(lines(lucky)), lines(lucky));
+    // a run-down cabin puts off the first parties of the season; one in fair shape does not
+    const shabby = C.rollSpring(sp(s => { s.cond = 0; s.did.breakup = 2; s.did.well = 2; s.did.septic = 2 }), { rand: seq(.99, .99, .99, .1) });
+    assert.ok(shabby.cancels === 1 && /sagging porch/.test(lines(shabby)) && shabby.severity === 1 && shabby.cashDelta === 0, lines(shabby));
+    assert.strictEqual(C.rollSpring(sp(s => { s.cond = 45; s.did.breakup = 2; s.did.well = 2; s.did.septic = 2 }), { rand: seq(.99, .99, .99, 0) }).cancels, 0);
+    assert.strictEqual(C.rollSpring(sp(s => { s.cond = 0; s.did.breakup = 2; s.did.well = 2; s.did.septic = 2 }), { rand: seq(.99, .99, .99, .6) }).cancels, 0, 'at most 30% of the time, even at 0');
+    // July: below the trouble line the cabin itself fails now and then (at most once a summer); in good shape it does not
+    const july = (cond, sday, st0) => C.daily(tk({ phase: 'summer', sday, abs: 28 + sday, recentFish: 0, state: st0 || withState(tk(), s => { s.cond = cond; s.bearY = 2 }).state }), { rand: K(0) });
+    const j = july(20, 3); assert.ok(j.cancels === 1 && /pump and pressure tank/.test(lines(j)) && j.cashDelta === -380 && j.severity === 1, lines(j));
+    const again = july(20, 4, j.state); assert.ok(!/pump and pressure|breaker|blower/.test(lines(again)), 'once a summer: ' + lines(again));
+    assert.ok(!/pump and pressure|breaker|blower/.test(lines(july(80, 3))));
+    const rate = cond => rolls(r => /pump and pressure|breaker|blower/.test(lines(C.daily(tk({ phase: 'summer', sday: 3, abs: 31, recentFish: 0, state: withState(tk(), s => { s.cond = cond; s.bearY = 2 }).state }), { rand: r }))), 4000);
+    assert.ok(rate(5) > rate(30) * 1.1 && rate(45) === 0, `${rate(5)} ${rate(30)} ${rate(45)}`);
+    // the burst, the well and the septic bills are bigger than before, and scale with the difficulty's prices
+    const hard = C.rollSpring(withState(tk({ phase: 'spring', costMult: 1.5 }), s => { s.did.well = -2; s.did.septic = 2; s.did.breakup = 2 }), { rand: seq(0, 0, .99, .99) });
+    assert.strictEqual(hard.cashDelta, -Math.round(1500 * 1.5), lines(hard));
+  } },
+  { name: 'a cold, damp cabin costs sleep in July; a cabin in good shape sends you out rested, and the text says so once a summer', fn: async () => {
+    const morning = (cond, sday = 3, st0) => C.daily(tk({ phase: 'summer', sday, abs: 28 + sday, recentFish: 0, state: st0 || withState(tk(), s => { s.cond = cond; s.bearY = 2; s.troubleY = 2; s.troubles = 1 }).state }), { rand: K(.99) });
+    const good = morning(90), sleepy = morning(30), wreck = morning(10), mid = morning(55);
+    assert.strictEqual(good.energyDelta, 3); assert.ok(/wake rested/.test(lines(good)), lines(good));
+    assert.strictEqual(sleepy.energyDelta, -2); assert.strictEqual(wreck.energyDelta, -4); assert.ok(/sleep badly/.test(lines(sleepy)));
+    assert.strictEqual(mid.energyDelta, 0); assert.strictEqual(mid.lines.length, 0);
+    assert.ok(!/wake rested/.test(lines(morning(90, 4, good.state))) && morning(90, 4, good.state).energyDelta === 3, 'the line comes once a summer, the rest every morning');
+    assert.ok(!/sleep badly/.test(lines(morning(30, 4, sleepy.state))) && morning(30, 4, sleepy.state).energyDelta === -2);
+    // nothing here can end a career: no cash at all, and the worst morning is bounded
+    assert.ok(good.cashDelta === 0 && sleepy.cashDelta === 0);
+  } },
+  { name: 'autoplay: a careful player keeps a $400 cushion of cash and does not spend the last of it on a chore', fn: async () => {
+    const done = cash => { let st = C.newState(), c = cash; const all = []; C.autoplay({ ticket: () => tk({ state: st, phase: 'fall', season: 1, cash: c, daysLeft: 10 }), apply: r => { st = r.state; c += r.cashDelta; all.push(...r.done) } }, { policy: 'careful', rand: K(.99) }); return all };
+    const poor = done(500), rich = done(5000);
+    assert.ok(!poor.includes('tape') && !poor.includes('skirt'), `poor did ${poor}`); assert.ok(rich.includes('tape') && rich.includes('skirt'), `rich did ${rich}`);
+    assert.ok(poor.includes('detect'), 'an $85 job is still fine on $500');
   } },
   { name: 'never ends a career: thirty cycles of worst luck and neglect stay finite, bounded per cycle, and never ask for more than a few thousand dollars', fn: async () => {
     let st = C.newState(), worst = 0;
@@ -386,6 +441,25 @@ module.exports = [
     assert.ok(r.worst >= -1200 && r.loss2 == null, JSON.stringify(r));
     noErrors(errors);
   } },
+  { name: 'game: a failure that closes the cabin cancels booked trips: spring waits for the bookings, July cancels the next ones, and the deposit goes back', fn: async ctx => {
+    const { page, errors } = await winterGame(ctx);
+    const r = await page.evaluate(() => {
+      const o = {}, s = S.winter.s, rep = n => ({ state: cabin(), cashDelta: 0, spent: 0, energyDelta: 0, repDelta: 0, womDelta: 0, minutes: 0, daysUsed: 0, daysLost: 0, homeFuel: 0, freshLost: 0, foodMeals: 0, lines: [], severity: 2, cancels: n });
+      const mk = (d) => addBooking({ d, type: 'reds', n: 3, who: 'test party', from: 'Texas', quirk: [] });
+      homeApply(rep(2), true); o.queued = S.homeCancel; o.stillBooked0 = S.book.filter(b => b.status === 'cancelled').length;
+      const f = seasonFirst(s); S.winter = null; const bs = [mk(f + 1), mk(f + 2), mk(f + 3), mk(f + 9)];
+      const c0 = S.stats.cancelled, m0 = S.money; S.winter = { s }; homeSeasonOpens(s); S.winter = null;
+      o.after = bs.map(b => b.status); o.cancelled = S.stats.cancelled - c0; o.left = S.homeCancel; o.money = S.money - m0;
+      S.cur = f + 3; homeApply(rep(1), true); o.july = bs.map(b => b.status);
+      S.cur = f + 3; homeApply(rep(3), true); o.july2 = bs.map(b => b.status); o.last = bs[3].status; o.log = S.log.slice(-3).map(x => x.s).join(' ');
+      return o;
+    });
+    assert.strictEqual(r.queued, 2); assert.strictEqual(r.stillBooked0, 0, 'nothing is cancelled until there are bookings');
+    assert.deepStrictEqual(r.after, ['cancelled', 'cancelled', 'booked', 'booked']); assert.strictEqual(r.cancelled, 2); assert.strictEqual(r.left, 0); assert.strictEqual(r.money, 0);
+    assert.deepStrictEqual(r.july, ['cancelled', 'cancelled', 'cancelled', 'booked']);
+    assert.strictEqual(r.last, 'booked', 'only the next two days are at risk in July'); assert.ok(/cancel their/.test(r.log) && /refund the deposit/.test(r.log), r.log);
+    noErrors(errors);
+  } },
   { name: 'game: finishing the off-season answers any leftover storm prompt with the top button, runs spring and clears the queue (a bot that never opens Home)', fn: async ctx => {
     const { page, errors } = await winterGame(ctx);
     const r = await page.evaluate(async () => {
@@ -485,14 +559,15 @@ module.exports = [
     assert.strictEqual(r.y, 1); assert.ok(!r.summerIds.includes('genoil') || true);
     noErrors(errors);
   } },
-  { name: 'game: version 1.10.0, save schema 4, a changelog line, a Help section, an end-screen row and a tip', fn: async ctx => {
+  { name: 'game: version 1.10.1, save schema 4, a changelog line, a Help section, an end-screen row and a tip', fn: async ctx => {
     const { page, errors } = await open(ctx);
-    const r = await page.evaluate(() => ({ v: APP_VERSION, s: SAVE_SCHEMA, c: CHANGELOG['1.10.0'].join(' '), h: HELP.find(x => /cabin/i.test(x[1]))[2], tip: TIPS.some(t => t.id === 'cabin'), sw: null }));
-    assert.strictEqual(r.v, '1.10.0'); assert.strictEqual(r.s, 4);
+    const r = await page.evaluate(() => ({ v: APP_VERSION, s: SAVE_SCHEMA, c: CHANGELOG['1.10.0'].join(' '), c1: CHANGELOG['1.10.1'].join(' '), h: HELP.find(x => /cabin/i.test(x[1]))[2], tip: TIPS.some(t => t.id === 'cabin'), sw: null }));
+    assert.strictEqual(r.v, '1.10.1'); assert.strictEqual(r.s, 4);
+    assert.ok(/booked trip/.test(r.c1) && /bad sleep/.test(r.c1) && /\$800/.test(r.c1) && /never ends a career/.test(r.c1) && /game in progress/.test(r.c1), r.c1);
     assert.ok(/Home tab/.test(r.c) && /two at a time/.test(r.c) && /game in progress/.test(r.c));
-    assert.ok(/three ways/.test(r.h) && /Never more than two/.test(r.h) && /never ends your career/.test(r.h) && /10 free days/.test(r.h) && /generator indoors/.test(r.h) && r.tip);
-    await newGame(page); const row = await page.evaluate(() => endRows().find(x => x[0] === 'The cabin')[1]); assert.ok(/0 jobs done yourself/.test(row) && /condition 80/.test(row), row);
-    assert.ok(/1\.10\.0/.test(fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8')));
+    assert.ok(/three ways/.test(r.h) && /Never more than two/.test(r.h) && /never ends your career/.test(r.h) && /10 free days/.test(r.h) && /generator indoors/.test(r.h) && /booked party that cancels/.test(r.h) && r.tip);
+    await newGame(page); assert.strictEqual(await page.evaluate(() => winterCosts()[0][1]), 800, 'living costs'); const row = await page.evaluate(() => endRows().find(x => x[0] === 'The cabin')[1]); assert.ok(/0 jobs done yourself/.test(row) && /condition 80/.test(row), row);
+    assert.ok(/1\.10\.1/.test(fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8')));
     noErrors(errors);
   } },
   { name: 'game: bots play careers with careful and neglectful cabin policies, no page errors, no career lost to the cabin', fn: async ctx => {
@@ -507,15 +582,16 @@ module.exports = [
           if (pol !== 'neglect' && S.cabin.rolled < 0) homeBot(pol);
           endDay('home'); await new Promise(r => setTimeout(r, 10)); closeModals();
           if (S.over) break;
+          S.money = Math.max(S.money, 3000);
           homeBotWinter(pol); closeModals(); finishWinter(); closeModals();
-          if (S.money < 0) S.money = 800;   // keep it going: this test is about the cabin, not the river
+          S.money = Math.max(S.money, 3000);   // keep it going, and keep a careful bot above its $400 cushion: this test is about the cabin, not the river
         }
         out.push({ pol, over: S.over, loss: checkLoss(), cond: Math.round(cabin().cond), tot: cabin().tot, winter: !!S.winter });
       }
       return out;
     });
     res.forEach(r => { assert.ok(!r.over && r.loss == null && !r.winter, JSON.stringify(r)); });
-    assert.ok(res[0].cond > res[1].cond + 30, JSON.stringify(res.map(r => r.cond))); assert.strictEqual(res[1].tot.diy + res[1].tot.pay, 0); assert.ok(res[0].tot.diy + res[0].tot.pay >= 5 && res[2].tot.diy + res[2].tot.pay >= 5, JSON.stringify(res));
+    assert.ok(res[0].cond > res[1].cond + 30, JSON.stringify(res)); assert.strictEqual(res[1].tot.diy + res[1].tot.pay, 0); assert.ok(res[0].tot.diy + res[0].tot.pay >= 5 && res[2].tot.diy + res[2].tot.pay >= 5, JSON.stringify(res));
     noErrors(errors);
   } },
 ];

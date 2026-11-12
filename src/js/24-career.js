@@ -113,7 +113,7 @@ const HAP0=76;
 const seasonHap=(s,o)=>{const n=(s.hapN||0)-(o.hapN||0);return n>0?((s.hapSum||0)-(o.hapSum||0))/n:HAP0};
 
 // ---- season rollover: runs on the first morning of each new season (from onMorning) ----
-const WINTER_COST=[['🏠 Living costs, Oct–May (after your winter job)',1300,'🏠 Living'],['🪪 Guide & business licenses, KRSMA permit, vessel decals',650,'🪪 Licenses & permits'],['🛡️ Liability insurance & drug-testing consortium',1950,'🛡️ Insurance']];
+const WINTER_COST=[['🏠 Living costs, Oct–May (after your winter job)',800,'🏠 Living'],['🪪 Guide & business licenses, KRSMA permit, vessel decals',650,'🪪 Licenses & permits'],['🛡️ Liability insurance & drug-testing consortium',1950,'🛡️ Insurance']];
 const winterCosts=()=>WINTER_COST.concat(S.up&&S.up.asst?[['🧑‍🤝‍🧑 Assistant guide: license, decals, insurance, drug-testing',3000,'🧑‍🤝‍🧑 Assistant']]:[],S.up&&S.up.lodge?[['🏡 Cabins: property tax, insurance and winterizing',5500,'🏡 Cabins']]:[]).map(([n,c,sh])=>[n,Math.round(c*DF().cost),sh]);
 
 // ---- late-career money sinks (2026 Alaska prices, approximate) ----
@@ -187,7 +187,7 @@ function upgradeModal(){
 }
 function finishWinter(){
   homeFinishWinter();                                    // 32-home.js: spring at the cabin, before the bookings open
-  const s=S.winter.s;S.winter=null;const reg=genSeasonBookings(s);
+  const s=S.winter.s;S.winter=null;const reg=genSeasonBookings(s);homeSeasonOpens(s);
   const n=S.book.filter(b=>seasonOf(b.d)===s).length;
   say(`📅 ${2026+s} bookings are in: <b>${n} trips</b> for the season. ${REG().fc}${reg.length?'<br>'+reg.join('<br>'):''}`);
   showTile('📅',`${n} trips booked`,`Season ${s+1} of ${S.years}`,'good');
