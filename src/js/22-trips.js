@@ -204,17 +204,35 @@ function tripStart(b){
   if(b.type==='silver') t.steps.push('sixpm');
   S.trip=t;sfx('whoosh');tripNext();
 }
+// ---- one pop-up per trip ----
+// By default a trip is ONE bottom sheet: the decisions (the cooler and the spot together, then each dilemma) and the result swap in place
+// (modalSwap, 02-kit.js) instead of opening a new pop-up each time. Settings → "Show every trip step" brings back one pop-up per step.
+// Every decision keeps its options and its legal/illegal flags; only the extra sheets are gone.
+let PACK=null;                                   // the cooler choices shown with the spot (window.packSel picks one)
+window.packSel=i=>{if(!PACK||!PACK.o[i])return;PACK.sel=i;document.querySelectorAll('#mbg .packopt').forEach((e,k)=>{e.classList.toggle('on',k===i);e.setAttribute('aria-checked',k===i?'true':'false')})};
+window.tripPack=()=>PACK;
+function packHTML(pv){
+  return `<div class="packbox"><b>🧺 The cooler</b>${pv.b}<div role="radiogroup" aria-label="What to pack">${pv.o.map((o,i)=>`<button type="button" role="radio" class="packopt${i===0?' on':''}" aria-checked="${i===0}" onclick="packSel(${i})"><b>${o.l}</b><span>${o.s}</span></button>`).join('')}</div></div>`;
+}
 function tripNext(){
   const t=S.trip;if(!t) return;
   const b=bk(t.id);if(!b||b.status!=='booked'){S.trip=null;return}
   if(t.step>=t.steps.length) return tripEnd(b,t);
-  const f=STEP[t.steps[t.step]];if(!f){t.step++;return tripNext()}
-  const v=f(b,t),T=TRIPS[b.type];
+  const key=t.steps[t.step],f=STEP[key];if(!f){t.step++;return tripNext()}
+  const sheet=!prefs().tripSteps,T=TRIPS[b.type];
+  const packed=sheet&&key==='pack'&&t.steps[t.step+1]==='spot'&&STEP.spot;   // the cooler rides along with the spot choice
+  const pv=packed?f(b,t):null,v=packed?STEP.spot(b,t):f(b,t);
+  PACK=packed?{o:pv.o,sel:0}:null;
   const opts=v.o.map((o,k)=>({o,k}));
   if(!v.fixed)for(let i=opts.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[opts[i],opts[j]]=[opts[j],opts[i]]}   // shuffled every showing
   const hot=v.o.some(o=>o.legal===false)&&heat()>0?`<p class="small-note heat-note">🚔 You’ve broken ${heat()===1?'a rule':`${heat()} rules`} this season. The troopers and the other guides know your boat now: the odds of getting caught go up with every one.</p>`:'';
-  modal(v.t,`<p class="small-note" style="color:var(--mute);margin:0 0 6px">${T.ic} ${T.n} · ${b.who}</p>${v.b}${hot}`,opts.map(({o,k})=>({l:o.l,s:o.s,legal:o.legal!==false,dis:!!o.dis,np:true,k,fn:()=>{
+  const left=t.steps.slice(t.step).filter(x=>x!=='pack').length,done=t.steps.slice(0,t.step).filter(x=>x!=='pack').length;
+  const prog=sheet?` · ${done+1} of ${done+left}`:'';
+  const open=sheet&&!t.shown?`<p class="small-note" style="margin:0 0 6px">You load the ${b.who} into the ${b.type==='trout'?'drift boat':b.type==='halibut'?'charter boat':'jet sled'} at ${L[T.loc].name} and push off at ${fmt(S.t)}.</p>`:'';
+  t.shown=true;
+  modalSwap(v.t,`<p class="small-note" style="color:var(--mute);margin:0 0 6px">${T.ic} ${T.n} · ${b.who}${prog}</p>${open}${v.b}${packed?packHTML(pv):''}${hot}`,opts.map(({o,k})=>({l:o.l,s:o.s,legal:o.legal!==false,dis:!!o.dis,np:true,k,stay:sheet,fn:()=>{
     const tt=S.trip;if(!tt) return;const bb=bk(tt.id);if(!bb) {S.trip=null;return}
+    if(packed){const po=pv.o[PACK?PACK.sel:0];po&&po.fn&&po.fn(bb,tt);tt.step++;PACK=null}
     o.fn&&o.fn(bb,tt);
     if(S.trip&&!tt.abort){tt.step++;tripNext()}}})));
 }
@@ -276,7 +294,7 @@ function tripEnd(b,t){
   const mood=happy>=82?'😁 Five stars, and they’re already asking about next July. Word of mouth will bring you more bookings.':happy>=65?'🙂 Solid day. Handshakes at the trailer.':happy>=45?'😐 Polite thanks, small tip.':review?'😠 Tight-lipped goodbyes and a one-star review. Word gets around the Kenai.':'😕 They leave a little deflated.';
   const row=(l,v)=>`<br>${l}: <b>${v>=0?'':'−'}${$(Math.abs(v))}</b>`;
   const why=[];if(skunk)why.push('skunked');if(S.gear<=0&&t.notes.some(n=>n.startsWith('🪱')))why.push('no tackle');if(refund&&happy<42)why.push('unhappy clients');
-  modal(`${T.ic} Back at the dock`,`${t.notes.map(n=>`<p>${n}</p>`).join('')}
+  modalSwap(`${T.ic} Back at the dock`,`${t.notes.map(n=>`<p>${n}</p>`).join('')}
     <p><b>Catch:</b> ${line}${t.kept?` (${t.kept} kept on the sly)`:''}${lost?` · ${lost} minutes lost`:''}</p>
     ${towed?'<p>🛟 <b>Towed in.</b> Half the fare refunded.</p>':''}<p><b>The pay:</b>${row(`Booked fare${b.type==='halibut'&&!S.up.chp?' (day rate)':''}`,fare)}${refund?row(`Refund${why.length?` (${why.join(', ')})`:''}`,-refund):''}${row('Tip',tip)}${xs.map(([l,v])=>row(l,v)).join('')}${costs?row('Launch fee',-costs):''}<br><b>Net: ${net<0?'−':''}${$(Math.abs(net))}</b></p>
     <p>${mood} Rep ${dRep>=0?'+':'−'}${Math.abs(dRep)}.</p>

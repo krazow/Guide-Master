@@ -5,6 +5,7 @@
 // A 4th argument true makes the pop-up required: Esc doesn't close it, only its own button does (no backdrop-tap close exists).
 // After any button, the game re-renders (unless you're on the title or end screen).
 let MB=[], MQ=[], FOCUS_RET=null;
+let DIGEST=null;   // the morning report being collected (04-loop.js endDay): {night, items, lines, held}
 // Keyboard and screen-reader behavior: while a pop-up is open the page behind it is inert and Tab stays inside the pop-up;
 // Esc closes it unless it is required (a 4th argument of true); closing gives focus back to what you had pressed.
 const FOCUSABLE='button:not([disabled]),input:not([disabled]),textarea:not([disabled]),select:not([disabled]),a[href],[tabindex]:not([tabindex="-1"])';
@@ -14,12 +15,29 @@ function focusBack(k){if(!k)return;
   if(!el){const all=[...document.querySelectorAll(k.tag)].filter(e=>!e.closest('#mbg'));el=all.find(e=>(e.textContent||'').trim().slice(0,80)===k.txt)||all[k.idx]}
   if(el&&!el.disabled&&el.offsetParent!==null){try{el.focus({preventScroll:true})}catch(e){}}}
 function syncInert(){const a=document.getElementById('app'),on=!!document.getElementById('mbg');if(a){if(on)a.setAttribute('inert','');else a.removeAttribute('inert')}}
+// The pop-up's inner HTML (shared by modal() and modalSwap())
+function sheetHTML(title,body,btns){return withName(`<div class="modal" role="dialog" aria-modal="true" aria-label="${esc(title.replace(/<[^>]+>/g,''))}" tabindex="-1"><h2>${title}</h2><div class="mb">${body}</div>${btns.map((b,i)=>`<button class="act ${i===0&&!b.dis&&!b.np?'primary':''}" ${b.legal!==undefined?`data-legal="${b.legal}"`:''} ${b.dis?'disabled':''} onclick="MBTN(${i})"><span class="tx"><b>${b.l}</b>${b.s?'<span>'+b.s+'</span>':''}</span></button>`).join('')}</div>`)}
+// A button with stay:true keeps the pop-up on screen while its fn runs: if fn calls modalSwap(), the same sheet shows the next step in place
+// (one pop-up for a whole trip, say); if it doesn't, the sheet closes as usual.
+let SWAPOK=false,SWAPPED=false;
+function modalSwap(title,body,btns,noClose){
+  const el=document.getElementById('mbg');
+  if(!(SWAPOK&&el)) return modal(title,body,btns,noClose);
+  MB=btns;SWAPPED=true;
+  if(noClose)el.dataset.lock='1';else delete el.dataset.lock;
+  el.innerHTML=sheetHTML(title,body,btns);
+  const m=el.querySelector('.modal');if(m){m.classList.add('swap');m.scrollTop=0}
+  setTimeout(()=>{const m2=el.querySelector('.modal'),b=el.querySelector('button.act:not([disabled])');if(!document.body.contains(el))return;
+    if(b&&!el.querySelector('input,textarea'))b.focus({preventScroll:true});else if(m2)m2.focus({preventScroll:true})},30);
+}
+window.modalSwap=modalSwap;
 function modal(title,body,btns,noClose){
+  if(DIGEST&&!DIGEST.open){DIGEST.held.push([title,body,btns,noClose]);return}   // while the morning report is being put together, pop-ups wait behind it
   if(document.getElementById('mbg')){MQ.push([title,body,btns,noClose]);return}
   MB=btns;
   if(!FOCUS_RET)FOCUS_RET=focusKey(document.activeElement)||{};
   const el=document.createElement('div');el.className='modal-bg';el.id='mbg';if(noClose)el.dataset.lock='1';
-  el.innerHTML=withName(`<div class="modal" role="dialog" aria-modal="true" aria-label="${esc(title.replace(/<[^>]+>/g,''))}" tabindex="-1"><h2>${title}</h2><div class="mb">${body}</div>${btns.map((b,i)=>`<button class="act ${i===0&&!b.dis&&!b.np?'primary':''}" ${b.legal!==undefined?`data-legal="${b.legal}"`:''} ${b.dis?'disabled':''} onclick="MBTN(${i})"><span class="tx"><b>${b.l}</b>${b.s?'<span>'+b.s+'</span>':''}</span></button>`).join('')}</div>`);
+  el.innerHTML=sheetHTML(title,body,btns);
   el.addEventListener('keydown',e=>{
     if(e.key==='Escape'){e.preventDefault();e.stopPropagation();escModal();return}
     if(e.key!=='Tab')return;
@@ -39,7 +57,9 @@ function modalClosed(){
   syncInert();
   if(!document.getElementById('mbg')){const k=FOCUS_RET;FOCUS_RET=null;focusBack(k)}
 }
-window.MBTN=i=>{if(MB[i]&&MB[i].dis)return;const el=document.getElementById('mbg');el&&el.remove();const f=MB[i]&&MB[i].fn;f&&f();modalClosed()};
+window.MBTN=i=>{const b=MB[i];if(b&&b.dis)return;const el=document.getElementById('mbg');
+  if(b&&b.stay&&el){SWAPOK=true;SWAPPED=false;try{b.fn&&b.fn()}finally{SWAPOK=false;if(!SWAPPED){const e2=document.getElementById('mbg');e2&&e2.remove()}}modalClosed();return}
+  el&&el.remove();const f=b&&b.fn;f&&f();modalClosed()};
 // Esc: press the pop-up's own close button if it has one (or its only button); otherwise just put it away. Required pop-ups ignore it.
 function escModal(){
   const el=document.getElementById('mbg');if(!el||el.dataset.lock)return false;
@@ -79,6 +99,7 @@ function modalSays(title){
 function tileBox(){let el=document.getElementById('tiles');if(!el){el=document.createElement('div');el.id='tiles';el.setAttribute('role','status');el.setAttribute('aria-live','polite');document.body.appendChild(el)}return el}
 function showTile(ic,title,sub,kind,when){
   if(!S||S.over) return;
+  if(DIGEST&&!DIGEST.open){DIGEST.items.push({ic,title,lines:sub?[sub]:[],kind,tile:true});return}   // a toast that would pop up while you wake: it goes in the morning report
   if(modalSays(title)) return;
   when=when||`${dayName(day()).slice(0,3)} ${fmt(S.t)}`;
   const box=tileBox();

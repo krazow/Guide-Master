@@ -84,6 +84,7 @@ function onMorning(d){
   if(d===0) return;
   const sd=sday(d),newSeason=sd===0;
   patchExpire(d);
+  reqExpire(d).forEach(l=>{say(l);digestLine(l)});
   if(newSeason) startSeason(seasonOf(d));               // 24-career.js: bills, new rules, forecast, upgrades
   rollDay(d);
   const w=WX[S.wx[d]];
@@ -174,23 +175,22 @@ function nextLegalDay(r){
   for(let d=r.d+1;d<end;d++) if(!illegalDay(r.type,d)&&!conflicts(d,r.type,!!r.asst)) return d;
   return null;
 }
-function requestModal(r){
+// A request's text and its answers: {body, opts:[{l,s,fn}]}. The pop-up (requestModal) and the Bookings tab (reqView) both use this.
+function requestOpts(r){
   const who=`The <b>${r.who}</b> (${r.from}${r.res?', Alaska residents':''})`;
   if(r.kind==='dipnet'){
-    modal('📞 Booking request',`<p>${who}, ${r.n} people, want you to take them <b>dipnetting at the mouth of the Kenai</b> on ${dlong(r.d)}. “We’ll pay whatever. We saw it on YouTube.”</p>`,[
+    return {body:`<p>${who}, ${r.n} people, want you to take them <b>dipnetting at the mouth of the Kenai</b> on ${dlong(r.d)}. “We’ll pay whatever. We saw it on YouTube.”</p>`,opts:[
       {l:'Explain it’s Alaska residents only',s:'Offer a sockeye trip some other time.',fn:()=>{adj('rep',1);say('📞 You explain the personal-use dipnet fishery is for Alaska residents only. They’re disappointed but say they’ll book a sockeye trip next summer.')}},
-      {l:`Take them as your “guests” — ${$(150*r.n)}`,s:'Cash up front.',fn:()=>{money(150*r.n);S.stats.earned+=150*r.n;say('🥅 You pocket the cash and hand nonresidents dipnets on the beach.');violate(null,{p:.35,fine:500,what:'helping nonresidents in the personal-use fishery'})}}]);
-    return;
+      {l:`Take them as your “guests” — ${$(150*r.n)}`,s:'Cash up front.',fn:()=>{money(150*r.n);S.stats.earned+=150*r.n;say('🥅 You pocket the cash and hand nonresidents dipnets on the beach.');violate(null,{p:.35,fine:500,what:'helping nonresidents in the personal-use fishery'})}}]};
   }
   const T=TRIPS[r.type],asstNote=r.asst?`<p style="font-size:13px;color:var(--mute)">🧑‍🤝‍🧑 You’re booked then, so your assistant guide would take this party: you keep ${Math.round((1-ASST_CUT)*100)}% of the fare and tips.</p>`:'',price=T.gig?`day rate ${$(T.gig)}`:`${$(T.price)} × ${r.n} = ${$(T.price*r.n)}`;
   const book=(n,q,d)=>{const b=addBooking({d:d??r.d,type:r.type,n,who:r.who,from:r.from,res:r.res,quirk:q||r.quirk,asst:r.asst||undefined});sfx('good');say(`📅 Booked: ${T.ic} ${T.n}, ${dlong(b.d)} at ${fmt(T.start)}, the ${b.who} (${b.n})${b.asst?', with your assistant guide':''}.`)};
   if(r.kind==='king'){
-    modal('📞 Booking request',`<p>${who}, ${r.n} anglers, ${dlong(r.d)}: “We want a <b>Kenai king</b>. A big one. Like the world record.”</p>${requestWarn(r)}`,[
+    return {body:`<p>${who}, ${r.n} anglers, ${dlong(r.d)}: “We want a <b>Kenai king</b>. A big one. Like the world record.”</p>${requestWarn(r)}`,opts:[
       ...(kingRule()==='open'?[{l:'Book it: kings are open this year',s:`1 per day, 20 in. or longer. ${$(payOf({type:'reds',n:r.n}))}.`,fn:()=>book(r.n,['kingfan'])}]:[
       {l:`Tell them straight: kings are ${kingRule()==='cr'?'catch-and-release only':'closed'}`,s:`Book a sockeye trip instead: ${$(payOf({type:'reds',n:r.n}))}.`,fn:()=>book(r.n,['kingfan'])},
       {l:'Promise you’ll “see what we can do”',s:`Book it: ${$(payOf({type:'reds',n:r.n}))}.`,fn:()=>book(r.n,['kingfan','promised'])}]),
-      {l:'Decline politely',fn:()=>say('📞 You pass. They’ll find somebody.')}]);
-    return;
+      {l:'Decline politely',fn:()=>say('📞 You pass. They’ll find somebody.')}]};
   }
   const o=[],warn=requestWarn(r),alt=illegalDay(r.type,r.d)?nextLegalDay(r):null,bn=r.type==='trout'&&r.n>3?3:r.n;
   const bad=illegalDay(r.type,r.d);
@@ -198,7 +198,40 @@ function requestModal(r){
   else o.push({l:`${bad?'Book it anyway':'Book it'} — ${$(payOf({type:r.type,n:r.n}))}`,s:bad?'You’ll face the rules on the water.':'',fn:()=>book(r.n)});
   if(bad&&alt!=null) o.splice(0,0,{l:`Offer ${dlong(alt)} instead`,s:`Same party, ${fmt(T.start)}. ${$(payOf({type:r.type,n:bn}))}.`,fn:()=>book(bn,null,alt)});
   o.push({l:'Decline politely',fn:()=>say('📞 You pass on that one.')});
-  modal('📞 Booking request',`<p>${who} would like a <b>${T.ic} ${T.n}</b> on <b>${dlong(r.d)}</b> at ${fmt(T.start)} for <b>${r.n}</b>.</p>${warn}<p style="font-size:13px;color:var(--mute)">${T.long} ${price}.</p>${asstNote}`,o);
+  return {body:`<p>${who} would like a <b>${T.ic} ${T.n}</b> on <b>${dlong(r.d)}</b> at ${fmt(T.start)} for <b>${r.n}</b>.</p>${warn}<p style="font-size:13px;color:var(--mute)">${T.long} ${price}.</p>${asstNote}`,opts:o};
+}
+function requestModal(r){const q=requestOpts(r);modal('📞 Booking request',q.body,q.opts)}
+// ---- requests wait in the Bookings tab ----
+// A request that comes in goes to the top of 📅 Bookings (with a dot on the tab) and waits a day or two; the morning report mentions it.
+// Only a request for tomorrow or sooner, made while you're on the phone, is answered on the spot.
+const REQ_WAIT=2;
+const reqKey=r=>r.kind==='dipnet'?'dipnetting at the mouth':`${TRIPS[r.type].ic} ${TRIPS[r.type].n.toLowerCase()}`;
+function queueRequest(r,quiet){
+  const q={id:S.reqN++,r,exp:day()+REQ_WAIT};S.reqs.push(q);
+  const line=`📞 <b>Booking request:</b> the ${r.who} (${r.n}) want a ${reqKey(r)} on ${dlong(r.d)}. Answer it in the 📅 Bookings tab: it waits ${REQ_WAIT===1?'a day':'two days'}.`;
+  say(line);
+  if(!quiet) showTile('📞','New booking request',`The ${r.who}, ${dlabel(r.d)}. See the Bookings tab.`,'info');
+  return q;
+}
+function requestArrives(r){if(r.d<=day()+1)requestModal(r);else queueRequest(r)}
+const reqDot=()=>!!(S&&S.reqs&&S.reqs.length);
+// drop requests that lapsed (the party booked someone else, or the date went by); returns the lines for the morning report
+function reqExpire(d){
+  if(!S.reqs||!S.reqs.length) return [];
+  const gone=S.reqs.filter(q=>q.exp<d||q.r.d<=d);
+  S.reqs=S.reqs.filter(q=>!gone.includes(q));
+  return gone.map(q=>`📞 The ${q.r.who} didn’t wait for an answer and booked somebody else.`);
+}
+window.reqAns=(id,k)=>{
+  const i=S.reqs.findIndex(q=>q.id===id);if(i<0)return;
+  const q=S.reqs[i],o=requestOpts(q.r).opts[k];if(!o||o.dis)return;
+  S.reqs.splice(i,1);o.fn();sfx('tap');render();
+};
+function reqView(){
+  const rs=S.reqs||[];if(!rs.length) return '';
+  return `<div class="sect">📞 Booking requests · ${rs.length} waiting</div>`+rs.map(q=>{
+    const v=requestOpts(q.r),left=q.exp-day();
+    return `<div class="req"><div class="rb">${v.body}<p class="small-note" style="font-size:12px;color:var(--mute)">${left<=0?'Answer today or they move on.':'Waits until tomorrow night.'}</p></div>${v.opts.map((o,k)=>`<button class="act" ${o.dis?'disabled':''} onclick="reqAns(${q.id},${k})"><span class="tx"><b>${o.l}</b>${o.s?'<span>'+o.s+'</span>':''}</span></button>`).join('')}</div>`}).join('');
 }
 
 // ---- dipnetting (you're an Alaska resident) ----
@@ -221,7 +254,7 @@ function credCheck(){
 
 // ---- random events ----
 defEvent({id:'call_request',hook:'wake',tile:['📞','Booking request','info'],chance:.5,cond:()=>!S.winter&&sday(day())<12,
-  run:()=>{const r=makeRequest();if(r)requestModal(r);else say('📞 A missed call from an unknown number. No voicemail.')}});
+  run:()=>{const r=makeRequest();if(r)queueRequest(r,true);else say('📞 A missed call from an unknown number. No voicemail.')}});
 defEvent({id:'trooper_check',hook:'arrive',tile:['👮','Boat check','warn'],chance:.22,bad:true,cooldown:2,cond:c=>['lower','cooper','homer'].includes(c.at),
   run:()=>credCheck()});
 defEvent({id:'moose',hook:'travel',tile:['🫎','Moose on the highway','info'],chance:.1,cooldown:2,

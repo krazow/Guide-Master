@@ -212,6 +212,20 @@ html.hc .hud :focus-visible,html.hc .title :focus-visible,html.hc nav.tabs :focu
 details.go>summary{min-height:44px;align-items:center}
 .modal:focus{outline:none}
 button.act,.ghost,.big{min-height:44px}
+
+.modal.swap{animation:none}
+.packbox{margin:10px 0 4px;padding:10px;border:1px solid var(--line);border-radius:12px}
+.packbox p{margin:6px 0}
+.packbox [role=radiogroup]{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.packopt{display:flex;flex-direction:column;gap:2px;text-align:left;min-height:44px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:transparent;color:inherit;font:inherit;cursor:pointer}
+.packopt b{font-size:14px}.packopt span{font-size:12px;color:var(--mute)}
+.packopt.on{border-color:var(--accent,#2f7d8a);box-shadow:inset 0 0 0 1px var(--accent,#2f7d8a);background:rgba(47,125,138,.12)}
+.req{border:1px solid var(--line);border-radius:12px;padding:10px 10px 2px;margin-bottom:10px;background:var(--paper)}
+.req .rb p{margin:0 0 8px;font-size:14.5px}
+.digest .dig{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.digest .dig .di{font-size:22px;line-height:1.2}
+.digest .dig p{margin:3px 0 0;font-size:14px}
+.digest .sect{margin-top:10px}
 </style>
 </head>
 <body>
@@ -1796,7 +1810,7 @@ let S, tab='act', uiNarr=[];
 
 // ---------------- preferences (device-wide, not per save) ----------------
 const PREF_KEY=KEY('prefs');
-const PREF_DEF={fs:'n',hc:false,rm:(()=>{try{return matchMedia('(prefers-reduced-motion: reduce)').matches}catch(e){return false}})(),sound:true,tips:true,diff:'normal',goOpen:null};
+const PREF_DEF={fs:'n',hc:false,rm:(()=>{try{return matchMedia('(prefers-reduced-motion: reduce)').matches}catch(e){return false}})(),sound:true,tips:true,diff:'normal',goOpen:null,tripSteps:false};
 function prefs(){try{return Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem(PREF_KEY)||'{}'))}catch(e){return Object.assign({},PREF_DEF)}}
 function setPref(k,v){const p=prefs();p[k]=v;try{localStorage.setItem(PREF_KEY,JSON.stringify(p))}catch(e){}applyPrefs()}
 function applyPrefs(){const p=prefs(),c=document.documentElement.classList;c.toggle('fs-l',p.fs==='l');c.toggle('fs-xl',p.fs==='xl');c.toggle('hc',!!p.hc);c.toggle('rm',!!p.rm)}
@@ -1867,6 +1881,7 @@ function hoursTxt(id){const h=L[id].hours;if(!h)return '';const r=h(day());retur
 // A 4th argument true makes the pop-up required: Esc doesn't close it, only its own button does (no backdrop-tap close exists).
 // After any button, the game re-renders (unless you're on the title or end screen).
 let MB=[], MQ=[], FOCUS_RET=null;
+let DIGEST=null;   // the morning report being collected (04-loop.js endDay): {night, items, lines, held}
 // Keyboard and screen-reader behavior: while a pop-up is open the page behind it is inert and Tab stays inside the pop-up;
 // Esc closes it unless it is required (a 4th argument of true); closing gives focus back to what you had pressed.
 const FOCUSABLE='button:not([disabled]),input:not([disabled]),textarea:not([disabled]),select:not([disabled]),a[href],[tabindex]:not([tabindex="-1"])';
@@ -1876,12 +1891,29 @@ function focusBack(k){if(!k)return;
   if(!el){const all=[...document.querySelectorAll(k.tag)].filter(e=>!e.closest('#mbg'));el=all.find(e=>(e.textContent||'').trim().slice(0,80)===k.txt)||all[k.idx]}
   if(el&&!el.disabled&&el.offsetParent!==null){try{el.focus({preventScroll:true})}catch(e){}}}
 function syncInert(){const a=document.getElementById('app'),on=!!document.getElementById('mbg');if(a){if(on)a.setAttribute('inert','');else a.removeAttribute('inert')}}
+// The pop-up's inner HTML (shared by modal() and modalSwap())
+function sheetHTML(title,body,btns){return withName(`<div class="modal" role="dialog" aria-modal="true" aria-label="${esc(title.replace(/<[^>]+>/g,''))}" tabindex="-1"><h2>${title}</h2><div class="mb">${body}</div>${btns.map((b,i)=>`<button class="act ${i===0&&!b.dis&&!b.np?'primary':''}" ${b.legal!==undefined?`data-legal="${b.legal}"`:''} ${b.dis?'disabled':''} onclick="MBTN(${i})"><span class="tx"><b>${b.l}</b>${b.s?'<span>'+b.s+'</span>':''}</span></button>`).join('')}</div>`)}
+// A button with stay:true keeps the pop-up on screen while its fn runs: if fn calls modalSwap(), the same sheet shows the next step in place
+// (one pop-up for a whole trip, say); if it doesn't, the sheet closes as usual.
+let SWAPOK=false,SWAPPED=false;
+function modalSwap(title,body,btns,noClose){
+  const el=document.getElementById('mbg');
+  if(!(SWAPOK&&el)) return modal(title,body,btns,noClose);
+  MB=btns;SWAPPED=true;
+  if(noClose)el.dataset.lock='1';else delete el.dataset.lock;
+  el.innerHTML=sheetHTML(title,body,btns);
+  const m=el.querySelector('.modal');if(m){m.classList.add('swap');m.scrollTop=0}
+  setTimeout(()=>{const m2=el.querySelector('.modal'),b=el.querySelector('button.act:not([disabled])');if(!document.body.contains(el))return;
+    if(b&&!el.querySelector('input,textarea'))b.focus({preventScroll:true});else if(m2)m2.focus({preventScroll:true})},30);
+}
+window.modalSwap=modalSwap;
 function modal(title,body,btns,noClose){
+  if(DIGEST&&!DIGEST.open){DIGEST.held.push([title,body,btns,noClose]);return}   // while the morning report is being put together, pop-ups wait behind it
   if(document.getElementById('mbg')){MQ.push([title,body,btns,noClose]);return}
   MB=btns;
   if(!FOCUS_RET)FOCUS_RET=focusKey(document.activeElement)||{};
   const el=document.createElement('div');el.className='modal-bg';el.id='mbg';if(noClose)el.dataset.lock='1';
-  el.innerHTML=withName(`<div class="modal" role="dialog" aria-modal="true" aria-label="${esc(title.replace(/<[^>]+>/g,''))}" tabindex="-1"><h2>${title}</h2><div class="mb">${body}</div>${btns.map((b,i)=>`<button class="act ${i===0&&!b.dis&&!b.np?'primary':''}" ${b.legal!==undefined?`data-legal="${b.legal}"`:''} ${b.dis?'disabled':''} onclick="MBTN(${i})"><span class="tx"><b>${b.l}</b>${b.s?'<span>'+b.s+'</span>':''}</span></button>`).join('')}</div>`);
+  el.innerHTML=sheetHTML(title,body,btns);
   el.addEventListener('keydown',e=>{
     if(e.key==='Escape'){e.preventDefault();e.stopPropagation();escModal();return}
     if(e.key!=='Tab')return;
@@ -1901,7 +1933,9 @@ function modalClosed(){
   syncInert();
   if(!document.getElementById('mbg')){const k=FOCUS_RET;FOCUS_RET=null;focusBack(k)}
 }
-window.MBTN=i=>{if(MB[i]&&MB[i].dis)return;const el=document.getElementById('mbg');el&&el.remove();const f=MB[i]&&MB[i].fn;f&&f();modalClosed()};
+window.MBTN=i=>{const b=MB[i];if(b&&b.dis)return;const el=document.getElementById('mbg');
+  if(b&&b.stay&&el){SWAPOK=true;SWAPPED=false;try{b.fn&&b.fn()}finally{SWAPOK=false;if(!SWAPPED){const e2=document.getElementById('mbg');e2&&e2.remove()}}modalClosed();return}
+  el&&el.remove();const f=b&&b.fn;f&&f();modalClosed()};
 // Esc: press the pop-up's own close button if it has one (or its only button); otherwise just put it away. Required pop-ups ignore it.
 function escModal(){
   const el=document.getElementById('mbg');if(!el||el.dataset.lock)return false;
@@ -1941,6 +1975,7 @@ function modalSays(title){
 function tileBox(){let el=document.getElementById('tiles');if(!el){el=document.createElement('div');el.id='tiles';el.setAttribute('role','status');el.setAttribute('aria-live','polite');document.body.appendChild(el)}return el}
 function showTile(ic,title,sub,kind,when){
   if(!S||S.over) return;
+  if(DIGEST&&!DIGEST.open){DIGEST.items.push({ic,title,lines:sub?[sub]:[],kind,tile:true});return}   // a toast that would pop up while you wake: it goes in the morning report
   if(modalSays(title)) return;
   when=when||`${dayName(day()).slice(0,3)} ${fmt(S.t)}`;
   const box=tileBox();
@@ -2001,7 +2036,7 @@ function fireHook(hook,ctx={}){
     const ownModal=MQ.length+(document.getElementById('mbg')?1:0)!==mBefore;
     if(!ownModal) popItems.push({e,lines:uiNarr.slice(nBefore)});
     const [ic,title,kind]=e.tile||['📍',e.id.replace(/_/g,' '),'info'];
-    const dup=ownModal||hook==='night'||(popupsOn()&&!capped);   // the event's own modal, the night summary or the OK pop-up already tells the player
+    const dup=ownModal||hook==='night'||!!DIGEST||(popupsOn()&&!capped);   // the event's own modal, the night summary or the OK pop-up already tells the player
     const cause=S.ev.cause&&S.ev.cause[e.id],ce=cause&&EV.find(x=>x.id===cause);
     if(!dup)showTile(ic,title,ce?`Because of: ${ce.tile?ce.tile[1]:cause}`:(ctx.sub||HOOK_SUB[hook]||''),kind,hook==='night'?`${dayName(day()).slice(0,3)} night`:null);
     if(S.ev.cause)delete S.ev.cause[e.id];
@@ -2014,12 +2049,15 @@ function fireHook(hook,ctx={}){
 }
 // ---- OK pop-up for events (on by default; Settings → Event pop-ups) ----
 const POPUP_KEY=KEY('popups');
-function popupsOn(){try{return localStorage.getItem(POPUP_KEY)!=='off'}catch(e){return true}}
+// (1.12.0: off unless you turn it on. The morning report and a trip's own decisions still pop up; the rest is a tile and a log line.)
+function popupsOn(){try{return localStorage.getItem(POPUP_KEY)==='on'}catch(e){return false}}
 // At most INFO_POP_CAP of these information-only pop-ups a day (decisions, trips and the night summary are never counted or held back).
 const INFO_POP_CAP=1;
 function infoPopsToday(){const p=S&&S.ev&&S.ev.pop;return p&&p.d===day()?p.n:0}
 function eventPopup(hook,items,capped){
-  if(!items.length||hook==='night'||!popupsOn()||!S||S.over||capped) return;
+  if(!items.length||hook==='night'||!S||S.over) return;
+  if(DIGEST){items.forEach(it=>{const m=it.e.tile||['📍',it.e.id.replace(/_/g,' ')];DIGEST.items.push({ic:m[0],title:m[1],lines:it.lines})});return}   // morning events are part of the morning report
+  if(!popupsOn()||capped) return;
   S.ev.pop={d:day(),n:infoPopsToday()+1}; // night events go in the "Good night" summary
   const meta=e=>e.tile||['📍',e.id.replace(/_/g,' ')];
   const body=items.map(it=>{const m=meta(it.e);const txt=it.lines.map(l=>`<p style="margin:4px 0 0">${l}</p>`).join('');
@@ -2089,11 +2127,27 @@ function endDay(where){
   const loss=checkLoss();if(loss) return gameOver(loss);
   if(d+1>=GAME.days) return finish();
   S.cur=d+1;S.t=S.cur*1440+S.alarm;uiNarr=[];
-  // the night summary opens first; whatever the new morning brings (booking requests, event pop-ups, the off-season) queues behind it
-  modal(`🌙 ${dayName(d)} night`,card+notes.map(n=>`<p>${n}</p>`).join(''),[{l:`☀️ Wake up: ${dayName(S.cur)}, ${fmt(S.t)}`,fn:()=>{}}]);
-  sfx('info');
+  // One MORNING REPORT replaces the night summary and the pop-ups the new morning would have opened: what happened overnight,
+  // events, reminders, and any booking request (which waits in the Bookings tab). Decisions that need an answer queue behind it.
+  const night=card+notes.map(n=>`<p>${n}</p>`).join('');
+  DIGEST={night,items:[],lines:[],held:[],open:false,from:d};
   startDay();
+  const D=DIGEST;DIGEST=null;
+  morningReport(D,d);
   render();
+}
+function digestLine(l){if(DIGEST)DIGEST.lines.push(l)}
+function morningReport(D,d){
+  D.open=true;
+  const seen=new Set(),sec=(h,b)=>b?`<div class="sect">${h}</div>${b}`:'';
+  const items=D.items.filter(it=>{const k=it.title+'|'+(it.lines||[]).join('|');if(it.title==='Booking request'||seen.has(k))return false;seen.add(k);return true});
+  const ev=items.map(it=>`<div class="dig"><span class="di" aria-hidden="true">${it.ic}</span><div><b>${it.title}</b>${(it.lines||[]).map(l=>`<p>${l}</p>`).join('')}</div></div>`).join('');
+  const rq=(S.reqs||[]).length;
+  const lines=D.lines.map(l=>`<p>${l}</p>`).join('');
+  const body=`<div class="digest">${sec(`🌙 ${dayName(d)} night`,D.night)}${sec('☀️ This morning',ev+lines)}${rq?`<div class="dig"><span class="di" aria-hidden="true">📞</span><div><b>${rq} booking request${rq>1?'s':''} waiting</b><p>${(S.reqs||[]).map(q=>`The ${q.r.who}: ${reqKey(q.r)}, ${dlabel(q.r.d)}`).join('<br>')}</p></div></div>`:''}</div>`;
+  modal(`☀️ Morning report · ${dayName(S.cur)}`,body,[{l:`☀️ Wake up: ${dayName(S.cur)}, ${fmt(S.t)}`,fn:()=>{}},...(rq?[{l:`📞 Review requests in Bookings`,s:'They wait a day or two.',fn:()=>setTab('book')}]:[])]);
+  sfx('info');
+  D.held.forEach(q=>modal(...q));
 }
 // Travel. Long trips get the full-screen transition.
 function go(dest){
@@ -2143,7 +2197,7 @@ function render(){
   const xt=(EXTRA_TABS||[]).find(t=>t.k===tab);
   h+=`<div class="content">${tab==='act'?actView():tab==='todo'?todoView():tab==='log'?logView():xt?xt.view():actView()}</div>`;
   const pending=todoItems().filter(x=>x.urgent&&!x.ok).length,tabs=allTabs();
-  h+=`<nav class="tabs" style="grid-template-columns:repeat(${tabs.length},1fr)">${tabs.map(([k,i,l])=>`<button class="${tab===k?'on':''}" onclick="setTab('${k}')"${tab===k?' aria-current="page"':''}><span class="ti">${i}</span>${l}${(k==='todo'&&pending)||(k==='home'&&typeof homeDot==='function'&&homeDot())?'<span class="dot"></span>':''}</button>`).join('')}</nav>`;
+  h+=`<nav class="tabs" style="grid-template-columns:repeat(${tabs.length},1fr)">${tabs.map(([k,i,l])=>`<button class="${tab===k?'on':''}" onclick="setTab('${k}')"${tab===k?' aria-current="page"':''}><span class="ti">${i}</span>${l}${(k==='todo'&&pending)||(k==='home'&&typeof homeDot==='function'&&homeDot())||(k==='book'&&typeof reqDot==='function'&&reqDot())?'<span class="dot"></span>':''}</button>`).join('')}</nav>`;
   app.innerHTML=withName(h);
   achCheck();
   saveGame();
@@ -2426,7 +2480,8 @@ window.openSettings=()=>{
     {l:`🔊 Sound: ${prefs().sound?'On':'Off'}`,s:'Alerts and chimes.',fn:()=>{setPref('sound',!prefs().sound);if(prefs().sound)sfx('good');openSettings()}},
     {l:'♿ Accessibility',s:`Text size: ${{n:'Normal',l:'Large',xl:'Extra large'}[prefs().fs]} · High contrast: ${prefs().hc?'On':'Off'} · Reduce motion: ${prefs().rm?'On':'Off'}`,fn:()=>accessModal()},
     {l:`💡 Tips: ${prefs().tips?'On':'Off'}`,s:'One short tip at a time while you learn.',fn:()=>{setPref('tips',!prefs().tips);openSettings()}},
-    {l:`🔔 Event pop-ups: ${popupsOn()?'On':'Off'}`,s:popupsOn()?'An OK window for each random event. Tap to turn off (the tiles still show).':'Only the small tiles show. Tap to turn pop-ups back on.',fn:()=>{try{localStorage.setItem(POPUP_KEY,popupsOn()?'off':'on')}catch(e){}openSettings()}},
+    {l:`🔔 Event pop-ups: ${popupsOn()?'On':'Off'}`,s:popupsOn()?'An OK window for each event during the day. Tap to turn off (the tiles still show).':'Events during the day show as small tiles and log lines. Tap to get an OK window for each. The morning report always shows.',fn:()=>{try{localStorage.setItem(POPUP_KEY,popupsOn()?'off':'on')}catch(e){}openSettings()}},
+    {l:`🛶 Show every trip step: ${prefs().tripSteps?'On':'Off'}`,s:prefs().tripSteps?'Each choice on a trip opens its own pop-up. Tap to put a trip back on one sheet.':'A trip is one sheet: your choices and the result change in place. Tap to open a pop-up for every step.',fn:()=>{setPref('tripSteps',!prefs().tripSteps);openSettings()}},
     ...(typeof feedbackModal==='function'?[{l:'💬 Send feedback',s:'Ideas, bugs, a rule we got wrong: it goes straight to the developer.',fn:()=>feedbackModal(openSettings)}]:[]),
     {l:'⌨️ Keyboard shortcuts',s:'On a computer: numbers press buttons, ? for the list.',fn:()=>keysModal(openSettings)},
     {l:`🏆 Achievements (${achCount()}/${ACH.length})`,s:'Earned on this device, across all your games.',fn:()=>achModal(openSettings)},
@@ -2513,6 +2568,7 @@ function newState(){
     scoutAt:{},look:-1,     // day index you scouted the upper river / Homer; the day you last read the Fish tab (spot hints, 23-fish.js)
     unlogged:0,overdue:0,   // ADF&G logbook trips not yet written up / written up late
     book:[],nextId:1,trip:null,
+    reqs:[],reqN:1,         // booking requests waiting in the Bookings tab (21-story.js): {id,r,exp}
     regs:[],                // returning parties (30-stories.js): who they are and how their last trip went
     arcs:{rival:{st:0,s:-1,mood:0},garza:{st:0},board:{st:0,s:-1},day:-1},   // multi-season story arcs
     dil:{s:-1,n:{}},        // dilemmas shown this season, by key (no dilemma more than twice a season)
@@ -2630,7 +2686,7 @@ function actionsHere(){
     a.push({ic:'🔧',l:`Service the boats yourself — ${$(rp(165))} in parts`,s:boatDown()?'Out of service: it needs a major repair first.':'3 hours. Boat +20: oil and filter, plugs, water-pump impeller, jet intake, trailer bearings, oarlocks.',cat:'work',dis:boatDown()||S.boat>=95||!canAfford(rp(165)),fn:()=>{spend(rp(165));pass(180);adj('boat',20);adj('energy',-6);say('🔧 Oil, filters, plugs, a new water-pump impeller, a cleaned-out jet intake and greased bearings. Grease to the elbows; she purrs.')}});
     a.push({ic:'🏪',l:`Dealer 100-hour service — ${$(rp(525))}`,s:boatDown()?'Out of service: it needs a major repair first.':'1 hour to drop off and pick up. Boat +40. Alaska shop rates.',cat:'work',dis:boatDown()||S.boat>=95||!canAfford(rp(525)),fn:()=>{spend(rp(525));pass(60);adj('boat',40);say('🏪 The Soldotna dealer does the 100-hour service, shims the jet impeller and finds a cracked fuel line. Money well spent.')}});
     boatRescueActions(a);
-    if(!S.calls[d]) a.push({ic:'📞',l:'Return calls & emails',s:'30 min. Once a day. Booking requests come in.',cat:'work',fn:()=>{pass(30);S.calls[d]=true;const r=makeRequest();if(r)requestModal(r);else say('📞 Voicemails: two spam, one dentist, no bookings.')}});
+    if(!S.calls[d]) a.push({ic:'📞',l:'Return calls & emails',s:'30 min. Once a day. Booking requests come in.',cat:'work',fn:()=>{pass(30);S.calls[d]=true;const r=makeRequest();if(r)requestArrives(r);else say('📞 Voicemails: two spam, one dentist, no bookings.')}});
     a.push({ic:'📊',l:'Check the ADF&G sonar count',s:'5 min. How many sockeye passed river mile 19 yesterday.',cat:'work',fn:()=>{pass(5);sonarSay()}});
     a.push({ic:'⏰',l:`Alarm: ${fmt(S.alarm)}`,s:'Tap to cycle 4:00 → 4:30 → 5:00 → 5:30 → 6:00.',cat:'rest',fn:()=>{const o=[240,270,300,330,360];S.alarm=o[(o.indexOf(S.alarm)+1)%o.length];say(`⏰ Alarm set for ${fmt(S.alarm)}.`)}});
   }
@@ -2739,14 +2795,14 @@ function alertBar(){
 // ---- extra tabs ----
 const EXTRA_TABS=[
   {k:'book',ic:'📅',l:'Bookings',view:()=>{
-    const s0=seasonFirst();let h=`<div class="sect">Season ${seasonOf(s0)+1} of ${S.years} · ${dlabel(s0)}–${dlabel(s0+SEASON-1)}, ${yearOf(s0)}</div>`;
+    const s0=seasonFirst();let h=(typeof reqView==='function'?reqView():'')+`<div class="sect">Season ${seasonOf(s0)+1} of ${S.years} · ${dlabel(s0)}–${dlabel(s0+SEASON-1)}, ${yearOf(s0)}</div>`;
     for(let d=s0;d<s0+SEASON;d++){
       const bs=S.book.filter(b=>b.d===d),rules=[isSunMon(d)?'🚫 guide boats off below Skilak':'',halClosed(d)?'⚓ no charter halibut kept':''].filter(Boolean).join(' · ');
       const lines=bs.map(b=>{const T=TRIPS[b.type],st={booked:d<day()?'—':'',done:'✅',noshow:'❌ no-show',cancelled:'🚫 cancelled'}[b.status]||'';
         return `${T.ic} <b>${fmt(T.start)}</b> ${T.n} · ${b.who}, ${b.n} ${b.reg?'⭐ ':''}${b.asst?'🧑‍🤝‍🧑 (assistant) ':''}${st}${b.out?` · ${b.out.line}`:''}`}).join('<br>');
       h+=`<div class="todo"><span class="ck">${d<day()?'✔️':d===day()?'👉':'·'}</span><div><b>${dlong(d)}</b><span>${lines||'<i>Open day</i>'}${rules?`<br><span style="color:var(--warn)">${rules}</span>`:''}</span></div></div>`;
     }
-    return h+`<div class="rules">Trips: 💲 rates ×${S.up.rate.toFixed(1)} · 🐟 sockeye ${$(Math.round(TRIPS.reds.price*S.up.rate))}/angler (6 AM, lower river) · 🎣 silvers ${$(Math.round(TRIPS.silver.price*S.up.rate))}/angler (1 PM, lower river) · 🌈 trout float ${$(Math.round(TRIPS.trout.price*S.up.rate))}/angler (7 AM, Cooper Landing, 3 max) · ⚓ halibut ${S.up.chp?`${$(Math.round(350*S.up.rate))}/passenger on your own boat`:`day rate ${$(TRIPS.halibut.gig)}`} (6 AM, Homer). New requests come in by phone: <b>📞 Return calls</b> at the shop.</div>`}},
+    return h+`<div class="rules">Trips: 💲 rates ×${S.up.rate.toFixed(1)} · 🐟 sockeye ${$(Math.round(TRIPS.reds.price*S.up.rate))}/angler (6 AM, lower river) · 🎣 silvers ${$(Math.round(TRIPS.silver.price*S.up.rate))}/angler (1 PM, lower river) · 🌈 trout float ${$(Math.round(TRIPS.trout.price*S.up.rate))}/angler (7 AM, Cooper Landing, 3 max) · ⚓ halibut ${S.up.chp?`${$(Math.round(350*S.up.rate))}/passenger on your own boat`:`day rate ${$(TRIPS.halibut.gig)}`} (6 AM, Homer). New requests wait at the top of this tab for a day or two: <b>📞 Return calls</b> at the shop brings more.</div>`}},
   {k:'regs',ic:'📖',l:'Regs',view:()=>regsView()},
 ];
 function regsView(){
@@ -2868,6 +2924,7 @@ function onMorning(d){
   if(d===0) return;
   const sd=sday(d),newSeason=sd===0;
   patchExpire(d);
+  reqExpire(d).forEach(l=>{say(l);digestLine(l)});
   if(newSeason) startSeason(seasonOf(d));               // 24-career.js: bills, new rules, forecast, upgrades
   rollDay(d);
   const w=WX[S.wx[d]];
@@ -2958,23 +3015,22 @@ function nextLegalDay(r){
   for(let d=r.d+1;d<end;d++) if(!illegalDay(r.type,d)&&!conflicts(d,r.type,!!r.asst)) return d;
   return null;
 }
-function requestModal(r){
+// A request's text and its answers: {body, opts:[{l,s,fn}]}. The pop-up (requestModal) and the Bookings tab (reqView) both use this.
+function requestOpts(r){
   const who=`The <b>${r.who}</b> (${r.from}${r.res?', Alaska residents':''})`;
   if(r.kind==='dipnet'){
-    modal('📞 Booking request',`<p>${who}, ${r.n} people, want you to take them <b>dipnetting at the mouth of the Kenai</b> on ${dlong(r.d)}. “We’ll pay whatever. We saw it on YouTube.”</p>`,[
+    return {body:`<p>${who}, ${r.n} people, want you to take them <b>dipnetting at the mouth of the Kenai</b> on ${dlong(r.d)}. “We’ll pay whatever. We saw it on YouTube.”</p>`,opts:[
       {l:'Explain it’s Alaska residents only',s:'Offer a sockeye trip some other time.',fn:()=>{adj('rep',1);say('📞 You explain the personal-use dipnet fishery is for Alaska residents only. They’re disappointed but say they’ll book a sockeye trip next summer.')}},
-      {l:`Take them as your “guests” — ${$(150*r.n)}`,s:'Cash up front.',fn:()=>{money(150*r.n);S.stats.earned+=150*r.n;say('🥅 You pocket the cash and hand nonresidents dipnets on the beach.');violate(null,{p:.35,fine:500,what:'helping nonresidents in the personal-use fishery'})}}]);
-    return;
+      {l:`Take them as your “guests” — ${$(150*r.n)}`,s:'Cash up front.',fn:()=>{money(150*r.n);S.stats.earned+=150*r.n;say('🥅 You pocket the cash and hand nonresidents dipnets on the beach.');violate(null,{p:.35,fine:500,what:'helping nonresidents in the personal-use fishery'})}}]};
   }
   const T=TRIPS[r.type],asstNote=r.asst?`<p style="font-size:13px;color:var(--mute)">🧑‍🤝‍🧑 You’re booked then, so your assistant guide would take this party: you keep ${Math.round((1-ASST_CUT)*100)}% of the fare and tips.</p>`:'',price=T.gig?`day rate ${$(T.gig)}`:`${$(T.price)} × ${r.n} = ${$(T.price*r.n)}`;
   const book=(n,q,d)=>{const b=addBooking({d:d??r.d,type:r.type,n,who:r.who,from:r.from,res:r.res,quirk:q||r.quirk,asst:r.asst||undefined});sfx('good');say(`📅 Booked: ${T.ic} ${T.n}, ${dlong(b.d)} at ${fmt(T.start)}, the ${b.who} (${b.n})${b.asst?', with your assistant guide':''}.`)};
   if(r.kind==='king'){
-    modal('📞 Booking request',`<p>${who}, ${r.n} anglers, ${dlong(r.d)}: “We want a <b>Kenai king</b>. A big one. Like the world record.”</p>${requestWarn(r)}`,[
+    return {body:`<p>${who}, ${r.n} anglers, ${dlong(r.d)}: “We want a <b>Kenai king</b>. A big one. Like the world record.”</p>${requestWarn(r)}`,opts:[
       ...(kingRule()==='open'?[{l:'Book it: kings are open this year',s:`1 per day, 20 in. or longer. ${$(payOf({type:'reds',n:r.n}))}.`,fn:()=>book(r.n,['kingfan'])}]:[
       {l:`Tell them straight: kings are ${kingRule()==='cr'?'catch-and-release only':'closed'}`,s:`Book a sockeye trip instead: ${$(payOf({type:'reds',n:r.n}))}.`,fn:()=>book(r.n,['kingfan'])},
       {l:'Promise you’ll “see what we can do”',s:`Book it: ${$(payOf({type:'reds',n:r.n}))}.`,fn:()=>book(r.n,['kingfan','promised'])}]),
-      {l:'Decline politely',fn:()=>say('📞 You pass. They’ll find somebody.')}]);
-    return;
+      {l:'Decline politely',fn:()=>say('📞 You pass. They’ll find somebody.')}]};
   }
   const o=[],warn=requestWarn(r),alt=illegalDay(r.type,r.d)?nextLegalDay(r):null,bn=r.type==='trout'&&r.n>3?3:r.n;
   const bad=illegalDay(r.type,r.d);
@@ -2982,7 +3038,40 @@ function requestModal(r){
   else o.push({l:`${bad?'Book it anyway':'Book it'} — ${$(payOf({type:r.type,n:r.n}))}`,s:bad?'You’ll face the rules on the water.':'',fn:()=>book(r.n)});
   if(bad&&alt!=null) o.splice(0,0,{l:`Offer ${dlong(alt)} instead`,s:`Same party, ${fmt(T.start)}. ${$(payOf({type:r.type,n:bn}))}.`,fn:()=>book(bn,null,alt)});
   o.push({l:'Decline politely',fn:()=>say('📞 You pass on that one.')});
-  modal('📞 Booking request',`<p>${who} would like a <b>${T.ic} ${T.n}</b> on <b>${dlong(r.d)}</b> at ${fmt(T.start)} for <b>${r.n}</b>.</p>${warn}<p style="font-size:13px;color:var(--mute)">${T.long} ${price}.</p>${asstNote}`,o);
+  return {body:`<p>${who} would like a <b>${T.ic} ${T.n}</b> on <b>${dlong(r.d)}</b> at ${fmt(T.start)} for <b>${r.n}</b>.</p>${warn}<p style="font-size:13px;color:var(--mute)">${T.long} ${price}.</p>${asstNote}`,opts:o};
+}
+function requestModal(r){const q=requestOpts(r);modal('📞 Booking request',q.body,q.opts)}
+// ---- requests wait in the Bookings tab ----
+// A request that comes in goes to the top of 📅 Bookings (with a dot on the tab) and waits a day or two; the morning report mentions it.
+// Only a request for tomorrow or sooner, made while you're on the phone, is answered on the spot.
+const REQ_WAIT=2;
+const reqKey=r=>r.kind==='dipnet'?'dipnetting at the mouth':`${TRIPS[r.type].ic} ${TRIPS[r.type].n.toLowerCase()}`;
+function queueRequest(r,quiet){
+  const q={id:S.reqN++,r,exp:day()+REQ_WAIT};S.reqs.push(q);
+  const line=`📞 <b>Booking request:</b> the ${r.who} (${r.n}) want a ${reqKey(r)} on ${dlong(r.d)}. Answer it in the 📅 Bookings tab: it waits ${REQ_WAIT===1?'a day':'two days'}.`;
+  say(line);
+  if(!quiet) showTile('📞','New booking request',`The ${r.who}, ${dlabel(r.d)}. See the Bookings tab.`,'info');
+  return q;
+}
+function requestArrives(r){if(r.d<=day()+1)requestModal(r);else queueRequest(r)}
+const reqDot=()=>!!(S&&S.reqs&&S.reqs.length);
+// drop requests that lapsed (the party booked someone else, or the date went by); returns the lines for the morning report
+function reqExpire(d){
+  if(!S.reqs||!S.reqs.length) return [];
+  const gone=S.reqs.filter(q=>q.exp<d||q.r.d<=d);
+  S.reqs=S.reqs.filter(q=>!gone.includes(q));
+  return gone.map(q=>`📞 The ${q.r.who} didn’t wait for an answer and booked somebody else.`);
+}
+window.reqAns=(id,k)=>{
+  const i=S.reqs.findIndex(q=>q.id===id);if(i<0)return;
+  const q=S.reqs[i],o=requestOpts(q.r).opts[k];if(!o||o.dis)return;
+  S.reqs.splice(i,1);o.fn();sfx('tap');render();
+};
+function reqView(){
+  const rs=S.reqs||[];if(!rs.length) return '';
+  return `<div class="sect">📞 Booking requests · ${rs.length} waiting</div>`+rs.map(q=>{
+    const v=requestOpts(q.r),left=q.exp-day();
+    return `<div class="req"><div class="rb">${v.body}<p class="small-note" style="font-size:12px;color:var(--mute)">${left<=0?'Answer today or they move on.':'Waits until tomorrow night.'}</p></div>${v.opts.map((o,k)=>`<button class="act" ${o.dis?'disabled':''} onclick="reqAns(${q.id},${k})"><span class="tx"><b>${o.l}</b>${o.s?'<span>'+o.s+'</span>':''}</span></button>`).join('')}</div>`}).join('');
 }
 
 // ---- dipnetting (you're an Alaska resident) ----
@@ -3005,7 +3094,7 @@ function credCheck(){
 
 // ---- random events ----
 defEvent({id:'call_request',hook:'wake',tile:['📞','Booking request','info'],chance:.5,cond:()=>!S.winter&&sday(day())<12,
-  run:()=>{const r=makeRequest();if(r)requestModal(r);else say('📞 A missed call from an unknown number. No voicemail.')}});
+  run:()=>{const r=makeRequest();if(r)queueRequest(r,true);else say('📞 A missed call from an unknown number. No voicemail.')}});
 defEvent({id:'trooper_check',hook:'arrive',tile:['👮','Boat check','warn'],chance:.22,bad:true,cooldown:2,cond:c=>['lower','cooper','homer'].includes(c.at),
   run:()=>credCheck()});
 defEvent({id:'moose',hook:'travel',tile:['🫎','Moose on the highway','info'],chance:.1,cooldown:2,
@@ -3342,17 +3431,35 @@ function tripStart(b){
   if(b.type==='silver') t.steps.push('sixpm');
   S.trip=t;sfx('whoosh');tripNext();
 }
+// ---- one pop-up per trip ----
+// By default a trip is ONE bottom sheet: the decisions (the cooler and the spot together, then each dilemma) and the result swap in place
+// (modalSwap, 02-kit.js) instead of opening a new pop-up each time. Settings → "Show every trip step" brings back one pop-up per step.
+// Every decision keeps its options and its legal/illegal flags; only the extra sheets are gone.
+let PACK=null;                                   // the cooler choices shown with the spot (window.packSel picks one)
+window.packSel=i=>{if(!PACK||!PACK.o[i])return;PACK.sel=i;document.querySelectorAll('#mbg .packopt').forEach((e,k)=>{e.classList.toggle('on',k===i);e.setAttribute('aria-checked',k===i?'true':'false')})};
+window.tripPack=()=>PACK;
+function packHTML(pv){
+  return `<div class="packbox"><b>🧺 The cooler</b>${pv.b}<div role="radiogroup" aria-label="What to pack">${pv.o.map((o,i)=>`<button type="button" role="radio" class="packopt${i===0?' on':''}" aria-checked="${i===0}" onclick="packSel(${i})"><b>${o.l}</b><span>${o.s}</span></button>`).join('')}</div></div>`;
+}
 function tripNext(){
   const t=S.trip;if(!t) return;
   const b=bk(t.id);if(!b||b.status!=='booked'){S.trip=null;return}
   if(t.step>=t.steps.length) return tripEnd(b,t);
-  const f=STEP[t.steps[t.step]];if(!f){t.step++;return tripNext()}
-  const v=f(b,t),T=TRIPS[b.type];
+  const key=t.steps[t.step],f=STEP[key];if(!f){t.step++;return tripNext()}
+  const sheet=!prefs().tripSteps,T=TRIPS[b.type];
+  const packed=sheet&&key==='pack'&&t.steps[t.step+1]==='spot'&&STEP.spot;   // the cooler rides along with the spot choice
+  const pv=packed?f(b,t):null,v=packed?STEP.spot(b,t):f(b,t);
+  PACK=packed?{o:pv.o,sel:0}:null;
   const opts=v.o.map((o,k)=>({o,k}));
   if(!v.fixed)for(let i=opts.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[opts[i],opts[j]]=[opts[j],opts[i]]}   // shuffled every showing
   const hot=v.o.some(o=>o.legal===false)&&heat()>0?`<p class="small-note heat-note">🚔 You’ve broken ${heat()===1?'a rule':`${heat()} rules`} this season. The troopers and the other guides know your boat now: the odds of getting caught go up with every one.</p>`:'';
-  modal(v.t,`<p class="small-note" style="color:var(--mute);margin:0 0 6px">${T.ic} ${T.n} · ${b.who}</p>${v.b}${hot}`,opts.map(({o,k})=>({l:o.l,s:o.s,legal:o.legal!==false,dis:!!o.dis,np:true,k,fn:()=>{
+  const left=t.steps.slice(t.step).filter(x=>x!=='pack').length,done=t.steps.slice(0,t.step).filter(x=>x!=='pack').length;
+  const prog=sheet?` · ${done+1} of ${done+left}`:'';
+  const open=sheet&&!t.shown?`<p class="small-note" style="margin:0 0 6px">You load the ${b.who} into the ${b.type==='trout'?'drift boat':b.type==='halibut'?'charter boat':'jet sled'} at ${L[T.loc].name} and push off at ${fmt(S.t)}.</p>`:'';
+  t.shown=true;
+  modalSwap(v.t,`<p class="small-note" style="color:var(--mute);margin:0 0 6px">${T.ic} ${T.n} · ${b.who}${prog}</p>${open}${v.b}${packed?packHTML(pv):''}${hot}`,opts.map(({o,k})=>({l:o.l,s:o.s,legal:o.legal!==false,dis:!!o.dis,np:true,k,stay:sheet,fn:()=>{
     const tt=S.trip;if(!tt) return;const bb=bk(tt.id);if(!bb) {S.trip=null;return}
+    if(packed){const po=pv.o[PACK?PACK.sel:0];po&&po.fn&&po.fn(bb,tt);tt.step++;PACK=null}
     o.fn&&o.fn(bb,tt);
     if(S.trip&&!tt.abort){tt.step++;tripNext()}}})));
 }
@@ -3414,7 +3521,7 @@ function tripEnd(b,t){
   const mood=happy>=82?'😁 Five stars, and they’re already asking about next July. Word of mouth will bring you more bookings.':happy>=65?'🙂 Solid day. Handshakes at the trailer.':happy>=45?'😐 Polite thanks, small tip.':review?'😠 Tight-lipped goodbyes and a one-star review. Word gets around the Kenai.':'😕 They leave a little deflated.';
   const row=(l,v)=>`<br>${l}: <b>${v>=0?'':'−'}${$(Math.abs(v))}</b>`;
   const why=[];if(skunk)why.push('skunked');if(S.gear<=0&&t.notes.some(n=>n.startsWith('🪱')))why.push('no tackle');if(refund&&happy<42)why.push('unhappy clients');
-  modal(`${T.ic} Back at the dock`,`${t.notes.map(n=>`<p>${n}</p>`).join('')}
+  modalSwap(`${T.ic} Back at the dock`,`${t.notes.map(n=>`<p>${n}</p>`).join('')}
     <p><b>Catch:</b> ${line}${t.kept?` (${t.kept} kept on the sly)`:''}${lost?` · ${lost} minutes lost`:''}</p>
     ${towed?'<p>🛟 <b>Towed in.</b> Half the fare refunded.</p>':''}<p><b>The pay:</b>${row(`Booked fare${b.type==='halibut'&&!S.up.chp?' (day rate)':''}`,fare)}${refund?row(`Refund${why.length?` (${why.join(', ')})`:''}`,-refund):''}${row('Tip',tip)}${xs.map(([l,v])=>row(l,v)).join('')}${costs?row('Launch fee',-costs):''}<br><b>Net: ${net<0?'−':''}${$(Math.abs(net))}</b></p>
     <p>${mood} Rep ${dRep>=0?'+':'−'}${Math.abs(dRep)}.</p>

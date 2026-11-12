@@ -60,11 +60,27 @@ function endDay(where){
   const loss=checkLoss();if(loss) return gameOver(loss);
   if(d+1>=GAME.days) return finish();
   S.cur=d+1;S.t=S.cur*1440+S.alarm;uiNarr=[];
-  // the night summary opens first; whatever the new morning brings (booking requests, event pop-ups, the off-season) queues behind it
-  modal(`🌙 ${dayName(d)} night`,card+notes.map(n=>`<p>${n}</p>`).join(''),[{l:`☀️ Wake up: ${dayName(S.cur)}, ${fmt(S.t)}`,fn:()=>{}}]);
-  sfx('info');
+  // One MORNING REPORT replaces the night summary and the pop-ups the new morning would have opened: what happened overnight,
+  // events, reminders, and any booking request (which waits in the Bookings tab). Decisions that need an answer queue behind it.
+  const night=card+notes.map(n=>`<p>${n}</p>`).join('');
+  DIGEST={night,items:[],lines:[],held:[],open:false,from:d};
   startDay();
+  const D=DIGEST;DIGEST=null;
+  morningReport(D,d);
   render();
+}
+function digestLine(l){if(DIGEST)DIGEST.lines.push(l)}
+function morningReport(D,d){
+  D.open=true;
+  const seen=new Set(),sec=(h,b)=>b?`<div class="sect">${h}</div>${b}`:'';
+  const items=D.items.filter(it=>{const k=it.title+'|'+(it.lines||[]).join('|');if(it.title==='Booking request'||seen.has(k))return false;seen.add(k);return true});
+  const ev=items.map(it=>`<div class="dig"><span class="di" aria-hidden="true">${it.ic}</span><div><b>${it.title}</b>${(it.lines||[]).map(l=>`<p>${l}</p>`).join('')}</div></div>`).join('');
+  const rq=(S.reqs||[]).length;
+  const lines=D.lines.map(l=>`<p>${l}</p>`).join('');
+  const body=`<div class="digest">${sec(`🌙 ${dayName(d)} night`,D.night)}${sec('☀️ This morning',ev+lines)}${rq?`<div class="dig"><span class="di" aria-hidden="true">📞</span><div><b>${rq} booking request${rq>1?'s':''} waiting</b><p>${(S.reqs||[]).map(q=>`The ${q.r.who}: ${reqKey(q.r)}, ${dlabel(q.r.d)}`).join('<br>')}</p></div></div>`:''}</div>`;
+  modal(`☀️ Morning report · ${dayName(S.cur)}`,body,[{l:`☀️ Wake up: ${dayName(S.cur)}, ${fmt(S.t)}`,fn:()=>{}},...(rq?[{l:`📞 Review requests in Bookings`,s:'They wait a day or two.',fn:()=>setTab('book')}]:[])]);
+  sfx('info');
+  D.held.forEach(q=>modal(...q));
 }
 // Travel. Long trips get the full-screen transition.
 function go(dest){
