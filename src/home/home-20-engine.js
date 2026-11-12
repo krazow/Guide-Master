@@ -41,7 +41,7 @@
   // ---- the state ----
   C.newState=function(){return {v:1,cond:80,y:0,rolled:-1,sprung:-1,
     heat:{oil:1,stove:0},tape:0,skirt:0,strap:0,detect:0,bin:0,fence:0,proc:0,chill:0,sweepSkips:0,bearY:-1,troubleY:-1,troubles:0,tiredY:-1,restY:-1,rem:-1,skipAbs:-99,
-    did:{sweep:-1,oil:-1,wood:-1,detest:-1,breakup:-1,well:0,septic:-1,bins:-99,genoil:-1,genrun:-1,stdef:-1},skip:{},
+    did:{sweep:-1,oil:-1,wood:-1,detest:-1,breakup:-1,well:0,septic:-1,bins:-99,genoil:0,genrun:0,stdef:-1},skip:{},
     garden:{y:-1},station:{tidy:100},queue:[],
     tot:{diy:0,pay:0,skip:0,events:0,lost:0,fees:0,spoiled:0,harvest:0,moose:0,bears:0}}};
   C.normState=function(x){

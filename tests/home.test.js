@@ -592,6 +592,14 @@ module.exports = [
     assert.ok(/1\.10\.1/.test(fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8')));
     noErrors(errors);
   } },
+  { name: 'generator: a fresh state counts the generator as serviced in the first season, the way the migration and a newly bought one do', fn: async () => {
+    const s0 = C.newState(); assert.deepStrictEqual([s0.did.genoil, s0.did.genrun], [0, 0]);
+    const t = tk({ state: s0, season: 0, phase: 'summer', sday: 4, gen: { owned: true, gas: 'ok' } });
+    assert.deepStrictEqual(ids(t).filter(i => /^gen/.test(i)), [], 'no generator job in the first season');
+    assert.ok(C.genOdds(t).p < .06 && C.genOdds(t).why.length === 0, JSON.stringify(C.genOdds(t)));
+    const next = Object.assign({}, t, { season: 1 }); assert.deepStrictEqual(ids(next).filter(i => /^gen/.test(i)), ['genoil', 'genrun'], 'a year later it is due');
+    assert.deepStrictEqual([C.noteGen(next).state.did.genoil, C.noteGen(next).state.did.genrun], [1, 1]);
+  } },
   { name: 'game: bots play careers with careful and neglectful cabin policies, no page errors, no career lost to the cabin', fn: async ctx => {
     const { page, errors } = await open(ctx);
     const res = await page.evaluate(async () => {
@@ -614,7 +622,11 @@ module.exports = [
     });
     res.forEach(r => { assert.ok(!r.over && r.loss == null && !r.winter, JSON.stringify(r)); });
     assert.ok(res[0].cond > res[1].cond + 30, JSON.stringify(res)); assert.strictEqual(res[1].tot.diy + res[1].tot.pay, 0);
-    assert.ok(res[0].tot.diy + res[0].tot.pay >= 5 && res[2].tot.diy + res[2].tot.pay >= 5, JSON.stringify(res));
+    // careful upkeep really is upkeep: four years of every job (about 7 a year), none skipped, the cabin in top shape; neglect skips nearly all of them and lets it fall apart
+    const [care, neg, pay] = res.map(r => r.tot);
+    assert.ok(care.diy + care.pay >= 20 && care.skip === 0 && care.diy > care.pay && res[0].cond >= 90, JSON.stringify(res[0]));
+    assert.ok(pay.diy + pay.pay >= 20 && pay.pay > pay.diy && pay.skip <= 4 && res[2].cond >= 85, JSON.stringify(res[2]));
+    assert.ok(neg.skip >= 20 && res[1].cond <= 20, JSON.stringify(res[1]));
     noErrors(errors);
   } },
 ];
