@@ -42,6 +42,7 @@ window.simSetup=function(){
   window.showTile=(ic,t,s,k)=>{if(!M)return;const key=t;M.tiles[key]=(M.tiles[key]||0)+1};
   for(const k of Object.keys(STEP)){const o=STEP[k];STEP[k]=function(b,t){if(M)M.steps[k]=(M.steps[k]||0)+1;return o.call(this,b,t)}}
   const oReq=window.requestModal;window.requestModal=function(r){LASTREQ=r;if(M)M.req[r.kind]=(M.req[r.kind]||0)+1;return oReq(r)};
+  if(window.queueRequest){const oQ=window.queueRequest;window.queueRequest=function(r,quiet){if(M)M.req[r.kind]=(M.req[r.kind]||0)+1;return oQ(r,quiet)}}   // 1.12.0: requests wait in the Bookings tab; the bots answer them (answerReqs)
   const oc=window.cite;window.cite=function(what,fine,minor,notes,who){if(M){const w=(minor&&S.warns<1)?'WARN: '+what:what;M.citeWhy[w]=(M.citeWhy[w]||0)+1}return oc(what,fine,minor,notes,who)};
   const ov=window.violate;window.violate=function(notes,o){if(M){M.viols[o.what]=(M.viols[o.what]||0)+1}return ov(notes,o)};
   if(typeof homeApply==='function'){const oHA=window.homeApply;window.homeApply=function(rep,q){if(M&&rep){const h=M.hc=M.hc||{cash:0,energy:0,days:0,lost:0,rep:0,min:0,events:0};h.cash+=rep.cashDelta||0;h.energy+=rep.energyDelta||0;h.days+=rep.daysUsed||0;h.lost+=rep.daysLost||0;h.rep+=rep.repDelta||0;h.min+=rep.minutes||0;if(rep.severity>0)h.events++}return oHA(rep,q)}}
@@ -74,19 +75,39 @@ function chooseTrip(cfg){
   if(cfg.dil==='last') return n-1;
   return 0;
 }
-function chooseReq(cfg){
-  const r=LASTREQ,l0=MB[0].l;
-  if(cfg.fa&&r&&r.type&&faDue(r.d)&&sday(r.d)===1&&(r.type==='trout'||r.type==='halibut')) return MB.length-1;
+function chooseReq(cfg,O){
+  O=O||MB;
+  const r=LASTREQ,l0=O[0].l;
+  if(cfg.fa&&r&&r.type&&faDue(r.d)&&sday(r.d)===1&&(r.type==='trout'||r.type==='halibut')) return O.length-1;
   const kind=/Alaska residents only/.test(l0)?'dipnet':/straight|kings are open/.test(l0)?'king':'trip';
-  if(cfg.declineIllegal&&r&&r.kind!=='dipnet'&&r.type!=='halibut'&&TRIPS[r.type].below&&isSunMon(r.d)) return MB.length-1;
+  if(cfg.declineIllegal&&r&&r.kind!=='dipnet'&&r.type!=='halibut'&&TRIPS[r.type].below&&isSunMon(r.d)) return O.length-1;
   if(cfg.ruler){if(kind==='dipnet')return 1;if(kind==='king')return 1;}
   return 0;
+}
+// booking requests wait in the Bookings tab (1.12.0): the bots answer them the way they answered the old pop-up, as soon as they see them
+function answerReqs(cfg){
+  let g=0;
+  while(S.reqs&&S.reqs.length&&g++<12){
+    const q=S.reqs[0];LASTREQ=q.r;
+    const o=requestOpts(q.r).opts,k=chooseReq(cfg,o);
+    reqAns(q.id,Math.min(k,o.length-1));
+    if(S.over) return;
+    resolve(cfg);
+  }
 }
 function resolve(cfg){
   let g=0;
   while(document.getElementById('mbg')&&g++<300){
     const title=document.querySelector('#mbg h2').textContent;let i=0;
-    if(S.trip&&S.trip.steps[S.trip.step]&&!/Back at the dock/.test(title)){i=chooseTrip(cfg);const j=MB.findIndex(x=>x.k===i);if(j>=0)i=j}
+    if(S.trip&&S.trip.steps[S.trip.step]&&!/Back at the dock/.test(title)){
+      const P=typeof tripPack==='function'?tripPack():null;
+      if(P&&S.trip.steps[S.trip.step]==='pack'){   // the cooler rides along with the spot choice: pick lunch, then the spot
+        const b0=bk(S.trip.id),find=re=>{const k=P.o.findIndex(x=>re.test(x.l));return k<0?null:k};let pk=0;
+        if(cfg.food==='skip')pk=find(/Skip food/)??0;
+        else if(cfg.food==='smart'&&TRIPS[b0.type].len>=480)pk=find(/salmon/)??find(/lunch kit/)??find(/snack/)??0;
+        packSel(pk);S.trip.steps[S.trip.step]='spot'; i=chooseTrip(cfg); S.trip.steps[S.trip.step]='pack';
+      } else i=chooseTrip(cfg);
+      const j=MB.findIndex(x=>x.k===i);if(j>=0)i=j}
     else if(/Booking request/.test(title)) i=chooseReq(cfg);
     else if(/Back at the dock/.test(title)&&cfg.card&&MB.length>1) i=1;
     MBTN(i);
@@ -95,7 +116,7 @@ function resolve(cfg){
 }
 function act(cfg,re){
   const a=actionsHere().find(x=>re.test(x.l)&&!x.dis);if(!a)return false;
-  uiNarr=[];a.fn();afterAction();if(!S.over)resolve(cfg);return true;
+  uiNarr=[];a.fn();afterAction();if(!S.over){resolve(cfg);answerReqs(cfg)}return true;
 }
 const mins=()=>tod();
 function waitTo(m){if(tod()<m)pass(m-tod())}
@@ -104,6 +125,7 @@ function sledNeeded(d){return S.book.filter(b=>b.d===d&&b.status==='booked'&&(b.
 function playDay(cfg){
   const d=S.cur;const alive=()=>!S.over&&S.cur===d&&!S.winter;
   resolve(cfg);if(!alive())return;
+  answerReqs(cfg);if(!alive())return;
   if(cfg.look) fishView();
   if(S.boat<=0&&cfg.service){act(cfg,/Major repair/);if(!alive())return}
   M.energySum+=S.energy;M.energyN++;if(S.energy<30)M.lowEnergyDays++;

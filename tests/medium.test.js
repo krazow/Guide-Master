@@ -197,7 +197,7 @@ module.exports = [
   } },
 
   // ---- 4. night summary first; calmer toasts ----
-  { name: 'the night summary opens before the morning events, which queue behind it', fn: async ctx => {
+  { name: 'the morning report opens first: the night summary, the morning events and the booking request in one pop-up (was: the night summary, with the rest queued behind it)', fn: async ctx => {
     const { page, errors } = await open(ctx, { seed: 21 });
     await page.evaluate(() => setPref('years', 5));
     await newGame(page);
@@ -205,11 +205,13 @@ module.exports = [
       closeModals(); S.cur = 2; S.t = 2 * 1440 + 1300; S.loc = 'shop'; S.book = []; S.calls = {}; S.dipnetAsk = 99;
       addBooking({ d: 4, type: 'reds', n: 3, who: 'x', from: 'X', quirk: [] });
       forceEvent('call_request'); endDay('home');
-      return { first: document.querySelector('#mbg h2').textContent, queued: MQ.map(q => q[0]), cur: S.cur };
+      return { first: document.querySelector('#mbg h2').textContent, queued: MQ.map(q => q[0]), cur: S.cur, body: document.querySelector('#mbg .mb').textContent, reqs: S.reqs.length };
     });
     assert.strictEqual(r.cur, 3);
-    assert.ok(/night/.test(r.first), 'first modal: ' + r.first);
-    assert.ok(r.queued.some(t => /Booking request/.test(t)), 'the request waits behind it: ' + r.queued.join('|'));
+    assert.ok(/Morning report/.test(r.first), 'first modal: ' + r.first);
+    assert.ok(r.queued.length === 0, 'nothing else queued behind it: ' + r.queued.join('|'));
+    assert.ok(r.body.includes('Wednesday night') && /booking request/.test(r.body), 'the report carries the night summary and the request');
+    assert.strictEqual(r.reqs, 1, 'the request waits in the Bookings tab');
     noErrors(errors);
   } },
   { name: 'toasts: one at a time, below the HUD, short, and never a copy of an open modal', fn: async ctx => {

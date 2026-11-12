@@ -118,10 +118,10 @@ module.exports = [
     assert.strictEqual(r.gen, 2); assert.strictEqual(r.again, false); assert.strictEqual(r.swapOpen, false); assert.ok(r.has);
     noErrors(errors);
   } },
-  { name: 'cooler: packing your own lunch vs skipping changes energy, and eats a meal from home', fn: async ctx => {
+  { name: 'cooler: packing your own lunch vs skipping changes energy, and eats a meal from home ("Show every trip step" on)', fn: async ctx => {
     const { page, errors } = await quiet(ctx);
     const run = async skip => page.evaluate(skip => {
-      S.cur = 1; S.t = 1440 + 345; S.loc = 'lower'; S.fuel = 30; S.energy = 80; S.book = []; S.ate = { d: -1, n: 0 }; S.food = { pan: 24, fri: 6, fd: 1, fm: 0, kits: 0 };
+      setPref('tripSteps', true); S.cur = 1; S.t = 1440 + 345; S.loc = 'lower'; S.fuel = 30; S.energy = 80; S.book = []; S.ate = { d: -1, n: 0 }; S.food = { pan: 24, fri: 6, fd: 1, fm: 0, kits: 0 };
       const b = addBooking({ d: 1, type: 'reds', n: 3, who: 'test party', from: 'x', res: false, quirk: [] }); tripStart(b);
       const title = document.querySelector('#mbg h2').textContent, labels = MB.map(x => x.l), m0 = foodMeals();
       MBTN(MB.findIndex(x => skip ? /Skip food/.test(x.l) : /Pack your own lunch/.test(x.l)));
@@ -133,10 +133,10 @@ module.exports = [
     assert.strictEqual(skipped.energy, 74, 'a skipped lunch on a 6 hour trip: energy -6'); assert.strictEqual(skipped.meals, 0);
     noErrors(errors);
   } },
-  { name: 'cooler: client lunches change happiness; skipping on a long trip costs some', fn: async ctx => {
+  { name: 'cooler: client lunches change happiness; skipping on a long trip costs some ("Show every trip step" on)', fn: async ctx => {
     const { page, errors } = await quiet(ctx);
     const run = (type, pick) => page.evaluate(([type, pick]) => {
-      S.cur = 1; S.t = 1440 + 345; S.fuel = 30; S.book = []; S.ate = { d: -1, n: 0 }; S.food = { pan: 24, fri: 6, fd: 1, fm: 0, kits: 6 }; S.freezer = 4; S.loc = TRIPS[type].loc;
+      setPref('tripSteps', true); S.cur = 1; S.t = 1440 + 345; S.fuel = 30; S.book = []; S.ate = { d: -1, n: 0 }; S.food = { pan: 24, fri: 6, fd: 1, fm: 0, kits: 6 }; S.freezer = 4; S.loc = TRIPS[type].loc;
       const b = addBooking({ d: 1, type, n: 3, who: 'test party', from: 'x', res: false, quirk: [] }); S.t = 1440 + TRIPS[type].start - 15; tripStart(b);
       const labels = MB.map(x => x.l); MBTN(MB.findIndex(x => pick.test(x.l)));
       const out = { happy: S.trip.happy, kits: S.food.kits, fish: S.freezer, pan: S.food.pan, labels }; closeModals(); return out;
@@ -150,10 +150,10 @@ module.exports = [
     assert.strictEqual(longFish.labels.length >= 4, true);
     noErrors(errors);
   } },
-  { name: 'cooler: with no food at home you grab a gas-station sandwich, and the pack step never blocks a trip', fn: async ctx => {
+  { name: 'cooler: with no food at home you grab a gas-station sandwich, and the pack step never blocks a trip ("Show every trip step" on)', fn: async ctx => {
     const { page, errors } = await quiet(ctx);
     const r = await page.evaluate(() => {
-      S.cur = 1; S.t = 1440 + 345; S.loc = 'lower'; S.fuel = 30; S.energy = 80; S.freezer = 0; S.food = { pan: 0, fri: 0, fd: 1, fm: 0, kits: 0 }; S.book = [];
+      setPref('tripSteps', true); S.cur = 1; S.t = 1440 + 345; S.loc = 'lower'; S.fuel = 30; S.energy = 80; S.freezer = 0; S.food = { pan: 0, fri: 0, fd: 1, fm: 0, kits: 0 }; S.book = [];
       const b = addBooking({ d: 1, type: 'reds', n: 3, who: 'test party', from: 'x', res: false, quirk: [] }); const m0 = S.money; tripStart(b);
       const opts = MB.map(x => x.l); let i = 0; while (S.trip && i++ < 30) MBTN(legalBtn()); closeModals();
       return { opts, status: b.status, sandwich: b.out && b.out.net };

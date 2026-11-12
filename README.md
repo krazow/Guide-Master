@@ -51,6 +51,37 @@ To change the form, edit `FEEDBACK.formId` in `27-feedback.js` and rebuild.
 
 `src/js/29-update-notice.js`. The game remembers the last version it showed on this device (`guidemaster.lastVersion`). When the title screen appears with a different version (including after the service worker brings in an update and the app reloads), a **🆕 Updated to version X.Y.Z** pop-up lists what's new (from the `CHANGELOG` object; unknown versions get a generic line) and, if there are saved games, says they were updated. Every slot's save is run through `migrate()` and re-saved first, keeping its timestamp. It is required: Esc and shortcut keys don't dismiss it (`modal(…, true)`), and only **Got it** stores the new version, so a reload before that shows it again. New players with no saves see nothing. When you release, add a `CHANGELOG` entry for the new version.
 
+## Fewer pop-ups (1.12.0)
+
+New players were getting 6 to 9 pop-ups a day. Now a day is a **morning report** and, on a trip day, **one trip sheet**.
+
+- **Morning report** (`endDay()` and `morningReport()` in `src/js/04-loop.js`): the night summary, overnight lines, morning events (`fireHook('wake')`, `eventPopup()`), toasts that would have fired while you wake (`showTile()` collects them while `DIGEST` is set), reminders and the requests waiting in Bookings are ONE pop-up. While it is being put together `modal()` holds any other pop-up (a hungry morning, a rival or board story, the off-season) and shows it right behind the report, so a decision that cannot wait is never lost. The toasts that repeated its content are dropped.
+- **Booking requests** (`queueRequest()`, `reqView()`, `reqAns()` in `src/js/21-story.js`): `S.reqs` holds `{id, r, exp}`. They sit at the top of the 📅 Bookings tab with a dot, for two days (`REQ_WAIT`), with the same answers the old pop-up had (`requestOpts()` builds both). A request that lapses is named in the next morning report. Only a request made while you return calls at the shop (`requestArrives()`) and for tomorrow or sooner still opens its own pop-up; later ones queue with one small toast.
+- **A trip is one sheet** (`tripNext()` in `src/js/22-trips.js`, `modalSwap()` and the `stay` button flag in `src/js/02-kit.js`): the cooler is shown with the spot choice (a group of toggle buttons, first option selected like the old first button), each dilemma and the "Back at the dock" result swap in place on the same sheet, with "n of m" progress. Options, shuffling, `legal` flags, `data-legal` and `window.legalBtn()` are unchanged. **⚙️ Settings → Show every trip step** (`prefs().tripSteps`, off by default) brings back one pop-up per step, the cooler on its own. A button with `stay:true` keeps the sheet while its `fn` runs; if `fn` calls `modalSwap()` the sheet's content changes, otherwise it closes. The cabin engine's job, storm and spring-job pop-ups use the same flag (`src/home/home-30-ui.js`), so the off-season has no repeated sheets.
+- **Everything else informational** (Event pop-ups in Settings now default to off): a tile and a log line.
+- Tests and bots: a test or bot that walks pop-ups still calls `MBTN(legalBtn())` until `#mbg` is gone; the sheet just stays up between steps. `tools/sim/sim-lib.js` answers waiting requests (`answerReqs()`) and picks the cooler through `tripPack()`/`packSel()`.
+
+Pop-ups on screen, days 1 to 7 of a fresh normal 5-year career at 390 x 844 (the playtest script: a bot plays each day, the next morning's pop-ups are counted, a pop-up that was queued counts once): 43 before, 13 after (never more than 2 a day); the first off-season 8 before, 4 after. A trip day also has 3 or 4 choices and the result inside its one sheet. `tests/v1120.test.js` plays the week and asserts at most 4 a day, 25 for the week and 6 for the off-season.
+
+Balance (5-year careers, 40 per cell, default cabin play, mean season score; before = 1.11.0, same seeds; the noise is about plus or minus 500):
+
+| style | difficulty | 1.11.0 | 1.12.0 | change |
+|---|---|---|---|---|
+| expert | hard | 58,354 | 58,231 | -123 |
+| expert | normal | 60,278 | 60,278 | +0 |
+| food | hard | 55,153 | 55,045 | -108 |
+| food | normal | 57,956 | 57,956 | +0 |
+| ignores | hard | 44,668 | 44,483 | -185 |
+| ignores | normal | 46,752 | 46,746 | -6 |
+| opport | hard | 52,439 | 52,393 | -46 |
+| opport | normal | 55,267 | 55,267 | +0 |
+| passive | hard | 47,623 | 47,593 | -30 |
+| passive | normal | 54,719 | 54,642 | -77 |
+| phone | hard | 57,396 | 57,371 | -25 |
+| phone | normal | 60,766 | 60,754 | -12 |
+| skilled | hard | 60,860 | 60,860 | +0 |
+| skilled | normal | 69,741 | 69,741 | +0 |
+
 ## Careers: 2, 5 or 10 years
 
 When you start a new game you pick a **2-, 5- or 10-year career** (`src/js/24-career.js`). Each season you play the two-week July peak, Monday to Sunday, starting on the Monday nearest July 13 (2026: Jul 13; 2027: Jul 12; 2028: Jul 10…). Between seasons comes the **off-season**:
