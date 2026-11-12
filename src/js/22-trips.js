@@ -209,10 +209,10 @@ function tripStart(b){
 // (modalSwap, 02-kit.js) instead of opening a new pop-up each time. Settings → "Show every trip step" brings back one pop-up per step.
 // Every decision keeps its options and its legal/illegal flags; only the extra sheets are gone.
 let PACK=null;                                   // the cooler choices shown with the spot (window.packSel picks one)
-window.packSel=i=>{if(!PACK||!PACK.o[i])return;PACK.sel=i;document.querySelectorAll('#mbg .packopt').forEach((e,k)=>{e.classList.toggle('on',k===i);e.setAttribute('aria-checked',k===i?'true':'false')})};
+window.packSel=i=>{if(!PACK||!PACK.o[i])return;PACK.sel=i;document.querySelectorAll('#mbg .packopt').forEach((e,k)=>{e.classList.toggle('on',k===i);e.setAttribute('aria-pressed',k===i?'true':'false')})};
 window.tripPack=()=>PACK;
 function packHTML(pv){
-  return `<div class="packbox"><b>🧺 The cooler</b>${pv.b}<div role="radiogroup" aria-label="What to pack">${pv.o.map((o,i)=>`<button type="button" role="radio" class="packopt${i===0?' on':''}" aria-checked="${i===0}" onclick="packSel(${i})"><b>${o.l}</b><span>${o.s}</span></button>`).join('')}</div></div>`;
+  return `<div class="packbox"><b>🧺 The cooler</b>${pv.b}<div role="group" aria-label="What to pack">${pv.o.map((o,i)=>`<button type="button" class="packopt${i===0?' on':''}" aria-pressed="${i===0}" onclick="packSel(${i})"><b>${o.l}</b><span>${o.s}</span></button>`).join('')}</div></div>`;
 }
 function tripNext(){
   const t=S.trip;if(!t) return;

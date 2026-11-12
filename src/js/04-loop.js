@@ -73,7 +73,7 @@ function digestLine(l){if(DIGEST)DIGEST.lines.push(l)}
 function morningReport(D,d){
   D.open=true;
   const seen=new Set(),sec=(h,b)=>b?`<div class="sect">${h}</div>${b}`:'';
-  const items=D.items.filter(it=>{const k=it.title+'|'+(it.lines||[]).join('|');if(it.title==='Booking request'||seen.has(k))return false;seen.add(k);return true});
+  const rq0=(S.reqs||[]).length,items=D.items.filter(it=>{const k=it.title+'|'+(it.lines||[]).join('|');if((it.title==='Booking request'&&rq0)||seen.has(k))return false;seen.add(k);return true});
   const ev=items.map(it=>`<div class="dig"><span class="di" aria-hidden="true">${it.ic}</span><div><b>${it.title}</b>${(it.lines||[]).map(l=>`<p>${l}</p>`).join('')}</div></div>`).join('');
   const rq=(S.reqs||[]).length;
   const lines=D.lines.map(l=>`<p>${l}</p>`).join('');

@@ -7,7 +7,9 @@
 //  CabinUpkeep.ui.scenes(host, rep, done) a winter report followed by each storm prompt in turn, then done()
 //
 //  The host adapter: {
-//    show(title, html, buttons, lock),   required. Show a pop-up. buttons: [{l, s, dis, fn}]; fn runs after the pop-up has closed.
+//    show(title, html, buttons, lock),   required. Show a pop-up. buttons: [{l, s, dis, fn, stay}]; fn runs after the pop-up has closed.
+//                                        A button with stay:true asks the host to keep the pop-up on screen and show whatever fn shows next in the
+//                                        same sheet (a host that can't just ignores it), so a job, its result and the next job are one pop-up.
 //    ticket(),                           required. A fresh ticket from the host's current numbers (it changes after every report).
 //    apply(report),                      required. Apply a report to the host.
 //    rand()                              optional, [0,1)
@@ -51,11 +53,11 @@
       const rep=C.resolve(host.ticket(),jobId,o.id,rnd(host));
       if(!rep){if(then)then();return}
       host.apply(rep);
-      if(job.kind==='event'||rep.severity>0)host.show(`${job.ic} ${job.title}`,rep.lines.map(l=>`<p>${l}</p>`).join('')+condLine(rep),[{l:'Continue',fn:()=>{if(then)then()}}],lock);
+      if(job.kind==='event'||rep.severity>0)host.show(`${job.ic} ${job.title}`,rep.lines.map(l=>`<p>${l}</p>`).join('')+condLine(rep),[{l:'Continue',stay:true,fn:()=>{if(then)then()}}],lock);
       else if(then)then();
     };
-    const btns=job.opts.map(o=>({l:`${o.l}${o.id==='skip'?'':` · ${o.cash?$(o.cash):'free'}`}`,s:o.dis&&o.why?`${o.why}`:o.s,dis:o.dis,fn:run(o)}));
-    if(!lock)btns.push({l:'Not now',s:'Decide later.',fn:()=>{if(then)then()}});
+    const btns=job.opts.map(o=>({l:`${o.l}${o.id==='skip'?'':` · ${o.cash?$(o.cash):'free'}`}`,s:o.dis&&o.why?`${o.why}`:o.s,dis:o.dis,stay:true,fn:run(o)}));
+    if(!lock)btns.push({l:'Not now',s:'Decide later.',stay:true,fn:()=>{if(then)then()}});
     host.show(`${job.ic} ${job.title}`,`<p>${esc(job.why)}</p><p class="small-note" style="color:var(--mute);font-size:13px">If you skip it: ${esc(job.risk.replace(/^Skip it and /,'').replace(/^Skip it /,''))}</p>`,btns,!!lock);
   };
   // every job that is due, on one screen: each with its own three ways. A choice is applied and the screen comes back with what is left.
@@ -67,9 +69,9 @@
         const rep=C.resolve(host.ticket(),job.id,op.id,rnd(host));
         if(!rep){again();return}
         host.apply(rep);
-        if(rep.severity>0)host.show(`${job.ic} ${job.title}`,rep.lines.map(l=>`<p>${l}</p>`).join('')+condLine(rep),[{l:'Continue',fn:again}]);else again();
+        if(rep.severity>0)host.show(`${job.ic} ${job.title}`,rep.lines.map(l=>`<p>${l}</p>`).join('')+condLine(rep),[{l:'Continue',stay:true,fn:again}]);else again();
       };
-      job.opts.forEach(op=>btns.push({l:`${job.ic} ${job.title}: ${op.l}${op.id==='skip'?'':` · ${op.cash?$(op.cash):'free'}`}`,s:op.dis&&op.why?op.why:(op.id==='skip'?job.risk:op.s),dis:op.dis,fn:run(op)}));
+      job.opts.forEach(op=>btns.push({l:`${job.ic} ${job.title}: ${op.l}${op.id==='skip'?'':` · ${op.cash?$(op.cash):'free'}`}`,s:op.dis&&op.why?op.why:(op.id==='skip'?job.risk:op.s),dis:op.dis,stay:true,fn:run(op)}));
     });
     (o.extra||[]).forEach(b=>btns.push(b));
     host.show(o.title||'🏠 The cabin',`<p style="font-size:13px;color:var(--mute)">${o.intro||''}</p>${jobs.length?`<p>${jobs.length} job${jobs.length>1?'s':''} due. Pick a way for each one.</p>`:'<p>Nothing else is due.</p>'}`,btns);
@@ -87,7 +89,7 @@
   U2.scenes=function(host,rep,done){
     const events=()=>C.jobs(host.ticket(),{all:true}).filter(j=>j.kind==='event');
     const next=()=>{const e=events()[0];if(!e){if(done)done();return}U2.open(host,e.id,next,true)};
-    if(rep&&rep.lines&&rep.lines.length)host.show('🏠 The cabin this winter',rep.lines.map(l=>`<p>${l}</p>`).join('')+condLine(rep),[{l:'Continue',fn:next}],true);
+    if(rep&&rep.lines&&rep.lines.length)host.show('🏠 The cabin this winter',rep.lines.map(l=>`<p>${l}</p>`).join('')+condLine(rep),[{l:'Continue',stay:true,fn:next}],true);
     else next();
   };
   // a plain report as a pop-up (spring, a failed generator, a summer bear)

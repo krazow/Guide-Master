@@ -216,7 +216,7 @@ button.act,.ghost,.big{min-height:44px}
 .modal.swap{animation:none}
 .packbox{margin:10px 0 4px;padding:10px;border:1px solid var(--line);border-radius:12px}
 .packbox p{margin:6px 0}
-.packbox [role=radiogroup]{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.packbox [role=group]{display:flex;flex-direction:column;gap:6px;margin-top:6px}
 .packopt{display:flex;flex-direction:column;gap:2px;text-align:left;min-height:44px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:transparent;color:inherit;font:inherit;cursor:pointer}
 .packopt b{font-size:14px}.packopt span{font-size:12px;color:var(--mute)}
 .packopt.on{border-color:var(--accent,#2f7d8a);box-shadow:inset 0 0 0 1px var(--accent,#2f7d8a);background:rgba(47,125,138,.12)}
@@ -1624,7 +1624,9 @@ const CabinUpkeep={
 //  CabinUpkeep.ui.scenes(host, rep, done) a winter report followed by each storm prompt in turn, then done()
 //
 //  The host adapter: {
-//    show(title, html, buttons, lock),   required. Show a pop-up. buttons: [{l, s, dis, fn}]; fn runs after the pop-up has closed.
+//    show(title, html, buttons, lock),   required. Show a pop-up. buttons: [{l, s, dis, fn, stay}]; fn runs after the pop-up has closed.
+//                                        A button with stay:true asks the host to keep the pop-up on screen and show whatever fn shows next in the
+//                                        same sheet (a host that can't just ignores it), so a job, its result and the next job are one pop-up.
 //    ticket(),                           required. A fresh ticket from the host's current numbers (it changes after every report).
 //    apply(report),                      required. Apply a report to the host.
 //    rand()                              optional, [0,1)
@@ -1668,11 +1670,11 @@ const CabinUpkeep={
       const rep=C.resolve(host.ticket(),jobId,o.id,rnd(host));
       if(!rep){if(then)then();return}
       host.apply(rep);
-      if(job.kind==='event'||rep.severity>0)host.show(`${job.ic} ${job.title}`,rep.lines.map(l=>`<p>${l}</p>`).join('')+condLine(rep),[{l:'Continue',fn:()=>{if(then)then()}}],lock);
+      if(job.kind==='event'||rep.severity>0)host.show(`${job.ic} ${job.title}`,rep.lines.map(l=>`<p>${l}</p>`).join('')+condLine(rep),[{l:'Continue',stay:true,fn:()=>{if(then)then()}}],lock);
       else if(then)then();
     };
-    const btns=job.opts.map(o=>({l:`${o.l}${o.id==='skip'?'':` · ${o.cash?$(o.cash):'free'}`}`,s:o.dis&&o.why?`${o.why}`:o.s,dis:o.dis,fn:run(o)}));
-    if(!lock)btns.push({l:'Not now',s:'Decide later.',fn:()=>{if(then)then()}});
+    const btns=job.opts.map(o=>({l:`${o.l}${o.id==='skip'?'':` · ${o.cash?$(o.cash):'free'}`}`,s:o.dis&&o.why?`${o.why}`:o.s,dis:o.dis,stay:true,fn:run(o)}));
+    if(!lock)btns.push({l:'Not now',s:'Decide later.',stay:true,fn:()=>{if(then)then()}});
     host.show(`${job.ic} ${job.title}`,`<p>${esc(job.why)}</p><p class="small-note" style="color:var(--mute);font-size:13px">If you skip it: ${esc(job.risk.replace(/^Skip it and /,'').replace(/^Skip it /,''))}</p>`,btns,!!lock);
   };
   // every job that is due, on one screen: each with its own three ways. A choice is applied and the screen comes back with what is left.
@@ -1684,9 +1686,9 @@ const CabinUpkeep={
         const rep=C.resolve(host.ticket(),job.id,op.id,rnd(host));
         if(!rep){again();return}
         host.apply(rep);
-        if(rep.severity>0)host.show(`${job.ic} ${job.title}`,rep.lines.map(l=>`<p>${l}</p>`).join('')+condLine(rep),[{l:'Continue',fn:again}]);else again();
+        if(rep.severity>0)host.show(`${job.ic} ${job.title}`,rep.lines.map(l=>`<p>${l}</p>`).join('')+condLine(rep),[{l:'Continue',stay:true,fn:again}]);else again();
       };
-      job.opts.forEach(op=>btns.push({l:`${job.ic} ${job.title}: ${op.l}${op.id==='skip'?'':` · ${op.cash?$(op.cash):'free'}`}`,s:op.dis&&op.why?op.why:(op.id==='skip'?job.risk:op.s),dis:op.dis,fn:run(op)}));
+      job.opts.forEach(op=>btns.push({l:`${job.ic} ${job.title}: ${op.l}${op.id==='skip'?'':` · ${op.cash?$(op.cash):'free'}`}`,s:op.dis&&op.why?op.why:(op.id==='skip'?job.risk:op.s),dis:op.dis,stay:true,fn:run(op)}));
     });
     (o.extra||[]).forEach(b=>btns.push(b));
     host.show(o.title||'🏠 The cabin',`<p style="font-size:13px;color:var(--mute)">${o.intro||''}</p>${jobs.length?`<p>${jobs.length} job${jobs.length>1?'s':''} due. Pick a way for each one.</p>`:'<p>Nothing else is due.</p>'}`,btns);
@@ -1704,7 +1706,7 @@ const CabinUpkeep={
   U2.scenes=function(host,rep,done){
     const events=()=>C.jobs(host.ticket(),{all:true}).filter(j=>j.kind==='event');
     const next=()=>{const e=events()[0];if(!e){if(done)done();return}U2.open(host,e.id,next,true)};
-    if(rep&&rep.lines&&rep.lines.length)host.show('🏠 The cabin this winter',rep.lines.map(l=>`<p>${l}</p>`).join('')+condLine(rep),[{l:'Continue',fn:next}],true);
+    if(rep&&rep.lines&&rep.lines.length)host.show('🏠 The cabin this winter',rep.lines.map(l=>`<p>${l}</p>`).join('')+condLine(rep),[{l:'Continue',stay:true,fn:next}],true);
     else next();
   };
   // a plain report as a pop-up (spring, a failed generator, a summer bear)
@@ -1779,7 +1781,7 @@ const GAME={
   title:'Guide Master',
   tagline:'A guide’s career on the Kenai',
   codePrefix:'GUIDEMASTER',   // transfer codes start with this, e.g. POCKETWEEK:eyJ…
-  version:'1.11.0',           // bump on every release: shown in Settings, stamped into saves and sw.js
+  version:'1.12.0',           // bump on every release: shown in Settings, stamped into saves and sw.js
   schema:4,                  // bump when the shape of S changes, and add a MIGRATIONS entry (21-story.js)
   days:14,                   // days in ONE season (the July peak, Mon–Sun twice; season 1 is Jul 13–26, 2026). A career is 14 × years: see the getter below
   wake:300,                  // default alarm for new games, in minutes after midnight (300 = 5:00 AM: guides start early; saves keep their own S.alarm)
@@ -2140,7 +2142,7 @@ function digestLine(l){if(DIGEST)DIGEST.lines.push(l)}
 function morningReport(D,d){
   D.open=true;
   const seen=new Set(),sec=(h,b)=>b?`<div class="sect">${h}</div>${b}`:'';
-  const items=D.items.filter(it=>{const k=it.title+'|'+(it.lines||[]).join('|');if(it.title==='Booking request'||seen.has(k))return false;seen.add(k);return true});
+  const rq0=(S.reqs||[]).length,items=D.items.filter(it=>{const k=it.title+'|'+(it.lines||[]).join('|');if((it.title==='Booking request'&&rq0)||seen.has(k))return false;seen.add(k);return true});
   const ev=items.map(it=>`<div class="dig"><span class="di" aria-hidden="true">${it.ic}</span><div><b>${it.title}</b>${(it.lines||[]).map(l=>`<p>${l}</p>`).join('')}</div></div>`).join('');
   const rq=(S.reqs||[]).length;
   const lines=D.lines.map(l=>`<p>${l}</p>`).join('');
@@ -3436,10 +3438,10 @@ function tripStart(b){
 // (modalSwap, 02-kit.js) instead of opening a new pop-up each time. Settings → "Show every trip step" brings back one pop-up per step.
 // Every decision keeps its options and its legal/illegal flags; only the extra sheets are gone.
 let PACK=null;                                   // the cooler choices shown with the spot (window.packSel picks one)
-window.packSel=i=>{if(!PACK||!PACK.o[i])return;PACK.sel=i;document.querySelectorAll('#mbg .packopt').forEach((e,k)=>{e.classList.toggle('on',k===i);e.setAttribute('aria-checked',k===i?'true':'false')})};
+window.packSel=i=>{if(!PACK||!PACK.o[i])return;PACK.sel=i;document.querySelectorAll('#mbg .packopt').forEach((e,k)=>{e.classList.toggle('on',k===i);e.setAttribute('aria-pressed',k===i?'true':'false')})};
 window.tripPack=()=>PACK;
 function packHTML(pv){
-  return `<div class="packbox"><b>🧺 The cooler</b>${pv.b}<div role="radiogroup" aria-label="What to pack">${pv.o.map((o,i)=>`<button type="button" role="radio" class="packopt${i===0?' on':''}" aria-checked="${i===0}" onclick="packSel(${i})"><b>${o.l}</b><span>${o.s}</span></button>`).join('')}</div></div>`;
+  return `<div class="packbox"><b>🧺 The cooler</b>${pv.b}<div role="group" aria-label="What to pack">${pv.o.map((o,i)=>`<button type="button" class="packopt${i===0?' on':''}" aria-pressed="${i===0}" onclick="packSel(${i})"><b>${o.l}</b><span>${o.s}</span></button>`).join('')}</div></div>`;
 }
 function tripNext(){
   const t=S.trip;if(!t) return;
@@ -4143,7 +4145,9 @@ function driftFuelPrices(){const r=Math.random;S.fuelBase=S.fuelBase||{kenai:6.1
 const HELP=[
   ['🎯','The goal','Run a Kenai River guide business out of Soldotna for a <strong>2-, 5- or 10-year career</strong>. Each year you play the two-week July peak; between years the off-season handles bills, upgrades and next season’s bookings. Keep clients happy, your boat running and your record clean. The end screen shows how your score adds up. Your grade is your score per season: <strong>A 62,000, B 55,000, C 44,000, D 27,000</strong>, F below (and for any career that ends early). On Licensed Guide, playing it by the book usually earns a B, a sharp career (every request answered, upgrades bought, a clean record) a B or an A, a skilled one (it reads the Fish tab and scouts to pick the right spot each day, keeps the boat up, asks happy clients back and doesn’t overprice) nearly always an A, a passive one a C or a B, and one that skips meals and lunches a C or a D. Combat Season grades about a step lower and Rookie Season about a step higher.'],
   ['🕐','How a day works','Time moves only when you act. Tap an action on the <strong>🧭 Here</strong> tab, or <strong>Go somewhere</strong> to travel. Guides start early: the alarm is 5:00 AM (change it at the shop). To skip ahead, use <strong>⏳ Wait until…</strong>: the next launch, the 1 PM first-aid class, or 30 or 60 minutes. <strong>Go to bed</strong> at the shop to end the day; staying up past midnight costs you.'],
-  ['🛶','Trips','Your schedule is on the <strong>📅 Bookings</strong> tab. Be at the launch spot by launch time: sockeye and silvers from the <strong>Lower Kenai launch</strong>, trout floats from <strong>Cooper Landing</strong>, halibut from the <strong>Homer Spit</strong>. On the water you pick a spot, then face a few choices, shuffled every time. Playing it straight costs something (time, fish or a smaller tip); bending a rule can pay cash, but if a trooper catches you the fine hurts.'],
+  ['🛶','Trips','Your schedule is on the <strong>📅 Bookings</strong> tab. Be at the launch spot by launch time: sockeye and silvers from the <strong>Lower Kenai launch</strong>, trout floats from <strong>Cooper Landing</strong>, halibut from the <strong>Homer Spit</strong>. On the water you pick a spot (and what to pack for lunch), then face a few choices, shuffled every time. The whole trip is <strong>one sheet</strong>: each choice and the result change in place. If you like a pop-up for every step, turn on <strong>⚙️ Settings → Show every trip step</strong>. Playing it straight costs something (time, fish or a smaller tip); bending a rule can pay cash, but if a trooper catches you the fine hurts.'],
+  ['☀️','The morning report','When you wake up, one pop-up gathers last night (the day in review, bills, meals), anything that happened overnight, morning events and reminders, and any booking request. Decisions that cannot wait, such as a hungry morning, follow it. Things that happen during the day show as a small tile and a line in the 📜 Log. You can turn on an OK pop-up for each in ⚙️ Settings → Event pop-ups.'],
+  ['📞','Booking requests','Requests wait at the top of the <strong>📅 Bookings</strong> tab, with a dot on the tab, for two days. Answer with <strong>Book it</strong> or <strong>Decline</strong> right there (an illegal date can be moved, a king request can be set straight). If you wait too long they book somebody else. Calls you return at the shop that ask for tomorrow are answered on the spot.'],
   ['⭐','Regulars & stories','Clients who have a great day may come back next July, and they remember how it went. If a happy party doesn’t offer its number, you can hand them your card at the dock. Over the years you may also meet a rival guide, a family that returns every summer and an invitation to the local fish and game advisory committee. No dilemma comes up more than twice a season.'],
   ['📖','The rules','The <strong>📖 Regs</strong> tab lists your credentials and every rule you guide by: king status, single-hook/no-bait, no guide-boat fishing below Skilak on Sundays and Mondays, 6 AM–6 PM, five people a boat in July, bag limits, halibut rules. Break one and you may get a warning (the first minor offense each season) or a citation, and every citation on your record makes the next fine bigger. Bending a rule can pay on the day, but it doesn’t pay over a career: every rule you break in a season makes the next one likelier to be caught, other guides talk, and citations are public record, so clients cancel and the rest of your summer books thinner. <strong>Three active citations</strong> and State Parks pulls your permit.'],
   ['📓','Paperwork','Fill out your <strong>ADF&G logbook</strong> at the shop after every trip, before bed. Keep your <strong>first-aid/CPR card</strong> current: classes are in Soldotna, Monday, Tuesday and Thursday, 1–4 PM (join by 1:30), and a card lasts two years.'],
@@ -4376,6 +4380,7 @@ const CHANGELOG={
   '1.6.0':['💲 Higher rates now cost you: fewer bookings, pickier clients and a rep requirement that rises each step.','🔧 Boats at condition 0 are out of service until repaired; new motors burn less gas, new sleds finish sooner, and late-career money can buy an assistant guide, guest cabins or a riverfront launch.','⏳ New “Wait until…” action skips to the next launch or the 1 PM class. New games start with a 5:00 AM alarm.','🌙 The night summary now comes before the morning’s news, and pop-up toasts are fewer, shorter and sit below your Cash and Rep.','⭐ Longer careers: 54 client parties, regulars who come back (or don’t), six new river dilemmas, fewer repeats and three multi-season stories.'],
   '1.8.0':['🎯 Skill pays: spots fish differently with the day’s water, wind, run and tide. Read the 🐟 Fish tab or scout the river and the spot buttons show which one is hot.','⭐ The rest of your summer follows how happy your clients were, not only how many trips you ran. Tips run higher on a good day, a well-kept boat pleases clients, and a happy party may take your card and become a regular.','💲 Raising rates gets steeper after the first step, and skill builds with practice and rusts over the winter.'],
   '1.10.0':['🏠 The cabin needs you now and then. A new Home tab lists the jobs (never more than two at a time), and each one can be done yourself, paid for, or skipped at a risk: heat for the winter, frozen pipes, snow on the roof and driveway, the generator, the well and septic tank, bears and fish waste, a garden moose, smoke and CO detectors, spring breakup and the odd earthquake.','🔥 New upgrades: a wood stove as a second heat source, a bear-resistant bin and a fish processing station that sells fillet-and-freeze to clients. Cabin condition (Home, in the top bar) drifts down slowly, and a run-down cabin has more bad luck. Your game in progress is brought up to date automatically.'],
+  '1.12.0':['☀️ One morning report instead of a stack of pop-ups: last night, anything that happened overnight and any booking request now arrive together when you wake up.','📅 Booking requests wait in your Bookings tab (look for the dot) for a day or two, with Book it and Decline right there. Only a request for tomorrow, taken while you are on the phone, is answered on the spot.','🛶 A trip is one sheet now: the cooler and the spot together, then each choice and the result in the same pop-up. Every choice is still yours, and the rule-bending ones are still marked. Prefer a pop-up for every step? Settings has “Show every trip step”.','🔔 Things that happen during the day show as a small tile and a log line unless you turn Event pop-ups back on in Settings. Your game in progress is brought up to date.'],
   '1.11.0':['🌅 A quieter first week: the cabin leaves you alone for your first seven days, and the cold-weather jobs wait until fall.','📅 The off-season top bar now shows the real month and year of the winter you are in.','🏕️ Fish from a winter trip only spare the pantry when you have meals to spare, and a guide who never stocks food now feels it in the season.','⚖️ Combat Season is tougher but fairer: cheaper price rises, less credit for camping and reading the water. License is $20, a wall tent $1,200, and public-use cabins run $50 to $75 a night. Your game in progress is brought up to date.'],
   '1.10.1':['🏠 Letting the cabin go now costs you more, and some of it lands in the guiding season. Skipping a job wears the cabin down, a run-down one has more bad luck, and a stuck truck, a dead well pump, a septic backup, a failed pump in July or a sagging, stained cabin can cost you a booked trip.','🥶 A cold, damp cabin means bad sleep in July, and a warm, dry, tidy one sends you out rested. A bear in your trash now hurts your rep and word of mouth more. Burst pipe, ice dam, well and septic bills are bigger.','💵 Winter living costs are $800 now (they were $1,300), so a player who keeps the place up comes out well ahead. Home trouble still never ends a career. Your game in progress is brought up to date automatically.'],
   '1.9.0':['🏕️ Winter camping is much bigger: ten free days each winter for up to three trips, with a pack to choose (bear container, a cold-rated bag, spare layers, stove fuel), ice fishing on stocked lakes, tracking and scouting, evenings tying flies, company, public-use cabins and a truck camper, winter jobs, and a log of every animal you see.','🎣 Real rules: ice fishing needs a fishing license, and licenses start over every January. Scouting the upper Kenai or Kasilof gives a hint about next summer’s run. Your game in progress is brought up to date automatically.'],
@@ -4953,7 +4958,7 @@ function homeApply(rep,quiet){
   if(!quiet) rep.lines.forEach(l=>say(l));
   return rep;
 }
-const homeHost=()=>({show:(t,h,b,lock)=>modal(t,h,b,lock),ticket:()=>homeTicket(),apply:r=>homeApply(r),rand:()=>Math.random()});
+const homeHost=()=>({show:(t,h,b,lock)=>modalSwap(t,h,b,lock),ticket:()=>homeTicket(),apply:r=>homeApply(r),rand:()=>Math.random()});
 const homeBotHost=()=>({ticket:()=>homeTicket(),apply:r=>homeApply(r,true)});
 
 // ---- generator: will it start in an outage? (called from outage() in 31-supplies.js) ----

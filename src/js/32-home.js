@@ -68,7 +68,7 @@ function homeApply(rep,quiet){
   if(!quiet) rep.lines.forEach(l=>say(l));
   return rep;
 }
-const homeHost=()=>({show:(t,h,b,lock)=>modal(t,h,b,lock),ticket:()=>homeTicket(),apply:r=>homeApply(r),rand:()=>Math.random()});
+const homeHost=()=>({show:(t,h,b,lock)=>modalSwap(t,h,b,lock),ticket:()=>homeTicket(),apply:r=>homeApply(r),rand:()=>Math.random()});
 const homeBotHost=()=>({ticket:()=>homeTicket(),apply:r=>homeApply(r,true)});
 
 // ---- generator: will it start in an outage? (called from outage() in 31-supplies.js) ----

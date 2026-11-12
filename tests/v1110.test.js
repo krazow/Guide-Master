@@ -40,10 +40,10 @@ module.exports = [
     assert.ok(!r.late.some(id => ['tape', 'skirt', 'detect', 'strap'].includes(id)), 'the cold-weather jobs wait for fall: ' + r.late);
     noErrors(errors);
   } },
-  { name: 'pop-ups: at most one information-only event pop-up a day, one new tip a day', fn: async ctx => {
+  { name: 'pop-ups (turned on in Settings): at most one information-only event pop-up a day, one new tip a day', fn: async ctx => {
     const { page, errors } = await open(ctx);
     const r = await page.evaluate(() => {
-      newGame('normal'); closeModals(); localStorage.removeItem(POPUP_KEY); S.cur = 3; const out = {};
+      newGame('normal'); closeModals(); localStorage.setItem(POPUP_KEY, 'on'); S.cur = 3; const out = {};
       const ev = [{ e: { id: 'x', tile: ['📍', 'A'] }, lines: ['one'] }];
       eventPopup('travel', ev, false); out.first = !!document.getElementById('mbg'); closeModals();
       eventPopup('travel', ev, infoPopsToday() >= INFO_POP_CAP); out.second = !!document.getElementById('mbg');
