@@ -44,7 +44,7 @@ function dayCard(d){
   const D=S.daily;if(!D||D.day!==d) return '';
   const dm=Math.round(S.money-D.money);
   const evs=S.ev.history.slice(D.ev).map(h=>{const e=EV.find(x=>x.id===h.id);return e&&e.tile?e.tile[0]:'📍'});
-  const parts=['money' in S?`💵 ${dm>=0?'+':'−'}$${Math.abs(dm)}`:'',...(typeof daySummary==='function'?daySummary(d):[])].filter(Boolean);
+  const parts=['money' in S?`💵 ${dm>=0?'+':'−'}$${Math.abs(dm).toLocaleString('en-US')}`:'',...(typeof daySummary==='function'?daySummary(d):[])].filter(Boolean);
   return `<div class="today"><b>${dayName(d)} in review</b>${parts.join(' · ')}${evs.length?`<br>Events: ${evs.join(' ')}`:''}</div>`;
 }
 // End the day. where: 'home' (went to bed), 'collapsed' (stayed up past midnight), or any string your content uses.
