@@ -1,8 +1,8 @@
 // Service worker: offline-first app shell, runtime-cached Google Fonts.
 // tools/build.py keeps VERSION in step with GAME.version, so every release replaces the old cache.
-const PREFIX = 'guidemaster-';
-const VERSION = PREFIX + '1.12.0';
-const FONTS = PREFIX + 'fonts';
+const CACHE_PREFIX = 'guidemaster-';
+const VERSION = CACHE_PREFIX + '1.12.0';
+const FONTS = CACHE_PREFIX + 'fonts';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/maskable-512.png',
   'icons/apple-touch-icon.png', 'icons/favicon-32.png',
@@ -13,7 +13,7 @@ self.addEventListener('install', e => {
 });
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys()
-    .then(keys => Promise.all(keys.filter(k => k.startsWith(PREFIX) && k !== VERSION && k !== FONTS).map(k => caches.delete(k))))
+    .then(keys => Promise.all(keys.filter(k => k.startsWith(CACHE_PREFIX) && k !== VERSION && k !== FONTS).map(k => caches.delete(k))))
     .then(() => self.clients.claim()));
 });
 self.addEventListener('fetch', e => {
