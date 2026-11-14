@@ -380,9 +380,18 @@ Hooks your content implements: `newState`, `onNewGame`, `onMorning(d)`, `onNight
 - When you rename or restructure a field, bump `GAME.schema` and add a `MIGRATIONS` entry. The player sees a short "upgraded from an older version" note.
 - On every release, bump `GAME.version` and rebuild. Installed copies pick up the new cache.
 
+## Releasing
+
+Type **`/releasenow`** in a Claude chat on this repo. It bumps `VERSION` and `GAME.version`, adds a `CHANGELOG.md`
+entry and starts the shared [Krazow release kit](https://github.com/krazow/release-kit) pipeline: the build check
+and tests, then a beta at https://krazow.github.io/Guide-Master/beta/ (with its own saves) and a pre-release with
+the Android and Windows beta apps. **`/releasenow promote`** puts the same version live and publishes the Latest
+release: `GuideMaster-<version>.apk`, `GuideMaster-Setup-<version>.exe` and `GuideMaster-offline.html`.
+`/releasenow all`, `status` and `rollback` are there too. Pushing to `main` no longer changes the live game.
+
 ## Deploy
 
-It's a static site. On **GitHub Pages**, push the repo and turn on Pages for the branch root (`.nojekyll` is already there). Netlify, Cloudflare Pages and any static host work too. The site must be served over https to install and run offline.
+It's a static site, published by the release kit (above). Netlify, Cloudflare Pages and any static host work too. The site must be served over https to install and run offline.
 
 `python3 tools/build-offline.py` also writes `offline/<id>-offline.html`: the whole game as one file that runs by double-clicking it, with no server needed. It's handy for sharing by email or USB.
 
@@ -394,4 +403,4 @@ npx playwright install chromium
 npm test                     # or: node tests/run.js save   (filter by name)
 ```
 
-Every `tests/*.test.js` runs against `index.html`, and against the offline build if it exists. `smoke.test.js` is a bot that clicks at random for 1,500 steps across several games and fails on any page error. CI (`.github/workflows/test.yml`) runs the build check and the tests on every push.
+Every `tests/*.test.js` runs against `index.html`, and against the offline build if it exists. `smoke.test.js` is a bot that clicks at random for 1,500 steps across several games and fails on any page error. CI (`.github/workflows/ci.yml`, the release kit's QA) runs the build check and the tests on every pull request and push to `main`.

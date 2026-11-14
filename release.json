@@ -1,0 +1,20 @@
+{
+  "id": "guidemaster",
+  "name": "Guide Master",
+  "description": "A guide's career on the Kenai: a fishing-guide game.",
+  "site": ".",
+  "app": ".",
+  "prebuild": ["python3 tools/build.py --check"],
+  "exclude": [],
+  "sw": "sw.js",
+  "version": [{ "file": "index.html", "pattern": "version:'([^']*)'" }],
+  "android": { "enabled": true, "appId": "com.krazow.guidemaster" },
+  "windows": { "enabled": true, "port": 47850 },
+  "ios": { "enabled": false },
+  "macos": { "enabled": false },
+  "extras": {
+    "enabled": true,
+    "betaBuild": false,
+    "custom": "python3 tools/build-offline.py && cp offline/guidemaster-offline.html \"$OUT/GuideMaster-offline.html\""
+  }
+}

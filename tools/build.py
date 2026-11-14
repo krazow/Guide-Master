@@ -38,8 +38,8 @@ def build():
 def stamp_sw():
     gid, ver = game_field('id'), game_field('version')
     sw = read('sw.js')
-    sw = re.sub(r"const PREFIX = '[^']*';", f"const PREFIX = '{gid}-';", sw)
-    sw = re.sub(r"const VERSION = PREFIX \+ '[^']*';", f"const VERSION = PREFIX + '{ver}';", sw)
+    sw = re.sub(r"const CACHE_PREFIX = '[^']*';", f"const CACHE_PREFIX = '{gid}-';", sw)
+    sw = re.sub(r"const VERSION = CACHE_PREFIX \+ '[^']*';", f"const VERSION = CACHE_PREFIX + '{ver}';", sw)
     return sw
 
 if __name__ == '__main__':
