@@ -4,14 +4,30 @@
   "description": "A guide's career on the Kenai: a fishing-guide game.",
   "site": ".",
   "app": ".",
-  "prebuild": ["python3 tools/build.py --check"],
+  "prebuild": [
+    "python3 tools/build.py --check"
+  ],
   "exclude": [],
   "sw": "sw.js",
-  "version": [{ "file": "index.html", "pattern": "version:'([^']*)'" }],
-  "android": { "enabled": true, "appId": "com.krazow.guidemaster" },
-  "windows": { "enabled": true, "port": 47850 },
-  "ios": { "enabled": false },
-  "macos": { "enabled": false },
+  "version": [
+    {
+      "file": "index.html",
+      "pattern": "version:'([^']*)'"
+    }
+  ],
+  "android": {
+    "enabled": false
+  },
+  "windows": {
+    "enabled": true,
+    "port": 47850
+  },
+  "ios": {
+    "enabled": false
+  },
+  "macos": {
+    "enabled": false
+  },
   "extras": {
     "enabled": true,
     "betaBuild": false,

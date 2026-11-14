@@ -6,7 +6,7 @@ are taken from it. Earlier versions are described in the README and the in-game 
 ## Unreleased
 
 ### Added
-- An Android app (APK), a Windows installer and the single-file offline game with every release.
+- A Windows installer and the single-file offline game with every release.
 - A beta at `/beta/` with its own saves, so new versions can be tried without touching your career.
 
 ### Changed
