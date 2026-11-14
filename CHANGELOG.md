@@ -3,7 +3,7 @@
 Release notes for Guide Master. `/release now` adds a section here for every release, and the GitHub release notes
 are taken from it. Earlier versions are described in the README and the in-game update notice.
 
-## Unreleased
+## 1.12.1 (2026-11-14)
 
 ### Added
 - A Windows installer and the single-file offline game with every release.
