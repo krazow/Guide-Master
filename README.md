@@ -382,12 +382,12 @@ Hooks your content implements: `newState`, `onNewGame`, `onMorning(d)`, `onNight
 
 ## Releasing
 
-Type **`/releasenow`** in a Claude chat on this repo. It bumps `VERSION` and `GAME.version`, adds a `CHANGELOG.md`
+Type **`/release now`** in a Claude chat on this repo. It bumps `VERSION` and `GAME.version`, adds a `CHANGELOG.md`
 entry and starts the shared [Krazow release kit](https://github.com/krazow/release-kit) pipeline: the build check
 and tests, then a beta at https://krazow.github.io/Guide-Master/beta/ (with its own saves) and a pre-release with
-the Android and Windows beta apps. **`/releasenow promote`** puts the same version live and publishes the Latest
+the Android and Windows beta apps. **`/release promote`** puts the same version live and publishes the Latest
 release: `GuideMaster-<version>.apk`, `GuideMaster-Setup-<version>.exe` and `GuideMaster-offline.html`.
-`/releasenow all`, `status` and `rollback` are there too. Pushing to `main` no longer changes the live game.
+`/release all`, `status` and `rollback` are there too. Pushing to `main` no longer changes the live game.
 
 ## Deploy
 
