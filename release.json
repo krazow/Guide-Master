@@ -7,7 +7,7 @@
   "prebuild": [
     "python3 tools/build.py --check"
   ],
-  "exclude": [],
+  "exclude": [".kit"],
   "sw": "sw.js",
   "version": [
     {
