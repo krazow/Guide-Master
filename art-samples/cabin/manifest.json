@@ -1,0 +1,246 @@
+[
+  {
+    "id": "cabin-01-wood-stove-winter-night",
+    "set": "cabin",
+    "n": 1,
+    "title": "Wood stove on a snowy winter night",
+    "file": "cabin/01-wood-stove-winter-night.png",
+    "svg": "cabin/01-wood-stove-winter-night.svg",
+    "w": 1600,
+    "h": 900,
+    "alt": "A log cabin's main room at night: a wood stove glows behind a stone heat shield, raingear and wool socks dry on a line above it, firewood is stacked beside it and snow falls past a curtained window.",
+    "where": "Home tab or the winter report on a winter night when the cabin has a wood stove (bought in the shop) and firewood was laid in this fall.",
+    "when": {
+      "heat": "wood",
+      "season": "winter",
+      "time": "night",
+      "cond": [
+        40,
+        100
+      ],
+      "has": [
+        "woodstove"
+      ]
+    },
+    "notes": "Warm stove light is the single source; cool moonlight from the window. Pairs with the 'wood stove carries the cabin through the cold' line."
+  },
+  {
+    "id": "cabin-02-summer-morning-gear-chaos",
+    "set": "cabin",
+    "n": 2,
+    "title": "Summer morning, gear chaos before a trip",
+    "file": "cabin/02-summer-morning-gear-chaos.png",
+    "svg": "cabin/02-summer-morning-gear-chaos.svg",
+    "w": 1600,
+    "h": 900,
+    "alt": "A sunlit cabin room on a July morning, cluttered with trip gear: rods and a landing net by the open door, an open cooler with lunch kits, life jackets, boots, waders over a chair and an oil-fired heater by the wall.",
+    "where": "Home tab on a July morning with a trip booked, or behind the 'pack the cooler' step before a trip.",
+    "when": {
+      "heat": "oil",
+      "season": "summer",
+      "time": "day",
+      "cond": [
+        35,
+        100
+      ],
+      "has": []
+    },
+    "notes": "The floor heater with its vent pipe and copper line is the furnace (heating oil or propane) every cabin starts with. Cooler and lunch kits match the pack-the-cooler system."
+  },
+  {
+    "id": "cabin-03-fly-tying-bench-winter-evening",
+    "set": "cabin",
+    "n": 3,
+    "title": "Fly-tying bench on a winter evening",
+    "file": "cabin/03-fly-tying-bench-winter-evening.png",
+    "svg": "cabin/03-fly-tying-bench-winter-evening.svg",
+    "w": 1600,
+    "h": 900,
+    "alt": "Close-up of a fly-tying bench under a frosted window at winter dusk: a vise holds a bright streamer, a desk lamp lights it, with thread spools, a cup of feathers, an open fly box and a mug of tea.",
+    "where": "Winter evenings at home when the player owns the fly-tying vise (camp pack item 'vise'), e.g. alongside the 'tie flies and fix gear' result.",
+    "when": {
+      "heat": "any",
+      "season": "winter",
+      "time": "night",
+      "cond": [
+        30,
+        100
+      ],
+      "has": [
+        "vise"
+      ]
+    },
+    "notes": "The vise is a camp pack item in src/camp (id 'vise'), not a CabinUpkeep feature; the host can check the camp gear list. Stove glow at the left edge only, so it works with either heat."
+  },
+  {
+    "id": "cabin-04-kitchen-pantry-freezer",
+    "set": "cabin",
+    "n": 4,
+    "title": "Kitchen, pantry and a freezer full of reds",
+    "file": "cabin/04-kitchen-pantry-freezer.png",
+    "svg": "cabin/04-kitchen-pantry-freezer.svg",
+    "w": 1600,
+    "h": 900,
+    "alt": "A cabin kitchen on a summer evening: shelves of canning jars and pantry goods, a sink under the window, a vacuum sealer and a fillet on the counter, and an open chest freezer packed with vacuum-sealed red salmon.",
+    "where": "The 'cabin's stores' pop-up (pantry, fridge, freezer reds) or after buying the big chest freezer, best when the freezer is well stocked.",
+    "when": {
+      "heat": "any",
+      "season": "summer",
+      "time": "day",
+      "cond": [
+        30,
+        100
+      ],
+      "has": [
+        "freezer"
+      ]
+    },
+    "notes": "Pantry, fridge and freezer match S.food (pan, fri) and S.freezer. 'freezer' means the 70-fish chest freezer (S.home.frz); without it the base freezer still holds 30."
+  },
+  {
+    "id": "cabin-05-arctic-entry-mudroom",
+    "set": "cabin",
+    "n": 5,
+    "title": "Arctic entry with boots, bear spray and raingear",
+    "file": "cabin/05-arctic-entry-mudroom.png",
+    "svg": "cabin/05-arctic-entry-mudroom.svg",
+    "w": 1600,
+    "h": 900,
+    "alt": "A log mudroom inside the front door on a snowy day: coats and yellow raingear on hooks, bear spray cans and a headlamp on a shelf, boots drying upside down on a boot dryer and a tray of rubber boots with melting snow.",
+    "where": "Home tab on a winter day, the moment before leaving for winter camping, or when the cabin's prep jobs come up.",
+    "when": {
+      "heat": "any",
+      "season": "winter",
+      "time": "day",
+      "cond": [
+        30,
+        100
+      ],
+      "has": []
+    },
+    "notes": "No feature gate. Bear spray and headlamp echo the camping pack; the boot dryer glows faintly orange."
+  },
+  {
+    "id": "cabin-06-power-outage-generator-night",
+    "set": "cabin",
+    "n": 6,
+    "title": "Power outage with the generator running outside",
+    "file": "cabin/06-power-outage-generator-night.png",
+    "svg": "cabin/06-power-outage-generator-night.svg",
+    "w": 1600,
+    "h": 900,
+    "alt": "A dark cabin during a winter power outage, lit by a lantern and candles: through the window the generator runs in the snow away from the cabin, a CO alarm and smoke alarm glow on the wall, and gas cans sit on the floor.",
+    "where": "The power-outage report (the power_out event, or the winter storm outage in the winter report) when a generator carried the house.",
+    "when": {
+      "heat": "any",
+      "season": "winter",
+      "time": "night",
+      "cond": [
+        0,
+        100
+      ],
+      "has": [
+        "generator",
+        "detectors"
+      ]
+    },
+    "notes": "Matches the code: the generator runs outside on home gas and feeds an inlet with an interlock (panel on the wall, no cord through the window). Without detectors, use another image. A no-generator outage variant would be a good addition."
+  },
+  {
+    "id": "cabin-07-run-down-cabin-roof-drip",
+    "set": "cabin",
+    "n": 7,
+    "title": "Run-down cabin with a leaking roof",
+    "file": "cabin/07-run-down-cabin-roof-drip.png",
+    "svg": "cabin/07-run-down-cabin-roof-drip.svg",
+    "w": 1600,
+    "h": 900,
+    "alt": "A neglected, drafty cabin on a rainy summer day: plastic sheeting over the window, buckets under drips from a stained ceiling, a ladder, paint cans, lumber, a toolbox on a tarp, a job list pinned to the wall and a space heater.",
+    "where": "Home tab when cabin condition is low, and the July 'roof leaks' trouble or the cold, damp-morning energy loss below condition 35.",
+    "when": {
+      "heat": "any",
+      "season": "summer",
+      "time": "day",
+      "cond": [
+        0,
+        35
+      ],
+      "has": []
+    },
+    "notes": "Greyed palette and cool light set it apart from the warm sets. The unchecked job list shows the jobs that were skipped."
+  },
+  {
+    "id": "cabin-08-well-kept-cozy-cabin",
+    "set": "cabin",
+    "n": 8,
+    "title": "Well-kept, cozy cabin",
+    "file": "cabin/08-well-kept-cozy-cabin.png",
+    "svg": "cabin/08-well-kept-cozy-cabin.svg",
+    "w": 1600,
+    "h": 900,
+    "alt": "A warm, tidy log living room: moose antlers above a glowing wood stove, a map of the Kenai and fishing photos on the wall, five-star review cards pinned up, a green couch with a quilt, a braided rug and a sleeping dog.",
+    "where": "Home tab when cabin condition is high (75 and up, when the player wakes rested), or the end-of-career cabin summary.",
+    "when": {
+      "heat": "wood",
+      "season": "winter",
+      "time": "night",
+      "cond": [
+        75,
+        100
+      ],
+      "has": [
+        "woodstove"
+      ]
+    },
+    "notes": "Star cards show stars and no words. Cabins without a wood stove would need a furnace-only variant."
+  },
+  {
+    "id": "cabin-09-fish-processing-station",
+    "set": "cabin",
+    "n": 9,
+    "title": "Fish processing station in the shed",
+    "file": "cabin/09-fish-processing-station.png",
+    "svg": "cabin/09-fish-processing-station.svg",
+    "w": 1600,
+    "h": 900,
+    "alt": "A bright shed with an open door onto a summer evening: a stainless fillet table and sink with a red salmon being filleted, a vacuum sealer, a hanging scale, knives on a magnet strip, a hose reel and two chest freezers with a tote of whole reds.",
+    "where": "After a trip's fish go through the processing station (CabinUpkeep.processing), or the station's cleaning and defrost jobs.",
+    "when": {
+      "heat": "any",
+      "season": "summer",
+      "time": "day",
+      "cond": [
+        0,
+        100
+      ],
+      "has": [
+        "processing",
+        "freezer"
+      ]
+    },
+    "notes": "Plywood board-and-batten walls and a concrete floor set the shed apart from the log cabin. The station is the shop's stainless table, sink, sealer and bench freezer."
+  },
+  {
+    "id": "cabin-10-loft-midnight-sun",
+    "set": "cabin",
+    "n": 10,
+    "title": "Loft bedroom in the midnight sun",
+    "file": "cabin/10-loft-midnight-sun.png",
+    "svg": "cabin/10-loft-midnight-sun.svg",
+    "w": 1600,
+    "h": 900,
+    "alt": "A cabin sleeping loft under a steep roof at night in July: blackout curtains are cracked open on a pink-gold midnight sky, a shaft of light falls across a quilted bed, with an alarm clock and headlamp on the nightstand, waders on a peg and a packed gear bag.",
+    "where": "The early-morning wake-up before a July trip (the 5 AM alarm), or the end-of-day screen in July.",
+    "when": {
+      "heat": "any",
+      "season": "summer",
+      "time": "night",
+      "cond": [
+        35,
+        100
+      ],
+      "has": []
+    },
+    "notes": "The analog alarm clock has no digits, so there is no text. Dark navy curtains frame the light shaft for contrast."
+  }
+]

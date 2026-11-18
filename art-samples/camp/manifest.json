@@ -1,0 +1,202 @@
+[
+  {
+    "id": "camp-01-aurora-tent",
+    "set": "camp",
+    "n": 1,
+    "title": "Aurora over a winter tent camp",
+    "file": "camp/01-aurora-tent.png",
+    "svg": "camp/01-aurora-tent.svg",
+    "w": 1600,
+    "h": 900,
+    "alt": "A glowing orange four-season tent with a stovepipe sits in deep snow under green and violet northern lights, with snow-loaded spruce, the Kenai Mountains and a lone camper looking up.",
+    "where": "Evening at camp on a clear night when the player picks \"Photograph the northern lights\"; also a good winter-hub or camping-menu header.",
+    "when": {
+      "place": "hidden",
+      "shelter": "tent",
+      "activity": "aurora",
+      "time": "night",
+      "weather": "clear"
+    },
+    "notes": "Aurora built from blurred vertical strips over a starfield; warm tent glow pooled on cool snow. Hidden Lake (forest habitat, Kenai Mtns behind) fits; any clear-night tent camp works."
+  },
+  {
+    "id": "camp-02-ice-fishing",
+    "set": "camp",
+    "n": 2,
+    "title": "Ice fishing at Johnson Lake",
+    "file": "camp/02-ice-fishing.png",
+    "svg": "camp/02-ice-fishing.svg",
+    "w": 1600,
+    "h": 900,
+    "alt": "An angler in a brown parka sits on a bucket jigging a short rod over an auger hole on a frozen lake, with a char on the ice, a hand auger, a gear sled, a pressure ridge and a low winter sun.",
+    "where": "Day activity \"Ice fishing\" at a lake with ice (Johnson Lake; Stormy Lake at Captain Cook SRA also fits), especially the catch screen.",
+    "when": {
+      "place": "johnson",
+      "shelter": "any",
+      "activity": "icefish",
+      "time": "day",
+      "weather": "clear"
+    },
+    "notes": "Foreground scaled up for the header crop; the engine says the catch is stocked rainbow trout and char, so the fish is an olive-backed, pale-spotted char with white-edged fins. Reuse for place \"cook\" (Stormy Lake)."
+  },
+  {
+    "id": "camp-03-wall-tent-dusk",
+    "set": "camp",
+    "n": 3,
+    "title": "Wall tent at dusk",
+    "file": "camp/03-wall-tent-dusk.png",
+    "svg": "camp/03-wall-tent-dusk.svg",
+    "w": 1600,
+    "h": 900,
+    "alt": "A canvas wall tent glows warm from its open door and window at dusk, woodstove smoke curling from the pipe, with stacked firewood, a chopping block and axe, skis stuck in the snow and a lantern.",
+    "where": "Arriving at camp or the evening screen when the shelter is the wall tent; the skis tie it to Swanson River Road ski country.",
+    "when": {
+      "place": "swanson",
+      "shelter": "wall",
+      "activity": "any",
+      "time": "night",
+      "weather": "any"
+    },
+    "notes": "Dusk palette from the game (#5f6f96 to #f0b98a); warm canvas against blue snow. Works at any place where the player owns the wall tent."
+  },
+  {
+    "id": "camp-04-truck-camper",
+    "set": "camp",
+    "n": 4,
+    "title": "Truck camper at a mountain pull-out",
+    "file": "camp/04-truck-camper.png",
+    "svg": "camp/04-truck-camper.svg",
+    "w": 1600,
+    "h": 900,
+    "alt": "A red pickup with a white cabover camper is parked at a plowed pull-out on a snowy road below pink-lit Kenai Mountains on a cold blue morning, its furnace venting steam while the owner stands with a mug.",
+    "where": "Morning at camp, or the confirm/packing screen, when the shelter is the truck camper.",
+    "when": {
+      "place": "hidden",
+      "shelter": "camper",
+      "activity": "any",
+      "time": "day",
+      "weather": "clear"
+    },
+    "notes": "Alpenglow on the summits while the valley floor stays in shade; road and delineator posts have no text. Skilak Lake Road pull-out (Hidden Lake); fine for any roadside place."
+  },
+  {
+    "id": "camp-05-public-use-cabin",
+    "set": "camp",
+    "n": 5,
+    "title": "Public-use cabin in a cold snap",
+    "file": "camp/05-public-use-cabin.png",
+    "svg": "camp/05-public-use-cabin.svg",
+    "w": 1600,
+    "h": 900,
+    "alt": "A snow-loaded log public-use cabin with icicles, a lit window, a woodpile and snowshoes by the door sends a straight column of smoke into still, frozen air beside Skilak Lake, with sun dogs flanking a low sun.",
+    "where": "Staying in a reserved public-use cabin (Skilak, Swanson or Quartz Creek areas), and the \"A cold snap\" weather night.",
+    "when": {
+      "place": "skilak",
+      "shelter": "cabin",
+      "activity": "snowshoe",
+      "time": "day",
+      "weather": "cold"
+    },
+    "notes": "Cold-snap cues: vertical smoke flattening under an inversion, 22-degree halo, sun dogs and diamond dust. Cabins exist only at swanson, skilak and quartz in the data."
+  },
+  {
+    "id": "camp-06-moose-tracks",
+    "set": "camp",
+    "n": 6,
+    "title": "Tracking moose along a frozen river",
+    "file": "camp/06-moose-tracks.png",
+    "svg": "camp/06-moose-tracks.svg",
+    "w": 1600,
+    "h": 900,
+    "alt": "A camper on snowshoes kneels over fresh moose tracks that cross a snow-covered frozen river, past steaming open holes in the ice, to a moose browsing red willows at the edge of the spruce and birch.",
+    "where": "Day activity \"Track wildlife\", and the moose encounter; the river habitat matches the Anchor River.",
+    "when": {
+      "place": "anchor",
+      "shelter": "any",
+      "activity": "track",
+      "time": "day",
+      "weather": "any"
+    },
+    "notes": "Track trail shrinks with distance to lead the eye to the moose; pale lower legs, shoulder hump and bell on the moose. Also fits snowshoeing at forest or river places."
+  },
+  {
+    "id": "camp-07-upper-kenai-scout",
+    "set": "camp",
+    "n": 7,
+    "title": "Scouting the upper Kenai in winter",
+    "file": "camp/07-upper-kenai-scout.png",
+    "svg": "camp/07-upper-kenai-scout.svg",
+    "w": 1600,
+    "h": 900,
+    "alt": "Open turquoise water of the upper Kenai River runs between thick snow-covered ice shelves in a steep mountain valley, with a bald eagle perched on a silver snag, another soaring, and the guide scouting from the bank.",
+    "where": "Day activity \"Scout next season's water (upper Kenai)\", from Quartz Creek near Cooper Landing; also Hidden Lake or Skilak scouting.",
+    "when": {
+      "place": "quartz",
+      "shelter": "any",
+      "activity": "scout",
+      "time": "day",
+      "weather": "clear"
+    },
+    "notes": "Ice shelf edges show blue-green cut faces; river widens toward the viewer for depth. Eagles echo the river-habitat eagle encounter."
+  },
+  {
+    "id": "camp-08-fly-tying-fire",
+    "set": "camp",
+    "n": 8,
+    "title": "Tying flies by the fire",
+    "file": "camp/08-fly-tying-fire.png",
+    "svg": "camp/08-fly-tying-fire.svg",
+    "w": 1600,
+    "h": 900,
+    "alt": "At night a guide wearing a headlamp ties an olive leech in a vise clamped to a camp table, with thread spools, feathers, a fly box and a steaming enamel mug, beside a crackling campfire and a glowing wall tent in the spruce.",
+    "where": "Evening choice \"Tie flies and fix gear\", best when the vise is packed.",
+    "when": {
+      "place": "any",
+      "shelter": "any",
+      "activity": "tie",
+      "time": "night",
+      "weather": "any"
+    },
+    "notes": "Two warm light sources (fire glow and the headlamp beam) against a cool night; the vise sits in front of the tier so the hands meet at the fly."
+  },
+  {
+    "id": "camp-09-homer-spit",
+    "set": "camp",
+    "n": 9,
+    "title": "Winter camp on the Homer Spit",
+    "file": "camp/09-homer-spit.png",
+    "svg": "camp/09-homer-spit.svg",
+    "w": 1600,
+    "h": 900,
+    "alt": "A small orange tent guyed to driftwood and a pickup with a shell sit on the snowy gravel of the Homer Spit, while sea otters float on their backs in Kachemak Bay below the snowy Kenai Mountains and a bald eagle watches from an old piling.",
+    "where": "Camping at Homer Spit, and the \"Sea otters off the Spit\" encounter (only at the spit in the data).",
+    "when": {
+      "place": "spit",
+      "shelter": "any",
+      "activity": "any",
+      "time": "day",
+      "weather": "any"
+    },
+    "notes": "Raft of otters (one with a clam), sea ducks, eagles on pilings, low pink winter light; the camper wears yellow raingear for the coastal wind."
+  },
+  {
+    "id": "camp-10-snowstorm-night",
+    "set": "camp",
+    "n": 10,
+    "title": "Snowstorm night",
+    "file": "camp/10-snowstorm-night.png",
+    "svg": "camp/10-snowstorm-night.svg",
+    "w": 1600,
+    "h": 900,
+    "alt": "A tent bowed under a heavy snow load glows dimly in a night blizzard, wind-driven snow streaking across, a drift piling against its windward side, and the truck half buried behind.",
+    "where": "The \"A snowstorm\" weather night (snowed in, road drifted shut), when sleeping in a tent.",
+    "when": {
+      "place": "any",
+      "shelter": "tent",
+      "activity": "any",
+      "time": "night",
+      "weather": "snow"
+    },
+    "notes": "Low-contrast trees fading in the storm with a skewed wind lean; three layers of flakes plus blurred near flakes for depth. Generic place; the truck mound hints at the shovel-out."
+  }
+]

@@ -1,0 +1,234 @@
+[
+ {
+  "id": "boat-01-sled-dawn-run",
+  "set": "boat",
+  "n": 1,
+  "title": "Dawn run down the lower Kenai",
+  "file": "boat/01-sled-dawn-run.png",
+  "svg": "boat/01-sled-dawn-run.svg",
+  "w": 1600,
+  "h": 900,
+  "alt": "A welded aluminum jet sled with a guide at the console and four clients in raingear speeds across a pink dawn river, spray off the jet, an eagle on a snag and fireweed on the bank.",
+  "where": "Trip sheet header for a sockeye trip (6 AM start) on the lower Kenai: the launch beat, running the jet sled to the reds.",
+  "when": {
+   "boat": "sled",
+   "where": "river",
+   "cond": [
+    40,
+    100
+   ],
+   "up": [],
+   "time": "dusk"
+  },
+  "notes": "time 'dusk' = the game's dawn/dusk sky window (SCENE: sunrise-30 to sunrise+60 min, i.e. 4:30-6:00 AM), which the 6 AM sockeye start touches. Clean boat, so cond above the first warning tier (boatTier 0, >40)."
+ },
+ {
+  "id": "boat-02-sockeye-seam-crowd",
+  "set": "boat",
+  "n": 2,
+  "title": "Flipping the seam among the guide boats",
+  "file": "boat/02-sockeye-seam-crowd.png",
+  "svg": "boat/02-sockeye-seam-crowd.svg",
+  "w": 1600,
+  "h": 900,
+  "alt": "Our jet sled sits anchored on a current seam with clients flipping for sockeye and one netting a fish, while other guide boats line the seam and a wall of bank anglers stands shoulder to shoulder on the far gravel.",
+  "where": "Sockeye trip mid-day beats ('The first drift' / 'The midday call') when the tactic is flip ('Flip the seams from the sled'); also fits the bank-flipping action at the lower river.",
+  "when": {
+   "boat": "sled",
+   "where": "river",
+   "cond": [
+    40,
+    100
+   ],
+   "up": [],
+   "time": "day"
+  },
+  "notes": "Combat fishing: the crowd is drawn as batched mini figures. Sockeye drawn chrome-silver (fresh July reds)."
+ },
+ {
+  "id": "boat-03-drift-boat-upper-kenai",
+  "set": "boat",
+  "n": 3,
+  "title": "Drift boat on the upper Kenai",
+  "file": "boat/03-drift-boat-upper-kenai.png",
+  "svg": "boat/03-drift-boat-upper-kenai.svg",
+  "w": 1600,
+  "h": 900,
+  "alt": "A wooden drift boat on turquoise water below steep Cooper Landing mountains: the guide rows while the bow angler fights a leaping rainbow trout and the stern angler drifts a bead, with a brown bear on the far gravel bar.",
+  "where": "Trip sheet header for the Upper Kenai trout float (Cooper Landing to Jim's Landing, 7 AM, drift boat only).",
+  "when": {
+   "boat": "drift",
+   "where": "river",
+   "cond": [
+    40,
+    100
+   ],
+   "up": [],
+   "time": "day"
+  },
+  "notes": "Matches the 'beads' and 'streamers' tactics; the bear echoes the Cooper Landing place art. A variant with up:['drift'] could add a fresh hull."
+ },
+ {
+  "id": "boat-04-charter-leaving-homer",
+  "set": "boat",
+  "n": 4,
+  "title": "Six-pack charter leaving Homer at dawn",
+  "file": "boat/04-charter-leaving-homer.png",
+  "svg": "boat/04-charter-leaving-homer.svg",
+  "w": 1600,
+  "h": 900,
+  "alt": "A white six-pack charter boat with three clients aboard heads out of Homer Harbor at dawn past the Spit's stilt shacks and breakwater, with glaciers and snowy Kenai Mountains across Kachemak Bay.",
+  "where": "Homer halibut charter, 'The run out' beat (6 AM start), whether captaining a buddy's boat or running your own after the Charter Halibut Permit upgrade.",
+  "when": {
+   "boat": "charter",
+   "where": "harbor",
+   "cond": [
+    0,
+    100
+   ],
+   "up": [],
+   "time": "dusk"
+  },
+  "notes": "Halibut trips ignore S.boat (the charter is not your sled/drift boat), hence cond 0-100. time 'dusk' = the game's dawn window."
+ },
+ {
+  "id": "boat-05-halibut-slack-tide",
+  "set": "boat",
+  "n": 5,
+  "title": "Halibut at the rail on slack tide",
+  "file": "boat/05-halibut-slack-tide.png",
+  "svg": "boat/05-halibut-slack-tide.svg",
+  "w": 1600,
+  "h": 900,
+  "alt": "Anchored on glassy Cook Inlet water with a snowy volcano on the horizon, two clients bend their rods while the deckhand reaches over the stern with a gaff toward a big flat halibut at the surface, gulls all around.",
+  "where": "Homer halibut charter 'Slack tide' beat, especially with the 'anchor' tactic (anchor up and set out a chum bag) or a big-fish catch.",
+  "when": {
+   "boat": "charter",
+   "where": "river",
+   "cond": [
+    0,
+    100
+   ],
+   "up": [],
+   "time": "day"
+  },
+  "notes": "There is no 'sea' value for where: 'river' is used here to mean out on the water fishing (Cook Inlet). Swap to a new key if you add one."
+ },
+ {
+  "id": "boat-06-trailer-soldotna-launch",
+  "set": "boat",
+  "n": 6,
+  "title": "Backing down the ramp in the fog",
+  "file": "boat/06-trailer-soldotna-launch.png",
+  "svg": "boat/06-trailer-soldotna-launch.svg",
+  "w": 1600,
+  "h": 900,
+  "alt": "In thick morning fog a red pickup backs the jet sled on its trailer down a concrete ramp into the river while the guide waves it back from the courtesy dock, with faded trucks parked behind.",
+  "where": "Arriving at the Lower Kenai launch (Centennial Park, Soldotna) before a sockeye or silver trip; the launch-fee moment.",
+  "when": {
+   "boat": "sled",
+   "where": "trailer",
+   "cond": [
+    25,
+    100
+   ],
+   "up": [],
+   "time": "day"
+  },
+  "notes": "Fog keeps it early-morning without needing the dawn palette. Not for players with the 'dock' upgrade (own private launch) if you want to be strict."
+ },
+ {
+  "id": "boat-07-shop-repair-worn-sled",
+  "set": "boat",
+  "n": 7,
+  "title": "In the shop: a worn sled and a pulled motor",
+  "file": "boat/07-shop-repair-worn-sled.png",
+  "svg": "boat/07-shop-repair-worn-sled.svg",
+  "w": 1600,
+  "h": 900,
+  "alt": "Inside a plank-walled shop under a warm hanging lamp, the guide kneels with a wrench beside the jet outboard on a red engine stand, the scratched and dented sled on its trailer and the drift boat upside down on sawhorses behind, a cool blue evening at the window.",
+  "where": "At the Shop & Cabin when the boat is badly worn or out of service: 'Major repair', 'Service the boats yourself', 'Emergency patch', or the boat-condition warnings (BOAT_WARN tiers 2-4).",
+  "when": {
+   "boat": "sled",
+   "where": "shop",
+   "cond": [
+    0,
+    20
+   ],
+   "up": [],
+   "time": "any"
+  },
+  "notes": "cond 0-20 matches boatTier 2+ ('runs rough', 'one or two more trips', 'out of service'). Window shows July green, not snow."
+ },
+ {
+  "id": "boat-08-new-sled-at-dock",
+  "set": "boat",
+  "n": 8,
+  "title": "The new 20-ft sled, gleaming at the dock",
+  "file": "boat/08-new-sled-at-dock.png",
+  "svg": "boat/08-new-sled-at-dock.svg",
+  "w": 1600,
+  "h": 900,
+  "alt": "A brand-new welded jet sled with a fresh dark-teal hull, a white jet outboard and a full rod rack sparkles at a wooden dock on a bright day while the proud guide stands by with a coffee.",
+  "where": "After buying the 'New 20-ft welded jet sled, motor & trailer' upgrade (id sled); also fine for the first trip after the 'Repower: a new 50 hp jet outboard' (id motor) while the boat is near 100.",
+  "when": {
+   "boat": "sled",
+   "where": "launch",
+   "cond": [
+    80,
+    100
+   ],
+   "up": [
+    "sled"
+   ],
+   "time": "day"
+  },
+  "notes": "No canopy/heater in UPGRADES, so the upgrade shows as the new hull, white outboard and a five-rod rack."
+ },
+ {
+  "id": "boat-09-coast-guard-tow-dusk",
+  "set": "boat",
+  "n": 9,
+  "title": "Towed in to Kenai Harbor",
+  "file": "boat/09-coast-guard-tow-dusk.png",
+  "svg": "boat/09-coast-guard-tow-dusk.svg",
+  "w": 1600,
+  "h": 900,
+  "alt": "At dusk an orange-collared rescue boat with a blue light tows the jet sled, its guide and glum clients aboard, toward the lit harbor fuel dock where the harbormaster waves them in, a volcano faint across the inlet.",
+  "where": "After towIn() in 25-fuel.js: the sled ran dry, the Coast Guard tows you to Kenai Harbor and the harbormaster brings you to the fuel dock (S.loc becomes 'harbor', tile 'Towed in').",
+  "when": {
+   "boat": "sled",
+   "where": "harbor",
+   "cond": [
+    0,
+    100
+   ],
+   "up": [],
+   "time": "any"
+  },
+  "notes": "Painted at dusk as asked, but in-game tows land about 2 PM (sockeye) or 8 PM (silver), so time is 'any'. The Homer charter tow (hfuel) would need a charter variant."
+ },
+ {
+  "id": "boat-10-outfit-busy-launch",
+  "set": "boat",
+  "n": 10,
+  "title": "The outfit at a busy launch",
+  "file": "boat/10-outfit-busy-launch.png",
+  "svg": "boat/10-outfit-busy-launch.svg",
+  "w": 1600,
+  "h": 900,
+  "alt": "A busy gravel launch: one of the outfit's sleds already afloat while a hired guide walks rods down, a second sled on its trailer behind a blue truck, a drift boat on a trailer behind a brown truck, another guide hauling a cooler, and the owner waving in today's clients.",
+  "where": "Mornings when your guides run parties (36-business.js: extra boats bought in the off-season, or the assistant guide's second sled from the 'asst' upgrade).",
+  "when": {
+   "boat": "staff",
+   "where": "launch",
+   "cond": [
+    0,
+    100
+   ],
+   "up": [],
+   "time": "day"
+  },
+  "notes": "Show when S.biz.boats is non-empty or S.up.asst is true. Three hired guides max (BIZ), two extra boats max (BIZ_MAX_BOATS) - the picture shows two sleds and a drift boat."
+ }
+]
