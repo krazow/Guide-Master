@@ -3,6 +3,34 @@
 Release notes for Guide Master. `/release now` adds a section here for every release, and the GitHub release notes
 are taken from it. Earlier versions are described in the README and the in-game update notice.
 
+## Unreleased
+
+### Added
+- **🏆 The trophy wall.** The 📜 Log tab has a switch, **Log | Trophy wall**: your biggest fish of each species (sockeye, silvers,
+  rainbows, halibut and kings) with the party and the date, your **firsts** (first trip, first fish of each species, first king, first
+  barn-door halibut over 100 lb, first limit-out, first five-star review), **standout clients** (five-star reviews and regulars who keep
+  coming back) and **postcards**: when a new season starts, one or two past clients who had a good day with you write in (morning report).
+- **★ Your rating.** The top bar shows a star rating where Rep used to be: the average of your last 20 reviews, with your reputation
+  filling in while there are few (a new guide starts at about ★4.0). The bar under it is still reputation; at 0, nobody books you.
+  - ★4.5 (10+ reviews): **top-rated guide**: parties that pay well find you and tip about 15% more on a good day.
+  - ★4.7 (12+ reviews): **a magazine feature**, once a career: up to three extra trips over the coming days (or the first week of next
+    season if you're full), on the trip that week's water offers.
+  - A season that averages ★4.7: **a lodge partnership**. A Soldotna lodge sends two parties of its guests every season, in your
+    chosen weeks, for a 10% referral fee, until your rating falls under ★4.3.
+  - Under ★2.5, fewer people book, in your weeks and over the rest of the summer, until the rating comes back.
+- **🎉 Catch moments.** Trophies, a king at the boat (one moment a trip, even on a June king trip that lands several), barn doors,
+  limit-outs and first fish of a species get a short moment on the trip sheet (under 1.5 s, still with Reduce motion), and a **catch
+  card** at the dock with **💾 Save the card as an image**. **🔔 Catch chime** in ⚙️ Settings, off until you turn it on.
+- **🧓 A mentor's first trip.** On a new career's first trip, Walt Brandvold, an old Soldotna guide, rides along and says one thing at
+  each call: reading the conditions, choosing a move, what the party came for, a rule dilemma. **I've got this** sends him ashore;
+  **Help → Ride with the mentor again** (Help is now also in ⚙️ Settings) brings him back for one trip.
+
+### Changed
+- Regulars, the dock and the Help sheet talk about "next season" rather than "next July"; the Help entry for season goals has its own icon.
+- Save schema 8 (`S.mem`). Saves from 1.12–1.14 (schemas 4–6) run the schema 5, 6 and 8 migrations in order; schema 7 is left
+  for the business layer. Records start from the moment you load, past reviews already count toward the rating, and a career already
+  under way doesn't get the mentor automatically (Help brings him).
+
 ## 1.14.0 (2026-11-18)
 
 This release includes everything planned for 1.13.0, which was never released on its own.
@@ -48,32 +76,6 @@ This release includes everything planned for 1.13.0, which was never released on
   within its own week.
 - Games in progress are brought up to date automatically: they keep playing the two July weeks until you pick others, and a trip
   that was under way finishes the old way.
-
-### Added (1.15.0)
-- **🏆 The trophy wall.** The 📜 Log tab has a switch, **Log | Trophy wall**: your biggest fish of each species (sockeye, silvers,
-  rainbows, halibut and kings) with the party and the date, your **firsts** (first trip, first fish of each species, first king, first
-  barn-door halibut over 100 lb, first limit-out, first five-star review), **standout clients** (five-star reviews and regulars who keep
-  coming back) and **postcards**: when a new season starts, one or two past clients who had a good day with you write in (morning report).
-- **★ Your rating.** The top bar shows a star rating where Rep used to be: the average of your last 20 reviews, with your reputation
-  filling in while there are few (a new guide starts at about ★4.0). The bar under it is still reputation; at 0, nobody books you.
-  - ★4.5 (10+ reviews): **top-rated guide**: parties that pay well find you and tip about 15% more on a good day.
-  - ★4.7 (12+ reviews): **a magazine feature**, once a career: up to three extra trips over the coming days (or the first week of next
-    season if you're full), on the trip that week's water offers.
-  - A season that averages ★4.7: **a lodge partnership**. A Soldotna lodge sends two parties of its guests every season, in your
-    chosen weeks, for a 10% referral fee, until your rating falls under ★4.3.
-  - Under ★2.5, fewer people book, in your weeks and over the rest of the summer, until the rating comes back.
-- **🎉 Catch moments.** Trophies, a king at the boat (one moment a trip, even on a June king trip that lands several), barn doors,
-  limit-outs and first fish of a species get a short moment on the trip sheet (under 1.5 s, still with Reduce motion), and a **catch
-  card** at the dock with **💾 Save the card as an image**. **🔔 Catch chime** in ⚙️ Settings, off until you turn it on.
-- **🧓 A mentor's first trip.** On a new career's first trip, Walt Brandvold, an old Soldotna guide, rides along and says one thing at
-  each call: reading the conditions, choosing a move, what the party came for, a rule dilemma. **I've got this** sends him ashore;
-  **Help → Ride with the mentor again** (Help is now also in ⚙️ Settings) brings him back for one trip.
-
-### Changed (1.15.0)
-- Regulars, the dock and the Help sheet talk about "next season" rather than "next July"; the Help entry for season goals has its own icon.
-- Save schema 8 (`S.mem`). Saves from 1.12–1.14 (schemas 4–6) run the schema 5, 6 and 8 migrations in order; schema 7 is left
-  for the business layer. Records start from the moment you load, past reviews already count toward the rating, and a career already
-  under way doesn't get the mentor automatically (Help brings him).
 
 ## 1.12.1 (2026-11-14)
 
