@@ -300,7 +300,7 @@ function suppliesTags(){
 function suppliesAlert(){
   if(S.power&&S.power.d===day()){const P=S.power;return {t:P.gen?`🔌 Power outage (about ${Math.round(P.h)} h). The generator is carrying the house: ${P.burn} gallons of home gas used.`:`⚡ Power outage (about ${Math.round(P.h)} h).${P.fish||P.fresh?` ${P.fish?P.fish+' reds':''}${P.fish&&P.fresh?' and ':''}${P.fresh?P.fresh+' meals of fresh food':''} spoiled.`:' The freezer is holding.'}`,kind:'info'}}
   if(foodDays()<1.5) return {t:`🍽️ ${foodDays()<=0?'No food at home.':`Only ${daysTxt(foodDays())} ${dayWord(foodDays())} of food at home.`} Stock up at the grocery store in Soldotna, or you go hungry and tired.`};
-  if(S.home.gal>0&&!isLastSeason()&&sday(day())>=SEASON-3) return {t:`⛽ ${S.home.gal} gallons of untreated gas in the cans will be stale by next July. Add stabilizer at the shop before the season ends.`,kind:'info'};
+  if(S.home.gal>0&&!isLastSeason()&&sday(day())>=SEASON-3) return {t:`⛽ ${S.home.gal} gallons of untreated gas in the cans will be stale by next season. Add stabilizer at the shop before the season ends.`,kind:'info'};
   return null;
 }
 function suppliesTodo(){

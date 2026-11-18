@@ -1,6 +1,6 @@
 // ============================================================
 //  GUIDE MASTER, part 9: more to find on the river.
-//  1. Returning parties: a party that has a great day may become a regular. It rebooks next July in proportion to how
+//  1. Returning parties: a party that has a great day may become a regular. It rebooks next season in proportion to how
 //     the last trip went and remembers it when it comes back (S.regs).
 //  2. Six more dilemmas from real Kenai guiding (life jackets for kids, whales off Homer, a capsized paddler, a client's own
 //     treble hooks, posted private banks, seasick charter clients). Same rules as the others: the legal option costs something,
@@ -20,7 +20,7 @@ function addReg(b,h,s,arc){S.regs.push({who:b.who,from:b.from,res:!!b.res,type:b
 function regCard(b){
   pass(10);const h=b.out?b.out.happy:75;b.card=false;
   if(S.regs.length>=REG_MAX||S.regs.some(x=>x.who===b.who)) return;
-  if(Math.random()<(h>=88?.85:.6)){addReg(b,h,seasonOf(day()),false);say(`⭐ The ${b.who} tuck your card in a wallet: “We’ll call you for next July.” They’re a regular now.`)}
+  if(Math.random()<(h>=88?.85:.6)){addReg(b,h,seasonOf(day()),false);say(`⭐ The ${b.who} tuck your card in a wallet: “We’ll call you for next season.” They’re a regular now.`)}
   else say(`🪪 The ${b.who} thank you for the card. “Maybe next year.”`)
 }
 function regAfterTrip(b,happy,notes){
@@ -28,11 +28,11 @@ function regAfterTrip(b,happy,notes){
   const arc=b.arc==='garza';
   if(g){
     g.last={h,s};g.trips=(g.trips||1)+1;
-    if(h>=88) notes.push(`⭐ The ${b.who} are already talking about July ${yearOf(day())+1}.`);
+    if(h>=88) notes.push(`⭐ The ${b.who} are already talking about next season.`);
   }else{
     const join=arc?h>=60:(h>=75&&S.regs.length<REG_MAX&&Math.random()<.4);
     if(join){addReg(b,h,s,arc);
-      notes.push(`⭐ The ${b.who} slip you a card with their number: “Same time next July?” If you treat them right, they will be back.`)}
+      notes.push(`⭐ The ${b.who} slip you a card with their number: “Same time next season?” If you treat them right, they will be back.`)}
     else if(arc)S.arcs.garza.st=-1;
     else if(h>=75&&S.regs.length<REG_MAX) b.card=true;                 // a happy party that didn't ask: you can hand them your card at the dock
   }
@@ -49,7 +49,7 @@ function regsRebook(base,r){
         const d=base+i,tt=weekType(type,d);if(conflicts(d,tt)||illegalDay(tt,d)) continue;   // 34-summer.js: the week's trip (a sockeye regular fishes silvers in August)
         const n=Math.min(g.n+(h>=88&&g.n<(type==='trout'?3:type==='silver'?4:5)?1:0),type==='trout'?3:type==='silver'?4:5);
         addBooking({d,type,n,who:g.who,from:g.from,res:g.res,quirk:[],reg:true,arc:g.arc||undefined,tr:(g.tr||[]).slice()});g.miss=0;
-        lines.push(`⭐ The ${g.who} (${g.from}) are back for their ${ORD[Math.min(10,(g.trips||1)+1)]} July${h>=88?': last time was a five-star day':''}.`);break}
+        lines.push(`⭐ The ${g.who} (${g.from}) are back for their ${ORD[Math.min(10,(g.trips||1)+1)]} summer${h>=88?': last time was a five-star day':''}.`);break}
     }else{
       g.miss=(g.miss||0)+1;
       if(h<45||g.miss>=2){S.regs=S.regs.filter(x=>x!==g);if(g.arc==='garza')S.arcs.garza.st=-1;lines.push(`🪧 The ${g.who} didn’t rebook${h<45?': last year’s trip left a bad taste':''}.`)}
@@ -61,8 +61,8 @@ function regsRebook(base,r){
 function regTripStart(b,t){
   const g=b.reg&&S.regs.find(x=>x.who===b.who);if(!g||!g.last) return;
   const h=g.last.h,nth=ORD[Math.min(10,(g.trips||1)+1)];
-  if(h>=88){t.happy+=5;t.notes.push(`⭐ The ${b.who} are back for their ${nth} July. They’ve talked about last year’s day all winter and trust you with this one.`)}
-  else if(h>=75){t.happy+=3;t.notes.push(`⭐ The ${b.who} are back for their ${nth} July and glad to see you.`)}
+  if(h>=88){t.happy+=5;t.notes.push(`⭐ The ${b.who} are back for their ${nth} summer. They’ve talked about last year’s day all winter and trust you with this one.`)}
+  else if(h>=75){t.happy+=3;t.notes.push(`⭐ The ${b.who} are back for their ${nth} summer and glad to see you.`)}
   else if(h<62){t.happy-=4;t.notes.push(`😬 The ${b.who} came back, but they remember last year’s rough day. They’re watching.`)}
 }
 // after a trip: returning parties and arcs

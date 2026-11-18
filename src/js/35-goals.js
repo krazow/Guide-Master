@@ -100,4 +100,4 @@ function bigAfterTrip(b,notes){
   else notes.push(`🎯 They came for ${b.big.txt}. Not today; they shake your hand anyway.`);
 }
 {const _sat=storyAfterTrip;storyAfterTrip=function(b,happy,notes){_sat(b,happy,notes);bigAfterTrip(b,notes)}}
-HELP.splice(3,0,['🎯','Season goals & big days','Each season has three goals, in the <strong>📅 Bookings</strong> tab: limit-outs, five-star days, a clean record, Homer charters and more. The morning report tells you when you reach one, and the rewards (a bonus, reputation or word of mouth) come on the season’s last night. Some booking requests come with a target, like <em>a 30-pound halibut for Dad’s 70th</em>: get it and they add a bonus.']);
+HELP.splice(3,0,['🏅','Season goals & big days','Each season has three goals, in the <strong>📅 Bookings</strong> tab: limit-outs, five-star days, a clean record, Homer charters and more. The morning report tells you when you reach one, and the rewards (a bonus, reputation or word of mouth) come on the season’s last night. Some booking requests come with a target, like <em>a 30-pound halibut for Dad’s 70th</em>: get it and they add a bonus.']);

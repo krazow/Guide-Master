@@ -73,11 +73,13 @@ window.openSettings=()=>{
   modal('⚙️ Settings',`<p>Playing as <b>{{name}}</b>${inGame?` · ${DF().ic} ${DF().n}`:''}.</p><p style="font-size:12px;color:var(--mute)">${esc(GAME.title)} version ${APP_VERSION}</p>`,[
     {l:'👤 Change name',s:'Updates your name everywhere in the game.',fn:()=>nameModal({back:openSettings})},
     {l:`🔊 Sound: ${prefs().sound?'On':'Off'}`,s:'Alerts and chimes.',fn:()=>{setPref('sound',!prefs().sound);if(prefs().sound)sfx('good');openSettings()}},
+    {l:`🔔 Catch chime: ${prefs().chime?'On':'Off'}`,s:'A short chime for trophies, kings, limit-outs and first fish. Off unless you turn it on.',fn:()=>{setPref('chime',!prefs().chime);if(prefs().chime&&typeof memChime==='function')memChime();openSettings()}},
     {l:'♿ Accessibility',s:`Text size: ${{n:'Normal',l:'Large',xl:'Extra large'}[prefs().fs]} · High contrast: ${prefs().hc?'On':'Off'} · Reduce motion: ${prefs().rm?'On':'Off'}`,fn:()=>accessModal()},
     {l:`💡 Tips: ${prefs().tips?'On':'Off'}`,s:'One short tip at a time while you learn.',fn:()=>{setPref('tips',!prefs().tips);openSettings()}},
     {l:`🔔 Event pop-ups: ${popupsOn()?'On':'Off'}`,s:popupsOn()?'An OK window for each event during the day. Tap to turn off (the tiles still show).':'Events during the day show as small tiles and log lines. Tap to get an OK window for each. The morning report always shows.',fn:()=>{try{localStorage.setItem(POPUP_KEY,popupsOn()?'off':'on')}catch(e){}openSettings()}},
     {l:`🛶 Show every trip step: ${prefs().tripSteps?'On':'Off'}`,s:prefs().tripSteps?'Each choice on a trip opens its own pop-up. Tap to put a trip back on one sheet.':'A trip is one sheet: your choices and the result change in place. Tap to open a pop-up for every step.',fn:()=>{setPref('tripSteps',!prefs().tripSteps);openSettings()}},
     ...(typeof feedbackModal==='function'?[{l:'💬 Send feedback',s:'Ideas, bugs, a rule we got wrong: it goes straight to the developer.',fn:()=>feedbackModal(openSettings)}]:[]),
+    ...(typeof helpModal==='function'?[{l:'❓ Help',s:'How to play, the trophy wall, the rating, and the mentor’s ride-along.',fn:()=>helpModal()}]:[]),
     {l:'⌨️ Keyboard shortcuts',s:'On a computer: numbers press buttons, ? for the list.',fn:()=>keysModal(openSettings)},
     {l:`🏆 Achievements (${achCount()}/${ACH.length})`,s:'Earned on this device, across all your games.',fn:()=>achModal(openSettings)},
     ...(GAME.slots>1?[{l:`💾 Save slots (current: ${curSlot()})`,s:'Continue, start or delete games in each slot.',fn:()=>slotsModal()}]:[]),
