@@ -41,6 +41,7 @@ const szShort=(sp,z)=>{const S2=FISH_SZ[sp];return S2.u==='in'?`${Math.round(z)}
 // the best fish of a stretch: the trophy's own size when there was one (read off the 🏆 line), else the best of n ordinary fish
 function segSize(b,sg,sp){
   const X=FISH_SZ[sp];if(!X||!sg||!(sg.n>0)) return null;
+  if(sp==='king'&&!/🏆 A \d/.test(sg.line||'')){const u=memU((b.id||1)*5+sg.k,b.d,sg.n+3);return {z:Math.round(22+Math.pow(u,1.6)*50),big:true}}   // a June king trip: every king is the fish of the trip, 22–72 lb (most 25–45)
   if(sg.big){const m=/🏆 A (\d+)-(?:pound|inch)/.exec(sg.line||'');return {z:m?+m[1]:Math.round(X.hi*1.15),big:true}}
   const u=memU((b.id||1)*7+sg.k,b.d,sg.n),x=Math.pow(u,1/Math.max(1,Math.min(sg.n,8)));
   let z=X.lo+(X.hi-X.lo)*(sp==='halibut'?x*x:x)*.98;
