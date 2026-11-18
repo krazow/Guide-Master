@@ -242,5 +242,58 @@
       "has": []
     },
     "notes": "The analog alarm clock has no digits, so there is no text. Dark navy curtains frame the light shaft for contrast."
+  },
+  {
+    "id": "cabin-11-power-outage-no-generator",
+    "set": "cabin",
+    "n": 11,
+    "title": "Power outage without a generator",
+    "file": "cabin/11-power-outage-no-generator.png",
+    "svg": "cabin/11-power-outage-no-generator.svg",
+    "w": 1600,
+    "h": 900,
+    "alt": "A dark cabin on a snowy winter night with the power out: candles burn on a table, a worried guide in a headlamp and a blanket looks at the chest freezer sealed with a towel and piled with a quilt, a cooler of snow beside it.",
+    "where": "The power-outage report when there is no generator (pairs with the home event outage_dark), or the power_out event at home.",
+    "when": {
+      "heat": "any",
+      "season": "any",
+      "time": "night",
+      "cond": [
+        0,
+        100
+      ],
+      "has": []
+    },
+    "notes": "Pairs with event outage_dark. Candle light on the left and the headlamp beam on the freezer are the only warm sources; a dead fridge, a dark clock and jugs of water show the outage. Snow outside, but the room works in any season.",
+    "meta": {
+      "pairs_with_event": "outage_dark",
+      "counterpart": "cabin-06-power-outage-generator-night"
+    }
+  },
+  {
+    "id": "cabin-12-cozy-cabin-oil-heat",
+    "set": "cabin",
+    "n": 12,
+    "title": "Cozy cabin warmed by the oil heater",
+    "file": "cabin/12-cozy-cabin-oil-heat.png",
+    "svg": "cabin/12-cozy-cabin-oil-heat.svg",
+    "w": 1600,
+    "h": 900,
+    "alt": "A warm, tidy log living room on a winter night heated by a cream oil heater with a glowing window under the frosty window, a cat asleep on the braided rug, a reading chair and lamp, a Kenai map and fishing photos on the wall, a full bookshelf and a warm floor register.",
+    "where": "Home tab when cabin condition is high (75 and up) in winter and the cabin has no wood stove, only the oil furnace.",
+    "when": {
+      "heat": "oil",
+      "season": "winter",
+      "time": "night",
+      "cond": [
+        75,
+        100
+      ],
+      "has": []
+    },
+    "notes": "Furnace-only counterpart to cabin-08 (wood stove). The direct-vent heater, its wall vent and copper fuel line, and the floor register make the heat source obvious without a stove.",
+    "meta": {
+      "counterpart": "cabin-08-well-kept-cozy-cabin"
+    }
   }
 ]

@@ -12,11 +12,15 @@
     "where": "Travel tile when the \"Moose on the highway\" event fires on a drive between places.",
     "when": {
       "event": "moose",
-      "source": "defEvent",
-      "hook": "travel",
+      "from": "game",
       "time": "any"
     },
-    "notes": "Perspective road leads the eye to the cow mid-crossing; the calf trails her. Moose-crossing diamond is a pure pictogram, no text."
+    "notes": "Perspective road leads the eye to the cow mid-crossing; the calf trails her. Moose-crossing diamond is a pure pictogram, no text.",
+    "meta": {
+      "source": "defEvent",
+      "hook": "travel",
+      "previous_event_key": "moose"
+    }
   },
   {
     "id": "event-02-flat-trailer-tire",
@@ -31,11 +35,15 @@
     "where": "Travel tile when the \"Flat trailer tire\" event fires on the drive (−$60, +30 minutes).",
     "when": {
       "event": "flat",
-      "source": "defEvent",
-      "hook": "travel",
+      "from": "game",
       "time": "any"
     },
-    "notes": "Long low dusk light from the right; the squashed tire, jack and spare tell the story. Mosquito cloud nods to the event text (\"Spare, jack, mosquitoes\")."
+    "notes": "Long low dusk light from the right; the squashed tire, jack and spare tell the story. Mosquito cloud nods to the event text (\"Spare, jack, mosquitoes\").",
+    "meta": {
+      "source": "defEvent",
+      "hook": "travel",
+      "previous_event_key": "flat"
+    }
   },
   {
     "id": "event-03-trooper-boat-check",
@@ -50,6 +58,11 @@
     "where": "Arrival tile when the \"Boat check\" event fires at the lower river, Cooper Landing or Homer: licenses, decals, life jackets, extinguisher and logbook.",
     "when": {
       "event": "trooper_check",
+      "from": "game",
+      "time": "any"
+    },
+    "notes": "Officers in plain navy uniforms with no badges, patches or lettering; light bar is unlit color blocks. Bright life jackets read at thumbnail size.",
+    "meta": {
       "source": "defEvent",
       "hook": "arrive",
       "at": [
@@ -57,9 +70,8 @@
         "cooper",
         "homer"
       ],
-      "time": "any"
-    },
-    "notes": "Officers in plain navy uniforms with no badges, patches or lettering; light bar is unlit color blocks. Bright life jackets read at thumbnail size."
+      "previous_event_key": "trooper_check"
+    }
   },
   {
     "id": "event-04-guide-gossip",
@@ -74,15 +86,19 @@
     "where": "Arrival tile when the \"Guide gossip\" event fires at the shop or in Soldotna (the old-timer shares a bit of lore, skill +1).",
     "when": {
       "event": "gossip",
+      "from": "game",
+      "time": "any"
+    },
+    "notes": "Warm diner windows and steaming cups carry the friendly mood; the coffee-cup and fish signs are pictograms only. Ravens on the roofline are a local touch.",
+    "meta": {
       "source": "defEvent",
       "hook": "arrive",
       "at": [
         "shop",
         "town"
       ],
-      "time": "any"
-    },
-    "notes": "Warm diner windows and steaming cups carry the friendly mood; the coffee-cup and fish signs are pictograms only. Ravens on the roofline are a local touch."
+      "previous_event_key": "gossip"
+    }
   },
   {
     "id": "event-05-midnight-sun",
@@ -97,12 +113,16 @@
     "where": "Night tile when the \"Midnight sun\" event fires at home (energy −8).",
     "when": {
       "event": "midnight_sun",
+      "from": "game",
+      "time": "night"
+    },
+    "notes": "Cool, dim interior against a warm glowing window; a shaft of light falls across the quilt. The half-taped foil on the glass is the Alaskan fix that did not work.",
+    "meta": {
       "source": "defEvent",
       "hook": "night",
       "where": "home",
-      "time": "night"
-    },
-    "notes": "Cool, dim interior against a warm glowing window; a shaft of light falls across the quilt. The half-taped foil on the glass is the Alaskan fix that did not work."
+      "previous_event_key": "midnight_sun"
+    }
   },
   {
     "id": "event-06-bear-in-the-bin",
@@ -117,14 +137,18 @@
     "where": "Night tile when the \"Bear in the bin\" event fires (−$40 for a bear-proof lid); also fits the home bear visit on a July morning.",
     "when": {
       "event": "bear_bin",
+      "from": "game",
+      "time": "night"
+    },
+    "notes": "A black bear, as the event text says. Warm yard-light pool vs the blue July night; the open lid and scattered fish carcasses make the cause obvious.",
+    "meta": {
       "source": "defEvent",
       "hook": "night",
-      "time": "night",
-      "also": [
-        "home:bear"
+      "previous_event_key": "bear_bin",
+      "also_fits": [
+        "home:bear_yard"
       ]
-    },
-    "notes": "A black bear, as the event text says. Warm yard-light pool vs the blue July night; the open lid and scattered fish carcasses make the cause obvious."
+    }
   },
   {
     "id": "event-07-cold-snap-ice-fog",
@@ -138,14 +162,18 @@
     "alt": "A snowbound log cabin at night in ice fog, chimney smoke rising straight up, the pickup plugged in, a light pillar over the yard light and a porch thermometer needle pinned deep in the cold.",
     "where": "Home winter tile for the cold-snap job (\"Cold snap tonight: −10/−25/−35°F\": drip the taps, open the cabinets) and the camp cold-snap night.",
     "when": {
-      "event": "cold",
+      "event": "cold_snap",
+      "from": "home",
+      "time": "night"
+    },
+    "notes": "Ice fog flattens the distance into pale bands; light pillars and the dead-straight smoke say \"still and brutally cold\". Thermometer is a dial with no numbers.",
+    "meta": {
       "source": "home queue",
-      "time": "night",
-      "also": [
+      "previous_event_key": "cold",
+      "also_fits": [
         "camp:coldsnap"
       ]
-    },
-    "notes": "Ice fog flattens the distance into pale bands; light pillars and the dead-straight smoke say \"still and brutally cold\". Thermometer is a dial with no numbers."
+    }
   },
   {
     "id": "event-08-burst-pipe",
@@ -159,15 +187,19 @@
     "alt": "In a cabin kitchen at night a frozen pipe under the open sink cabinet has split and sprays water across a floor glazing with ice, while a guide in red long johns and a headlamp rushes in with a wrench.",
     "where": "Home winter report when a cold snap freezes or bursts a water line (the \"frozen\" or \"burst\" outcome of the cold-snap job).",
     "when": {
-      "event": "cold",
+      "event": "pipe_burst",
+      "from": "home",
+      "time": "night"
+    },
+    "notes": "Cold blue light from the frosted window and the headlamp beam carry the night; icicles on the pipe and white ice rims on the puddle show the water freezing as it spreads.",
+    "meta": {
       "source": "home queue",
       "outcome": [
         "burst",
         "frozen"
       ],
-      "time": "night"
-    },
-    "notes": "Cold blue light from the frosted window and the headlamp beam carry the night; icicles on the pipe and white ice rims on the puddle show the water freezing as it spreads."
+      "previous_event_key": "cold"
+    }
   },
   {
     "id": "event-09-chimney-fire",
@@ -181,14 +213,18 @@
     "alt": "On a snowy winter night flames and sparks roar out of a log cabin's stovepipe while the family watches from the snow in their coats and a red fire engine pulls up with its lights flashing.",
     "where": "Home winter report when creosote catches in an unswept stovepipe (the chimney-fire outcome of the winter roll).",
     "when": {
-      "event": "fire",
+      "event": "chimney_fire",
+      "from": "home",
+      "time": "night"
+    },
+    "notes": "The flame is the light source: orange on the snow roof, faces turned away from us. The fire engine is generic, with color blocks for lights and no lettering.",
+    "meta": {
       "source": "home winter roll",
       "has": [
         "woodstove"
       ],
-      "time": "night"
-    },
-    "notes": "The flame is the light source: orange on the snow roof, faces turned away from us. The fire engine is generic, with color blocks for lights and no lettering."
+      "previous_event_key": "fire"
+    }
   },
   {
     "id": "event-10-breakup-mud",
@@ -202,14 +238,137 @@
     "alt": "In spring breakup a pickup sits sunk to its axles in a soupy driveway between dirty melting snowbanks, the guide standing in the mud in rubber boots, the road beyond buckled by frost heaves and a tow truck on its way.",
     "where": "Home spring report for breakup: the truck stuck in the mud (tow) or frost heaves shifting the skirting (carpenter).",
     "when": {
-      "event": "breakup",
+      "event": "breakup_stuck",
+      "from": "home",
+      "time": "day"
+    },
+    "notes": "Muted, washed-out spring palette with sky reflected in the puddles; the wavy road and the bump pictogram nod to frost heaves. Tow truck is generic with amber lights.",
+    "meta": {
       "source": "home spring roll",
       "outcome": [
         "stuck",
         "heave"
       ],
+      "previous_event_key": "breakup",
+      "also_fits": [
+        "home:frost_heave"
+      ]
+    }
+  },
+  {
+    "id": "event-11-frozen-pipe-crawlspace",
+    "set": "event",
+    "n": 11,
+    "title": "Frozen pipes under the cabin",
+    "file": "event/11-frozen-pipe-crawlspace.png",
+    "svg": "event/11-frozen-pipe-crawlspace.svg",
+    "w": 1600,
+    "h": 900,
+    "alt": "On a bright spring morning with snow still on the ground, a guide lies on his back on a tarp under the cabin, warming a frosted water pipe wrapped in heat tape with a hair dryer while the dog watches.",
+    "where": "Home report when a cold night freezes the water line but it does not burst (pipes_frozen): thaw it with heat tape and a hair dryer.",
+    "when": {
+      "event": "pipes_frozen",
+      "from": "home",
+      "time": "any"
+    },
+    "notes": "Cutaway of the open skirting shows the frosted pipe and the spiral of heat tape; warm work-light glow inside vs cool daylight outside. The orange cord leads from the outlet to the work.",
+    "meta": {
+      "season": "spring/late winter"
+    }
+  },
+  {
+    "id": "event-12-garden-moose-dawn",
+    "set": "event",
+    "n": 12,
+    "title": "Moose in the garden",
+    "file": "event/12-garden-moose-dawn.png",
+    "svg": "event/12-garden-moose-dawn.svg",
+    "w": 1600,
+    "h": 900,
+    "alt": "At dawn a cow moose stands in the cabin garden eating kale out of a raised bed, a leaf in her mouth, while the guide watches from the open cabin door with a cup of coffee.",
+    "where": "Home report when a moose gets into the garden (garden_moose).",
+    "when": {
+      "event": "garden_moose",
+      "from": "home",
       "time": "day"
     },
-    "notes": "Muted, washed-out spring palette with sky reflected in the puddles; the wavy road and the bump pictogram nod to frost heaves. Tow truck is generic with amber lights."
+    "notes": "Dawn palette with a warm rim on the moose; the flattened fence panel and stripped stalks tell the story. The guide in the doorway is small and secondary.",
+    "meta": {
+      "season": "summer",
+      "has": [
+        "garden"
+      ]
+    }
+  },
+  {
+    "id": "event-13-earthquake-shake",
+    "set": "event",
+    "n": 13,
+    "title": "Earthquake",
+    "file": "event/13-earthquake-shake.png",
+    "svg": "event/13-earthquake-shake.svg",
+    "w": 1600,
+    "h": 900,
+    "alt": "Inside the cabin during an earthquake the shelves sway, a mug flies off, the hanging lamp swings and the pictures tilt, while the guide and a child shelter under the sturdy table and the strapped water heater in the open closet stays put.",
+    "where": "Home report after an earthquake shakes the cabin (quake).",
+    "when": {
+      "event": "quake",
+      "from": "home",
+      "time": "any"
+    },
+    "notes": "Motion arcs and a faint ghost lamp show the swaying; no text. The two steel straps on the water heater are deliberately visible, so it also suits the strapped, no-damage quake_ok outcome.",
+    "meta": {
+      "also_fits": [
+        "home:quake_ok"
+      ]
+    }
+  },
+  {
+    "id": "event-14-ice-dam-eave",
+    "set": "event",
+    "n": 14,
+    "title": "Ice dam on the eave",
+    "file": "event/14-ice-dam-eave.png",
+    "svg": "event/14-ice-dam-eave.svg",
+    "w": 1600,
+    "h": 900,
+    "alt": "A cutaway of the cabin in deep winter: an ice ridge and long icicles on the eave hold back meltwater under the roof snow, a brown water stain spreads on the ceiling where the guide catches drips in a pot, and a roof rake leans against the outside wall.",
+    "where": "Home winter report when an ice dam forms and water backs up under the roof (ice_dam).",
+    "when": {
+      "event": "ice_dam",
+      "from": "home",
+      "time": "day"
+    },
+    "notes": "Dollhouse cutaway so cause (warm roof, melt, ice ridge at the cold eave) and effect (ceiling stain, drip) read in one frame. Cool daylight outside, warm lamp inside.",
+    "meta": {
+      "season": "winter",
+      "also_fits": [
+        "home:roof_leak"
+      ]
+    }
+  },
+  {
+    "id": "event-15-co-alarm-night",
+    "set": "event",
+    "n": 15,
+    "title": "CO alarm in the night",
+    "file": "event/15-co-alarm-night.png",
+    "svg": "event/15-co-alarm-night.svg",
+    "w": 1600,
+    "h": 900,
+    "alt": "In the dark cabin at night a carbon-monoxide alarm blinks red on the wall while the family, in coats over pajamas, steps out the open door into the snow, and through the window the generator runs too close to the cabin.",
+    "where": "Home report when the CO alarm sounds at night and everyone gets out safely (co_alarm).",
+    "when": {
+      "event": "co_alarm",
+      "from": "home",
+      "time": "night"
+    },
+    "notes": "Red alarm glow is the warning color and the open door frames the family in cool snow light; the generator's exhaust drifting at the window explains the cause. The detector is a plain box with an LED, no text.",
+    "meta": {
+      "has": [
+        "detectors",
+        "generator"
+      ]
+    }
   }
 ]
