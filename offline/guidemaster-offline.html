@@ -5385,7 +5385,7 @@ function beatCatch(b,t,towRatio){
 // ---- what the party came for ----
 // each trait scores the day from about -1 (missed it) to +1 (nailed it); GOAL_H happiness per point
 function goalOf(b,t,c){
-  const bt=t.bt,g=t.g||{},segs=bt?bt.segs.filter(Boolean):[],sp=SPOTS[b.type]||[],out={h:GOAL_MID,good:[],bad:[]},n=Math.max(1,segs.length);
+  const bt=t.bt,g=t.g||{},segs=bt?bt.segs.filter(Boolean):[],sp=SPOTS[b.type]||[],out={h:S.diff==='hard'?GOAL_MID-1.5:GOAL_MID,good:[],bad:[]},n=Math.max(1,segs.length);
   const rough=segs.filter(s=>s.rough).length+(g.rough||0),early=bt&&bt.early!=null&&bt.early!==false;
   const slow=segs.filter(s=>s.n/Math.max(1,c.fishers)<(b.type==='trout'?1.2:.4)).length;
   const lunchEarly=(bt&&bt.lunch>=0&&bt.lunch<bt.K-1)||g.lunch;
