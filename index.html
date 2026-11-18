@@ -2805,7 +2805,7 @@ const EXTRA_TABS=[
       h+=weekHead(d);   // 34-summer.js: a line at the top of each played week
       const bs=S.book.filter(b=>b.d===d),rules=[isSunMon(d)?'🚫 guide boats off below Skilak':'',halClosed(d)?'⚓ no charter halibut kept':''].filter(Boolean).join(' · ');
       const lines=bs.map(b=>{const T=TRIPS[b.type],st={booked:d<day()?'—':'',done:'✅',noshow:'❌ no-show',cancelled:'🚫 cancelled'}[b.status]||'';
-        return `${T.ic} <b>${fmt(T.start)}</b> ${T.n} · ${b.who}, ${b.n} ${b.tr&&b.tr.length?`<span title="${traitTxt(b.tr)}" aria-label="${traitTxt(b.tr)}">${traitIcons(b.tr)}</span> `:''}${b.reg?'⭐ ':''}${b.asst?`🧑‍🤝‍🧑 (${b.g!=null?staffName(b.g):'assistant'}) `:''}${b.big?`🎯 ${b.big.txt} `:''}${st}${b.out?` · ${b.out.line}${b.out.stars?` · ${'★'.repeat(b.out.stars)}`:''}`:''}`}).join('<br>');
+        return `${T.ic} <b>${fmt(T.start)}</b> ${T.n} · ${b.who}, ${b.n} ${b.tr&&b.tr.length?`<span title="${traitTxt(b.tr)}" aria-label="${traitTxt(b.tr)}">${traitIcons(b.tr)}</span> `:''}${b.reg?'⭐ ':''}${b.feat?'<span title="Magazine readers" aria-label="Magazine readers">📰</span> ':''}${b.lodge?'<span title="Lodge guests" aria-label="Lodge guests">🏨</span> ':''}${b.asst?`🧑‍🤝‍🧑 (${b.g!=null?staffName(b.g):'assistant'}) `:''}${b.big?`🎯 ${b.big.txt} `:''}${st}${b.out?` · ${b.out.line}${b.out.stars?` · ${'★'.repeat(b.out.stars)}`:''}`:''}`}).join('<br>');
       h+=`<div class="todo"><span class="ck">${d<day()?'✔️':d===day()?'👉':'·'}</span><div><b>${dlong(d)}</b><span>${lines||'<i>Open day</i>'}${rules?`<br><span style="color:var(--warn)">${rules}</span>`:''}</span></div></div>`;
     }
     return h+`<div class="rules">Trips: 💲 rates ×${S.up.rate.toFixed(1)} · 🐟 sockeye ${$(Math.round(TRIPS.reds.price*S.up.rate))}/angler (6 AM, lower river) · 🎣 silvers ${$(Math.round(TRIPS.silver.price*S.up.rate))}/angler (1 PM, lower river) · 🌈 trout float ${$(Math.round(TRIPS.trout.price*S.up.rate))}/angler (7 AM, Cooper Landing, 3 max) ${weekTripsTxt()}· ⚓ halibut ${S.up.chp?`${$(Math.round(350*S.up.rate))}/passenger on your own boat`:`day rate ${$(TRIPS.halibut.gig)}`} (6 AM, Homer). New requests wait at the top of this tab for a day or two: <b>📞 Return calls</b> at the shop brings more.</div>`}},
@@ -6348,6 +6348,7 @@ const szShort=(sp,z)=>{const S2=FISH_SZ[sp];return S2.u==='in'?`${Math.round(z)}
 // the best fish of a stretch: the trophy's own size when there was one (read off the 🏆 line), else the best of n ordinary fish
 function segSize(b,sg,sp){
   const X=FISH_SZ[sp];if(!X||!sg||!(sg.n>0)) return null;
+  if(sp==='king'&&!/🏆 A \d/.test(sg.line||'')){const u=memU((b.id||1)*5+sg.k,b.d,sg.n+3);return {z:Math.round(22+Math.pow(u,1.6)*50),big:true}}   // a June king trip: every king is the fish of the trip, 22–72 lb (most 25–45)
   if(sg.big){const m=/🏆 A (\d+)-(?:pound|inch)/.exec(sg.line||'');return {z:m?+m[1]:Math.round(X.hi*1.15),big:true}}
   const u=memU((b.id||1)*7+sg.k,b.d,sg.n),x=Math.pow(u,1/Math.max(1,Math.min(sg.n,8)));
   let z=X.lo+(X.hi-X.lo)*(sp==='halibut'?x*x:x)*.98;
