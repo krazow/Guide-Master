@@ -77,12 +77,14 @@ module.exports = [
     const { page, errors } = await quiet(ctx);
     const r = await page.evaluate(() => {
       const setup = gen => { S.home.gen = gen; S.home.gal = 15; S.home.tgal = 0; S.freezer = 10; S.food.fri = 9; S.energy = 80; };
+      const rr = Math.random; Math.random = () => .99;   // 1.13.0: no random generator failure here (the failure odds have their own test in home.test.js)
       setup(0); const none = outage(30), noneS = { fish: S.freezer, fri: S.food.fri, fuel: fuelFresh(), energy: S.energy };
       setup(2); const inv = outage(30), invS = { fish: S.freezer, fri: S.food.fri, fuel: fuelFresh(), energy: S.energy };
       setup(1); const open = outage(30), openS = { fuel: fuelFresh() };
       setup(2); S.home.gal = 2; const dry = outage(30), dryS = { fish: S.freezer, fuel: fuelFresh() };
       setup(0); const short = outage(6), shortS = { fish: S.freezer, fri: S.food.fri };
       setup(0); S.freezer = 20; const full = outage(40), fullS = { fish: S.freezer };
+      Math.random = rr;
       return { none, noneS, inv, invS, openS, dry, dryS, short, shortS, fullS };
     });
     assert.ok(r.none.fish === 3 && r.noneS.fish === 7, `30 h with a freezer under half full loses a quarter: ${JSON.stringify(r.noneS)}`);
@@ -169,7 +171,7 @@ module.exports = [
       const bought = { meals: S.food.fri + S.food.pan, fri: S.food.fri, pan: S.food.pan, paid: Math.round((m0 - S.money) * 100) / 100, days: foodDays() };
       const again = actionsHere().find(x => /Stock up/.test(x.l)).dis;
       S.loc = 'shop'; S.t = 1440 + 1200; const before = foodMeals(); endDay('home'); const night1 = before - foodMeals(), fridgeFirst = S.food.fri;
-      S.cur = 2; S.t = 2 * 1440 + 800; S.loc = 'town'; S.diner = {}; const b2 = foodMeals(); actionsHere().find(x => /Eat at the diner/.test(x.l)).fn(); S.loc = 'shop'; S.t = 2 * 1440 + 1200; endDay('home');
+      S.cur = 2; S.t = 2 * 1440 + 800; S.loc = 'town'; S.diner = {}; const b2 = foodMeals(); actionsHere().find(x => /Eat at the diner/.test(x.l)).fn(); S.loc = 'shop'; S.t = 2 * 1440 + 1200; { const rr = Math.random; Math.random = () => .99; try { endDay('home') } finally { Math.random = rr } }   // 1.13.0: no random overnight event (an outage spoiling the fridge) in this count
       return { bought, again, night1, fridgeFirst, night2: b2 - foodMeals(), spent: S.stats.groceries };
     });
     assert.strictEqual(r.bought.meals, 21); assert.strictEqual(r.bought.days, 7); assert.ok(r.bought.fri > 0 && r.bought.pan > r.bought.fri);
