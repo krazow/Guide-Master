@@ -225,7 +225,7 @@ def validate(root, strict, only=None):
         w = e.get('when')
         if not isinstance(w, dict): errs.append(f'{i}: when must be an object'); continue
         for k, val in w.items():
-            if k not in KEYS[s]: errs.append(f'{i}: when.{k} is not a {s} key ({", ".join(KEYS[s])})'); continue
+            if k not in KEYS[s]: errs.append(f'{i}: when.{k} is not a key of the {s} set ({", ".join(KEYS[s])})'); continue
             if val == 'any': continue
             key = f'{s}.{k}'
             if key in RANGES:

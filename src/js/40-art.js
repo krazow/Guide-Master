@@ -138,4 +138,4 @@ function artCampCtx(sess,extra){
     time:night?'night':'day',weather:wx,phase:ph};
 }
 // event: event (an id from defEvent, src/home's storm prompts or src/camp's encounters), from ('game' | 'home' | 'camp'), time
-function artEventCtx(id,from){return {event:id,from:from||'game',time:S&&!S.winter?artTime():'day'}}
+function artEventCtx(id,from){const t=S&&!S.winter?artTime():null;return {event:id,from:from||'game',time:!t?['day','night']:t==='dusk'?['dusk','night']:t}}   // the off-season has no clock

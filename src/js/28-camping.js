@@ -107,7 +107,7 @@ function campArtShow(btns){
   let ev=null;
   if(T&&ph==='night'&&T.events.length>A.ev) ev=T.events[T.events.length-1];
   A.ev=T?T.events.length:0;
-  const art=!CAMP_ART_PHASES.includes(ph)||(ph==='result'&&!T)?'':(ev&&artSlot('event',()=>artEventCtx(ev,'camp')))||artSlot('camp',()=>artCampCtx(s,{activity:A.act,night:A.night}));
+  const art=!CAMP_ART_PHASES.includes(ph)||(ph==='result'&&!T)?'':(ev&&artSlot('event',()=>Object.assign(artEventCtx(ev,'camp'),{time:'night'})))||artSlot('camp',()=>artCampCtx(s,{activity:A.act,night:A.night}));
   return {art,btns:btns.map((b,i)=>Object.assign({},b,{fn:()=>{const id=v.buttons[i]&&v.buttons[i].id;
     if((ph==='day'||ph==='evening')&&id&&id!=='evening'){A.act=id;A.night=ph==='evening'}if(b.fn)b.fn()}}))};
 }

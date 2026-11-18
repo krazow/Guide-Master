@@ -70,8 +70,8 @@ the thumb is used.
 |---|---|---|---|
 | cabin | the 🏠 Home tab, on top | `homeView()` in `src/js/32-home.js` | `artCabinCtx()` |
 | cabin | the fall sheet "🏠 Get the cabin ready for winter" | `homeWinterModal()` in `32-home.js` | `artCabinCtx()` |
-| boat | the first step of a trip sheet (both the one-sheet trip and "Show every trip step") | `tripNext()` in `src/js/22-trips.js` | `artBoatCtx(b, 'harbor' or ['launch','river'])` |
-| boat | "Back at the dock" | `tripEnd()` in `22-trips.js` | `artBoatCtx(b, 'harbor' or 'launch')` |
+| boat | the first step of a trip sheet (both the one-sheet trip and "Show every trip step") | `tripNext()` in `src/js/22-trips.js` | `artBoatCtx(b, ['launch' or 'harbor', 'river'])` |
+| boat | "Back at the dock" | `tripEnd()` in `22-trips.js` | `artBoatCtx(b, 'launch', or 'harbor' for halibut and after a Coast Guard tow into Kenai Harbor)` |
 | camp | the camping hub, each day, the evening, the night, results inside a trip, breaking camp | `campArtShow()` in `src/js/28-camping.js` (the adapter keeps the session handle; `src/camp/` is unchanged and never sees the game) | `artCampCtx(session, {activity, night})` |
 | event | a night's encounter on the camping night screen (wins over the camp picture) | `campArtShow()` | `artEventCtx(id, 'camp')` |
 | event | an event's OK pop-up (Settings → Event pop-ups on) | `eventPopup()` in `src/js/03-events.js` | `artEventCtx(id)` (first event with a picture) |
@@ -112,7 +112,7 @@ game (artists' notes like `"source"` or `"hook"` do no harm), but `tools/art.py 
 | key | values | from the game |
 |---|---|---|
 | `boat` | `"sled"`, `"drift"`, `"charter"`, `"staff"` | the trip type: sockeye, silver and king trips run on the jet sled, the trout float on the drift boat, halibut on the charter boat. A hired guide's trip (`b.asst`) is `["staff", kind]`, but staff trips resolve off-screen, so no hook shows one yet |
-| `where` | `"river"`, `"launch"`, `"harbor"`, `"trailer"`, `"shop"` | first trip step: `["launch", "river"]` (the put-in, pushing off), `harbor` for halibut; the dock: `launch` (`harbor` for halibut). `trailer` and `shop` are not used by a hook yet (the builder's default is `shop` at the Shop & Cabin) |
+| `where` | `"river"`, `"launch"`, `"harbor"`, `"trailer"`, `"shop"` | first trip step: `["launch", "river"]` (the put-in, pushing off; `river` means on the water, Cook Inlet included), `["harbor", "river"]` for halibut; the dock: `launch`, or `harbor` for halibut and after a tow. `trailer` and `shop` are not used by a hook yet (the builder's default is `shop` at the Shop & Cabin) |
 | `cond` | `[min, max]` | the boats' condition (`S.boat`) |
 | `up` | `motor`, `sled`, `drift`, `web`, `course`, `rates`, `asst`, `lodge`, `dock`, `chp` (`UPGRADES` in `src/js/24-career.js`) | owned upgrades; `web` and `course` only in the season they were bought, `rates` once rates are raised |
 | `time` | `"day"`, `"dusk"`, `"night"` | as for the cabin |
@@ -134,7 +134,7 @@ game (artists' notes like `"source"` or `"hook"` do no harm), but `tools/art.py 
 |---|---|---|
 | `event` | game events (`defEvent` in `src/js`): `call_request`, `trooper_check`, `moose`, `traffic`, `flat`, `midnight_sun`, `mosquitoes`, `cancel`, `gossip`, `bear_bin`, `good_review`, `power_out`, `hungry_morning`, `arc_rival`, `arc_board`; cabin storms (`src/home`): `cold`, `snow`; camp encounters (`src/camp`): `moose`, `wolves`, `lynx`, `fox`, `ravens`, `porcupine`, `swans`, `eagles`, `sheep`, `bear`, `otters`, `wolverine`, `hares`, `ptarmigan`, `seaotters`, `chickadees`, `coldsnap`, `snowstorm`, `chinook` | the event's id |
 | `from` | `"game"`, `"home"`, `"camp"` | extra key: where the event came from. **`moose` is both** a summer road event and a winter camp encounter: add `"from"` to tell them apart (the validator warns) |
-| `time` | `"day"`, `"dusk"`, `"night"` | as for the cabin in the summer; `day` in the off-season. Most events want `"any"` |
+| `time` | `"day"`, `"dusk"`, `"night"` | as for the cabin (dusk also counts as night; in the off-season day and night both match); a night event in the morning report is `night`. Most events want `"any"` |
 
 `tools/art.py validate` reads the upgrade ids, camp places and event ids from the source, so a `when` value the game can never
 report is an error.
