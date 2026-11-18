@@ -29,6 +29,11 @@ STYLES.hungry=Object.assign({},STYLES.bytb,{food:'skip'});
 STYLES.naive=Object.assign({},STYLES.bytb);
 for(const k of ['ruler','passive','phone','opport','expert']) STYLES[k]=Object.assign({},STYLES[k],{food:'smart',haul:true,stab:true});
 STYLES.ignores=STYLES.hungry;
+// grow the business (36-business.js): `outfit` hires carefully (reliable guides at a fair wage, one more boat when cash allows, raises
+// before anyone sours, lets a guide with a citation go); `tycoon` over-expands (every guide its reputation allows at the lowest wage,
+// every boat it can buy, no raises). Both play the rest like `food`.
+STYLES.outfit=Object.assign({},STYLES.food,{biz:'outfit'});
+STYLES.tycoon=Object.assign({},STYLES.food,{biz:'tycoon'});
 for(const k of Object.keys(STYLES).slice()){STYLES[k+'_c']=Object.assign({},STYLES[k],{home:'careful'});STYLES[k+'_p']=Object.assign({},STYLES[k],{home:'payall'});STYLES[k+'_n']=Object.assign({},STYLES[k],{home:'neglect'})}
 
 const UPPOL={ // upgrade policies (for A/B)
@@ -211,6 +216,7 @@ function winterPlay(cfg){
         buyUp(u);M.bought.push({s,id,money:Math.round(S.money)});again=true;break}}
   }
   if(cfg.gen&&!S.home.gen&&S.money>GENS[cfg.gen].cost+GENS[cfg.gen].install+8000){buyHome('gen'+cfg.gen);M.bought.push({s,id:'gen'+cfg.gen,money:Math.round(S.money)})}
+  if(cfg.biz&&typeof bizOn==='function'&&bizOn()) bizBot(cfg.biz,s);
   if(S.home.stale>0&&cfg.haul){spend(STALE_FEE);S.home.stale=0}
   if(cfg.home&&typeof homeBotWinter==='function'){const m0=S.money;homeBotWinter(cfg.home,{rand:M.crng});(M.homeWinter=M.homeWinter||[]).push(Math.round(S.money-m0))}
   // note upgrade affordability
@@ -221,6 +227,19 @@ function winterPlay(cfg){
   finishWinter();
 }
 
+function bizBot(pol,s){
+  const log=x=>{(M.biz=M.biz||[]).push(Object.assign({s},x))};
+  if(pol==='tycoon'){
+    let g=0;while(g++<4){const a=bizApplicants().map((x,i)=>[x,i]).filter(([x])=>!hireWhy(x)).sort((p,q)=>p[0].wage-q[0].wage)[0];if(!a)break;bizHire(a[1]);log({hire:a[0].kind,wage:a[0].wage})}
+    for(const k of ['sled','sled','drift'])if(!boatWhy(k)&&S.money>BIZ_BOATS[k].cost+2000){bizBuyBoat(k);log({boat:k})}
+    return}
+  // outfit: careful
+  S.biz.staff.slice().forEach(g=>{if(g.tot.cites>=1){bizFire(g.id);log({fire:g.kind})}});
+  S.biz.staff.forEach(g=>{let n=0;while(g.wage<marketWage(g.skill)-10&&n++<4)bizRaise(g.id)});
+  const want=S.rep>=72&&S.money>70000?2:1;
+  if(staffN()<want&&S.money>15000){const a=bizApplicants().map((x,i)=>[x,i]).filter(([x])=>!hireWhy(x)&&x.rel>=.88).sort((p,q)=>(q[0].skill-q[0].wage/4)-(p[0].skill-p[0].wage/4))[0];if(a){bizHire(a[1]);log({hire:a[0].kind,wage:a[0].wage})}}
+  if(staffN()&&!S.biz.boats.length&&!boatWhy('sled')&&S.money>BIZ_BOATS.sled.cost+20000){bizBuyBoat('sled');log({boat:'sled'})}
+}
 window.runCareer=async function(o){
   const {style,diff,years,seed}=o;const cfg=Object.assign({},STYLES[style],o.over||{});
   window._rf0=window._rf0||window.runFactor;window.runFactor=cfg.rf!=null?(()=>cfg.rf):window._rf0;
@@ -249,6 +268,7 @@ window.runCareer=async function(o){
   M.arcs=JSON.parse(JSON.stringify(S.arcs||{}));M.regN=(S.regs||[]).length;M.regTrips=S.book.filter(b=>b.reg&&b.status==='done').length;M.regBooked=S.book.filter(b=>b.reg).length;M.partiesN=new Set(S.book.map(b=>b.who)).size;M.tripsDone=S.book.filter(b=>b.status==='done').length;M.dilMax=0;
   M.cabin=S.cabin?JSON.parse(JSON.stringify(S.cabin)):null;M.up=JSON.parse(JSON.stringify(S.up));M.home=JSON.parse(JSON.stringify(S.home));M.foodDays=foodDays();M.freezerEnd=S.freezer;M.cites=S.cites;M.ev=S.ev.count;M.achievements=S.achGame;M.warns=S.warns;
   M.boatAvg=M.boatSum/Math.max(1,M.energyN);
+  if(S.biz){M.bizTot=JSON.parse(JSON.stringify(S.biz.tot));M.bizStaff=S.biz.staff.length;M.bizBoats=S.biz.boats.length;M.bizPast=S.biz.past.map(p=>p.why);M.staffTrips=S.stats.staffTrips||0;M.staffNet=S.stats.staffNet||0;M.staffCites=S.stats.staffCites||0}
   const out=M;M=null;return out;
 };
 window.simInternals={playDay,resolve,winterPlay,STYLES,initM:(o)=>{window.M={style:o.style,diff:o.diff,years:o.years,seed:o.seed,citeWhy:{},viols:{},tiles:{},steps:{},req:{},tt:{},winters:[],bought:[],camp:[],energySum:0,energyN:0,lowEnergyDays:0,boatSum:0,loss:null,errors:[]}}};window.STYLES=STYLES;window.UPPOL=UPPOL;

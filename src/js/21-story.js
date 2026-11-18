@@ -384,4 +384,10 @@ const MIGRATIONS=[
     if(!x.cabin||typeof x.cabin!=='object')x.cabin=c;
     if(typeof x.homeAsk!=='number')x.homeAsk=-1;
   }},
+  // schema 7 (grow the business, 36-business.js): the outfit. Touches only x.biz, so it runs the same whether or not schemas 5 and 6 ran first.
+  // A save already past its second season gets the outfit unlocked straight away.
+  {to:7,run:x=>{
+    if(!x.biz||typeof x.biz!=='object'||Array.isArray(x.biz))x.biz=bizBase();else fillDefaults(x.biz,bizBase());
+    if(Array.isArray(x.seasons)&&x.seasons.length>=BIZ_UNLOCK)x.biz.on=true;
+  }},
 ];

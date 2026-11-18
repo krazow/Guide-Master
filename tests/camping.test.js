@@ -221,7 +221,7 @@ module.exports = [
       out.fresh = m3.S.camp.v === 2 && m3.S.camp.days === 0;
       return out;
     });
-    assert.strictEqual(r.schema, 4); assert.strictEqual(r.camp.v, 2); assert.strictEqual(r.camp.days, 3); assert.strictEqual(r.camp.trips, 1); assert.deepStrictEqual(r.seen, { moose: 1, bear: 1 });
+    assert.ok(r.schema >= 4, 'schema ' + r.schema); assert.strictEqual(r.camp.v, 2); assert.strictEqual(r.camp.days, 3); assert.strictEqual(r.camp.trips, 1); assert.deepStrictEqual(r.seen, { moose: 1, bear: 1 });
     assert.strictEqual(r.days, 7); assert.strictEqual(r.trips, 2); assert.strictEqual(r.used, false); assert.strictEqual(r.tk, 7); assert.ok(/7 free days/.test(r.hub), r.hub);
     assert.strictEqual(r.days2, 10); assert.strictEqual(r.tn2, 5); assert.ok(r.fresh); assert.ok(r.winter);
     noErrors(errors);

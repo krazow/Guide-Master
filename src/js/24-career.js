@@ -191,6 +191,7 @@ function winterModal(){
     {l:'🛠️ Upgrades & business',s:'Boats, marketing, rates, a Homer charter permit.',fn:()=>upgradeModal()},
     {l:`🏠 The cabin: ${homeWinterLabel()}`,s:cabinWinterBlurb(),fn:()=>homeWinterModal()},
     {l:'🏕️ Winter camping & work',s:campUsed()?'You’ve used your free days this winter. You can still look at your camping log.':`${campDaysLeft()} free days: camping trips within 100 miles (ice fishing, scouting, company), winter work, a camping log.`,fn:()=>campModal()},
+    ...(typeof bizWinterBtns==='function'?bizWinterBtns():[]),   // 36-business.js: the outfit (from the third off-season)
     {l:`🛶 Open bookings for ${2026+s}`,s:'Start the season.',fn:()=>homeOpenGate(()=>finishWinter())}]);
 }
 function upgradeModal(){
