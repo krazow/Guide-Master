@@ -1,5 +1,6 @@
 // Illustrations (src/js/40-art.js, art/, tools/art.py, sw.js): the registry and its matching, the hooks (Home tab and fall cabin
-// sheet, the trip sheet and the dock, the camping hub and days, event pop-ups, the morning report and the cabin's storm prompts),
+// sheet, arriving at the launch, the trip sheet (the boat, then each step's own picture) and the dock, repairs at the shop, a loaner,
+// the camping hub and days, event pop-ups, the morning report (the cabin's events, your guides' trips) and the cabin's storm prompts),
 // the Settings switch, the builds and the service worker's runtime cache. Every image ships switched off: with none enabled, every
 // screen is byte-for-byte what it was, and an enabled image adds its <figure> and nothing else.
 const fs = require('fs'), os = require('os'), path = require('path'), { execFileSync } = require('child_process');
@@ -12,17 +13,21 @@ const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAASCAIAAAC1qksFA
 const FIXTURES = [
   { id: 't-cabin', set: 'cabin', file: PNG, thumb: PNG, alt: 'A log cabin with smoke from the chimney.', when: { season: 'any', cond: [0, 100] } },
   { id: 't-boat', set: 'boat', file: PNG, alt: 'A jet sled at the launch.', when: { boat: 'sled', cond: [0, 100] } },
+  { id: 't-launch', set: 'boat', file: PNG, alt: 'A sled backed down the ramp on its trailer.', when: { boat: 'sled', where: 'trailer', cond: [0, 100] } },
+  { id: 't-shop', set: 'boat', file: PNG, alt: 'A sled on its trailer in the shop.', when: { boat: 'sled', where: 'shop', cond: [0, 100] } },
+  { id: 't-loaner', set: 'boat', file: PNG, alt: 'A tired borrowed sled.', when: { boat: 'loaner', where: ['shop', 'launch'], cond: [0, 100], trip: 'reds' } },
+  { id: 't-staff', set: 'boat', file: PNG, alt: 'Your guide pushes off with a party.', when: { boat: 'staff', where: 'staff', cond: [0, 100] } },
   { id: 't-camp', set: 'camp', file: PNG, alt: 'A tent in the snow.', when: { time: 'any' } },
-  { id: 't-ev', set: 'event', file: PNG, alt: 'Ducks on the dock.', when: { event: 'art_test' } },
-  { id: 't-wake', set: 'event', file: PNG, alt: 'Geese at dawn.', when: { event: 'art_wake' } },
-  { id: 't-storm', set: 'event', file: PNG, alt: 'Snow piled to the eaves.', when: { event: ['cold', 'snow'], from: 'home' } },
+  { id: 't-ev', set: 'event', file: PNG, alt: 'Ducks on the dock.', when: { event: 'art_test', from: 'game' } },
+  { id: 't-wake', set: 'event', file: PNG, alt: 'Geese at dawn.', when: { event: 'art_wake', from: 'game' } },
+  { id: 't-storm', set: 'event', file: PNG, alt: 'Snow piled to the eaves.', when: { event: ['cold_snap', 'heavy_snow'], from: 'home' } },
 ];
 
 // In the page: play the same seeded stretch of the game and keep the HTML of every screen that has a hook.
 // mode: 'none' (as shipped), 'off' (fixtures registered but disabled), 'pref' (enabled, Settings → Illustrations off), 'on'.
 const scenario = async ({ mode, fixtures }) => {
   // (the keyboard hints, 09-keys.js, are drawn on the next animation frame, so they come and go with timing: leave them out)
-  const snaps = [], snap = k => { const m = document.getElementById('mbg'); snaps.push([k, (k === 'home' ? document.getElementById('app').innerHTML : m ? m.innerHTML : '').replace(/<i class="kn" aria-hidden="true">\d<\/i>/g, '')]); };
+  const snaps = [], snap = k => { const m = document.getElementById('mbg'); snaps.push([k, (k === 'home' || k.startsWith('app:') ? document.getElementById('app').innerHTML : m ? m.innerHTML : '').replace(/<i class="kn" aria-hidden="true">\d<\/i>/g, '')]); };
   const wait = () => new Promise(r => setTimeout(r, 0));
   let a = 4242; Math.random = () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
   ART.clear();
@@ -36,15 +41,24 @@ const scenario = async ({ mode, fixtures }) => {
   closeModals(); clearTiles(); newGame('normal'); closeModals(); clearTiles();
   // the Home tab
   tab = 'home'; render(); snap('home'); tab = 'act';
-  // a sockeye trip: the first sheet and the dock
+  // a sockeye trip: arriving at the launch, the first sheet and the dock
   S.cur = 1; S.t = 1440 + 345; S.loc = 'lower'; S.fuel = 30; S.gear = 3; S.boat = 90; S.book = []; S.cred.fa = 999;
   const b = { id: S.nextId++, d: 1, type: 'reds', n: 3, who: 'test party', from: 'Ohio', res: false, quirk: [], status: 'booked' }; S.book.push(b);
+  const act = f => { uiNarr = []; ART_NARR = null; f(); tab = 'act'; render(); };
+  act(() => { say('🚙 You pull in at the launch.'); onArrive('lower'); }); snap('app:launch');
   tripStart(b); snap('trip');
   let i = 0; while (S.trip && i++ < 30) MBTN(legalBtn());
   snap('dock'); closeModals(); clearTiles();
+  // the shop: a service, then a loaner for a booked trip
+  S.loc = 'shop'; S.boat = 50; S.money = 9000;
+  act(() => actionsHere().find(x => /Service the boats yourself/.test(x.l)).fn()); snap('app:shop');
+  S.boat = 0; S.loaner = -1; const lb = { id: S.nextId++, d: 1, type: 'reds', n: 2, who: 'loaner party', from: 'Utah', res: false, quirk: [], status: 'booked' }; S.book.push(lb);
+  act(() => actionsHere().find(x => /Rent a loaner/.test(x.l)).fn()); snap('app:loaner');
+  S.book = S.book.filter(x => x !== lb); S.boat = 90; S.loaner = -1; uiNarr = []; ART_NARR = null; closeModals(); clearTiles();
   // an event's OK pop-up, then the morning report
   forceEvent('art_test'); fireHook('art_hook', {}); snap('event'); closeModals(); clearTiles();
   S.cur = 2; S.t = 2 * 1440 + 1300; S.loc = 'shop'; S.book = []; S.calls = {}; S.dipnetAsk = 99;
+  S.book.push({ id: S.nextId++, d: 2, type: 'reds', n: 2, who: 'staff party', from: 'Iowa', res: false, quirk: [], status: 'booked', asst: true });   // your assistant's trip
   forceEvent('art_wake'); endDay('home'); snap('morning'); closeModals(); clearTiles();
   // the off-season: the fall cabin sheet, the first storms (the cabin's prompts), then winter camping
   S.years = 2; const d = SEASON - 1; S.cur = d; S.t = d * 1440 + 1300; S.loc = 'shop'; S.book = S.book.filter(x => x.d < d - 1);
@@ -149,7 +163,7 @@ module.exports = [
     assert.deepStrictEqual(on.map(s => s[0]), keys, 'an enabled image changes no screen order and no random draw');
     on.forEach((s, i) => assert.strictEqual(strip(s[1]), none[i][1], 'only the figure is added: ' + s[0]));
     const fig = k => { const s = on.find(x => x[0] === k); return s && (s[1].match(/<figure class="art-fig" data-art="([^"]+)">[\s\S]*?<\/figure>/) || []); };
-    for (const [k, id] of [['home', 't-cabin'], ['trip', 't-boat'], ['dock', 't-boat'], ['event', 't-ev'], ['morning', 't-wake'], ['cabin-sheet', 't-cabin'], ['camp:hub', 't-camp'], ['camp:day', 't-camp'], ['camp:night', 't-camp']]) {
+    for (const [k, id] of [['home', 't-cabin'], ['app:launch', 't-launch'], ['trip', 't-launch'], ['dock', 't-boat'], ['app:shop', 't-shop'], ['app:loaner', 't-loaner'], ['event', 't-ev'], ['morning', 't-wake'], ['cabin-sheet', 't-cabin'], ['camp:hub', 't-camp'], ['camp:day', 't-camp'], ['camp:night', 't-camp']]) {
       const m = fig(k); assert.ok(m && m[1], `a figure at ${k}`);
       assert.ok(m[1] === id || (k === 'camp:night' && /^t-/.test(m[1])), `${k}: ${m[1]} (wanted ${id})`);
       assert.match(m[0], /<img class="art-img" src="data:image\/png;base64,/); assert.match(m[0], / alt="[^"]+"/); assert.match(m[0], / loading="lazy"/);
@@ -157,8 +171,13 @@ module.exports = [
     }
     const storm = on.filter(s => s[0].startsWith('storm:') && /data-art="t-storm"/.test(s[1]));
     assert.ok(storm.length >= 1, 'the cabin storm prompt shows its event picture');
-    // the trip sheet shows it on the opening step only, not on every decision
-    assert.strictEqual(on.filter(s => /data-art="t-boat"/.test(s[1])).length, 2);
+    // the morning report: the morning's event on top, your guide's trip in the night section, right above its line
+    const morning = on.find(s => s[0] === 'morning')[1];
+    assert.match(morning, /<figure class="art-fig" data-art="t-staff">[\s\S]*?<\/figure><p>🧑‍🤝‍🧑 /, 'the staff picture sits above the guides’ trips');
+    assert.ok(morning.indexOf('data-art="t-wake"') < morning.indexOf('data-art="t-staff"'));
+    // the boat at the put-in shows on arriving and on the opening step only, not on every decision; the dock has its own
+    assert.strictEqual(on.filter(s => /data-art="t-launch"/.test(s[1])).length, 2);
+    assert.strictEqual(on.filter(s => /data-art="t-boat"/.test(s[1])).length, 1);
     noErrors(errors);
   } },
   { name: 'morning report: a night event (no pop-up of its own) can bring its picture; a morning event wins', fn: async ctx => {
@@ -180,11 +199,11 @@ module.exports = [
     assert.strictEqual(r.a, 'n'); assert.strictEqual(r.b, 'w');
     noErrors(errors);
   } },
-  { name: 'artImg: srcset for thumb and full, WebP source, save-data uses thumbs, dark mode dims, the 2:1 banner', fn: async ctx => {
+  { name: 'artImg: a WebP source (thumb 400w + full 1600w) over a small JPEG fallback (thumb 400w + 960w), save-data uses thumbs, dark mode dims, the 2:1 banner', fn: async ctx => {
     const { page, errors } = await open(ctx);
     await newGame(page);
     const r = await page.evaluate(png => {
-      const e = { id: 'k', set: 'cabin', file: 'cabin/01-x.png', thumb: 'cabin/01-x.thumb.png', webp: 'cabin/01-x.webp', thumbWebp: 'cabin/01-x.thumb.webp', v: 'abc', w: 1600, h: 900, alt: 'A "quoted" <cabin>.' };
+      const e = { id: 'k', set: 'cabin', file: 'cabin/01-x.jpg', fw: 960, thumb: 'cabin/01-x.thumb.jpg', webp: 'cabin/01-x.webp', thumbWebp: 'cabin/01-x.thumb.webp', v: 'abc', w: 1600, h: 900, alt: 'A "quoted" <cabin>.' };
       const full = artImg(e);
       Object.defineProperty(navigator, 'connection', { value: { saveData: true }, configurable: true });
       const lite = artImg(e);
@@ -196,11 +215,13 @@ module.exports = [
       ART.clear(); render();
       return out;
     }, PNG);
-    assert.match(r.full, /src="art\/cabin\/01-x\.png\?v=abc"/);
-    assert.match(r.full, /srcset="art\/cabin\/01-x\.thumb\.png\?v=abc 400w, art\/cabin\/01-x\.png\?v=abc 1600w"/);
+    assert.match(r.full, /src="art\/cabin\/01-x\.jpg\?v=abc"/);
+    assert.match(r.full, /srcset="art\/cabin\/01-x\.thumb\.jpg\?v=abc 400w, art\/cabin\/01-x\.jpg\?v=abc 960w"/);
     assert.match(r.full, /<picture><source type="image\/webp" srcset="art\/cabin\/01-x\.thumb\.webp\?v=abc 400w, art\/cabin\/01-x\.webp\?v=abc 1600w"/);
+    assert.match(r.full, / width="1600" height="900"/, 'the full size sets the aspect ratio');
     assert.match(r.full, /alt="A &quot;quoted&quot; &lt;cabin&gt;\."/);
-    assert.match(r.lite, /src="art\/cabin\/01-x\.thumb\.png\?v=abc"/); assert.ok(!/1600w/.test(r.lite), 'save-data: no full-size srcset');
+    assert.match(r.lite, /src="art\/cabin\/01-x\.thumb\.jpg\?v=abc"/); assert.match(r.lite, /<source type="image\/webp" srcset="art\/cabin\/01-x\.thumb\.webp\?v=abc">/);
+    assert.ok(!/1600w|960w/.test(r.lite), 'save-data: no full-size srcset');
     assert.strictEqual(r.ratio, 2); assert.strictEqual(r.fit, 'cover'); assert.match(r.bg, /gradient/, 'a soft placeholder color while it loads');
     await page.emulateMedia({ colorScheme: 'dark' });
     const dark = await page.evaluate(png => { ART.register({ id: 'shown', set: 'cabin', file: png, alt: 'A cabin.', when: {}, enabled: true }); render(); const f = getComputedStyle(document.querySelector('#app .art-fig img')).filter; ART.clear(); render(); return f; }, PNG);
@@ -230,6 +251,137 @@ module.exports = [
     assert.strictEqual(r.fig2, false); assert.strictEqual(r.fig3, true);
     noErrors(errors);
   } },
+  { name: 'cabin events: CabinUpkeep reports {id, sev} from its own list; a storm prompt shows its id before the choice and the outcome after (never the burst pipe first)', fn: async ctx => {
+    const { page, errors } = await open(ctx);
+    await newGame(page);
+    const r = await page.evaluate(png => {
+      const C = CabinUpkeep, out = {}, K = v => () => v, ids = rep => rep.events.map(e => e.id + ':' + e.sev);
+      out.list = C.EVENTS.slice();
+      const tk = (o, st) => Object.assign({ state: Object.assign(C.newState(), st || {}), phase: 'fall', season: 1, cash: 99999, energy: 90, daysLeft: 6, costMult: 1, bad: 1, gen: { owned: false } }, o);
+      // winter: a long outage with no generator and no stove; a chimney fire; CO with and without alarms
+      out.outDark = ids(C.rollWinter(tk({ outage: { h: 30, gen: false } }), { rand: K(.99) }));
+      out.outGen = ids(C.rollWinter(tk({ outage: { h: 30, gen: true } }), { rand: K(.99) }));
+      out.fire = ids(C.rollWinter(tk({}, { heat: { oil: 1, stove: 1 } }), { rand: K(0) }));
+      out.coAlarm = ids(C.rollWinter(tk({}, { detect: 1 }), { rand: K(0) }));
+      // spring: breakup (stuck), the well, the septic tank, the quake (strapped and not)
+      out.spring = ids(C.rollSpring(tk({ phase: 'spring' }), { rand: K(0) }));
+      out.quakeOk = ids(C.rollSpring(tk({ phase: 'spring' }, { strap: 1, did: Object.assign(C.newState().did, { breakup: 1, well: 1, septic: 1 }) }), { rand: (() => { let n = 0; return () => n++ < 2 ? .999 : 0; })() }));
+      // July: the generator, the garden, the fish table
+      out.gen = ids(C.genFailed(tk({ phase: 'summer', gen: { owned: true } })));
+      out.harvest = ids(C.daily(tk({ phase: 'summer', sday: 10, abs: 30 }, { garden: { y: 1 }, fence: 1, bearY: 1 }), { rand: K(.99) }));
+      out.spoil = ids(C.processing(tk({ phase: 'summer', fish: 6, clients: 2 }, { proc: 1, station: { tidy: 10 } }), { rand: K(0) }));
+      out.quiet = C.processing(tk({ phase: 'summer', fish: 6, clients: 2 }, { proc: 1 }), { rand: K(.99) }).events;
+      // the storm prompt, through Guide Master's host: cold_snap on the prompt, pipe_burst after "Skip it"
+      ART.clear();
+      const reg = (id, when) => ART.register({ id, set: 'event', file: png, alt: id + '.', when, enabled: true });
+      reg('cs', { event: 'cold_snap', from: 'home' }); reg('pb', { event: 'pipe_burst', from: 'home' }); reg('wrong', { event: 'pipe_burst', from: 'game' });
+      const st = Object.assign(C.newState(), { queue: [{ id: 'cold', sev: 3 }] }), H = homeHost();
+      const rr = Math.random; Math.random = K(0);
+      try {
+        const host = { show: H.show, ticket: () => tk({}, JSON.parse(JSON.stringify(st))), apply: () => {}, rand: K(0) };
+        closeModals(); C.ui.open(host, 'cold', null, true);
+        const fig = () => { const f = document.querySelector('#mbg .art-fig'); return f ? f.dataset.art : null; };
+        out.prompt = fig(); out.promptHTML = /pipe/i.test(document.querySelector('#mbg').innerHTML.match(/<figure[\s\S]*?<\/figure>/)[0]);
+        MBTN(MB.findIndex(b => /Skip it/.test(b.l)));
+        out.after = fig(); out.afterText = /pipe under the floor bursts/.test(document.querySelector('#mbg').textContent);
+        // nothing came of it: the prompt's own picture again
+        closeModals(); host.rand = K(.99); C.ui.open(host, 'cold', null, true); MBTN(MB.findIndex(b => /Do it yourself/.test(b.l))); out.calm = fig();
+      } finally { Math.random = rr; closeModals(); ART.clear(); }
+      return out;
+    }, PNG);
+    assert.deepStrictEqual(r.list, ['chimney_fire', 'pipes_frozen', 'pipe_burst', 'cold_snap', 'heavy_snow', 'ice_dam', 'shed_collapse', 'breakup_stuck', 'frost_heave',
+      'well_pump', 'septic_backup', 'quake', 'quake_ok', 'co_alarm', 'co_night', 'bear_yard', 'bear_raid', 'garden_moose', 'garden_harvest', 'gen_fail',
+      'outage_gen', 'outage_dark', 'roof_leak', 'furnace_fail', 'pump_fail', 'spoiled_batch'], 'the ids of SPEC2, in its order');
+    assert.deepStrictEqual(r.outDark, ['outage_dark:1']); assert.deepStrictEqual(r.outGen, ['outage_gen:0']);
+    assert.ok(r.fire.includes('chimney_fire:2') && r.fire.includes('co_night:2'), r.fire.join()); assert.ok(r.coAlarm.includes('co_alarm:1'), r.coAlarm.join());
+    assert.ok(['breakup_stuck:1', 'well_pump:2', 'septic_backup:2', 'quake:2'].every(x => r.spring.includes(x)), r.spring.join());
+    assert.deepStrictEqual(r.quakeOk, ['quake_ok:0']);
+    assert.deepStrictEqual(r.gen, ['gen_fail:1']); assert.deepStrictEqual(r.harvest, ['garden_harvest:0']); assert.deepStrictEqual(r.spoil, ['spoiled_batch:1']); assert.deepStrictEqual(r.quiet, []);
+    assert.strictEqual(r.prompt, 'cs', 'the prompt shows the cold snap'); assert.strictEqual(r.promptHTML, false);
+    assert.strictEqual(r.after, 'pb', 'the outcome shows the burst pipe'); assert.ok(r.afterText);
+    assert.strictEqual(r.calm, 'cs');
+    // every id in the list is reported somewhere in the engine, and nothing outside it
+    const src = fs.readFileSync(path.join(ROOT, 'src/home/home-20-engine.js'), 'utf8');
+    const used = new Set([...src.matchAll(/ev\(out,'(\w+)'/g), ...src.matchAll(/\bev:'(\w+)'/g), ...src.matchAll(/O\.gen\?'(\w+)':'(\w+)'/g)].flatMap(m => m.slice(1)));
+    assert.deepStrictEqual([...used].sort(), r.list.slice().sort());
+    noErrors(errors);
+  } },
+  { name: 'morning report: the cabin’s mishaps come first, then the morning’s events, the cabin’s news, the night’s; a summer outage brings outage_dark', fn: async ctx => {
+    const { page, errors } = await open(ctx);
+    await newGame(page);
+    const r = await page.evaluate(png => {
+      ART.clear();
+      const reg = (id, when) => ART.register({ id, set: 'event', file: png, alt: id + '.', when, enabled: true });
+      reg('bear', { event: 'bear_yard', from: 'home' }); reg('veg', { event: 'garden_harvest', from: 'home' }); reg('moose', { event: 'moose', from: 'game' }); reg('sun', { event: 'midnight_sun', from: 'game' });
+      const pick = D => (artMorning(Object.assign({ items: [], night: '', home: [], nightIds: [], from: 0 }, D)).top.match(/data-art="(\w+)"/) || [])[1] || null;
+      const out = {
+        all: pick({ home: [{ id: 'garden_harvest', sev: 0 }, { id: 'bear_yard', sev: 1 }], items: [{ id: 'moose' }], nightIds: ['midnight_sun'] }),
+        game: pick({ home: [{ id: 'garden_harvest', sev: 0 }], items: [{ id: 'moose' }], nightIds: ['midnight_sun'] }),
+        news: pick({ home: [{ id: 'garden_harvest', sev: 0 }], nightIds: ['midnight_sun'] }),
+        night: pick({ nightIds: ['midnight_sun'] }), none: pick({}),
+        campMoose: (() => { ART.clear(); reg('cm', { event: 'moose', from: 'camp' }); return pick({ items: [{ id: 'moose' }] }); })(),
+      };
+      ART.clear(); reg('dark', { event: 'outage_dark', from: 'home' }); reg('lit', { event: 'outage_gen', from: 'home' });
+      closeModals(); clearTiles(); S.home.gen = 0;
+      S.cur = 2; S.t = 2 * 1440 + 1300; S.loc = 'shop'; S.book = []; S.calls = {}; S.dipnetAsk = 99;
+      forceEvent('power_out'); endDay('home');
+      const f = document.querySelector('#mbg .art-fig'); out.outage = f && f.dataset.art; out.said = /power is out/.test(document.querySelector('#mbg').textContent);
+      closeModals(); ART.clear();
+      return out;
+    }, PNG);
+    assert.deepStrictEqual(r, { all: 'bear', game: 'moose', news: 'veg', night: 'sun', none: null, campMoose: null, outage: 'dark', said: true });
+    noErrors(errors);
+  } },
+  { name: 'trip events: each step can show its own picture (from "trip", the STEP id) above the dilemma; the boat shows only on the opening step', fn: async ctx => {
+    const { page, errors } = await open(ctx);
+    await newGame(page);
+    const r = await page.evaluate(png => {
+      const S0 = JSON.stringify(S);
+      const run = on => {
+        S = JSON.parse(S0); let a = 99; Math.random = () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+        ART.clear();
+        if (on) {
+          const reg = (id, set, when) => ART.register({ id, set, file: png, alt: id + '.', when, enabled: true });
+          reg('beat', 'event', { event: 'beat', from: 'trip' }); reg('beat-game', 'event', { event: 'beat', from: 'game' });
+          reg('bear', 'event', { event: 'bear', from: 'trip' }); reg('sled', 'boat', { boat: 'drift', where: 'river' });
+        }
+        closeModals(); clearTiles();
+        S.cur = 1; S.t = 1440 + 400; S.loc = 'cooper'; S.gear = 3; S.boat = 90; S.book = []; S.cred.fa = 999; S.dil = null;
+        const b = { id: S.nextId++, d: 1, type: 'trout', n: 2, who: 'test party', from: 'Ohio', res: false, quirk: [], status: 'booked' }; S.book.push(b);
+        tripStart(b);
+        S.trip.steps.splice(S.trip.step + 2, 0, 'bear');   // a sow and two cubs, after the opening sheet
+        const sheets = []; let i = 0;
+        while (S.trip && i++ < 30) { const m = document.getElementById('mbg'); sheets.push([S.trip.steps[S.trip.step], m.innerHTML]); MBTN(legalBtn()); }
+        closeModals(); ART.clear();
+        return sheets;
+      };
+      const off = run(false), on = run(true);
+      return { keys: off.map(x => x[0]), keysOn: on.map(x => x[0]), same: off.every((x, i) => x[1] === on[i][1].replace(/<figure class="art-fig"[\s\S]*?<\/figure>/g, '')),
+        figs: on.map(x => (x[1].match(/data-art="([\w-]+)"/) || [])[1] || null), first: on[0][1].indexOf('art-fig') < on[0][1].indexOf('small-note') };
+    }, PNG);
+    assert.deepStrictEqual(r.keysOn, r.keys); assert.ok(r.same, 'only the figures differ');
+    assert.strictEqual(r.figs[0], 'sled', 'the opening sheet: the boat at the put-in'); assert.ok(r.first, 'the picture sits above the dilemma');
+    r.keys.forEach((k, i) => { if (i > 0) assert.strictEqual(r.figs[i], k === 'beat' ? 'beat' : k === 'bear' ? 'bear' : null, `${k}: ${r.figs[i]}`); });
+    assert.ok(r.keys.includes('bear') && r.keys.includes('beat'), r.keys.join());
+    noErrors(errors);
+  } },
+  { name: 'boat context: loaner, king, staff and owned upgrades (dock); where for launch, shop, staff and the dock', fn: async ctx => {
+    const { page, errors } = await open(ctx);
+    await newGame(page);
+    const r = await page.evaluate(() => {
+      const bk = (type, x) => Object.assign({ type, who: 'p', n: 2, d: day() }, x || {});
+      const out = {};
+      S.boat = 60; S.up.dock = 1; S.up.motor = 1;
+      out.own = artBoatCtx(bk('reds'), 'river'); out.king = artBoatCtx(bk('king'), 'river').boat; out.staff = artBoatCtx(bk('trout', { asst: true }), 'staff').boat;
+      S.boat = 0; S.loaner = S.cur;
+      out.loan = artBoatCtx(bk('reds'), 'launch').boat; out.loanHal = artBoatCtx(bk('halibut'), 'harbor').boat; out.shop = artBoatCtx(null, 'shop').boat;
+      return out;
+    });
+    assert.deepStrictEqual(r.own.boat, ['sled']); assert.ok(r.own.up.includes('dock') && r.own.up.includes('motor')); assert.strictEqual(r.own.trip, 'reds');
+    assert.deepStrictEqual(r.king, ['king', 'sled']); assert.deepStrictEqual(r.staff, ['staff', 'drift']);
+    assert.deepStrictEqual(r.loan, ['loaner', 'sled']); assert.deepStrictEqual(r.loanHal, ['charter']); assert.deepStrictEqual(r.shop, ['loaner', 'sled']);
+    noErrors(errors);
+  } },
   { only: 'index.html', name: 'builds: index.html embeds the enabled manifest entries; the offline file carries none and links no art/', fn: async () => {
     const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
     const man = JSON.parse(fs.readFileSync(path.join(ROOT, 'art', 'manifest.json'), 'utf8'));
@@ -238,47 +390,92 @@ module.exports = [
     assert.ok(!/["(]art\/[^"]*\.(png|webp)/.test(html), 'no image is linked or inlined');
     const off = path.join(ROOT, 'offline', `${ID}-offline.html`);
     if (fs.existsSync(off)) { const o = fs.readFileSync(off, 'utf8'); assert.match(o, /\/\*@ART@\*\/\[\]\/\*@\/ART@\*\//); assert.ok(!/art\/[^"]*\.(png|webp)/.test(o)); }
-    for (const f of fs.readdirSync(path.join(ROOT, 'art'))) assert.ok(['README.md', 'manifest.json'].includes(f), 'art/ holds only the README and the manifest: ' + f);
+    // art/ holds the README, the manifest and each set's small files (WebP + JPEG fallback, thumbs): no PNG, nothing unlisted
+    const A = path.join(ROOT, 'art'), walk = d => fs.readdirSync(d, { withFileTypes: true }).flatMap(x => x.isDirectory() ? walk(path.join(d, x.name)) : [path.relative(A, path.join(d, x.name)).split(path.sep).join('/')]);
+    const listed = new Set(man.flatMap(e => ['file', 'thumb', 'webp', 'thumbWebp'].filter(k => e[k]).map(k => e[k])));
+    for (const f of walk(A)) {
+      if (['README.md', 'manifest.json'].includes(f)) continue;
+      assert.match(f, /^(cabin|boat|camp|event)\/[\w-]+\.(thumb\.)?(webp|jpg)$/, 'only WebP and JPEG files in a set folder: ' + f);
+      assert.ok(listed.has(f), 'every file is in the manifest: ' + f);
+    }
+    for (const e of man) for (const k of ['file', 'thumb', 'webp', 'thumbWebp']) assert.ok(fs.existsSync(path.join(A, e[k])), `${e.id}: ${k} exists`);
     const rel = JSON.parse(fs.readFileSync(path.join(ROOT, 'release.json'), 'utf8'));
     assert.ok(!(rel.exclude || []).some(x => /^art\/?$/.test(x)), 'the release keeps art/ in the site');
   } },
-  { only: 'index.html', name: 'tools/art.py: import copies a set disabled (WebP when it can), validates keys against the game, enable embeds it', fn: async () => {
-    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'gm-art-')), set = path.join(tmp, 'set', 'boat'), repo = path.join(tmp, 'repo');
+  { only: 'index.html', name: 'tools/art.py: import encodes a set (WebP 1600, JPEG 960, thumbs, no PNG) disabled; validate checks keys, from, event ids, sizes; enable embeds it', fn: async () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'gm-art-')), set = path.join(tmp, 'set', 'boat'), evset = path.join(tmp, 'set', 'event'), repo = path.join(tmp, 'repo');
     try {
-      fs.mkdirSync(set, { recursive: true });
-      // 1600x900 and 400x225 PNGs written by Python (no dependency needed: zlib + struct)
+      fs.mkdirSync(set, { recursive: true }); fs.mkdirSync(evset, { recursive: true });
+      // 1600x900 and 400x225 PNGs written by Python (zlib + struct): a soft gradient, like the flat art
       const mk = `import struct,zlib,sys
 def png(p,w,h):
-  raw=b''.join(b'\\x00'+bytes([143,185,207])*w for _ in range(h))
+  rows=[b'\\x00'+b''.join(bytes([143,(185+x*60//w)%256,207-k*9]) for x in range(w)) for k in range(9)]
+  raw=b''.join(rows[y*9//h] for y in range(h))
   ch=lambda t,d:struct.pack('>I',len(d))+t+d+struct.pack('>I',zlib.crc32(t+d)&0xffffffff)
   open(p,'wb').write(b'\\x89PNG\\r\\n\\x1a\\n'+ch(b'IHDR',struct.pack('>IIBBBBB',w,h,8,2,0,0,0))+ch(b'IDAT',zlib.compress(raw,9))+ch(b'IEND',b''))
-for n in (1,2):
-  png(sys.argv[1]+'/0%d-test.png'%n,1600,900); png(sys.argv[1]+'/0%d-test.thumb.png'%n,400,225)`;
-      execFileSync('python3', ['-c', mk, set]);
+for d in sys.argv[1:]:
+  for n in (1,2):
+    png(d+'/0%d-test.png'%n,1600,900); png(d+'/0%d-test.thumb.png'%n,400,225)`;
+      execFileSync('python3', ['-c', mk, set, evset]);
       fs.writeFileSync(path.join(set, 'manifest.json'), JSON.stringify([
-        { id: 'boat-01', set: 'boat', n: 1, title: 'a', file: 'boat/01-test.png', w: 1600, h: 900, alt: 'A jet sled at the launch.', where: 'x', when: { boat: 'sled', where: 'launch', up: ['motor'], cond: [40, 100], time: 'day' }, notes: '' },
-        { id: 'boat-02', set: 'boat', n: 2, title: 'b', file: 'boat/02-test.png', w: 1600, h: 900, alt: 'A drift boat.', where: 'x', when: { boat: 'drift', up: ['warp-drive'] }, notes: '' }]));
+        { id: 'boat-01', set: 'boat', n: 1, title: 'a', file: 'boat/01-test.png', svg: 'boat/01-test.svg', w: 1600, h: 900, alt: 'A jet sled at the launch.', where: 'x', when: { boat: ['sled', 'loaner'], where: ['launch', 'trailer', 'dock'], up: ['motor', 'dock'], cond: [40, 100], time: 'day', trip: 'king' }, notes: 'n', meta: { hook: 'launch' } },
+        { id: 'boat-02', set: 'boat', n: 2, title: 'b', file: 'boat/02-test.png', w: 1600, h: 900, alt: 'A drift boat.', where: 'x', when: { boat: 'drift', up: ['warp-drive'], hook: 'shop' }, notes: '' }]));
+      fs.writeFileSync(path.join(evset, 'manifest.json'), JSON.stringify([
+        { id: 'event-01', set: 'event', n: 1, title: 'a', file: 'event/01-test.png', w: 1600, h: 900, alt: 'A burst pipe.', where: 'x', when: { event: 'pipe_burst', time: 'any' }, notes: '' },
+        { id: 'event-02', set: 'event', n: 2, title: 'b', file: 'event/02-test.png', w: 1600, h: 900, alt: 'Combat fishing.', where: 'x', when: { event: ['combat', 'cold'], from: 'trip' }, notes: '' }]));
       fs.mkdirSync(repo);
       for (const d of ['src', 'tools']) fs.cpSync(path.join(ROOT, d), path.join(repo, d), { recursive: true });
       for (const f of ['sw.js']) fs.copyFileSync(path.join(ROOT, f), path.join(repo, f));
       fs.mkdirSync(path.join(repo, 'art')); fs.writeFileSync(path.join(repo, 'art', 'manifest.json'), '[]\n');
       const py = (...a) => { try { return { code: 0, out: execFileSync('python3', [path.join(repo, 'tools', 'art.py'), '--root', repo, ...a], { encoding: 'utf8' }) }; } catch (e) { return { code: e.status, out: String(e.stdout) + String(e.stderr) }; } };
       const imp = py('import', set);
-      assert.strictEqual(imp.code, 1, 'the unknown upgrade is an error'); assert.match(imp.out, /boat-02: when\.up has \['warp-drive'\]/); assert.ok(!/boat-01/.test(imp.out), imp.out);
+      assert.strictEqual(imp.code, 1, 'errors fail the import: ' + imp.out);
+      assert.match(imp.out, /boat-02: when\.up has \['warp-drive'\]/); assert.match(imp.out, /boat-02: when\.hook is not a key of the boat set/);
+      assert.ok(!/ERROR {2}boat-01/.test(imp.out), 'loaner, king, dock, trailer and the upgrades are all known: ' + imp.out);
       const man = JSON.parse(fs.readFileSync(path.join(repo, 'art', 'manifest.json'), 'utf8'));
       assert.deepStrictEqual(man.map(e => [e.id, e.enabled]), [['boat-01', false], ['boat-02', false]], 'imported switched off');
-      assert.ok(fs.existsSync(path.join(repo, 'art', 'boat', '01-test.png')) && fs.existsSync(path.join(repo, 'art', 'boat', '01-test.thumb.png')));
-      assert.ok(/^[0-9a-f]{10}$/.test(man[0].v), 'a content hash for cache-busting');
-      assert.strictEqual(py('remove', 'boat-02').code, 0);
-      assert.strictEqual(py('validate').code, 0);
+      const e1 = man[0], B = f => path.join(repo, 'art', f);
+      assert.deepStrictEqual([e1.webp, e1.file, e1.fw, e1.thumbWebp, e1.thumb, e1.w, e1.h], ['boat/01-test.webp', 'boat/01-test.jpg', 960, 'boat/01-test.thumb.webp', 'boat/01-test.thumb.jpg', 1600, 1600 * 9 / 16]);
+      assert.deepStrictEqual(e1.meta, { hook: 'launch' }); assert.strictEqual(e1.notes, 'n'); assert.ok(!('svg' in e1));
+      assert.deepStrictEqual(fs.readdirSync(path.join(repo, 'art', 'boat')).sort(), ['01-test.jpg', '01-test.thumb.jpg', '01-test.thumb.webp', '01-test.webp', '02-test.jpg', '02-test.thumb.jpg', '02-test.thumb.webp', '02-test.webp'], 'no PNG is kept');
+      const size = f => JSON.parse(execFileSync('python3', ['-c', 'import sys,json;from PIL import Image;im=Image.open(sys.argv[1]);print(json.dumps([im.format,*im.size]))', B(f)], { encoding: 'utf8' }));
+      assert.deepStrictEqual(size(e1.webp), ['WEBP', 1600, 900]); assert.deepStrictEqual(size(e1.file), ['JPEG', 960, 540]);
+      assert.deepStrictEqual(size(e1.thumbWebp), ['WEBP', 400, 225]); assert.deepStrictEqual(size(e1.thumb), ['JPEG', 400, 225]);
+      assert.ok(fs.statSync(B(e1.webp)).size <= 150 * 1024 && fs.statSync(B(e1.file)).size < fs.statSync(path.join(set, '01-test.png')).size);
+      assert.ok(/^[0-9a-f]{10}$/.test(e1.v), 'a content hash for cache-busting');
+      // events: "from" is required, and the id must be reported from there
+      const ev = py('import', evset);
+      assert.strictEqual(ev.code, 1);
+      assert.match(ev.out, /event-01: when\.from is required/);
+      assert.match(ev.out, /event-02: event \['cold'\] is never reported from trip/); assert.ok(!/'combat'/.test(ev.out), ev.out);
+      assert.strictEqual(py('remove', 'boat-02', 'event').code, 0);
+      const ok = py('validate', '--strict'); assert.strictEqual(ok.code, 0, ok.out); assert.match(ok.out, /1 entries checked: 0 errors, 0 warnings/);
       assert.strictEqual(py('enable', 'boat').code, 0);
       execFileSync('python3', [path.join(repo, 'tools', 'build.py')], { cwd: repo });
       const html = fs.readFileSync(path.join(repo, 'index.html'), 'utf8');
-      assert.match(html, /\/\*@ART@\*\/\[\{"id":"boat-01","set":"boat","file":"boat\/01-test\.png"/);
-      assert.ok(!/"notes"|"where":"x"/.test(html), 'only what the game reads is embedded');
-      fs.unlinkSync(path.join(repo, 'art', 'boat', '01-test.png'));
-      const gone = py('validate'); assert.strictEqual(gone.code, 1); assert.match(gone.out, /boat-01: file art\/boat\/01-test\.png is missing/);
+      assert.match(html, /\/\*@ART@\*\/\[\{"id":"boat-01","set":"boat","file":"boat\/01-test\.jpg","fw":960,"thumb":"boat\/01-test\.thumb\.jpg","webp":"boat\/01-test\.webp"/);
+      assert.ok(!/"notes"|"meta"|"where":"x"/.test(html), 'only what the game reads is embedded');
+      // the offline build with --with-art inlines the WebP as the one file
+      fs.mkdirSync(path.join(repo, 'fonts'), { recursive: true });
+      for (const d of ['fonts', 'icons']) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(repo, d), { recursive: true });
+      for (const f of ['manifest.webmanifest', 'VERSION']) if (fs.existsSync(path.join(ROOT, f))) fs.copyFileSync(path.join(ROOT, f), path.join(repo, f));
+      execFileSync('python3', [path.join(repo, 'tools', 'build-offline.py'), '--with-art'], { cwd: repo, stdio: 'pipe' });
+      const off = fs.readdirSync(path.join(repo, 'offline')).map(f => fs.readFileSync(path.join(repo, 'offline', f), 'utf8')).join('');
+      assert.match(off, /"file":"data:image\/webp;base64,/); assert.ok(!/"fw":/.test(off.match(/\/\*@ART@\*\/.*?\/\*@\/ART@\*\//s)[0]));
+      fs.unlinkSync(B('boat/01-test.jpg'));
+      const gone = py('validate'); assert.strictEqual(gone.code, 1); assert.match(gone.out, /boat-01: file art\/boat\/01-test\.jpg is missing/);
     } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  } },
+  { only: 'index.html', name: 'tools/art.py events: the ids it reads from the source are the ids the running game reports (defEvent, CabinUpkeep.EVENTS, camp encounters, trip steps)', fn: async ctx => {
+    const py = JSON.parse(execFileSync('python3', [path.join(ROOT, 'tools', 'art.py'), 'events'], { encoding: 'utf8' }));
+    const { page, errors } = await open(ctx);
+    await newGame(page);
+    const r = await page.evaluate(() => ({ game: EV.map(e => e.id), home: CabinUpkeep.EVENTS.slice(), trip: Object.keys(STEP) }));
+    const S = a => [...new Set(a)].sort();
+    assert.deepStrictEqual(py.game, S(r.game)); assert.deepStrictEqual(py.home, S(r.home)); assert.deepStrictEqual(py.trip, S(r.trip));
+    assert.ok(py.camp.includes('wolves') && py.camp.includes('chinook') && py.camp.length >= 19, py.camp.join());
+    for (const k of ['combat', 'bear', 'fog', 'whale', 'king', 'hookhand']) assert.ok(py.trip.includes(k), k);
+    noErrors(errors);
   } },
   { only: 'index.html', name: 'sw.js: illustrations are not precached; they are cached on first use in their own capped cache that survives releases', fn: async () => {
     const src = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
