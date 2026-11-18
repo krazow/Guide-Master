@@ -152,7 +152,7 @@ function kingSegLine(sg){
   if(!sg.n) return '👑 '+pick(['No kings this stretch','A king rolls behind the boat and is gone'])+(dl?`; ${dl}.`:'.');
   return `👑 ${numW(sg.n)} king${sg.n>1?'s':''} to the boat${kingRule()==='open'?', kept and on the harvest record':', released in the water'}${dl?`, and ${dl}`:''}.`;
 }
-const kingTally=t=>{const k=(t.bt.ang||[]).filter(Boolean).length;return `${k} king${k===1?'':'s'} to the boat so far, ${t.bt.dol||0} Dollies`};
+const kingTally=t=>{const k=(t.bt.ang||[]).filter(Boolean).length;return `${k} king${k===1?'':'s'} to the boat and ${t.bt.dol||0} Dolly Varden`};
 // the day's kings, after the last stretch (beatCatch): the stats, a limit when every angler kept one, and the catch line
 function weekCatchEnd(b,t,qw,fishers){
   const bt=t.bt,landed=(bt.ang||[]).filter(Boolean).length,dol=bt.dol||0,open=kingRule()==='open';

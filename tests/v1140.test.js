@@ -292,6 +292,47 @@ module.exports = [
     noErrors(errors);
   } },
 
+  // ---- with 1.13 (a day on the water) ----
+  { name: 'king trip with 1.13 beats: three stretches with the king tactics, party traits, a review and stars, and a kids goal read from b.tr', fn: async ctx => {
+    const { page, errors } = await open(ctx, { seed: 36 });
+    await page.evaluate(() => setPref('years', 5));
+    await newGame(page); await page.evaluate(install);
+    const r = await page.evaluate(() => {
+      season2(['june', 'sep'], 'open');
+      closeModals(); S.cur = 15; S.t = 15 * 1440 + 345; S.loc = 'lower'; S.fuel = 30; S.energy = 80; S.dil = null; S.cred.fa = 999;
+      S.book = S.book.filter(b => b.d !== 15);
+      const b = addBooking({ d: 15, type: 'king', n: 3, who: 'Garza grandkids', from: 'Texas', res: false, quirk: [], tr: ['kids'] });
+      const r0 = S.reviews.length, lk = S.stats.legalKings || 0;
+      tripStart(b); const steps = S.trip.steps.slice(), K = S.trip.bt.K, tac = BEATS.king.tac.slice(), titles = [];
+      let g = 0; while (S.trip && g++ < 20) { titles.push(document.querySelector('#mbg h2').textContent); MBTN(legalBtn()); }
+      const segs = (b.out && S.reviews.length > r0) ? S.reviews[S.reviews.length - 1] : null;
+      return { steps, K, tac, titles, status: b.status, stars: b.out && b.out.stars, rev: segs, line: b.out && b.out.line, kings: b.kings, legal: (S.stats.legalKings || 0) - lk,
+        trOK: traitOK('meat', 'king'), kidsGoal: hasKids({ tr: ['kids'], quirk: [] }), meatCR: (S.reg.king = 'cr', traitOK('meat', 'king')) };
+    });
+    assert.strictEqual(r.K, 3); assert.deepStrictEqual(r.tac, ['troll', 'bounce']);
+    assert.strictEqual(r.steps.filter(x => x === 'beat').length, 2, r.steps.join(','));
+    assert.ok(r.titles.some(t => /The tide change/.test(t)) && r.titles.some(t => /The late morning/.test(t)), r.titles.join(' | '));
+    assert.strictEqual(r.status, 'done'); assert.ok(r.stars >= 1 && r.stars <= 5);
+    assert.ok(r.rev && r.rev.type === 'king' && r.rev.stars === r.stars && r.rev.text.length > 10);
+    assert.match(r.line, /kings? landed and kept/); assert.ok(r.legal >= r.kings);
+    assert.ok(r.trOK && !r.meatCR, 'meat fishers only when kings can be kept'); assert.ok(r.kidsGoal);
+    noErrors(errors);
+  } },
+  { name: 'migration: a 1.13.0 save (schema 5) keeps its traits and reviews and gets weeks and goals', fn: async ctx => {
+    const { page, errors } = await open(ctx, { seed: 37 });
+    await newGame(page);
+    const r = await page.evaluate(() => {
+      closeModals(); S.reviews = [{ day: 1, who: 'x', type: 'reds', stars: 4, text: 'Good.' }];
+      const d = JSON.parse(JSON.stringify(packSave())); delete d.S.weeks; delete d.S.goals; delete d.S.goalLog; d.schema = 5; d.app = '1.13.0';
+      const tr = d.S.book.map(b => b.tr);
+      const m = migrate(d); adopt(m); closeModals();
+      return { schema: m.schema, same: JSON.stringify(S.book.map(b => b.tr)) === JSON.stringify(tr), rev: S.reviews.length, weeks: JSON.stringify(S.weeks), log: Array.isArray(S.goalLog), goals: goalsFor(0).list.length };
+    });
+    assert.ok(r.schema >= 6); assert.ok(r.same); assert.strictEqual(r.rev, 1);
+    assert.deepStrictEqual([r.weeks, r.log, r.goals], ['{}', true, 3]);
+    noErrors(errors);
+  } },
+
   // ---- saves ----
   { name: 'migration: a 1.12 save (schema 4) mid-season and mid-off-season loads, plays the July weeks and gets goals', fn: async ctx => {
     const { page, errors } = await open(ctx, { seed: 33 });
