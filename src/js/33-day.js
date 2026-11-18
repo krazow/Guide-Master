@@ -27,7 +27,7 @@ const TRAIT_HINT=[
   ['trophy',/Navy|Marine|law-firm|startup|bachelor|college buddies|doctors|firefighters|brothers|hunter-ed|paramedics/i],
   ['first',/first|book club|teachers|retired couple|mother and son|newlyweds|night-shift|dentist|sisters/i],
 ];
-const traitOK=(k,type)=>!!(TRAITS[k]&&TRAITS[k].types.includes(type));
+const traitOK=(k,type)=>!!(TRAITS[k]&&TRAITS[k].types.includes(type))&&!(k==='meat'&&type==='king'&&kingRule()!=='open');   // 1.14.0: no meat fishers on a catch-and-release king trip
 // one or two traits for a party on a trip type (hinted by who they are and their quirks, then chance)
 function traitsFor(o){
   const type=o.type||'reds',r=Math.random,tr=[],q=o.quirk||[];
@@ -82,6 +82,7 @@ function traffic(type,i,m){                                           // 0 (empt
   if(type==='reds') return [m>=470&&m<900?1:.35,.2,0,.8][i]||0;
   if(type==='silver') return [.5,m>=900?.8:.5,.1][i]||0;
   if(type==='trout') return [m>=540&&m<900?.9:.4,.35,.1][i]||0;
+  if(type==='king') return [m<540?.6:.4,.25,.45][i]||0;            // 1.14.0: June kings (34-summer.js)
   return [.45,.3,.1][i]||0;
 }
 const trafWord=x=>x>=.85?'elbow-to-elbow boats':x>=.55?'busy':x>=.3?'a few boats':'nearly empty';
@@ -98,6 +99,11 @@ function segTerms(b,k,i,tac){
     if(i<2) out.push(R(flood?.5:ebb?-.25:0,'the flood pushes fresh silvers in','the ebb leaves the slots empty'));
     if(k===BEATS.silver.at.length-1) out.push(R(.15,'silvers turn on toward evening',''));
     out.push(tac==='troll'?R(.4*c.lvl-.5*windy,'big water fills the deep slots','wind and low water make back-trolling hard'):R(.5*c.trend+.3*c.cloud,'clearing water and soft light for spinners','rising water and bright sun put them off spinners'));
+  }else if(type==='king'){
+    if(i===0) out.push(R(flood?.45:ebb?-.2:0,'fresh kings push in on the flood','the ebb slows the push of fresh kings'));
+    if(i===1) out.push(R(-.4*windy,'','wind on the long run upriver'));
+    if(k===0) out.push(R(.15,'kings move at first light',''));
+    out.push(tac==='troll'?R(.45*c.lvl-.4*windy,'high, cold water holds kings in the deep slots for a plug','low water or wind make back-trolling hard'):R(.4*c.cloud+.4*c.trend,'soft light and clearing water for back-bounced spin-n-glos','bright sun and rising water put them off'));
   }else if(type==='trout'){
     if(i===2) out.push(R(windy>.2?-.9*windy:.3,'a glassy lake','Skilak’s afternoon wind'));
     out.push(tac==='beads'?R(.8*c.sock-.4*Math.max(0,c.lvl),'spawning reds have the rainbows on the egg bite','no egg bite yet, or milky water hides the beads'):R(.45*c.cloud+.25*Math.max(0,c.lvl)+(mm>=600&&mm<840?-.1:.1),'overcast and color bring rainbows up for streamers','bright midday sun keeps them down'));
@@ -151,15 +157,17 @@ function landSeg(b,t,k){
     const n=clamp(Math.floor(e*(1+(r()-.5)*.4)+r()),0,room);
     for(let j=0;j<n;j++){let m=0;for(let a=1;a<fishers;a++)if(bt.ang[a]<bt.ang[m])m=a;bt.ang[m]++}   // you rotate the rods: fish go to whoever is shortest
     bt.box+=n;sg.n=n;sg.lost=n>0&&r()<.45?1+(r()<.25?1:0):0;
-  }else if(b.type==='trout'){sg.n=Math.max(0,Math.round(fishers*(2+q*8)*wt+(r()-.5)*2));bt.box+=sg.n}
+  }else if(b.type==='king') weekCatchSeg(b,t,sg,q,wt,fishers);   // 34-summer.js (1.14.0): kings landed this stretch, from the early run's timing (segRun)
+  else if(b.type==='trout'){sg.n=Math.max(0,Math.round(fishers*(2+q*8)*wt+(r()-.5)*2));bt.box+=sg.n}
   else{sg.n=Math.max(0,Math.round(fishers*(1+q*3)*wt+(r()-.5)));bt.box+=sg.n}         // a closed halibut day: rockfish and lingcod
   const mm=w.m0+w.len/2,wind=windAt(b.d,mm);
-  if(fishers&&!(b.type==='halibut'&&halClosed(b.d))&&r()<(.04+(sp.big||0)+({streamers:.1,anchor:.08,troll:.04}[bt.tac]||0))*q*wt*2.2) sg.big=1;
+  if(b.type==='king') sg.big=sg.n>0?1:0;   // every king is the fish of the trip
+  else if(fishers&&!(b.type==='halibut'&&halClosed(b.d))&&r()<(.04+(sp.big||0)+({streamers:.1,anchor:.08,troll:.04}[bt.tac]||0))*q*wt*2.2) sg.big=1;
   if(b.type==='halibut'&&(wind>13&&(bt.spot>=1||bt.tac==='anchor'))) sg.rough=1;
   if(b.type==='trout'&&bt.spot===2&&wind>12) sg.rough=1;
   if(r()<(sp.scenic?.45:.12)*((S.wx[b.d]||'sun')==='rain'?.5:1)+(bt.lunch===k?.25:0)) sg.shot=1;
   bt.segs[k]=sg;
-  sg.line=landLine(b,sg);if(sg.big)sg.line+=' '+bigLine(b);if(sg.rough)sg.line+=b.type==='halibut'?' 🌊 It’s getting lumpy out here.':' 💨 Whitecaps on the lake.';
+  sg.line=landLine(b,sg);if(sg.big&&b.type!=='king')sg.line+=' '+bigLine(b);if(sg.rough)sg.line+=b.type==='halibut'?' 🌊 It’s getting lumpy out here.':' 💨 Whitecaps on the lake.';
   t.notes.push(`${fmt(w.m0+w.len)} · ${sg.line}`);
   return sg;
 }
@@ -167,6 +175,7 @@ function landLine(b,sg){
   const n=sg.n;
   if(b.type==='reds'||b.type==='silver'){const nm=b.type==='reds'?'red':'silver';
     return '🐟 '+(n?`${numW(n)} ${nm}${n>1?'s':''} in the box${sg.lost?`, ${lc1(numW(sg.lost))} lost at the net`:''}.`:pick([`Not a ${nm} this stretch.`,`Nothing in the box. The ${nm}s are somewhere else.`]))}
+  if(b.type==='king') return kingSegLine(sg);
   if(b.type==='trout') return '🌈 '+(n?`${numW(n)} rainbow${n>1?'s':''} and Dollies to hand and released.`:'Not a touch. The trout have lockjaw.');
   if(halClosed(b.d)) return `🐟 ${numW(n)} rockfish and lingcod; the halibut go back today.`;
   return '⚓ '+(n?`${numW(n)} halibut in the fish box${sg.lost?`, ${lc1(numW(sg.lost))} spat the hook at the rail`:''}.`:'Bait soaks, nothing bites. The halibut aren’t here.');
@@ -182,7 +191,7 @@ const biteWord=q=>q>=.85?'hot':q>=.65?'steady':q>=.45?'slow':'dead';
 function biteTxt(b,t){
   const bt=t.bt,segs=bt.segs.filter(Boolean);if(!segs.length) return '';
   const last=segs[segs.length-1],fishers=fishersOf(b,t),n=bt.box;
-  const tally=bagged(b)?`${n} of ${fishers*limOf(b)} in the box (the limit for ${fishers})`:b.type==='trout'?`${n} trout to hand so far`:`${n} rockfish and lingcod so far`;
+  const tally=b.type==='king'?kingTally(t):bagged(b)?`${n} of ${fishers*limOf(b)} in the box (the limit for ${fishers})`:b.type==='trout'?`${n} trout to hand so far`:`${n} rockfish and lingcod so far`;
   return `So far: ${tally}. The bite at ${SPOTS[b.type][last.spot].sh} was ${biteWord(last.q)}.`;
 }
 // the radio and your own eyes: where the fish are moving this stretch
@@ -196,7 +205,8 @@ function radioTxt(b,t,k){
 // the conditions a guide looks at before a call
 function condHTML(b,t,k){
   const T=TRIPS[b.type],d=b.d,m=T.start+BEATS[b.type].at[k],abs=d*1440+m,w=wxOf(d),bt=t.bt,sp=SPOTS[b.type][bt.spot]||SPOTS[b.type][0],end=T.start+T.len,L=[],wk=WX[S.wx[d]||'sun']||WX.sun;
-  if(T.below) L.push(`🕐 ${fmt(m)}. Guide boats below Skilak fish 6 AM to 6 PM: ${hrsLeft(Math.min(1080,end)-m)} left on this trip.`);
+  if(T.below&&guideDaysRule(d)) L.push(`🕐 ${fmt(m)}. Guide boats below Skilak fish 6 AM to 6 PM: ${hrsLeft(Math.min(1080,end)-m)} left on this trip.`);
+  else if(T.below) L.push(`🕐 ${fmt(m)}. Back at the launch by ${fmt(end)}: ${hrsLeft(end-m)} left.`);
   else L.push(`🕐 ${fmt(m)}. ${b.type==='halibut'?'Back at Homer Harbor':'At the Jim’s Landing take-out'} by ${fmt(end)}: ${hrsLeft(end-m)} left.`);
   if(b.type!=='trout'){const nx=tideTable(d).find(x=>x.m>m);L.push(`🌊 Tide ${tideNow(abs)}${nx?`; ${nx.hi?'high':'low'} water at ${fmt(nx.m)}`:''}.`)}
   else L.push(`💧 River ${waterTxt(w)}.`);
@@ -272,6 +282,7 @@ function beatCatch(b,t,towRatio){
   let frac,limits=0,line;const fish=bt.box;
   if(bagged(b)){const lim=limOf(b);limits=(bt.ang||[]).filter(a=>a>=lim).length;frac=fishers?fish/(lim*fishers):0;
     const nm=b.type==='reds'?'red':b.type==='silver'?'silver':'halibut';line=`${fish} ${nm}${fish===1||nm==='halibut'?'':'s'}${limits?`, ${limits} limit${limits>1?'s':''}`:''}`}
+  else if(b.type==='king'){const kc=weekCatchEnd(b,t,qw,fishers);frac=kc.frac;limits=kc.limits;line=kc.line}
   else if(b.type==='trout'){frac=clamp(qw,0,1);line=`${fish} trout landed & released`}
   else{frac=clamp(qw,0,1);line=`${fish} rockfish & lingcod, halibut released`}
   const A=BEATS[b.type].at,fished=bt.early!=null&&bt.early!==false&&bt.early<bt.K?A[bt.early]:bt.K<A.length?A[bt.K]:T.len;
@@ -283,7 +294,7 @@ function beatCatch(b,t,towRatio){
 function goalOf(b,t,c){
   const bt=t.bt,g=t.g||{},segs=bt?bt.segs.filter(Boolean):[],sp=SPOTS[b.type]||[],out={h:S.diff==='hard'?GOAL_MID-1.5:GOAL_MID,good:[],bad:[]},n=Math.max(1,segs.length);
   const rough=segs.filter(s=>s.rough).length+(g.rough||0),early=bt&&bt.early!=null&&bt.early!==false;
-  const slow=segs.filter(s=>s.n/Math.max(1,c.fishers)<(b.type==='trout'?1.2:.4)).length;
+  const slow=segs.filter(s=>(s.n+(s.dol||0)*.5)/Math.max(1,c.fishers)<(b.type==='trout'?1.2:.4)).length;
   const lunchEarly=(bt&&bt.lunch>=0&&bt.lunch<bt.K-1)||g.lunch;
   const easy=segs.filter(s=>(sp[s.spot]&&sp[s.spot].easy)||s.tac==='bank').length,hard=segs.filter(s=>sp[s.spot]&&sp[s.spot].hard).length;
   const flyN=segs.filter(s=>s.tac==='streamers'||s.tac==='drift').length,beadN=segs.filter(s=>s.tac==='beads'||s.tac==='troll').length;
@@ -319,7 +330,7 @@ function reviewOf(b,t,happy,c,goal){
   const st=starsOf(happy),parts=[pick(REV_OPEN[st])];
   goal.good.slice(0,1).forEach(k=>parts.push(pick(REV_T[k][0])));
   goal.bad.slice(0,1).forEach(k=>parts.push(pick(REV_T[k][1])));
-  if(parts.length<3){const n=c.fish;parts.push(b.type==='trout'?(n?`We caught and released ${n} trout.`:'Not a single trout.'):bagged(b)?(c.limits&&c.limits===c.fishers?'Everybody limited.':n?`We took home ${n} fish.`:'We didn’t catch a thing.'):'Rockfish and lingcod only, since halibut were closed that day.')}
+  if(parts.length<3){const n=c.fish;parts.push(b.type==='king'?((b.kings||0)?`${numW(b.kings)} king${b.kings>1?'s':''} to the boat. In June!`:'Not a king all morning, but we saw them roll.'):b.type==='trout'?(n?`We caught and released ${n} trout.`:'Not a single trout.'):bagged(b)?(c.limits&&c.limits===c.fishers?'Everybody limited.':n?`We took home ${n} fish.`:'We didn’t catch a thing.'):'Rockfish and lingcod only, since halibut were closed that day.')}
   if(t.notes.some(n=>n.startsWith('🚨'))) parts.push('Watching our guide get a ticket was not the highlight.');
   else if(t.notes.some(n=>/🐻|🐋/.test(n))&&st>=3) parts.push('And the wildlife!');
   return {stars:st,text:withName(parts.join(' '))};

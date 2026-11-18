@@ -232,11 +232,11 @@ function fishView(){
 }
 function runChart(d){
   const x0=166,x1=258,W=440,H=130,X=x=>20+(x-x0)/(x1-x0)*(W-30),Y=v=>H-18-v*(H-34);
-  const series=[['sockeye','#c0392b',x=>runCurve('sockeye',x,d)/1.4],['coho','#2c6e9e',x=>runCurve('coho',x,d)/1.4],['pink','#d36ba6',x=>runCurve('pink',x,d)],['king','#7a7a7a',x=>runCurve('king',x,d)/.35*.4]],w0=doyOf(seasonFirst(seasonOf(d)));
+  const series=[['sockeye','#c0392b',x=>runCurve('sockeye',x,d)/1.4],['coho','#2c6e9e',x=>runCurve('coho',x,d)/1.4],['pink','#d36ba6',x=>runCurve('pink',x,d)],['king','#7a7a7a',x=>runCurve('king',x,d)/.35*.4]];
   const path=f=>{let p='';for(let x=x0;x<=x1;x+=2)p+=(p?'L':'M')+X(x).toFixed(1)+' '+Y(clamp(f(x),0,1)).toFixed(1);return p};
   const months=[[166,'Jun 15'],[182,'Jul 1'],[213,'Aug 1'],[244,'Sep 1']];
   return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;background:#fff;border:1px solid var(--line);border-radius:10px" role="img" aria-label="Run timing chart">
-    <rect x="${X(w0)}" y="8" width="${X(w0+13)-X(w0)}" height="${H-26}" fill="#1f5d63" opacity=".08"/><text x="${X(w0+6.5)}" y="18" text-anchor="middle" font-size="9" fill="#1f5d63" font-family="DM Sans">your 2 weeks · ${yearOf(d)}</text>
+    ${weekBoxes(d,X,H)}
     <line x1="${X(doyOf(d))}" x2="${X(doyOf(d))}" y1="8" y2="${H-18}" stroke="#e3642e" stroke-width="2"/>
     ${months.map(([x,l])=>`<line x1="${X(x)}" x2="${X(x)}" y1="${H-18}" y2="${H-14}" stroke="#999"/><text x="${X(x)}" y="${H-4}" text-anchor="middle" font-size="9" fill="#6b7478" font-family="DM Sans">${l}</text>`).join('')}
     <line x1="20" x2="${W-10}" y1="${H-18}" y2="${H-18}" stroke="#ccc"/>

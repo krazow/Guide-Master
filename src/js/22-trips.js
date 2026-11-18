@@ -219,6 +219,7 @@ function tripStart(b){
   dl.forEach((k,i)=>slots[Math.min(K-1,Math.round(i*K/Math.max(1,dl.length)))].push(k));
   slots.forEach((sl,i)=>{if(i>0)t.steps.push('beat');t.steps.push(...sl)});
   if(b.type==='silver') t.steps.push('sixpm');
+  weekTripStart(b,t);                                     // 34-summer.js (1.14.0): the week's rules (no 6 PM rule after Jul 31) and king trips
   S.trip=t;sfx('whoosh');tripNext();
 }
 // ---- one pop-up per trip ----
@@ -273,6 +274,7 @@ function tripEnd(b,t){
   if(BT){C=beatCatch(b,t,towR);fish=C.fish;frac=C.frac;limits=C.limits;line=C.line;
     if(bagged(b)&&fishers&&limits===fishers){S.stats.limits++;t.happy+=5}
     if(b.type==='halibut'&&!halClosed(b.d))S.stats.halibut+=fish}
+  else if(b.type==='king'){({fish,frac,line,limits}=weekCatch(b,t,q,fishers))}   // 34-summer.js: a king trip without stretches (never in practice; a fallback)
   else if(b.type==='reds'||b.type==='silver'){
     const lim=b.type==='reds'?S.limit:2,nm=b.type==='reds'?'red':'silver';
     for(let i=0;i<fishers;i++){const c=clamp(Math.round(lim*q+(r()-.5)*1.6),0,lim);fish+=c;if(c===lim)limits++}

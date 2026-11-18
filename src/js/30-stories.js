@@ -46,7 +46,7 @@ function regsRebook(base,r){
       for(let k=0;k<12;k++){
         const i=1+Math.floor(r()*13),w=i%7;
         if(w<1||w>5||(type==='silver'&&i<7)) continue;
-        const d=base+i;if(conflicts(d,type)) continue;
+        const d=base+i,tt=weekType(type,d);if(conflicts(d,tt)||illegalDay(tt,d)) continue;   // 34-summer.js: the week's trip (a sockeye regular fishes silvers in August)
         const n=Math.min(g.n+(h>=88&&g.n<(type==='trout'?3:type==='silver'?4:5)?1:0),type==='trout'?3:type==='silver'?4:5);
         addBooking({d,type,n,who:g.who,from:g.from,res:g.res,quirk:[],reg:true,arc:g.arc||undefined,tr:(g.tr||[]).slice()});g.miss=0;
         lines.push(`⭐ The ${g.who} (${g.from}) are back for their ${ORD[Math.min(10,(g.trips||1)+1)]} July${h>=88?': last time was a five-star day':''}.`);break}
@@ -115,7 +115,7 @@ defEvent({id:'arc_rival',hook:'wake',tile:['🚤','A rival on your seam','info']
       {l:'Wave, share the water and trade spot reports',s:'Rep +1.',fn:()=>{A.st=2;A.mood=1;adj('rep',1);say('🤝 You nod, then wave him in. By lunch you’re trading notes over the VHF.')}},
       {l:'Hold your seam and make him earn it',s:'Rep −2. You were here first.',fn:()=>{A.st=2;A.mood=-1;adj('rep',-2);say('😤 You nose in and fish the seam hard. Dale says nothing, and you can feel it.')}}]);
     if(A.st===2&&A.mood>0) return modal('📞 Dale calls',`<p>Dale Voss is overbooked this week and has a party he can’t take. “Thought of you first. You’d do the same.”</p>`,[
-      {l:'Take the party',s:'A free booking, and he’ll owe you.',fn:()=>{A.st=3;adj('rep',1);let dd=null;for(let d=seasonFirst()+3;d<seasonFirst()+SEASON&&dd==null;d++)if(!isSunMon(d)&&!conflicts(d,'reds')&&d>day())dd=d;
+      {l:'Take the party',s:'A free booking, and he’ll owe you.',fn:()=>{A.st=3;adj('rep',1);let dd=null;for(let d=seasonFirst()+3;d<seasonFirst()+SEASON&&dd==null;d++)if(!illegalDay(weekType('reds',d),d)&&!conflicts(d,weekType('reds',d))&&d>day())dd=d;
         if(dd!=null){addBooking({d:dd,type:'reds',n:4,who:'party Dale sent over',from:'Oregon',res:false,quirk:[]});say(`📅 Booked: a party Dale sent over, ${dlong(dd)}.`)}else say('📞 You’d like to, but your calendar’s full.')}},
       {l:'Pass politely',s:'Keep your calendar clear.',fn:()=>{A.st=3;say('📞 You tell Dale thanks, but no. He says he understands.')}}]);
     if(A.st===2) return modal('📱 A thread about you',`<p>Somebody forwards you a river-forum thread: Voss Guide Service is telling people your seam is overcrowded and your prices are high.</p>`,[
