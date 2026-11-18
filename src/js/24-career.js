@@ -69,7 +69,7 @@ function gearRuleTxt(){if(REG().king!=='open'&&!baitRule(day()))return 'Below Sk
 const faDue=(d=day())=>S.cred.fa<(seasonOf(d)+1)*SEASON;     // expires before this season ends
 const faRenewTo=(d=day())=>(seasonOf(d)+2)*SEASON+2;         // the Wednesday of the season two years on
 // Classes: Monday, Tuesday and Thursday, 1:00-4:00 PM at the Soldotna clinic; you can join up to 1:30 PM (late arrivals still sit the 3 hours)
-const faClassDay=d=>[0,1,3].includes(sday(d));
+const faClassDay=d=>[0,1,3].includes(sday(d)%7);          // 1.14.0: both played weeks (a June week of all-day trout floats can't leave the first week's classes free)
 const faJoinable=m=>m>=780&&m<=810;
 // the card runs out this season and today is on or before the expiry day, from the Monday of that week
 const faUrgent=(d=day())=>faDue(d)&&S.cred.fa>=d&&d>=S.cred.fa-(((S.cred.fa%7)+7)%7);
@@ -215,6 +215,7 @@ function genSeasonBookings(s){
   const party=()=>pick(PARTIES);
   for(let i=0;i<SEASON;i++){const d=base+i,w=i%7,K=weekOf(d),main=K.main(d),second=K.second;   // 34-summer.js: what each week books
     if(w>=1&&w<=5){
+      if(main==='trout'&&i===1&&faDue(base)) continue;   // a week of trout floats keeps the Tuesday free for the first-aid class (1–4 PM) when the card is due
       if(r()<p0*(K.book||1)){const p=party();addBooking({d,type:main,n:pick(WEEK_N[main]||[2,3,4,4,4,5]),who:p.who,from:p.from,res:!!p.res,quirk:q()})}
       if(second&&r()<p0*.6*REG().mult.coho){const p=party();addBooking({d,type:second,n:pick([2,3,4]),who:p.who,from:p.from,res:!!p.res,quirk:q()})}
     }else{

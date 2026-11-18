@@ -183,7 +183,7 @@ module.exports = [
     const r = await page.evaluate(() => {
       const p = { year: 2027, trips: 20, fares: 20000, tips: 2000, hap: 76, wom: 0, cites: 0 };
       const july = restWeeksX(p), r0 = restOfSeason(p);
-      S.weeks[1] = ['june', 'aug']; const x = restWeeksX(p), a = WEEKS.june.w + WEEKS.aug.w;
+      S.weeks[1] = ['june', 'aug']; const x = restWeeksX(p), a = WEEKS.june.w * WEEK_SLOT0 + WEEKS.aug.w;
       // the same guide plays fewer trips in quieter weeks (trips scaled by the weeks' weight): played + rest ≈ the July summer
       const pq = Object.assign({}, p, { trips: Math.round(20 * a / 2), fares: 20000 * a / 2, tips: 2000 * a / 2 }), r1 = restOfSeason(pq);
       S.weeks[1] = ['bogus', 'jul1']; const bad = weeksOf(1);

@@ -18,21 +18,23 @@
 
 // ---- the weeks ----
 function mondayNear(y,m,dd){const t=Date.UTC(y,m,dd),w=new Date(t).getUTCDay();let off=(1-w+7)%7;if(off>3)off-=7;return t+off*864e5}
-// at: [month (0-based), day] the week's Monday is nearest to. w: how busy the week is next to a July week (1), for restWeeksX().
+// at: [month (0-based), day] the week's Monday is nearest to. w: what a played week is worth (fares and tips) next to the average July
+// week, as the second week of a season; as the first week it is worth WEEK_SLOT0 of that (fewer phone requests reach it). Measured with
+// tools/sim: Jul 13 (first) + Jul 20 (second) = .83×.88 + 1.27 = 2. For restWeeksX().
 // book: booking odds on the week's weekdays next to July's. main(d): the weekday trip; second: the afternoon trip on the same day.
 const WEEKS={
-  june:{ic:'👑',n:'June: early kings',at:[5,15],w:.8,book:1.1,main:()=>kingRule()==='closed'?'trout':'king',second:null,
+  june:{ic:'👑',n:'June: early kings',at:[5,15],w:.87,book:1.1,main:()=>kingRule()==='closed'?'trout':'king',second:null,
     d:()=>kingRule()==='closed'?`Kenai kings are closed in ${REG().year}, so it’s upper-river rainbows (open from Jun 11) and Homer halibut. Long, light days.`:`Early-run kings on the lower river (${kingRule()==='cr'?'catch-and-release only':'open, 1 a day'}), upper-river rainbows (open from Jun 11) and Homer halibut. Long, light days and high, cold water.`},
-  jul1:{ic:'🐟',n:'July peak, week 1',w:1,main:()=>'reds',second:null,
+  jul1:{ic:'🐟',n:'July peak, week 1',w:.83,main:()=>'reds',second:null,
     d:()=>'The late sockeye run builds: sockeye trips, trout floats, Homer halibut and the dipnet beach. The busiest water of the year.'},
-  jul2:{ic:'🐟',n:'July peak, week 2',w:1,main:()=>'reds',second:'silver',
+  jul2:{ic:'🐟',n:'July peak, week 2',w:1.27,main:()=>'reds',second:'silver',
     d:()=>'The late run peaks and the first silvers show: sockeye in the morning, silvers in the afternoon.'},
-  aug:{ic:'🎣',n:'August: silvers',at:[7,17],w:.8,book:1.15,main:()=>'silver',second:null,
+  aug:{ic:'🎣',n:'August: silvers',at:[7,17],w:.85,book:1.15,main:()=>'silver',second:null,
     d:()=>'Coho on the lower river (bait is legal again after Aug 15, and guide boats fish Sundays and Mondays), rainbows fattening behind the spawning reds, Homer halibut.'},
-  sep:{ic:'🍂',n:'September: fall rainbows',at:[8,8],w:.75,book:1.1,main:d=>(((d%7)+7)%7)%2?'trout':'silver',second:null,
+  sep:{ic:'🍂',n:'September: fall rainbows',at:[8,8],w:.82,book:1.1,main:d=>(((d%7)+7)%7)%2?'trout':'silver',second:null,
     d:()=>'Big upper-river rainbows on the egg and flesh bite, the last silvers down low and halibut before the charters haul out. Short days and frosty mornings.'},
 };
-const WEEK_ORDER=['june','jul1','jul2','aug','sep'],WEEK_DEF=['jul1','jul2'];
+const WEEK_ORDER=['june','jul1','jul2','aug','sep'],WEEK_DEF=['jul1','jul2'],WEEK_SLOT0=.88;
 const WEEK_N={king:[2,3,4,4],trout:[2,3,3],silver:[2,3,4,4]};       // party sizes for each week's booked trips (reds keep their own)
 function weekStartUTC(y,id){if(id==='jul2')return seasonStartUTC(y)+7*864e5;const W=WEEKS[id];return W&&W.at?mondayNear(y,W.at[0],W.at[1]):seasonStartUTC(y)}
 // the two weeks of season s (index): a valid pick in calendar order, or the two July weeks
@@ -181,10 +183,10 @@ function weekJump(d){
   };}
 
 // ---- the rest of the summer, scaled by the pick ----
-// July weeks count 1, others WEEKS[id].w. The summer is worth 2×(1+REST_X) July weeks; you played a+b of them.
+// The summer is worth 2×(1+REST_X) average July weeks; the two weeks you played were worth a = w1+w2 of them (both July weeks: 2).
 function restWeeksX(p){
   const s=((p&&p.year)||2026)-2026,w=weeksOf(s);if(!weekGap(s)) return 1;
-  const a=WEEKS[w[0]].w+WEEKS[w[1]].w;return (2*(1+REST_X)-a)/(REST_X*a);
+  const a=WEEKS[w[0]].w*WEEK_SLOT0+WEEKS[w[1]].w;return (2*(1+REST_X)-a)/(REST_X*a);
 }
 
 // ---- picking the weeks (the off-season summary) ----
