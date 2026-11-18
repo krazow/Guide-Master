@@ -5406,7 +5406,7 @@ function outfitView(){
   if(!Z.staff.length) h+=row('🧑‍🤝‍🧑','No guides yet',S.winter?'Hire one from the off-season planner (❄️ Plan the off-season → Your outfit).':'Guides are hired in the off-season. Next winter, look in the off-season planner.');
   Z.staff.forEach(g=>{const f=g.name.split(' ')[0],want=marketWage(g.skill),s=g.sn;
     h+=row('🧑',`${g.name} · ${$(g.wage)}/trip`,`<i>${g.line}</i><br>Skill ${g.skill} (${skillWord(g.skill)}), ${relWord(g.rel)}, ${moodWord(g.mood)}. ${g.wage<want?`Expects about ${$(want)} a trip. `:''}${g.seasons?`${g.seasons} season${g.seasons>1?'s':''} with you. `:'New this year. '}<br>This season: ${s.trips} trip${s.trips===1?'':'s'}, fares ${$(s.fares)}, wages ${$(s.wages)}, costs ${$(s.costs)}, net ${s.net<0?'−':''}${$(Math.abs(s.net))}${s.cites?`, ${s.cites} citation${s.cites>1?'s':''}`:''}.`,
-      btn(`Raise +${$(BIZ_RAISE)}`,'raise',g.id)+btn(`Let ${f} go (${$(BIZ_SEVER*g.wage)})`,'fire',g.id))});
+      btn(`Raise +${$(BIZ_RAISE)}`,'raise',g.id,null,`Give ${g.name} a raise of ${$(BIZ_RAISE)} a trip`)+btn(`Let ${f} go (${$(BIZ_SEVER*g.wage)})`,'fire',g.id))});
   h+=`<div class="sect">🚤 Boats</div>`+row('🚤','Your jet sled & drift boat',`Condition ${S.boat}.${S.up.asst?' Plus your assistant guide’s sled.':''} A guide can use whichever boat you’re not using.`);
   Z.boats.forEach(b=>h+=row(BIZ_BOATS[b.kind].ic,b.kind==='sled'?'Second jet sled':'Second drift boat',`Worth about ${$(b.val)}. ${$(BIZ_BOAT_NIGHT)} a July night and ${$(BIZ_BOATS[b.kind].win)} a winter to keep.`,S.winter?btn(`Sell (${$(Math.round(b.val*BIZ_SELL))})`,'sell',b.id):''));
   if(!S.winter){
