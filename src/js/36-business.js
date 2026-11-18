@@ -19,20 +19,21 @@ const BIZ_UNLOCK=2;                                     // seasons played before
 const BIZ_REP=[55,65,75];                               // reputation needed for the 1st, 2nd and 3rd guide
 const BIZ_MAX_BOATS=2;                                  // boats you can add to your sled and drift boat
 const BIZ_BOATS={
-  sled:{n:'Used 20-ft welded jet sled, 50 hp & trailer',ic:'🚤',cost:26000,d:'A second boat for the lower river: two sockeye or silver parties at once.'},
-  drift:{n:'New drift boat & trailer',ic:'🛶',cost:9500,d:'A second drift boat: two upper-river trout floats at once.'},
+  sled:{n:'Used 20-ft welded jet sled, 50 hp & trailer',ic:'🚤',cost:26000,win:1500,d:'A second boat for the lower river: two sockeye or silver parties at once.'},
+  drift:{n:'New drift boat & trailer',ic:'🛶',cost:9500,win:600,d:'A second drift boat: two upper-river trout floats at once.'},
 };
-const BIZ_BOAT_NIGHT=20,BIZ_BOAT_WINTER=900,BIZ_DEPREC=.1,BIZ_SELL=.85;   // per July night; per winter (storage, insurance, registration, service); value lost per winter; resale
-const BIZ_GUIDE_WINTER=1400;                            // license renewals, insurance rider, workers' comp, drug-testing consortium
-const BIZ_TRIP_COST=75;                                 // per staff trip: boat wear, tackle, client water and snacks, the shuttle
+const BIZ_BOAT_NIGHT=20,BIZ_DEPREC=.12,BIZ_SELL=.85;   // per July night; value lost per winter; resale (a boat's winter bill, `win`: storage, insurance, registration, service)
+const BIZ_GUIDE_WINTER=1900;                            // license renewals, insurance rider, workers' comp, drug-testing consortium
+const BIZ_TRIP_COST=110;                                 // per staff trip: boat wear, tackle, client water and snacks, the shuttle
 const BIZ_SUPERVISE=4;                                  // your energy per staff trip that day (calls, rigging, checking in)
-const BIZ_DEMAND=[.42,.28,.17];                         // share of open July days the 1st, 2nd and 3rd guide fill at a good reputation
-const BIZ_REQ_P=.35;                                    // chance a call is for one of your guides (when one is free)
-const BIZ_REST=1.1;                                     // a guide's June/August/September trips per July trip
+const BIZ_DEMAND=[.5,.24,.08];                         // share of open July days the 1st, 2nd and 3rd guide fill at a good reputation
+const BIZ_REQ_P=.35;
+const BIZ_VIOL_K=2.2;                                  // how often a guide cuts a corner: BIZ_VIOL_K × (1 − reliability)² per trip                                    // chance a call is for one of your guides (when one is free)
+const BIZ_REST=.9;                                     // a guide's June/August/September trips per July trip
 const BIZ_RAISE=25,BIZ_SEVER=2;                         // a raise per trip; severance in trips' wages
 const BIZ_ONBOARD=[['🪪 ADF&G sport fishing guide license & business-license rider',200],['🏞️ Kenai River Guide Academy & State Parks guide permit',350],['🧪 Drug-testing consortium enrollment',100],['⛑️ First aid/CPR card',95]];
 const BIZ_USCG=['⚓ USCG OUPV (six-pack) course, exam, physical & TWIC card',1400];
-const marketWage=sk=>Math.round(140+2.2*sk);             // what a guide of this skill expects per trip
+const marketWage=sk=>Math.round(150+2.4*sk);             // what a guide of this skill expects per trip
 // ---- state ----
 function bizBase(){return {v:1,on:false,staff:[],boats:[],nid:1,pool:{s:-1,c:[]},past:[],tot:{trips:0,net:0,cites:0,hired:0},lines:[]}}
 const _newState=newState;
@@ -108,9 +109,9 @@ function bizOrphans(id,notes){
   const out=[];
   S.book.filter(b=>b.g===id&&b.status==='booked'&&b.d>=day()).forEach(b=>{
     const g2=staffLane(b.d,b.type,null,b);
-    if(g2!=null){b.g=g2;out.push(`${staffName(g2)} takes over the ${b.who}’s ${TRIPS[b.type].n.toLowerCase()} (${dlabel(b.d)}).`);return}
+    if(g2!=null){b.g=g2;out.push(`${staffName(g2)} takes over the ${TRIPS[b.type].n.toLowerCase()} with the ${b.who} (${dlabel(b.d)}).`);return}
     b.asst=false;delete b.g;
-    if(!conflicts(b.d,b.type)&&!illegalDay(b.type,b.d)){out.push(`You’ll run the ${b.who}’s ${TRIPS[b.type].n.toLowerCase()} yourself (${dlabel(b.d)}).`);return}
+    if(youFree(b)&&!illegalDay(b.type,b.d)){out.push(`You’ll run the ${TRIPS[b.type].n.toLowerCase()} with the ${b.who} yourself (${dlabel(b.d)}).`);return}
     b.status='cancelled';S.stats.cancelled++;adj('rep',-2);out.push(`Nobody can take the ${b.who} on ${dlabel(b.d)}: you call to cancel and refund their deposit.`)});
   out.forEach(l=>notes?notes.push('🧑‍🤝‍🧑 '+l):say('🧑‍🤝‍🧑 '+l));
 }
@@ -142,12 +143,14 @@ const canHand=b=>b&&b.status==='booked'&&!b.asst&&!b.arc&&b.type!=='halibut'&&(b
 function bizAssign(id,gid){
   const b=bk(id);if(!canHand(b)||!guideOf(gid))return false;
   if(laneBusy(b.d,b.type,x=>x!==b&&x.g===gid)||!boatFree(b.d,b.type,b)) return false;
-  b.asst=true;b.g=gid;say(`🧑‍🤝‍🧑 ${staffName(gid)} will take the ${b.who}’s ${TRIPS[b.type].n.toLowerCase()} on ${dlong(b.d)}.`);return true}
+  b.asst=true;b.g=gid;say(`🧑‍🤝‍🧑 ${staffName(gid)} will take the ${b.who} on their ${TRIPS[b.type].n.toLowerCase()}, ${dlong(b.d)}.`);return true}
 function bizTakeBack(id){
   const b=bk(id);if(!b||b.g==null||b.status!=='booked'||b.d<day()||(b.d===day()&&tod()>=TRIPS[b.type].start-60))return false;
-  const g=b.g;b.asst=false;delete b.g;
-  if(_conflicts(b.d,b.type)){b.asst=true;b.g=g;return false}
-  say(`🛶 You’ll run the ${b.who}’s ${TRIPS[b.type].n.toLowerCase()} yourself after all.`);return true}
+  if(!youFree(b)) return false;
+  b.asst=false;delete b.g;
+  say(`🛶 You’ll run the ${TRIPS[b.type].n.toLowerCase()} with the ${b.who} yourself after all.`);return true}
+// you could run this party yourself: no trip of yours in the way, and a boat for it (the party keeps the boat it had)
+const youFree=b=>!laneBusy(b.d,b.type,x=>x!==b&&!x.asst)&&(!boatKind(b.type)||boatFree(b.d,b.type,b))
 window.bizAct=(k,a,b)=>{const f={hire:()=>bizHire(a),fire:()=>bizFire(a),raise:()=>bizRaise(a),boat:()=>bizBuyBoat(a),sell:()=>bizSellBoat(a),hand:()=>bizAssign(a,b),back:()=>bizTakeBack(a)}[k];if(f){f();sfx('tap');render()}};
 
 // ---- July bookings and calls for your guides ----
@@ -164,9 +167,10 @@ genSeasonBookings=function(s){
   return out;
 };
 const _makeRequest=makeRequest;
-makeRequest=function(){
-  if(staffN()&&!S.winter&&Math.random()<BIZ_REQ_P){const r=staffRequest();if(r)return r}
-  return _makeRequest();
+makeRequest=function(){            // a call for one of your guides comes on top of the usual one (it waits in the Bookings tab)
+  const r=_makeRequest();
+  if(staffN()&&!S.winter&&Math.random()<BIZ_REQ_P){const x=staffRequest();if(x)queueRequest(x,true)}
+  return r;
 };
 function staffRequest(){
   const d0=day()+1,end=seasonFirst()+SEASON;if(d0>=end)return null;const span=Math.min(6,end-d0);
@@ -204,9 +208,10 @@ function bizSettle(b,g,notes){
   const T=TRIPS[b.type],r=Math.random,fare=payOf(b),first=g.name.split(' ')[0],sn=g.sn;
   const busy=S.book.some(x=>x.d===b.d&&!x.asst&&x.status==='done'),tired=g.streak>=3;
   let happy=50+g.skill*.35+(r()-.5)*24+DF().mood+(b.quirk.includes('promised')?-15:0)-(tired?6:0),refund=0,repair=0,line='';
-  const pInc=(1-g.rel)*1.5*(busy?1:.7)*(tired?1.4:1);
-  if(r()<pInc){const k=r();
-    if(k<.5){const v=pick(BIZ_VIOL[b.type]||BIZ_VIOL.reds);
+  // a careless guide cuts corners far more often than a reliable one ((1−rel)², so 0.77 → 12% of trips, 0.93 → 1%); lateness and mishaps go with (1−rel)
+  const sup=(busy?1:.7)*(tired?1.4:1),pV=BIZ_VIOL_K*(1-g.rel)**2*sup,pO=(1-g.rel)*.9*sup,u=r();
+  if(u<pV+pO){const k=u<pV?0:r()*.6+.4;
+    if(k<.4){const v=pick(BIZ_VIOL[b.type]||BIZ_VIOL.reds);
       if(r()<.5*DF().enforce){
         const st=window.showTile;window.showTile=()=>{};const c0=S.stats.citesTotal||0;
         try{cite(v.what,v.fine,!!v.minor,notes,`${pick(COPS)} checking ${first}’s boat`)}finally{window.showTile=st}
@@ -214,7 +219,7 @@ function bizSettle(b,g,notes){
           notes.push(`⚖️ It’s your business on the decal and the permit, so ${first}’s citation goes on <b>your</b> record.`);g.mood-=5}
         else line=` ${first} got a warning, on your boat’s record.`;
       }else if(r()<.3){S.wom=(S.wom||0)-2;line=` Another guide saw ${first} cutting a corner (${v.what}) and it’s all over the river.`}
-    }else if(k<.8){happy-=18;refund=Math.round(fare*.25);line=` ${first} was late to the launch: the clients waited an hour and you refunded ${$(refund)}.`}
+    }else if(k<.75){happy-=18;refund=Math.round(fare*.25);line=` ${first} was late to the launch: the clients waited an hour and you refunded ${$(refund)}.`}
     else{happy-=12;repair=Math.round((250+r()*350)*DF().cost);line=` A rock in the riffle took a bite out of the ${boatKind(b.type)==='drift'?'drift boat':'jet unit'}: ${$(repair)} to fix.`}
   }
   happy=clamp(Math.round(happy),5,100);
@@ -230,7 +235,7 @@ function bizSettle(b,g,notes){
   g.streak=g.last===b.d-1||g.last===b.d?g.streak+(g.last===b.d?0:1):1;g.last=b.d;if(tired)g.mood-=3;
   b.status='done';b.out={happy,fish,line:`run by ${first}`,fare,refund,net,g:g.id};
   const mood=happy>=80?'thrilled':happy>=65?'happy':happy>=45?'so-so':'unhappy';
-  notes.push(`🧑‍🤝‍🧑 <b>${first}</b> ran the ${b.who}’s ${T.n.toLowerCase()}: ${fish} ${b.type==='trout'?'fish to the net':'fish in the box'}, clients ${mood}.${line} After ${first}’s ${$(g.wage)}, fuel, fees and wear: <b>${net<0?'−':''}${$(Math.abs(net))}</b>.`);
+  notes.push(`🧑‍🤝‍🧑 <b>${first}</b> took the ${b.who} out (${T.ic} ${T.n.toLowerCase()}): ${fish} ${b.type==='trout'?'fish to the net':'fish in the box'}, clients ${mood}.${line} After ${first}’s ${$(g.wage)}, fuel, fees and wear: <b>${net<0?'−':''}${$(Math.abs(net))}</b>.`);
 }
 // ---- the day around it ----
 const _onMorning=onMorning;
@@ -267,7 +272,7 @@ startSeason=function(s){
     lines.push(`🧑‍🤝‍🧑 ${g.name}: ${t} trips last July, skill now ${g.skill}${grow?` (+${grow})`:''}, ${moodWord(g.mood)}${g.wage<want?`; a guide this good gets about ${$(want)} a trip now`:''}.`)});
   let bill=0;
   if(Z.staff.length) bill+=Math.round(BIZ_GUIDE_WINTER*DF().cost)*Z.staff.length;
-  Z.boats.forEach(b=>{bill+=Math.round(BIZ_BOAT_WINTER*DF().cost);const drop=Math.round(b.val*BIZ_DEPREC);b.val-=drop;S.up.value=Math.max(0,S.up.value-drop)});
+  Z.boats.forEach(b=>{bill+=Math.round(BIZ_BOATS[b.kind].win*DF().cost);const drop=Math.round(b.val*BIZ_DEPREC);b.val-=drop;S.up.value=Math.max(0,S.up.value-drop)});
   if(bill){money(-bill);S.stats.spent+=bill;lines.push(`🧑‍🤝‍🧑 Outfit winter bills <b>${$(bill)}</b>: ${Z.staff.length?`${Z.staff.length} guide${Z.staff.length>1?'s’':'’s'} license renewals, insurance and drug testing`:''}${Z.staff.length&&Z.boats.length?'; ':''}${Z.boats.length?`storage, insurance and service for ${Z.boats.length} extra boat${Z.boats.length>1?'s':''}`:''}.`)}
   Z.lines=lines.slice();
   if(S.winter&&lines.length) S.winter.sup=(S.winter.sup||[]).concat(lines);
@@ -303,7 +308,7 @@ function bizWinterModal(){
   S.biz.staff.forEach(g=>{const want=marketWage(g.skill);
     o.push({l:`Give ${g.name.split(' ')[0]} a raise — +${$(BIZ_RAISE)}/trip`,s:`Now ${$(g.wage)} a trip; a guide of skill ${g.skill} expects about ${$(want)}. ${g.name.split(' ')[0]} is ${moodWord(g.mood)}.`,fn:again(()=>bizRaise(g.id))});
     o.push({l:`Let ${g.name.split(' ')[0]} go`,s:`Severance ${$(BIZ_SEVER*g.wage)}.`,fn:again(()=>bizFire(g.id))})});
-  Object.keys(BIZ_BOATS).forEach(k=>{const B=BIZ_BOATS[k],why=boatWhy(k);o.push({l:`${B.ic} Buy: ${B.n} — ${$(B.cost)}`,s:`${why?why+'. ':''}${B.d} About ${$(BIZ_BOAT_WINTER)} a winter and ${$(BIZ_BOAT_NIGHT)} a July night to keep; loses about 10% of its value a year.`,dis:!!why,fn:again(()=>bizBuyBoat(k))})});
+  Object.keys(BIZ_BOATS).forEach(k=>{const B=BIZ_BOATS[k],why=boatWhy(k);o.push({l:`${B.ic} Buy: ${B.n} — ${$(B.cost)}`,s:`${why?why+'. ':''}${B.d} About ${$(B.win)} a winter and ${$(BIZ_BOAT_NIGHT)} a July night to keep; loses about 12% of its value a year.`,dis:!!why,fn:again(()=>bizBuyBoat(k))})});
   S.biz.boats.forEach(b=>o.push({l:`Sell the ${b.kind==='sled'?'second jet sled':'extra drift boat'} — ${$(Math.round(b.val*BIZ_SELL))}`,s:'Back to the boats you started with.',fn:again(()=>bizSellBoat(b.id))}));
   o.push(back);
   modal(`🧑‍🤝‍🧑 Your outfit · cash ${$(Math.round(S.money))}`,`<p style="font-size:13px">${bizStaffSummary()}</p><p style="font-size:13px;color:var(--mute)">${BIZ_HOW}</p>`,o);
@@ -331,11 +336,11 @@ function outfitView(){
     h+=row('🧑',`${g.name} · ${$(g.wage)}/trip`,`“${g.line}”<br>Skill ${g.skill} (${skillWord(g.skill)}), ${relWord(g.rel)}, ${moodWord(g.mood)}. ${g.wage<want?`Expects about ${$(want)} a trip. `:''}${g.seasons?`${g.seasons} season${g.seasons>1?'s':''} with you. `:'New this year. '}<br>This season: ${s.trips} trip${s.trips===1?'':'s'}, fares ${$(s.fares)}, wages ${$(s.wages)}, costs ${$(s.costs)}, <b>net ${s.net<0?'−':''}${$(Math.abs(s.net))}</b>${s.cites?`, ${s.cites} citation${s.cites>1?'s':''}`:''}.`,
       btn(`Raise +${$(BIZ_RAISE)}`,'raise',g.id)+btn(`Let ${f} go (${$(BIZ_SEVER*g.wage)})`,'fire',g.id))});
   h+=`<div class="sect">🚤 Boats</div>`+row('🚤','Your jet sled & drift boat',`Condition ${S.boat}.${S.up.asst?' Plus your assistant guide’s sled.':''} A guide can use whichever boat you’re not using.`);
-  Z.boats.forEach(b=>h+=row(BIZ_BOATS[b.kind].ic,b.kind==='sled'?'Second jet sled':'Second drift boat',`Worth about ${$(b.val)}. ${$(BIZ_BOAT_NIGHT)} a July night and ${$(BIZ_BOAT_WINTER)} a winter to keep.`,S.winter?btn(`Sell (${$(Math.round(b.val*BIZ_SELL))})`,'sell',b.id):''));
+  Z.boats.forEach(b=>h+=row(BIZ_BOATS[b.kind].ic,b.kind==='sled'?'Second jet sled':'Second drift boat',`Worth about ${$(b.val)}. ${$(BIZ_BOAT_NIGHT)} a July night and ${$(BIZ_BOATS[b.kind].win)} a winter to keep.`,S.winter?btn(`Sell (${$(Math.round(b.val*BIZ_SELL))})`,'sell',b.id):''));
   if(!S.winter){
     h+=`<div class="sect">📋 Assignments · ${dlabel(d0)}–${dlabel(end-1)}</div>`;let any=false;
     for(let d=d0;d<end;d++) S.book.filter(b=>b.d===d&&b.status==='booked'&&b.type!=='halibut'&&(b.g!=null||!b.asst)).forEach(b=>{any=true;const T=TRIPS[b.type];
-      if(b.g!=null){const back=b.d>d0||tod()<T.start-60;h+=row(T.ic,`${dlabel(d)} · ${staffName(b.g)}: ${T.n}`,`The ${b.who} (${b.n}), ${fmt(T.start)}, ${L[T.loc].name}.`,back&&!_conflicts(b.d,b.type)?btn('Take it yourself','back',b.id):'');return}
+      if(b.g!=null){const back=b.d>d0||tod()<T.start-60;h+=row(T.ic,`${dlabel(d)} · ${staffName(b.g)}: ${T.n}`,`The ${b.who} (${b.n}), ${fmt(T.start)}, ${L[T.loc].name}.`,back&&youFree(b)?btn('Take it yourself','back',b.id):'');return}
       const hs=canHand(b)?Z.staff.filter(g=>!laneBusy(b.d,b.type,x=>x!==b&&x.g===g.id)&&boatFree(b.d,b.type,b)):[];
       h+=row(T.ic,`${dlabel(d)} · You: ${T.n}`,`The ${b.who} (${b.n}), ${fmt(T.start)}, ${L[T.loc].name}.${b.arc?' A family that books you, not your outfit.':''}`,hs.map(g=>btn(`Hand to ${g.name.split(' ')[0]}`,'hand',b.id,g.id)).join(''))});
     if(!any) h+=row('📋','Nothing booked','No trips in the next few days.');
