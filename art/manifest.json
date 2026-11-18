@@ -1,1 +1,1487 @@
-[]
+[
+ {
+  "id": "boat-01-sled-dawn-run",
+  "set": "boat",
+  "n": 1,
+  "title": "Dawn run down the lower Kenai",
+  "webp": "boat/01-sled-dawn-run.webp",
+  "file": "boat/01-sled-dawn-run.jpg",
+  "fw": 960,
+  "thumbWebp": "boat/01-sled-dawn-run.thumb.webp",
+  "thumb": "boat/01-sled-dawn-run.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "A welded aluminum jet sled with a guide at the console and four clients in raingear speeds across a pink dawn river, spray off the jet, an eagle on a snag and fireweed on the bank.",
+  "where": "Trip sheet header for a sockeye trip (6 AM start) on the lower Kenai: the launch beat, running the jet sled to the reds.",
+  "when": {
+   "boat": "sled",
+   "where": "river",
+   "cond": [
+    40,
+    100
+   ],
+   "up": [],
+   "time": "dusk",
+   "trip": "reds"
+  },
+  "notes": "time 'dusk' = the game's dawn/dusk sky window (SCENE: sunrise-30 to sunrise+60 min, i.e. 4:30-6:00 AM), which the 6 AM sockeye start touches. Clean boat, so cond above the first warning tier (boatTier 0, >40). People redrawn in three-quarter/side view (nose, eye, shaded back) for readability.",
+  "v": "50dfa4278f",
+  "enabled": false
+ },
+ {
+  "id": "boat-02-sockeye-seam-crowd",
+  "set": "boat",
+  "n": 2,
+  "title": "Flipping the seam among the guide boats",
+  "webp": "boat/02-sockeye-seam-crowd.webp",
+  "file": "boat/02-sockeye-seam-crowd.jpg",
+  "fw": 960,
+  "thumbWebp": "boat/02-sockeye-seam-crowd.thumb.webp",
+  "thumb": "boat/02-sockeye-seam-crowd.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "Our jet sled sits anchored on a current seam with clients flipping for sockeye and one netting a fish, while other guide boats line the seam and a wall of bank anglers stands shoulder to shoulder on the far gravel.",
+  "where": "Sockeye trip mid-day beats ('The first drift' / 'The midday call') when the tactic is flip ('Flip the seams from the sled'); also fits the bank-flipping action at the lower river.",
+  "when": {
+   "boat": "sled",
+   "where": "river",
+   "cond": [
+    40,
+    100
+   ],
+   "up": [],
+   "time": "day",
+   "trip": "reds"
+  },
+  "notes": "Combat fishing: the crowd is drawn as batched mini figures. Sockeye drawn chrome-silver (fresh July reds). People redrawn in three-quarter/side view (nose, eye, shaded back) for readability.",
+  "v": "0090de2221",
+  "enabled": false
+ },
+ {
+  "id": "boat-03-drift-boat-upper-kenai",
+  "set": "boat",
+  "n": 3,
+  "title": "Drift boat on the upper Kenai",
+  "webp": "boat/03-drift-boat-upper-kenai.webp",
+  "file": "boat/03-drift-boat-upper-kenai.jpg",
+  "fw": 960,
+  "thumbWebp": "boat/03-drift-boat-upper-kenai.thumb.webp",
+  "thumb": "boat/03-drift-boat-upper-kenai.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "A wooden drift boat on turquoise water below steep Cooper Landing mountains: the guide rows while the bow angler fights a leaping rainbow trout and the stern angler drifts a bead, with a brown bear on the far gravel bar.",
+  "where": "Trip sheet header for the Upper Kenai trout float (Cooper Landing to Jim's Landing, 7 AM, drift boat only).",
+  "when": {
+   "boat": "drift",
+   "where": "river",
+   "cond": [
+    40,
+    100
+   ],
+   "up": [],
+   "time": "day",
+   "trip": "trout"
+  },
+  "notes": "Matches the 'beads' and 'streamers' tactics; the bear echoes the Cooper Landing place art. A variant with up:['drift'] could add a fresh hull.",
+  "v": "800cd0d73e",
+  "enabled": false
+ },
+ {
+  "id": "boat-04-charter-leaving-homer",
+  "set": "boat",
+  "n": 4,
+  "title": "Six-pack charter leaving Homer at dawn",
+  "webp": "boat/04-charter-leaving-homer.webp",
+  "file": "boat/04-charter-leaving-homer.jpg",
+  "fw": 960,
+  "thumbWebp": "boat/04-charter-leaving-homer.thumb.webp",
+  "thumb": "boat/04-charter-leaving-homer.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "A white six-pack charter boat with three clients aboard heads out of Homer Harbor at dawn past the Spit's stilt shacks and breakwater, with glaciers and snowy Kenai Mountains across Kachemak Bay.",
+  "where": "Homer halibut charter, 'The run out' beat (6 AM start), whether captaining a buddy's boat or running your own after the Charter Halibut Permit upgrade.",
+  "when": {
+   "boat": "charter",
+   "where": "harbor",
+   "cond": [
+    0,
+    100
+   ],
+   "up": [],
+   "time": "dusk",
+   "trip": "halibut"
+  },
+  "notes": "Halibut trips ignore S.boat (the charter is not your sled/drift boat), hence cond 0-100. time 'dusk' = the game's dawn window. Polished: the glaciers across Kachemak Bay are now valley glaciers (cirque under the ridge, tongue with crevasses, lateral and medial moraines, blue-white shading).",
+  "v": "7f2adfa95d",
+  "enabled": false
+ },
+ {
+  "id": "boat-05-halibut-slack-tide",
+  "set": "boat",
+  "n": 5,
+  "title": "Halibut at the rail on slack tide",
+  "webp": "boat/05-halibut-slack-tide.webp",
+  "file": "boat/05-halibut-slack-tide.jpg",
+  "fw": 960,
+  "thumbWebp": "boat/05-halibut-slack-tide.thumb.webp",
+  "thumb": "boat/05-halibut-slack-tide.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "Anchored on glassy Cook Inlet water with a snowy volcano on the horizon, two clients bend their rods while the deckhand reaches over the stern with a gaff toward a big flat halibut at the surface, gulls all around.",
+  "where": "Homer halibut charter 'Slack tide' beat, especially with the 'anchor' tactic (anchor up and set out a chum bag) or a big-fish catch.",
+  "when": {
+   "boat": "charter",
+   "where": "river",
+   "cond": [
+    0,
+    100
+   ],
+   "up": [],
+   "time": "day",
+   "trip": "halibut"
+  },
+  "notes": "Open water on Cook Inlet. SPEC2 has no 'sea' value, so where stays 'river' (= out on the water fishing) and trip:'halibut' tells it apart from river trips.",
+  "v": "c0e7327aaf",
+  "enabled": false
+ },
+ {
+  "id": "boat-06-trailer-soldotna-launch",
+  "set": "boat",
+  "n": 6,
+  "title": "Backing down the ramp in the fog",
+  "webp": "boat/06-trailer-soldotna-launch.webp",
+  "file": "boat/06-trailer-soldotna-launch.jpg",
+  "fw": 960,
+  "thumbWebp": "boat/06-trailer-soldotna-launch.thumb.webp",
+  "thumb": "boat/06-trailer-soldotna-launch.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "In thick morning fog a red pickup backs the jet sled on its trailer down a concrete ramp into the river while the guide waves it back from the courtesy dock, with faded trucks parked behind.",
+  "where": "Arriving at the Lower Kenai launch (Centennial Park, Soldotna) before a sockeye or silver trip; the launch-fee moment.",
+  "when": {
+   "boat": "sled",
+   "where": "trailer",
+   "cond": [
+    25,
+    100
+   ],
+   "up": [],
+   "time": "day"
+  },
+  "notes": "Fog keeps it early-morning without needing the dawn palette. Not for players with the 'dock' upgrade (own private launch) if you want to be strict.",
+  "v": "3d479d7df1",
+  "enabled": false
+ },
+ {
+  "id": "boat-07-shop-repair-worn-sled",
+  "set": "boat",
+  "n": 7,
+  "title": "In the shop: a worn sled and a pulled motor",
+  "webp": "boat/07-shop-repair-worn-sled.webp",
+  "file": "boat/07-shop-repair-worn-sled.jpg",
+  "fw": 960,
+  "thumbWebp": "boat/07-shop-repair-worn-sled.thumb.webp",
+  "thumb": "boat/07-shop-repair-worn-sled.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "Inside a plank-walled shop under a warm hanging lamp, the guide kneels with a wrench beside the jet outboard on an engine stand, the dented sled on its trailer and the drift boat on sawhorses behind.",
+  "where": "At the Shop & Cabin when the boat is badly worn or out of service: 'Major repair', 'Service the boats yourself', 'Emergency patch', or the boat-condition warnings (BOAT_WARN tiers 2-4).",
+  "when": {
+   "boat": "sled",
+   "where": "shop",
+   "cond": [
+    0,
+    20
+   ],
+   "up": [],
+   "time": "any"
+  },
+  "notes": "cond 0-20 matches boatTier 2+ ('runs rough', 'one or two more trips', 'out of service'). Window shows July green, not snow.",
+  "v": "fd58792b11",
+  "enabled": false
+ },
+ {
+  "id": "boat-08-new-sled-at-dock",
+  "set": "boat",
+  "n": 8,
+  "title": "The new 20-ft sled, gleaming at the dock",
+  "webp": "boat/08-new-sled-at-dock.webp",
+  "file": "boat/08-new-sled-at-dock.jpg",
+  "fw": 960,
+  "thumbWebp": "boat/08-new-sled-at-dock.thumb.webp",
+  "thumb": "boat/08-new-sled-at-dock.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "A brand-new welded jet sled with a fresh dark-teal hull, a white jet outboard and a full rod rack sparkles at a wooden dock on a bright day while the proud guide stands by with a coffee.",
+  "where": "After buying the 'New 20-ft welded jet sled, motor & trailer' upgrade (id sled); also fine for the first trip after the 'Repower: a new 50 hp jet outboard' (id motor) while the boat is near 100.",
+  "when": {
+   "boat": "sled",
+   "where": "launch",
+   "cond": [
+    80,
+    100
+   ],
+   "up": [
+    "sled"
+   ],
+   "time": "day"
+  },
+  "notes": "No canopy/heater in UPGRADES, so the upgrade shows as the new hull, white outboard and a five-rod rack.",
+  "v": "e59791849c",
+  "enabled": false
+ },
+ {
+  "id": "boat-09-coast-guard-tow-dusk",
+  "set": "boat",
+  "n": 9,
+  "title": "Towed in to Kenai Harbor",
+  "webp": "boat/09-coast-guard-tow-dusk.webp",
+  "file": "boat/09-coast-guard-tow-dusk.jpg",
+  "fw": 960,
+  "thumbWebp": "boat/09-coast-guard-tow-dusk.thumb.webp",
+  "thumb": "boat/09-coast-guard-tow-dusk.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "At dusk an orange-collared rescue boat with a blue light tows the jet sled, its guide and glum clients aboard, toward the lit harbor fuel dock where the harbormaster waves them in, a volcano faint across the inlet.",
+  "where": "After towIn() in 25-fuel.js: the sled ran dry, the Coast Guard tows you to Kenai Harbor and the harbormaster brings you to the fuel dock (S.loc becomes 'harbor', tile 'Towed in').",
+  "when": {
+   "boat": "sled",
+   "where": "harbor",
+   "cond": [
+    0,
+    100
+   ],
+   "up": [],
+   "time": "any"
+  },
+  "notes": "Painted at dusk as asked, but in-game tows land about 2 PM (sockeye) or 8 PM (silver), so time is 'any'. The Homer charter tow (hfuel) would need a charter variant.",
+  "v": "a3f079b284",
+  "enabled": false
+ },
+ {
+  "id": "boat-10-outfit-busy-launch",
+  "set": "boat",
+  "n": 10,
+  "title": "The outfit at a busy launch",
+  "webp": "boat/10-outfit-busy-launch.webp",
+  "file": "boat/10-outfit-busy-launch.jpg",
+  "fw": 960,
+  "thumbWebp": "boat/10-outfit-busy-launch.thumb.webp",
+  "thumb": "boat/10-outfit-busy-launch.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "A busy gravel launch: one of the outfit's sleds already afloat, a hired guide walking rods down, another sled and a drift boat on trailers behind trucks, and the owner waving in today's clients.",
+  "where": "Mornings when your guides run parties (36-business.js: extra boats bought in the off-season, or the assistant guide's second sled from the 'asst' upgrade).",
+  "when": {
+   "boat": "staff",
+   "where": "staff",
+   "cond": [
+    0,
+    100
+   ],
+   "up": [],
+   "time": "day"
+  },
+  "notes": "Morning report section for your hired guides' trips (S.biz.boats non-empty or S.up.asst). Three hired guides max (BIZ), two extra boats max (BIZ_MAX_BOATS): the picture shows two sleds and a drift boat.",
+  "v": "230fbf8856",
+  "enabled": false
+ },
+ {
+  "id": "boat-11-combat-fishing-big-eddy",
+  "set": "boat",
+  "n": 11,
+  "title": "Combat fishing at Big Eddy",
+  "webp": "boat/11-combat-fishing-big-eddy.webp",
+  "file": "boat/11-combat-fishing-big-eddy.jpg",
+  "fw": 960,
+  "thumbWebp": "boat/11-combat-fishing-big-eddy.thumb.webp",
+  "thumb": "boat/11-combat-fishing-big-eddy.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "A jet sled anchored off a shoulder-to-shoulder crowd of bank anglers on an elevated walkway while a wader low-holes right below the clients and three lines tangle into one bird's nest.",
+  "where": "Trip sheet on a sockeye day on the lower Kenai (Centennial/Big Eddy), and the 'Combat fishing' trip dilemma.",
+  "when": {
+   "boat": "sled",
+   "where": "river",
+   "trip": "reds",
+   "time": "day"
+  },
+  "notes": "Also the art for event {event:'combat', from:'trip'} (dilemma 'combat' in 22-trips.js POOL reds/trout): the framework can register this same file in the event set, so the event agent need not draw it. The wader's legs are clipped at the waterline with a faint submerged ghost.",
+  "v": "79f60e811d",
+  "enabled": false
+ },
+ {
+  "id": "boat-12-sow-and-cubs-eddy",
+  "set": "boat",
+  "n": 12,
+  "title": "Sow and two cubs on the gravel bar",
+  "webp": "boat/12-sow-and-cubs-eddy.webp",
+  "file": "boat/12-sow-and-cubs-eddy.jpg",
+  "fw": 960,
+  "thumbWebp": "boat/12-sow-and-cubs-eddy.thumb.webp",
+  "thumb": "boat/12-sow-and-cubs-eddy.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "A drift boat holds in an eddy behind a boulder on the turquoise upper Kenai while a brown bear sow and two cubs stand on a gravel bar, one client pointing and another taking a photo.",
+  "where": "The 'bear' trip dilemma on a drift-boat (trout) float on the upper Kenai.",
+  "when": {
+   "boat": "drift",
+   "where": "river",
+   "trip": "trout",
+   "time": "day"
+  },
+  "notes": "Also usable for event {event:'bear', from:'trip'} (dilemma 'bear' is in the trout POOL). Bear spray on the rower's seat; the rower faces upstream pulling to hold the eddy.",
+  "v": "6e58c5b2de",
+  "enabled": false
+ },
+ {
+  "id": "boat-13-loaner-sled-launch",
+  "set": "boat",
+  "n": 13,
+  "title": "Loaner day",
+  "webp": "boat/13-loaner-sled-launch.webp",
+  "file": "boat/13-loaner-sled-launch.jpg",
+  "fw": 960,
+  "thumbWebp": "boat/13-loaner-sled-launch.thumb.webp",
+  "thumb": "boat/13-loaner-sled-launch.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "A tired borrowed jet sled with mismatched red and olive paint, a primer patch, a duct-taped seat and taped cowling is tied at the launch dock while the guide shrugs at two skeptical clients.",
+  "where": "Trip sheet / launch on a day you rented a loaner because your boat is out of service.",
+  "when": {
+   "boat": "loaner",
+   "where": "launch",
+   "time": "day"
+  },
+  "notes": "S.loaner===day() (LOANER_COST option in 20-world.js). An oil sheen behind the transom and a dented bow rail; a clean rig on the far ramp for contrast.",
+  "v": "ce08781026",
+  "enabled": false
+ },
+ {
+  "id": "boat-14-private-dock-morning",
+  "set": "boat",
+  "n": 14,
+  "title": "Your own riverfront dock",
+  "webp": "boat/14-private-dock-morning.webp",
+  "file": "boat/14-private-dock-morning.jpg",
+  "fw": 960,
+  "thumbWebp": "boat/14-private-dock-morning.thumb.webp",
+  "thumb": "boat/14-private-dock-morning.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "Morning on your private riverfront lot: a board-and-batten shed with a lit window and antlers on the gable, a private concrete ramp, a fuel pump on the dock, the sled tied alongside and you with a coffee mug.",
+  "where": "Launch / dock beat when you own the riverfront lot (fuel at your own pump, no launch fees).",
+  "when": {
+   "where": "dock",
+   "up": [
+    "dock"
+   ],
+   "time": "day"
+  },
+  "notes": "Upgrade 'dock' in UPGRADES (24-career.js): 'own ramp and pump on the Kenai'. Also fits where:'launch' with up:['dock']; boat omitted so it fits sled days in general. Low sun at the left and river mist for early morning.",
+  "v": "52063961df",
+  "enabled": false
+ },
+ {
+  "id": "boat-15-june-king-backtroll",
+  "set": "boat",
+  "n": 15,
+  "title": "June king at first light",
+  "webp": "boat/15-june-king-backtroll.webp",
+  "file": "boat/15-june-king-backtroll.jpg",
+  "fw": 960,
+  "thumbWebp": "boat/15-june-king-backtroll.thumb.webp",
+  "thumb": "boat/15-june-king-backtroll.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "At dawn on the lower Kenai a jet sled back-trolls with plugs off the stern while the guide leans over the side to net a big chrome king salmon, its client's rod bent and a buddy cheering.",
+  "where": "Trip sheet for a king trip (booking kind 'king') or the 'king' trip dilemma on a June/July morning.",
+  "when": {
+   "boat": "king",
+   "where": "river",
+   "trip": "king",
+   "time": "dusk"
+  },
+  "notes": "time 'dusk' = the game's dawn sky window, like 01. Trip ids: booking kind==='king' (21-story.js) and dilemma 'king' in the reds/silver POOL; keep one of boat/trip if the framework ANDs keys strictly. The king is drawn with black-spotted back and tail, deep silver flanks.",
+  "v": "757d9a2da3",
+  "enabled": false
+ },
+ {
+  "id": "boat-16-evening-silvers-backtroll",
+  "set": "boat",
+  "n": 16,
+  "title": "Evening silvers in August",
+  "webp": "boat/16-evening-silvers-backtroll.webp",
+  "file": "boat/16-evening-silvers-backtroll.jpg",
+  "fw": 960,
+  "thumbWebp": "boat/16-evening-silvers-backtroll.thumb.webp",
+  "thumb": "boat/16-evening-silvers-backtroll.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "At golden hour in August a jet sled back-trolls with three rods bent hard off the stern toward the setting sun while silver salmon leap in the glittering light and birch leaves start to yellow.",
+  "where": "Trip sheet for an evening silver (coho) trip on the Kenai in August.",
+  "when": {
+   "boat": "sled",
+   "where": "river",
+   "trip": "silver",
+   "time": "dusk"
+  },
+  "notes": "Boat mirrored (bow upstream to the left) so the lines run into the sun path. Fireweed gone to seed and dry grass in the foreground mark late summer.",
+  "v": "4e2c38859c",
+  "enabled": false
+ },
+ {
+  "id": "cabin-01-wood-stove-winter-night",
+  "set": "cabin",
+  "n": 1,
+  "title": "Wood stove on a snowy winter night",
+  "webp": "cabin/01-wood-stove-winter-night.webp",
+  "file": "cabin/01-wood-stove-winter-night.jpg",
+  "fw": 960,
+  "thumbWebp": "cabin/01-wood-stove-winter-night.thumb.webp",
+  "thumb": "cabin/01-wood-stove-winter-night.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "A log cabin's main room at night: a wood stove glows behind a stone heat shield, raingear and wool socks dry on a line above it, firewood is stacked beside it and snow falls past a curtained window.",
+  "where": "Home tab or the winter report on a winter night when the cabin has a wood stove (bought in the shop) and firewood was laid in this fall.",
+  "when": {
+   "heat": "wood",
+   "season": "winter",
+   "time": "night",
+   "cond": [
+    40,
+    100
+   ],
+   "has": [
+    "woodstove"
+   ]
+  },
+  "notes": "Warm stove light is the single source; cool moonlight from the window. Pairs with the 'wood stove carries the cabin through the cold' line.",
+  "v": "b24d6c16c9",
+  "enabled": false
+ },
+ {
+  "id": "cabin-02-summer-morning-gear-chaos",
+  "set": "cabin",
+  "n": 2,
+  "title": "Summer morning, gear chaos before a trip",
+  "webp": "cabin/02-summer-morning-gear-chaos.webp",
+  "file": "cabin/02-summer-morning-gear-chaos.jpg",
+  "fw": 960,
+  "thumbWebp": "cabin/02-summer-morning-gear-chaos.thumb.webp",
+  "thumb": "cabin/02-summer-morning-gear-chaos.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "A sunlit cabin room on a July morning, cluttered with trip gear: rods and a landing net by the open door, an open cooler with lunch kits, life jackets, boots, waders over a chair and an oil-fired heater by the wall.",
+  "where": "Home tab on a July morning with a trip booked, or behind the 'pack the cooler' step before a trip.",
+  "when": {
+   "heat": "oil",
+   "season": "summer",
+   "time": "day",
+   "cond": [
+    35,
+    100
+   ],
+   "has": []
+  },
+  "notes": "The floor heater with its vent pipe and copper line is the furnace (heating oil or propane) every cabin starts with. Cooler and lunch kits match the pack-the-cooler system.",
+  "v": "2d1c1dd1fc",
+  "enabled": false
+ },
+ {
+  "id": "cabin-03-fly-tying-bench-winter-evening",
+  "set": "cabin",
+  "n": 3,
+  "title": "Fly-tying bench on a winter evening",
+  "webp": "cabin/03-fly-tying-bench-winter-evening.webp",
+  "file": "cabin/03-fly-tying-bench-winter-evening.jpg",
+  "fw": 960,
+  "thumbWebp": "cabin/03-fly-tying-bench-winter-evening.thumb.webp",
+  "thumb": "cabin/03-fly-tying-bench-winter-evening.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "Close-up of a fly-tying bench under a frosted window at winter dusk: a vise holds a bright streamer, a desk lamp lights it, with thread spools, a cup of feathers, an open fly box and a mug of tea.",
+  "where": "Winter evenings at home when the player owns the fly-tying vise (camp pack item 'vise'), e.g. alongside the 'tie flies and fix gear' result.",
+  "when": {
+   "heat": "any",
+   "season": "winter",
+   "time": "night",
+   "cond": [
+    30,
+    100
+   ],
+   "has": [
+    "vise"
+   ]
+  },
+  "notes": "The vise is a camp pack item in src/camp (id 'vise'), not a CabinUpkeep feature; the host can check the camp gear list. Stove glow at the left edge only, so it works with either heat.",
+  "v": "93b9274e41",
+  "enabled": false
+ },
+ {
+  "id": "cabin-04-kitchen-pantry-freezer",
+  "set": "cabin",
+  "n": 4,
+  "title": "Kitchen, pantry and a freezer full of reds",
+  "webp": "cabin/04-kitchen-pantry-freezer.webp",
+  "file": "cabin/04-kitchen-pantry-freezer.jpg",
+  "fw": 960,
+  "thumbWebp": "cabin/04-kitchen-pantry-freezer.thumb.webp",
+  "thumb": "cabin/04-kitchen-pantry-freezer.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "A cabin kitchen on a summer evening: shelves of canning jars and pantry goods, a sink under the window, a vacuum sealer and a fillet on the counter, and an open chest freezer packed with vacuum-sealed red salmon.",
+  "where": "The 'cabin's stores' pop-up (pantry, fridge, freezer reds) or after buying the big chest freezer, best when the freezer is well stocked.",
+  "when": {
+   "heat": "any",
+   "season": "summer",
+   "time": "day",
+   "cond": [
+    30,
+    100
+   ],
+   "has": [
+    "freezer"
+   ]
+  },
+  "notes": "Pantry, fridge and freezer match S.food (pan, fri) and S.freezer. 'freezer' means the 70-fish chest freezer (S.home.frz); without it the base freezer still holds 30.",
+  "v": "1eb3a2ce9f",
+  "enabled": false
+ },
+ {
+  "id": "cabin-05-arctic-entry-mudroom",
+  "set": "cabin",
+  "n": 5,
+  "title": "Arctic entry with boots, bear spray and raingear",
+  "webp": "cabin/05-arctic-entry-mudroom.webp",
+  "file": "cabin/05-arctic-entry-mudroom.jpg",
+  "fw": 960,
+  "thumbWebp": "cabin/05-arctic-entry-mudroom.thumb.webp",
+  "thumb": "cabin/05-arctic-entry-mudroom.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "A log mudroom inside the front door on a snowy day: coats and yellow raingear on hooks, bear spray cans and a headlamp on a shelf, boots drying upside down on a boot dryer and a tray of rubber boots with melting snow.",
+  "where": "Home tab on a winter day, the moment before leaving for winter camping, or when the cabin's prep jobs come up.",
+  "when": {
+   "heat": "any",
+   "season": "winter",
+   "time": "day",
+   "cond": [
+    30,
+    100
+   ],
+   "has": []
+  },
+  "notes": "No feature gate. Bear spray and headlamp echo the camping pack; the boot dryer glows faintly orange.",
+  "v": "7e73554f86",
+  "enabled": false
+ },
+ {
+  "id": "cabin-06-power-outage-generator-night",
+  "set": "cabin",
+  "n": 6,
+  "title": "Power outage with the generator running outside",
+  "webp": "cabin/06-power-outage-generator-night.webp",
+  "file": "cabin/06-power-outage-generator-night.jpg",
+  "fw": 960,
+  "thumbWebp": "cabin/06-power-outage-generator-night.thumb.webp",
+  "thumb": "cabin/06-power-outage-generator-night.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "A dark cabin during a winter power outage, lit by a lantern and candles: through the window the generator runs in the snow away from the cabin, a CO alarm and smoke alarm glow on the wall, and gas cans sit on the floor.",
+  "where": "The power-outage report (the power_out event, or the winter storm outage in the winter report) when a generator carried the house.",
+  "when": {
+   "heat": "any",
+   "season": "winter",
+   "time": "night",
+   "cond": [
+    0,
+    100
+   ],
+   "has": [
+    "generator",
+    "detectors"
+   ]
+  },
+  "notes": "Matches the code: the generator runs outside on home gas and feeds an inlet with an interlock (panel on the wall, no cord through the window). Without detectors, use another image. A no-generator outage variant would be a good addition.",
+  "v": "73d26e887d",
+  "enabled": false
+ },
+ {
+  "id": "cabin-07-run-down-cabin-roof-drip",
+  "set": "cabin",
+  "n": 7,
+  "title": "Run-down cabin with a leaking roof",
+  "webp": "cabin/07-run-down-cabin-roof-drip.webp",
+  "file": "cabin/07-run-down-cabin-roof-drip.jpg",
+  "fw": 960,
+  "thumbWebp": "cabin/07-run-down-cabin-roof-drip.thumb.webp",
+  "thumb": "cabin/07-run-down-cabin-roof-drip.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "A neglected, drafty cabin on a rainy summer day: plastic sheeting over the window, buckets under drips from a stained ceiling, a ladder, paint cans, lumber, a toolbox on a tarp, a job list pinned to the wall and a space heater.",
+  "where": "Home tab when cabin condition is low, and the July 'roof leaks' trouble or the cold, damp-morning energy loss below condition 35.",
+  "when": {
+   "heat": "any",
+   "season": "summer",
+   "time": "day",
+   "cond": [
+    0,
+    35
+   ],
+   "has": []
+  },
+  "notes": "Greyed palette and cool light set it apart from the warm sets. The unchecked job list shows the jobs that were skipped.",
+  "v": "91bcb7511d",
+  "enabled": false
+ },
+ {
+  "id": "cabin-08-well-kept-cozy-cabin",
+  "set": "cabin",
+  "n": 8,
+  "title": "Well-kept, cozy cabin",
+  "webp": "cabin/08-well-kept-cozy-cabin.webp",
+  "file": "cabin/08-well-kept-cozy-cabin.jpg",
+  "fw": 960,
+  "thumbWebp": "cabin/08-well-kept-cozy-cabin.thumb.webp",
+  "thumb": "cabin/08-well-kept-cozy-cabin.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "A warm, tidy log living room: moose antlers above a glowing wood stove, a map of the Kenai and fishing photos on the wall, five-star review cards pinned up, a green couch with a quilt, a braided rug and a sleeping dog.",
+  "where": "Home tab when cabin condition is high (75 and up, when the player wakes rested), or the end-of-career cabin summary.",
+  "when": {
+   "heat": "wood",
+   "season": "winter",
+   "time": "night",
+   "cond": [
+    75,
+    100
+   ],
+   "has": [
+    "woodstove"
+   ]
+  },
+  "notes": "Star cards show stars and no words. Cabins without a wood stove would need a furnace-only variant.",
+  "v": "88fd099596",
+  "enabled": false
+ },
+ {
+  "id": "cabin-09-fish-processing-station",
+  "set": "cabin",
+  "n": 9,
+  "title": "Fish processing station in the shed",
+  "webp": "cabin/09-fish-processing-station.webp",
+  "file": "cabin/09-fish-processing-station.jpg",
+  "fw": 960,
+  "thumbWebp": "cabin/09-fish-processing-station.thumb.webp",
+  "thumb": "cabin/09-fish-processing-station.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "A bright shed with an open door onto a summer evening: a stainless fillet table and sink with a red salmon being filleted, a vacuum sealer, a hanging scale, knives on a magnet strip, a hose reel and two chest freezers with a tote of whole reds.",
+  "where": "After a trip's fish go through the processing station (CabinUpkeep.processing), or the station's cleaning and defrost jobs.",
+  "when": {
+   "heat": "any",
+   "season": "summer",
+   "time": "day",
+   "cond": [
+    0,
+    100
+   ],
+   "has": [
+    "processing",
+    "freezer"
+   ]
+  },
+  "notes": "Plywood board-and-batten walls and a concrete floor set the shed apart from the log cabin. The station is the shop's stainless table, sink, sealer and bench freezer.",
+  "v": "7445d9ec92",
+  "enabled": false
+ },
+ {
+  "id": "cabin-10-loft-midnight-sun",
+  "set": "cabin",
+  "n": 10,
+  "title": "Loft bedroom in the midnight sun",
+  "webp": "cabin/10-loft-midnight-sun.webp",
+  "file": "cabin/10-loft-midnight-sun.jpg",
+  "fw": 960,
+  "thumbWebp": "cabin/10-loft-midnight-sun.thumb.webp",
+  "thumb": "cabin/10-loft-midnight-sun.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "A cabin sleeping loft under a steep roof on a July night: blackout curtains cracked open on a pink-gold midnight sky, light across a quilted bed, waders on a peg and a packed gear bag.",
+  "where": "The early-morning wake-up before a July trip (the 5 AM alarm), or the end-of-day screen in July.",
+  "when": {
+   "heat": "any",
+   "season": "summer",
+   "time": "night",
+   "cond": [
+    35,
+    100
+   ],
+   "has": []
+  },
+  "notes": "The analog alarm clock has no digits, so there is no text. Dark navy curtains frame the light shaft for contrast.",
+  "v": "a96da89b1b",
+  "enabled": false
+ },
+ {
+  "id": "cabin-11-power-outage-no-generator",
+  "set": "cabin",
+  "n": 11,
+  "title": "Power outage without a generator",
+  "webp": "cabin/11-power-outage-no-generator.webp",
+  "file": "cabin/11-power-outage-no-generator.jpg",
+  "fw": 960,
+  "thumbWebp": "cabin/11-power-outage-no-generator.thumb.webp",
+  "thumb": "cabin/11-power-outage-no-generator.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "A dark cabin on a snowy winter night with the power out: candles burn on a table, a worried guide in a headlamp and a blanket looks at the chest freezer sealed with a towel and piled with a quilt, a cooler of snow beside it.",
+  "where": "The power-outage report when there is no generator (pairs with the home event outage_dark), or the power_out event at home.",
+  "when": {
+   "heat": "any",
+   "season": "any",
+   "time": "night",
+   "cond": [
+    0,
+    100
+   ],
+   "has": []
+  },
+  "notes": "Pairs with event outage_dark. Candle light on the left and the headlamp beam on the freezer are the only warm sources; a dead fridge, a dark clock and jugs of water show the outage. Snow outside, but the room works in any season.",
+  "meta": {
+   "pairs_with_event": "outage_dark",
+   "counterpart": "cabin-06-power-outage-generator-night"
+  },
+  "v": "5af3a04f25",
+  "enabled": false
+ },
+ {
+  "id": "cabin-12-cozy-cabin-oil-heat",
+  "set": "cabin",
+  "n": 12,
+  "title": "Cozy cabin warmed by the oil heater",
+  "webp": "cabin/12-cozy-cabin-oil-heat.webp",
+  "file": "cabin/12-cozy-cabin-oil-heat.jpg",
+  "fw": 960,
+  "thumbWebp": "cabin/12-cozy-cabin-oil-heat.thumb.webp",
+  "thumb": "cabin/12-cozy-cabin-oil-heat.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "A warm, tidy log living room on a winter night heated by a cream oil heater under a frosty window, a cat asleep on the braided rug, a reading chair and lamp, and fishing photos on the wall.",
+  "where": "Home tab when cabin condition is high (75 and up) in winter and the cabin has no wood stove, only the oil furnace.",
+  "when": {
+   "heat": "oil",
+   "season": "winter",
+   "time": "night",
+   "cond": [
+    75,
+    100
+   ],
+   "has": []
+  },
+  "notes": "Furnace-only counterpart to cabin-08 (wood stove). The direct-vent heater, its wall vent and copper fuel line, and the floor register make the heat source obvious without a stove.",
+  "meta": {
+   "counterpart": "cabin-08-well-kept-cozy-cabin"
+  },
+  "v": "adba3250ff",
+  "enabled": false
+ },
+ {
+  "id": "camp-01-aurora-tent",
+  "set": "camp",
+  "n": 1,
+  "title": "Aurora over a winter tent camp",
+  "webp": "camp/01-aurora-tent.webp",
+  "file": "camp/01-aurora-tent.jpg",
+  "fw": 960,
+  "thumbWebp": "camp/01-aurora-tent.thumb.webp",
+  "thumb": "camp/01-aurora-tent.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "A glowing orange four-season tent with a stovepipe sits in deep snow under green and violet northern lights, with snow-loaded spruce, the Kenai Mountains and a lone camper looking up.",
+  "where": "Evening at camp on a clear night when the player picks \"Photograph the northern lights\"; also a good winter-hub or camping-menu header.",
+  "when": {
+   "place": "hidden",
+   "shelter": "tent",
+   "activity": "aurora",
+   "time": "night",
+   "weather": "clear"
+  },
+  "notes": "Aurora built from blurred vertical strips over a starfield; warm tent glow pooled on cool snow. Hidden Lake (forest habitat, Kenai Mtns behind) fits; any clear-night tent camp works.",
+  "v": "0c247087ff",
+  "enabled": false
+ },
+ {
+  "id": "camp-02-ice-fishing",
+  "set": "camp",
+  "n": 2,
+  "title": "Ice fishing at Johnson Lake",
+  "webp": "camp/02-ice-fishing.webp",
+  "file": "camp/02-ice-fishing.jpg",
+  "fw": 960,
+  "thumbWebp": "camp/02-ice-fishing.thumb.webp",
+  "thumb": "camp/02-ice-fishing.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "An angler in a brown parka sits on a bucket jigging a short rod over an auger hole on a frozen lake, with a char on the ice, a hand auger, a gear sled, a pressure ridge and a low winter sun.",
+  "where": "Day activity \"Ice fishing\" at a lake with ice (Johnson Lake; Stormy Lake at Captain Cook SRA also fits), especially the catch screen.",
+  "when": {
+   "place": "johnson",
+   "shelter": "any",
+   "activity": "icefish",
+   "time": "day",
+   "weather": "clear"
+  },
+  "notes": "Foreground scaled up for the header crop; the engine says the catch is stocked rainbow trout and char, so the fish is an olive-backed, pale-spotted char with white-edged fins. Reuse for place \"cook\" (Stormy Lake).",
+  "v": "a921d23f4c",
+  "enabled": false
+ },
+ {
+  "id": "camp-03-wall-tent-dusk",
+  "set": "camp",
+  "n": 3,
+  "title": "Wall tent at dusk",
+  "webp": "camp/03-wall-tent-dusk.webp",
+  "file": "camp/03-wall-tent-dusk.jpg",
+  "fw": 960,
+  "thumbWebp": "camp/03-wall-tent-dusk.thumb.webp",
+  "thumb": "camp/03-wall-tent-dusk.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "A canvas wall tent glows warm from its open door and window at dusk, woodstove smoke curling from the pipe, with stacked firewood, a chopping block and axe, skis stuck in the snow and a lantern.",
+  "where": "Arriving at camp or the evening screen when the shelter is the wall tent; the skis tie it to Swanson River Road ski country.",
+  "when": {
+   "place": "swanson",
+   "shelter": "wall",
+   "activity": "any",
+   "time": "night",
+   "weather": "any"
+  },
+  "notes": "Dusk palette from the game (#5f6f96 to #f0b98a); warm canvas against blue snow. Works at any place where the player owns the wall tent.",
+  "v": "68a51f0655",
+  "enabled": false
+ },
+ {
+  "id": "camp-04-truck-camper",
+  "set": "camp",
+  "n": 4,
+  "title": "Truck camper at a mountain pull-out",
+  "webp": "camp/04-truck-camper.webp",
+  "file": "camp/04-truck-camper.jpg",
+  "fw": 960,
+  "thumbWebp": "camp/04-truck-camper.thumb.webp",
+  "thumb": "camp/04-truck-camper.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "A red pickup with a white cabover camper is parked at a plowed pull-out on a snowy road below pink-lit Kenai Mountains on a cold blue morning, its furnace venting steam while the owner stands with a mug.",
+  "where": "Morning at camp, or the confirm/packing screen, when the shelter is the truck camper.",
+  "when": {
+   "place": "hidden",
+   "shelter": "camper",
+   "activity": "any",
+   "time": "day",
+   "weather": "clear"
+  },
+  "notes": "Alpenglow on the summits while the valley floor stays in shade; road and delineator posts have no text. Skilak Lake Road pull-out (Hidden Lake); fine for any roadside place.",
+  "v": "7bbef37d6e",
+  "enabled": false
+ },
+ {
+  "id": "camp-05-public-use-cabin",
+  "set": "camp",
+  "n": 5,
+  "title": "Public-use cabin in a cold snap",
+  "webp": "camp/05-public-use-cabin.webp",
+  "file": "camp/05-public-use-cabin.jpg",
+  "fw": 960,
+  "thumbWebp": "camp/05-public-use-cabin.thumb.webp",
+  "thumb": "camp/05-public-use-cabin.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "A snow-loaded log public-use cabin with icicles, a lit window, a woodpile and snowshoes by the door sends a straight column of smoke into still, frozen air beside Skilak Lake, with sun dogs flanking a low sun.",
+  "where": "Staying in a reserved public-use cabin (Skilak, Swanson or Quartz Creek areas), and the \"A cold snap\" weather night.",
+  "when": {
+   "place": "skilak",
+   "shelter": "cabin",
+   "activity": "snowshoe",
+   "time": "day",
+   "weather": "cold"
+  },
+  "notes": "Cold-snap cues: vertical smoke flattening under an inversion, 22-degree halo, sun dogs and diamond dust. Cabins exist only at swanson, skilak and quartz in the data.",
+  "v": "429daa9271",
+  "enabled": false
+ },
+ {
+  "id": "camp-06-moose-tracks",
+  "set": "camp",
+  "n": 6,
+  "title": "Tracking moose along a frozen river",
+  "webp": "camp/06-moose-tracks.webp",
+  "file": "camp/06-moose-tracks.jpg",
+  "fw": 960,
+  "thumbWebp": "camp/06-moose-tracks.thumb.webp",
+  "thumb": "camp/06-moose-tracks.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "A camper on snowshoes kneels over fresh moose tracks that cross a snow-covered frozen river, past steaming open holes in the ice, to a moose browsing red willows at the edge of the spruce and birch.",
+  "where": "Day activity \"Track wildlife\", and the moose encounter; the river habitat matches the Anchor River.",
+  "when": {
+   "place": "anchor",
+   "shelter": "any",
+   "activity": "track",
+   "time": "day",
+   "weather": "any"
+  },
+  "notes": "Track trail shrinks with distance to lead the eye to the moose; pale lower legs, shoulder hump and bell on the moose. Also fits snowshoeing at forest or river places.",
+  "v": "22261ee333",
+  "enabled": false
+ },
+ {
+  "id": "camp-07-upper-kenai-scout",
+  "set": "camp",
+  "n": 7,
+  "title": "Scouting the upper Kenai in winter",
+  "webp": "camp/07-upper-kenai-scout.webp",
+  "file": "camp/07-upper-kenai-scout.jpg",
+  "fw": 960,
+  "thumbWebp": "camp/07-upper-kenai-scout.thumb.webp",
+  "thumb": "camp/07-upper-kenai-scout.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "Open turquoise water of the upper Kenai River runs between thick snow-covered ice shelves in a steep mountain valley, with a bald eagle perched on a silver snag, another soaring, and the guide scouting from the bank.",
+  "where": "Day activity \"Scout next season's water (upper Kenai)\", from Quartz Creek near Cooper Landing; also Hidden Lake or Skilak scouting.",
+  "when": {
+   "place": "quartz",
+   "shelter": "any",
+   "activity": "scout",
+   "time": "day",
+   "weather": "clear"
+  },
+  "notes": "Ice shelf edges show blue-green cut faces; river widens toward the viewer for depth. Eagles echo the river-habitat eagle encounter.",
+  "v": "3462af6b48",
+  "enabled": false
+ },
+ {
+  "id": "camp-08-fly-tying-fire",
+  "set": "camp",
+  "n": 8,
+  "title": "Tying flies by the fire",
+  "webp": "camp/08-fly-tying-fire.webp",
+  "file": "camp/08-fly-tying-fire.jpg",
+  "fw": 960,
+  "thumbWebp": "camp/08-fly-tying-fire.thumb.webp",
+  "thumb": "camp/08-fly-tying-fire.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "At night a guide wearing a headlamp ties an olive leech in a vise clamped to a camp table, with thread spools, feathers, a fly box and a steaming enamel mug, beside a crackling campfire and a glowing wall tent in the spruce.",
+  "where": "Evening choice \"Tie flies and fix gear\", best when the vise is packed.",
+  "when": {
+   "place": "any",
+   "shelter": "any",
+   "activity": "tie",
+   "time": "night",
+   "weather": "any"
+  },
+  "notes": "Two warm light sources (fire glow and the headlamp beam) against a cool night; the vise sits in front of the tier so the hands meet at the fly.",
+  "v": "d64143a09d",
+  "enabled": false
+ },
+ {
+  "id": "camp-09-homer-spit",
+  "set": "camp",
+  "n": 9,
+  "title": "Winter camp on the Homer Spit",
+  "webp": "camp/09-homer-spit.webp",
+  "file": "camp/09-homer-spit.jpg",
+  "fw": 960,
+  "thumbWebp": "camp/09-homer-spit.thumb.webp",
+  "thumb": "camp/09-homer-spit.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "A small orange tent guyed to driftwood and a pickup with a shell sit on the snowy gravel of the Homer Spit, while sea otters float on their backs in Kachemak Bay below the snowy Kenai Mountains and a bald eagle watches from an old piling.",
+  "where": "Camping at Homer Spit, and the \"Sea otters off the Spit\" encounter (only at the spit in the data).",
+  "when": {
+   "place": "spit",
+   "shelter": "any",
+   "activity": "any",
+   "time": "day",
+   "weather": "any"
+  },
+  "notes": "Raft of otters (one with a clam), sea ducks, eagles on pilings, low pink winter light; the camper wears yellow raingear for the coastal wind.",
+  "v": "f409ae84cf",
+  "enabled": false
+ },
+ {
+  "id": "camp-10-snowstorm-night",
+  "set": "camp",
+  "n": 10,
+  "title": "Snowstorm night",
+  "webp": "camp/10-snowstorm-night.webp",
+  "file": "camp/10-snowstorm-night.jpg",
+  "fw": 960,
+  "thumbWebp": "camp/10-snowstorm-night.thumb.webp",
+  "thumb": "camp/10-snowstorm-night.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "A tent bowed under a heavy snow load glows dimly in a night blizzard, wind-driven snow streaking across, a drift piling against its windward side, and the truck half buried behind.",
+  "where": "The \"A snowstorm\" weather night (snowed in, road drifted shut), when sleeping in a tent.",
+  "when": {
+   "place": "any",
+   "shelter": "tent",
+   "activity": "any",
+   "time": "night",
+   "weather": "snow"
+  },
+  "notes": "Low-contrast trees fading in the storm with a skewed wind lean; three layers of flakes plus blurred near flakes for depth. Generic place; the truck mound hints at the shovel-out.",
+  "v": "eb50f9795a",
+  "enabled": false
+ },
+ {
+  "id": "event-01-moose-highway",
+  "set": "event",
+  "n": 1,
+  "title": "Moose on the highway",
+  "webp": "event/01-moose-highway.webp",
+  "file": "event/01-moose-highway.jpg",
+  "fw": 960,
+  "thumbWebp": "event/01-moose-highway.thumb.webp",
+  "thumb": "event/01-moose-highway.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "A cow moose and her calf amble across a two-lane highway lined with spruce, fireweed and snowy Kenai peaks while an oncoming car waits.",
+  "where": "Travel tile when the \"Moose on the highway\" event fires on a drive between places.",
+  "when": {
+   "event": "moose",
+   "from": "game",
+   "time": "any"
+  },
+  "notes": "Perspective road leads the eye to the cow mid-crossing; the calf trails her. Moose-crossing diamond is a pure pictogram, no text.",
+  "meta": {
+   "source": "defEvent",
+   "hook": "travel",
+   "previous_event_key": "moose"
+  },
+  "v": "ce3a750383",
+  "enabled": false
+ },
+ {
+  "id": "event-02-flat-trailer-tire",
+  "set": "event",
+  "n": 2,
+  "title": "Flat trailer tire",
+  "webp": "event/02-flat-trailer-tire.webp",
+  "file": "event/02-flat-trailer-tire.jpg",
+  "fw": 960,
+  "thumbWebp": "event/02-flat-trailer-tire.thumb.webp",
+  "thumb": "event/02-flat-trailer-tire.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "At dusk a guide kneels on the gravel shoulder of the highway changing a flat tire on a drift-boat trailer, swatting mosquitoes, hazard lights blinking on the pickup.",
+  "where": "Travel tile when the \"Flat trailer tire\" event fires on the drive (−$60, +30 minutes).",
+  "when": {
+   "event": "flat",
+   "from": "game",
+   "time": "any"
+  },
+  "notes": "Long low dusk light from the right; the squashed tire, jack and spare tell the story. Mosquito cloud nods to the event text (\"Spare, jack, mosquitoes\").",
+  "meta": {
+   "source": "defEvent",
+   "hook": "travel",
+   "previous_event_key": "flat"
+  },
+  "v": "db429c207f",
+  "enabled": false
+ },
+ {
+  "id": "event-03-trooper-boat-check",
+  "set": "event",
+  "n": 3,
+  "title": "Boat check on the river",
+  "webp": "event/03-trooper-boat-check.webp",
+  "file": "event/03-trooper-boat-check.jpg",
+  "fw": 960,
+  "thumbWebp": "event/03-trooper-boat-check.thumb.webp",
+  "thumb": "event/03-trooper-boat-check.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "On the turquoise Kenai River below snowy peaks, a grey patrol boat idles alongside a guide's jet sled while a uniformed officer reviews the guide's papers and clients in life jackets wait.",
+  "where": "Arrival tile when the \"Boat check\" event fires at the lower river, Cooper Landing or Homer: licenses, decals, life jackets, extinguisher and logbook.",
+  "when": {
+   "event": "trooper_check",
+   "from": "game",
+   "time": "any"
+  },
+  "notes": "Officers in plain navy uniforms with no badges, patches or lettering; light bar is unlit color blocks. Bright life jackets read at thumbnail size.",
+  "meta": {
+   "source": "defEvent",
+   "hook": "arrive",
+   "at": [
+    "lower",
+    "cooper",
+    "homer"
+   ],
+   "previous_event_key": "trooper_check"
+  },
+  "v": "229bc1d07f",
+  "enabled": false
+ },
+ {
+  "id": "event-04-guide-gossip",
+  "set": "event",
+  "n": 4,
+  "title": "Guide gossip",
+  "webp": "event/04-guide-gossip.webp",
+  "file": "event/04-guide-gossip.jpg",
+  "fw": 960,
+  "thumbWebp": "event/04-guide-gossip.thumb.webp",
+  "thumb": "event/04-guide-gossip.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "Outside a small-town diner on a summer morning, a grey-bearded old-timer guide leans on a pickup's tailgate with a coffee, telling stories to a younger guide.",
+  "where": "Arrival tile when the \"Guide gossip\" event fires at the shop or in Soldotna (the old-timer shares a bit of lore, skill +1).",
+  "when": {
+   "event": "gossip",
+   "from": "game",
+   "time": "any"
+  },
+  "notes": "Warm diner windows and steaming cups carry the friendly mood; the coffee-cup and fish signs are pictograms only. Ravens on the roofline are a local touch.",
+  "meta": {
+   "source": "defEvent",
+   "hook": "arrive",
+   "at": [
+    "shop",
+    "town"
+   ],
+   "previous_event_key": "gossip"
+  },
+  "v": "6557b7786c",
+  "enabled": false
+ },
+ {
+  "id": "event-05-midnight-sun",
+  "set": "event",
+  "n": 5,
+  "title": "Midnight sun",
+  "webp": "event/05-midnight-sun.webp",
+  "file": "event/05-midnight-sun.jpg",
+  "fw": 960,
+  "thumbWebp": "event/05-midnight-sun.thumb.webp",
+  "thumb": "event/05-midnight-sun.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "In a dim log-cabin bedroom a guide lies wide awake under a quilt while the window glows gold and pink at one in the morning, the clock hands at one.",
+  "where": "Night tile when the \"Midnight sun\" event fires at home (energy −8).",
+  "when": {
+   "event": "midnight_sun",
+   "from": "game",
+   "time": "night"
+  },
+  "notes": "Cool, dim interior against a warm glowing window; a shaft of light falls across the quilt. The half-taped foil on the glass is the Alaskan fix that did not work.",
+  "meta": {
+   "source": "defEvent",
+   "hook": "night",
+   "where": "home",
+   "previous_event_key": "midnight_sun"
+  },
+  "v": "5655c03866",
+  "enabled": false
+ },
+ {
+  "id": "event-06-bear-in-the-bin",
+  "set": "event",
+  "n": 6,
+  "title": "Bear in the bin",
+  "webp": "event/06-bear-in-the-bin.webp",
+  "file": "event/06-bear-in-the-bin.jpg",
+  "fw": 960,
+  "thumbWebp": "event/06-bear-in-the-bin.thumb.webp",
+  "thumb": "event/06-bear-in-the-bin.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "Under a yard light in the summer twilight, a black bear noses into a tipped-over fish-waste bin behind the shop, salmon scraps scattered on the gravel, while a face watches from a lit window.",
+  "where": "Night tile when the \"Bear in the bin\" event fires (−$40 for a bear-proof lid); also fits the home bear visit on a July morning.",
+  "when": {
+   "event": "bear_bin",
+   "from": "game",
+   "time": "night"
+  },
+  "notes": "A black bear, as the event text says. Warm yard-light pool vs the blue July night; the open lid and scattered fish carcasses make the cause obvious.",
+  "meta": {
+   "source": "defEvent",
+   "hook": "night",
+   "previous_event_key": "bear_bin",
+   "also_fits": [
+    "home:bear_yard"
+   ]
+  },
+  "v": "3182baa6b4",
+  "enabled": false
+ },
+ {
+  "id": "event-07-cold-snap-ice-fog",
+  "set": "event",
+  "n": 7,
+  "title": "Cold snap tonight",
+  "webp": "event/07-cold-snap-ice-fog.webp",
+  "file": "event/07-cold-snap-ice-fog.jpg",
+  "fw": 960,
+  "thumbWebp": "event/07-cold-snap-ice-fog.thumb.webp",
+  "thumb": "event/07-cold-snap-ice-fog.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "A snowbound log cabin at night in ice fog, chimney smoke rising straight up, the pickup plugged in, a light pillar over the yard light and a porch thermometer needle pinned deep in the cold.",
+  "where": "Home winter tile for the cold-snap job (\"Cold snap tonight: −10/−25/−35°F\": drip the taps, open the cabinets) and the camp cold-snap night.",
+  "when": {
+   "event": "cold_snap",
+   "from": "home",
+   "time": "night"
+  },
+  "notes": "Ice fog flattens the distance into pale bands; light pillars and the dead-straight smoke say \"still and brutally cold\". Thermometer is a dial with no numbers.",
+  "meta": {
+   "source": "home queue",
+   "previous_event_key": "cold",
+   "also_fits": [
+    "camp:coldsnap"
+   ]
+  },
+  "v": "15fc03c1c4",
+  "enabled": false
+ },
+ {
+  "id": "event-08-burst-pipe",
+  "set": "event",
+  "n": 8,
+  "title": "A pipe bursts",
+  "webp": "event/08-burst-pipe.webp",
+  "file": "event/08-burst-pipe.jpg",
+  "fw": 960,
+  "thumbWebp": "event/08-burst-pipe.thumb.webp",
+  "thumb": "event/08-burst-pipe.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "In a cabin kitchen at night a frozen pipe under the open sink cabinet has split and sprays water across a floor glazing with ice, while a guide in red long johns and a headlamp rushes in with a wrench.",
+  "where": "Home winter report when a cold snap freezes or bursts a water line (the \"frozen\" or \"burst\" outcome of the cold-snap job).",
+  "when": {
+   "event": "pipe_burst",
+   "from": "home",
+   "time": "night"
+  },
+  "notes": "Cold blue light from the frosted window and the headlamp beam carry the night; icicles on the pipe and white ice rims on the puddle show the water freezing as it spreads.",
+  "meta": {
+   "source": "home queue",
+   "outcome": [
+    "burst",
+    "frozen"
+   ],
+   "previous_event_key": "cold"
+  },
+  "v": "d884108f86",
+  "enabled": false
+ },
+ {
+  "id": "event-09-chimney-fire",
+  "set": "event",
+  "n": 9,
+  "title": "Chimney fire",
+  "webp": "event/09-chimney-fire.webp",
+  "file": "event/09-chimney-fire.jpg",
+  "fw": 960,
+  "thumbWebp": "event/09-chimney-fire.thumb.webp",
+  "thumb": "event/09-chimney-fire.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "On a snowy winter night flames and sparks roar out of a log cabin's stovepipe while the family watches from the snow in their coats and a red fire engine pulls up with its lights flashing.",
+  "where": "Home winter report when creosote catches in an unswept stovepipe (the chimney-fire outcome of the winter roll).",
+  "when": {
+   "event": "chimney_fire",
+   "from": "home",
+   "time": "night"
+  },
+  "notes": "The flame is the light source: orange on the snow roof, faces turned away from us. The fire engine is generic, with color blocks for lights and no lettering.",
+  "meta": {
+   "source": "home winter roll",
+   "has": [
+    "woodstove"
+   ],
+   "previous_event_key": "fire"
+  },
+  "v": "3a3995321f",
+  "enabled": false
+ },
+ {
+  "id": "event-10-breakup-mud",
+  "set": "event",
+  "n": 10,
+  "title": "Breakup",
+  "webp": "event/10-breakup-mud.webp",
+  "file": "event/10-breakup-mud.jpg",
+  "fw": 960,
+  "thumbWebp": "event/10-breakup-mud.thumb.webp",
+  "thumb": "event/10-breakup-mud.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "In spring breakup a pickup sits sunk to its axles in a soupy driveway between dirty melting snowbanks, the guide standing in the mud in rubber boots, the road beyond buckled by frost heaves and a tow truck on its way.",
+  "where": "Home spring report for breakup: the truck stuck in the mud (tow) or frost heaves shifting the skirting (carpenter).",
+  "when": {
+   "event": "breakup_stuck",
+   "from": "home",
+   "time": "day"
+  },
+  "notes": "Muted, washed-out spring palette with sky reflected in the puddles; the wavy road and the bump pictogram nod to frost heaves. Tow truck is generic with amber lights.",
+  "meta": {
+   "source": "home spring roll",
+   "outcome": [
+    "stuck",
+    "heave"
+   ],
+   "previous_event_key": "breakup",
+   "also_fits": [
+    "home:frost_heave"
+   ]
+  },
+  "v": "35b0156a2c",
+  "enabled": false
+ },
+ {
+  "id": "event-11-frozen-pipe-crawlspace",
+  "set": "event",
+  "n": 11,
+  "title": "Frozen pipes under the cabin",
+  "webp": "event/11-frozen-pipe-crawlspace.webp",
+  "file": "event/11-frozen-pipe-crawlspace.jpg",
+  "fw": 960,
+  "thumbWebp": "event/11-frozen-pipe-crawlspace.thumb.webp",
+  "thumb": "event/11-frozen-pipe-crawlspace.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "On a bright spring morning with snow still on the ground, a guide lies on his back on a tarp under the cabin, warming a frosted water pipe wrapped in heat tape with a hair dryer while the dog watches.",
+  "where": "Home report when a cold night freezes the water line but it does not burst (pipes_frozen): thaw it with heat tape and a hair dryer.",
+  "when": {
+   "event": "pipes_frozen",
+   "from": "home",
+   "time": "any"
+  },
+  "notes": "Cutaway of the open skirting shows the frosted pipe and the spiral of heat tape; warm work-light glow inside vs cool daylight outside. The orange cord leads from the outlet to the work.",
+  "meta": {
+   "season": "spring/late winter"
+  },
+  "v": "288a7ffed0",
+  "enabled": false
+ },
+ {
+  "id": "event-12-garden-moose-dawn",
+  "set": "event",
+  "n": 12,
+  "title": "Moose in the garden",
+  "webp": "event/12-garden-moose-dawn.webp",
+  "file": "event/12-garden-moose-dawn.jpg",
+  "fw": 960,
+  "thumbWebp": "event/12-garden-moose-dawn.thumb.webp",
+  "thumb": "event/12-garden-moose-dawn.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "At dawn a cow moose stands in the cabin garden eating kale out of a raised bed, a leaf in her mouth, while the guide watches from the open cabin door with a cup of coffee.",
+  "where": "Home report when a moose gets into the garden (garden_moose).",
+  "when": {
+   "event": "garden_moose",
+   "from": "home",
+   "time": "day"
+  },
+  "notes": "Dawn palette with a warm rim on the moose; the flattened fence panel and stripped stalks tell the story. The guide in the doorway is small and secondary.",
+  "meta": {
+   "season": "summer",
+   "has": [
+    "garden"
+   ]
+  },
+  "v": "2e11495309",
+  "enabled": false
+ },
+ {
+  "id": "event-13-earthquake-shake",
+  "set": "event",
+  "n": 13,
+  "title": "Earthquake",
+  "webp": "event/13-earthquake-shake.webp",
+  "file": "event/13-earthquake-shake.jpg",
+  "fw": 960,
+  "thumbWebp": "event/13-earthquake-shake.thumb.webp",
+  "thumb": "event/13-earthquake-shake.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "Inside the cabin during an earthquake the shelves sway, a mug flies off, the hanging lamp swings and the pictures tilt, while the guide and a child shelter under the sturdy table and the strapped water heater in the open closet stays put.",
+  "where": "Home report after an earthquake shakes the cabin (quake).",
+  "when": {
+   "event": "quake",
+   "from": "home",
+   "time": "any"
+  },
+  "notes": "Motion arcs and a faint ghost lamp show the swaying; no text. The two steel straps on the water heater are deliberately visible, so it also suits the strapped, no-damage quake_ok outcome.",
+  "meta": {
+   "also_fits": [
+    "home:quake_ok"
+   ]
+  },
+  "v": "00d22c0441",
+  "enabled": false
+ },
+ {
+  "id": "event-14-ice-dam-eave",
+  "set": "event",
+  "n": 14,
+  "title": "Ice dam on the eave",
+  "webp": "event/14-ice-dam-eave.webp",
+  "file": "event/14-ice-dam-eave.jpg",
+  "fw": 960,
+  "thumbWebp": "event/14-ice-dam-eave.thumb.webp",
+  "thumb": "event/14-ice-dam-eave.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "A cutaway of the cabin in deep winter: an ice ridge and icicles on the eave hold back meltwater, a brown stain spreads on the ceiling where the guide catches drips in a pot, a roof rake outside.",
+  "where": "Home winter report when an ice dam forms and water backs up under the roof (ice_dam).",
+  "when": {
+   "event": "ice_dam",
+   "from": "home",
+   "time": "day"
+  },
+  "notes": "Dollhouse cutaway so cause (warm roof, melt, ice ridge at the cold eave) and effect (ceiling stain, drip) read in one frame. Cool daylight outside, warm lamp inside.",
+  "meta": {
+   "season": "winter",
+   "also_fits": [
+    "home:roof_leak"
+   ]
+  },
+  "v": "cf09d25174",
+  "enabled": false
+ },
+ {
+  "id": "event-15-co-alarm-night",
+  "set": "event",
+  "n": 15,
+  "title": "CO alarm in the night",
+  "webp": "event/15-co-alarm-night.webp",
+  "file": "event/15-co-alarm-night.jpg",
+  "fw": 960,
+  "thumbWebp": "event/15-co-alarm-night.thumb.webp",
+  "thumb": "event/15-co-alarm-night.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "In the dark cabin at night a carbon-monoxide alarm blinks red on the wall while the family, in coats over pajamas, steps out the open door into the snow, and through the window the generator runs too close to the cabin.",
+  "where": "Home report when the CO alarm sounds at night and everyone gets out safely (co_alarm).",
+  "when": {
+   "event": "co_alarm",
+   "from": "home",
+   "time": "night"
+  },
+  "notes": "Red alarm glow is the warning color and the open door frames the family in cool snow light; the generator's exhaust drifting at the window explains the cause. The detector is a plain box with an LED, no text.",
+  "meta": {
+   "has": [
+    "detectors",
+    "generator"
+   ]
+  },
+  "v": "eaa0facd97",
+  "enabled": false
+ }
+]
