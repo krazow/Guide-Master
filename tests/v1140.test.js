@@ -72,6 +72,26 @@ module.exports = [
     noErrors(errors);
   } },
 
+  { name: 'weeks: a request for a closed day is moved within its own week, and booking it works', fn: async ctx => {
+    const { page, errors } = await open(ctx, { seed: 35 });
+    await page.evaluate(() => setPref('years', 5));
+    await newGame(page); await page.evaluate(install);
+    const r = await page.evaluate(() => {
+      season2(['june', 'aug'], 'cr');
+      closeModals(); S.cur = 15; S.t = 15 * 1440 + 600; S.book = S.book.filter(b => b.d < 14); S.reqs = [];
+      const req = { kind: 'trip', d: 14, type: 'king', n: 3, who: 'Monday kings', from: 'Ohio', res: false, quirk: [] };   // Monday Jun 14: closed below Skilak
+      const alt = nextLegalDay(req), q = requestOpts(req), i = q.opts.findIndex(o => /Offer/.test(o.l));
+      q.opts[i].fn();
+      const b = S.book.find(x => x.who === 'Monday kings');
+      return { alt, label: q.opts[i].l, b: b && [b.d, b.type] };
+    });
+    assert.strictEqual(r.alt, 15, 'the Tuesday of the same week'); assert.match(r.label, /June 15/);
+    assert.deepStrictEqual(r.b, [15, 'king']);
+    const end = await page.evaluate(() => { S.book = S.book.filter(b => b.d < 14); for (let d = 15; d <= 20; d++) addBooking({ d, type: 'king', n: 2, who: 'x' + d, from: 'X', quirk: [] }); return nextLegalDay({ kind: 'trip', d: 14, type: 'king', n: 2 }); });
+    assert.strictEqual(end, null, 'a full week offers no date in August');
+    noErrors(errors);
+  } },
+
   // ---- dates and rules follow the week ----
   { name: 'dates & regs: Sunday/Monday closure, 6 PM rule, bait, halibut closed days and dipnetting follow the played week’s date', fn: async ctx => {
     const { page, errors } = await open(ctx, { seed: 23 });
