@@ -156,7 +156,8 @@ function makeRequest(){
     const nr={reds:[2,6],silver:[2,5],trout:[2,4],halibut:[4,6]}[type],n=nr[0]+Math.floor(Math.random()*(nr[1]-nr[0]+1));
     let asst=false;
     if(conflicts(d,type)){if(S.up.asst&&type!=='halibut'&&!conflicts(d,type,true))asst=true;else continue}
-    return {kind,asst,d,type,n,who:p.who,from:p.from,res:!!p.res,quirk:Math.random()<.25?[pick(['drinker','nolicense','photo','kid'])]:[]};
+    const quirk=Math.random()<.25?[pick(['drinker','nolicense','photo','kid'])]:[];
+    return {kind,asst,d,type,n,who:p.who,from:p.from,res:!!p.res,quirk,tr:traitsFor({type,who:p.who,quirk:kind==='king'?quirk.concat('kingfan'):quirk})};
   }
   return null;
 }
@@ -184,9 +185,11 @@ function requestOpts(r){
       {l:`Take them as your “guests” — ${$(150*r.n)}`,s:'Cash up front.',fn:()=>{money(150*r.n);S.stats.earned+=150*r.n;say('🥅 You pocket the cash and hand nonresidents dipnets on the beach.');violate(null,{p:.35,fine:500,what:'helping nonresidents in the personal-use fishery'})}}]};
   }
   const T=TRIPS[r.type],asstNote=r.asst?`<p style="font-size:13px;color:var(--mute)">🧑‍🤝‍🧑 You’re booked then, so your assistant guide would take this party: you keep ${Math.round((1-ASST_CUT)*100)}% of the fare and tips.</p>`:'',price=T.gig?`day rate ${$(T.gig)}`:`${$(T.price)} × ${r.n} = ${$(T.price*r.n)}`;
-  const book=(n,q,d)=>{const b=addBooking({d:d??r.d,type:r.type,n,who:r.who,from:r.from,res:r.res,quirk:q||r.quirk,asst:r.asst||undefined});sfx('good');say(`📅 Booked: ${T.ic} ${T.n}, ${dlong(b.d)} at ${fmt(T.start)}, the ${b.who} (${b.n})${b.asst?', with your assistant guide':''}.`)};
+  if(!r.tr) r.tr=traitsFor(r);                          // 1.13.0: what the party came for (old saved requests get theirs here)
+  const goals=`<p class="small-note" style="font-size:13px;margin:4px 0">🎯 What they want: ${traitTxt(r.tr,true)}.</p>`;
+  const book=(n,q,d)=>{const b=addBooking({d:d??r.d,type:r.type,n,who:r.who,from:r.from,res:r.res,quirk:q||r.quirk,asst:r.asst||undefined,tr:r.tr.slice()});sfx('good');say(`📅 Booked: ${T.ic} ${T.n}, ${dlong(b.d)} at ${fmt(T.start)}, the ${b.who} (${b.n})${b.asst?', with your assistant guide':''}.`)};
   if(r.kind==='king'){
-    return {body:`<p>${who}, ${r.n} anglers, ${dlong(r.d)}: “We want a <b>Kenai king</b>. A big one. Like the world record.”</p>${requestWarn(r)}`,opts:[
+    return {body:`<p>${who}, ${r.n} anglers, ${dlong(r.d)}: “We want a <b>Kenai king</b>. A big one. Like the world record.”</p>${goals}${requestWarn(r)}`,opts:[
       ...(kingRule()==='open'?[{l:'Book it: kings are open this year',s:`1 per day, 20 in. or longer. ${$(payOf({type:'reds',n:r.n}))}.`,fn:()=>book(r.n,['kingfan'])}]:[
       {l:`Tell them straight: kings are ${kingRule()==='cr'?'catch-and-release only':'closed'}`,s:`Book a sockeye trip instead: ${$(payOf({type:'reds',n:r.n}))}.`,fn:()=>book(r.n,['kingfan'])},
       {l:'Promise you’ll “see what we can do”',s:`Book it: ${$(payOf({type:'reds',n:r.n}))}.`,fn:()=>book(r.n,['kingfan','promised'])}]),
@@ -198,7 +201,7 @@ function requestOpts(r){
   else o.push({l:`${bad?'Book it anyway':'Book it'} — ${$(payOf({type:r.type,n:r.n}))}`,s:bad?'You’ll face the rules on the water.':'',fn:()=>book(r.n)});
   if(bad&&alt!=null) o.splice(0,0,{l:`Offer ${dlong(alt)} instead`,s:`Same party, ${fmt(T.start)}. ${$(payOf({type:r.type,n:bn}))}.`,fn:()=>book(bn,null,alt)});
   o.push({l:'Decline politely',fn:()=>say('📞 You pass on that one.')});
-  return {body:`<p>${who} would like a <b>${T.ic} ${T.n}</b> on <b>${dlong(r.d)}</b> at ${fmt(T.start)} for <b>${r.n}</b>.</p>${warn}<p style="font-size:13px;color:var(--mute)">${T.long} ${price}.</p>${asstNote}`,opts:o};
+  return {body:`<p>${who} would like a <b>${T.ic} ${T.n}</b> on <b>${dlong(r.d)}</b> at ${fmt(T.start)} for <b>${r.n}</b>.</p>${goals}${warn}<p style="font-size:13px;color:var(--mute)">${T.long} ${price}.</p>${asstNote}`,opts:o};
 }
 function requestModal(r){const q=requestOpts(r);modal('📞 Booking request',q.body,q.opts)}
 // ---- requests wait in the Bookings tab ----
@@ -383,5 +386,13 @@ const MIGRATIONS=[
     Object.keys(c.did).forEach(k=>{if(k!=='bins')c.did[k]=y0});c.did.septic=y0-1;c.y=y0;
     if(!x.cabin||typeof x.cabin!=='object')x.cabin=c;
     if(typeof x.homeAsk!=='number')x.homeAsk=-1;
+  }},
+  // schema 5 (1.13.0): parties have traits (what they came for) and leave reviews. Booked parties and regulars get theirs now;
+  // a trip in progress carries on the old way (no beats), and its party still writes a review at the dock.
+  {to:5,run:x=>{
+    if(!Array.isArray(x.reviews))x.reviews=[];
+    (x.book||[]).forEach(b=>{if(!Array.isArray(b.tr))b.tr=traitsFor(b)});
+    (x.regs||[]).forEach(g=>{if(!Array.isArray(g.tr))g.tr=traitsFor(g)});
+    (x.reqs||[]).forEach(q=>{if(q&&q.r&&q.r.kind!=='dipnet'&&!Array.isArray(q.r.tr))q.r.tr=traitsFor(q.r)});
   }},
 ];

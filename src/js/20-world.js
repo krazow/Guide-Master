@@ -29,6 +29,7 @@ function newState(){
     regs:[],                // returning parties (30-stories.js): who they are and how their last trip went
     arcs:{rival:{st:0,s:-1,mood:0},garza:{st:0},board:{st:0,s:-1},day:-1},   // multi-season story arcs
     dil:{s:-1,n:{}},        // dilemmas shown this season, by key (no dilemma more than twice a season)
+    reviews:[],             // 1.13.0: what each party wrote after its trip (33-day.js): {day,who,type,stars 1–5,text}, the last 300
 
     calls:{},diner:{},report:{},office:{},dipnet:{},walks:{},
     run:[],cum:0,limit:3,eo:[],wx:[],wxd:[],noise:[],water:.5,solo:{},pu:0,
@@ -113,8 +114,8 @@ function issueOf(b){
   if(b.type==='reds'&&b.n>5) return 'overload';
   return null;
 }
-function addBooking(o){const b=Object.assign({id:S.nextId++,status:'booked',quirk:[]},o);S.book.push(b);S.book.sort((x,y)=>x.d-y.d||SLOT(x)[0]-SLOT(y)[0]);return b}
-const partyLine=b=>`The ${b.who} (${b.from}${b.res?', Alaska residents':''}) · ${b.n} ${b.type==='halibut'?'passengers':'clients'}`;
+function addBooking(o){const b=Object.assign({id:S.nextId++,status:'booked',quirk:[]},o);b.tr=fitTraits(b);S.book.push(b);S.book.sort((x,y)=>x.d-y.d||SLOT(x)[0]-SLOT(y)[0]);return b}
+const partyLine=b=>`The ${b.who} (${b.from}${b.res?', Alaska residents':''}) · ${b.n} ${b.type==='halibut'?'passengers':'clients'}${b.tr&&b.tr.length?` · ${traitTxt(b.tr)}`:''}`;
 const payOf=b=>b.type==='halibut'?(S.up&&S.up.chp?Math.round(350*b.n*S.up.rate):TRIPS.halibut.gig):Math.round(TRIPS[b.type].price*b.n*((S.up&&S.up.rate)||1));
 
 // ---- actions ----
