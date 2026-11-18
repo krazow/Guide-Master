@@ -6075,7 +6075,7 @@ const _genSeasonBookings=genSeasonBookings;
 genSeasonBookings=function(s){
   const out=_genSeasonBookings(s);
   if(!staffN()) return out;
-  const base=s*SEASON,r=Math.random,p0=clamp((.35+S.rep/200+(S.up.web===s?.15:0))*rateDemand()*DF().book,.12,.95);
+  const base=s*SEASON,r=Math.random,p0=clamp((.35+S.rep/200+(S.up.web===s?.15:0))*rateDemand()*DF().book*(typeof starBook==='function'?starBook():1),.12,.95);   // a rating under ★2.5 (39-stars.js) slows your guides' bookings too
   S.biz.staff.forEach((g,k)=>{const pk=p0*BIZ_DEMAND[Math.min(k,2)]*(.85+g.skill/400);
     for(let i=1;i<SEASON;i++){const d=base+i;if(r()>pk)continue;
       const types=staffTypes(d).filter(t=>!illegalDay(t,d)&&!laneBusy(d,t,b=>b.g===g.id)&&boatFree(d,t));

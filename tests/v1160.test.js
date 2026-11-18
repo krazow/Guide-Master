@@ -283,7 +283,7 @@ module.exports = [
       toWinter(3); S.weeks = { 3: ['aug', 'sep'] }; const g = addGuide({ name: 'Rosa Alvarez', skill: 80, rel: .97, wage: 300 }); const d = inSeason() + 7;   // the September Tuesday
       S.cur = d; S.t = d * 1440 + 300;
       const b = addBooking({ d, type: 'trout', n: 3, who: 'Lopez family', from: 'Texas', quirk: [], asst: true, g: g.id });
-      const rv0 = S.reviews.length, rating0 = rating().r; closeModals();
+      const rv0 = S.reviews.length, rating0 = rating().n; closeModals();
       S.t = d * 1440 + 1300; let best = null;
       // a good day for the party, so the review asks for the guide by name
       const R = Math.random; Math.random = () => .55; try { endDay('home'); } finally { Math.random = R; }
@@ -293,13 +293,13 @@ module.exports = [
       bizView(false); render(); const sched = document.querySelector('.content').textContent;
       // the good-review event names the guide when only a staff trip earned it
       S.cur = d; b.out.happy = 90; uiNarr = []; EV.find(e => e.id === 'good_review').run(); const ev = S.log[S.log.length - 1].s;
-      return { tr: b.tr, wk: weekIdOf(d), rv: brv, stars: b.out.stars, mine: S.reviews.length - rv0, rating: [rating0, rating().r], body, outfit, sched, ev };
+      return { tr: b.tr, wk: weekIdOf(d), rv: brv, stars: b.out.stars, mine: S.reviews.length - rv0, rating: [rating0, rating().n], body, outfit, sched, ev };
     });
     assert.strictEqual(r.wk, 'sep'); assert.ok(Array.isArray(r.tr) && r.tr.length >= 1, 'party traits');
     assert.ok(r.rv && r.rv.guide === 'Rosa' && r.rv.stars === r.stars && r.rv.stars >= 1, JSON.stringify(r.rv));
     if (r.rv.stars >= 4) assert.match(r.rv.text, /Ask for Rosa\./);
     assert.doesNotMatch(r.rv.text, /\{\{name\}\}/);
-    assert.strictEqual(r.mine, 0, 'not in your own reviews'); assert.deepStrictEqual(r.rating[0], r.rating[1], 'your rating unchanged');
+    assert.strictEqual(r.mine, 0, 'not in your own reviews'); assert.strictEqual(r.rating[0], r.rating[1], 'your rating rests on the same reviews');
     assert.match(r.body, /Rosa’s 🌈/); assert.ok(r.body.includes(r.rv.text), 'the review is in the morning report');
     assert.match(r.outfit, /Reviews: ★\d\.\d this season/); assert.match(r.outfit, /don’t count toward your own ★ rating/);
     assert.match(r.sched, /Lopez family.*\(Rosa\)/); assert.match(r.ev, /Ask for Rosa/);
