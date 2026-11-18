@@ -101,7 +101,7 @@ module.exports = [
     assert.strictEqual(r.hap, 1, 'a staff day counts in how the season went'); assert.strictEqual(r.trips, 1);
     assert.strictEqual(r.sn.trips, 1); assert.strictEqual(r.sn.wages, 280); assert.strictEqual(r.sn.net, r.sn.fares - r.sn.wages - r.sn.costs);
     assert.strictEqual(r.out.net, r.sn.net); assert.ok(Number.isInteger(r.out.net), 'whole dollars');
-    assert.match(r.title, /Morning report/); assert.ok(/Ben took the Boston paramedics out \(🐟 sockeye trip\)/.test(r.body), r.body.slice(0, 600)); assert.ok(/fish in the box/.test(r.body));
+    assert.match(r.title, /Morning report/); assert.ok(/Ben’s 🐟 sockeye trip with the Boston paramedics/.test(r.body), r.body.slice(0, 600)); assert.ok(/fish in the box/.test(r.body));
     assert.strictEqual(r.sheets, 1, 'the morning report is the only sheet'); assert.strictEqual(r.tiles, 0);
     noErrors(errors);
   } },

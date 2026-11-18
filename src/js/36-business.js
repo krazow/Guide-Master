@@ -235,7 +235,7 @@ function bizSettle(b,g,notes){
   g.streak=g.last===b.d-1||g.last===b.d?g.streak+(g.last===b.d?0:1):1;g.last=b.d;if(tired)g.mood-=3;
   b.status='done';b.out={happy,fish,line:`run by ${first}`,fare,refund,net,g:g.id};
   const mood=happy>=80?'thrilled':happy>=65?'happy':happy>=45?'so-so':'unhappy';
-  notes.push(`🧑‍🤝‍🧑 <b>${first}</b> took the ${b.who} out (${T.ic} ${T.n.toLowerCase()}): ${fish} ${b.type==='trout'?'fish to the net':'fish in the box'}, clients ${mood}.${line} After ${first}’s ${$(g.wage)}, fuel, fees and wear: <b>${net<0?'−':''}${$(Math.abs(net))}</b>.`);
+  notes.push(`🧑‍🤝‍🧑 <b>${first}</b>’s ${T.ic} ${T.n.toLowerCase()} with the ${b.who}: ${fish} ${b.type==='trout'?'fish to the net':'fish in the box'}, clients ${mood}.${line} After ${first}’s ${$(g.wage)}, fuel, fees and wear: <b>${net<0?'−':''}${$(Math.abs(net))}</b>.`);
 }
 // ---- the day around it ----
 const _onMorning=onMorning;
@@ -304,7 +304,7 @@ function bizWinterModal(){
   const back={l:'Done',s:'Back to the off-season summary.',fn:()=>setTimeout(winterModal,0)},again=f=>()=>{f();setTimeout(bizWinterModal,0)};
   const o=[];
   bizApplicants().forEach((a,i)=>{const why=hireWhy(a),c=onboardCost(a);
-    o.push({l:`Hire ${a.name} — ${$(a.wage)}/trip`,s:`${why?why+'. ':''}${skillWord(a.skill)} (skill ${a.skill}), ${relWord(a.rel)}. “${a.line}” Onboarding ${$(c)}${a.uscg?' (already holds a six-pack license)':' (includes a Coast Guard six-pack license)'}.`,dis:!!why,fn:again(()=>bizHire(i))})});
+    o.push({l:`Hire ${a.name} — ${$(a.wage)}/trip`,s:`${why?why+'. ':''}${skillWord(a.skill)} (skill ${a.skill}), ${relWord(a.rel)}. ${a.line} Onboarding ${$(c)}${a.uscg?' (already holds a six-pack license)':' (includes a Coast Guard six-pack license)'}.`,dis:!!why,fn:again(()=>bizHire(i))})});
   S.biz.staff.forEach(g=>{const want=marketWage(g.skill);
     o.push({l:`Give ${g.name.split(' ')[0]} a raise — +${$(BIZ_RAISE)}/trip`,s:`Now ${$(g.wage)} a trip; a guide of skill ${g.skill} expects about ${$(want)}. ${g.name.split(' ')[0]} is ${moodWord(g.mood)}.`,fn:again(()=>bizRaise(g.id))});
     o.push({l:`Let ${g.name.split(' ')[0]} go`,s:`Severance ${$(BIZ_SEVER*g.wage)}.`,fn:again(()=>bizFire(g.id))})});
@@ -327,22 +327,22 @@ window.bizView=v=>{OUTFIT_VIEW=!!v;render()};
   const seg=`<div role="group" aria-label="Bookings or outfit" style="display:flex;gap:6px;margin:4px 0 8px">${[['📅 Schedule',false],['🧑‍🤝‍🧑 Outfit',true]].map(([l,v])=>`<button class="chip" aria-pressed="${OUTFIT_VIEW===v}" onclick="bizView(${v})" style="flex:1;padding:8px;font-weight:700;${OUTFIT_VIEW===v?'background:var(--brand);color:#fff':''}">${l}</button>`).join('')}</div>`;
   return seg+(OUTFIT_VIEW?outfitView():v0())}}}
 function outfitView(){
-  const Z=BZ(),d0=day(),end=S.winter?d0:Math.min(seasonFirst()+SEASON,d0+7),btn=(l,k,a,b,dis)=>`<button class="chip" ${dis?'disabled':''} onclick="bizAct('${k}',${a}${b!=null?','+b:''})">${l}</button>`;
+  const Z=BZ(),d0=day(),end=S.winter?d0:Math.min(seasonFirst()+SEASON,d0+7),btn=(l,k,a,b,aria)=>`<button class="chip"${aria?` aria-label="${esc(aria)}"`:''} onclick="bizAct('${k}',${a}${b!=null?','+b:''})">${l}</button>`;
   const row=(ic,h,s,extra)=>`<div class="todo"><span class="ck" aria-hidden="true">${ic}</span><div><b>${h}</b><span>${s}</span>${extra?`<div class="chips" style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${extra}</div>`:''}</div></div>`;
   const sn=Z.staff.reduce((a,g)=>a+g.sn.net,0);
   let h=`<div class="sect">🧑‍🤝‍🧑 Your outfit${Z.staff.length?` · this season ${sn<0?'−':''}${$(Math.abs(sn))} net from your guides`:''}</div>`;
   if(!Z.staff.length) h+=row('🧑‍🤝‍🧑','No guides yet',S.winter?'Hire one from the off-season planner (❄️ Plan the off-season → Your outfit).':'Guides are hired in the off-season. Next winter, look in the off-season planner.');
   Z.staff.forEach(g=>{const f=g.name.split(' ')[0],want=marketWage(g.skill),s=g.sn;
-    h+=row('🧑',`${g.name} · ${$(g.wage)}/trip`,`“${g.line}”<br>Skill ${g.skill} (${skillWord(g.skill)}), ${relWord(g.rel)}, ${moodWord(g.mood)}. ${g.wage<want?`Expects about ${$(want)} a trip. `:''}${g.seasons?`${g.seasons} season${g.seasons>1?'s':''} with you. `:'New this year. '}<br>This season: ${s.trips} trip${s.trips===1?'':'s'}, fares ${$(s.fares)}, wages ${$(s.wages)}, costs ${$(s.costs)}, <b>net ${s.net<0?'−':''}${$(Math.abs(s.net))}</b>${s.cites?`, ${s.cites} citation${s.cites>1?'s':''}`:''}.`,
+    h+=row('🧑',`${g.name} · ${$(g.wage)}/trip`,`<i>${g.line}</i><br>Skill ${g.skill} (${skillWord(g.skill)}), ${relWord(g.rel)}, ${moodWord(g.mood)}. ${g.wage<want?`Expects about ${$(want)} a trip. `:''}${g.seasons?`${g.seasons} season${g.seasons>1?'s':''} with you. `:'New this year. '}<br>This season: ${s.trips} trip${s.trips===1?'':'s'}, fares ${$(s.fares)}, wages ${$(s.wages)}, costs ${$(s.costs)}, net ${s.net<0?'−':''}${$(Math.abs(s.net))}${s.cites?`, ${s.cites} citation${s.cites>1?'s':''}`:''}.`,
       btn(`Raise +${$(BIZ_RAISE)}`,'raise',g.id)+btn(`Let ${f} go (${$(BIZ_SEVER*g.wage)})`,'fire',g.id))});
   h+=`<div class="sect">🚤 Boats</div>`+row('🚤','Your jet sled & drift boat',`Condition ${S.boat}.${S.up.asst?' Plus your assistant guide’s sled.':''} A guide can use whichever boat you’re not using.`);
   Z.boats.forEach(b=>h+=row(BIZ_BOATS[b.kind].ic,b.kind==='sled'?'Second jet sled':'Second drift boat',`Worth about ${$(b.val)}. ${$(BIZ_BOAT_NIGHT)} a July night and ${$(BIZ_BOATS[b.kind].win)} a winter to keep.`,S.winter?btn(`Sell (${$(Math.round(b.val*BIZ_SELL))})`,'sell',b.id):''));
   if(!S.winter){
     h+=`<div class="sect">📋 Assignments · ${dlabel(d0)}–${dlabel(end-1)}</div>`;let any=false;
     for(let d=d0;d<end;d++) S.book.filter(b=>b.d===d&&b.status==='booked'&&b.type!=='halibut'&&(b.g!=null||!b.asst)).forEach(b=>{any=true;const T=TRIPS[b.type];
-      if(b.g!=null){const back=b.d>d0||tod()<T.start-60;h+=row(T.ic,`${dlabel(d)} · ${staffName(b.g)}: ${T.n}`,`The ${b.who} (${b.n}), ${fmt(T.start)}, ${L[T.loc].name}.`,back&&youFree(b)?btn('Take it yourself','back',b.id):'');return}
+      if(b.g!=null){const back=b.d>d0||tod()<T.start-60;h+=row(T.ic,`${dlabel(d)} · ${staffName(b.g)}: ${T.n}`,`The ${b.who} (${b.n}), ${fmt(T.start)}, ${L[T.loc].name}.`,back&&youFree(b)?btn('Take it yourself','back',b.id,null,`Run the ${b.who}’s trip on ${dlabel(d)} yourself`):'');return}
       const hs=canHand(b)?Z.staff.filter(g=>!laneBusy(b.d,b.type,x=>x!==b&&x.g===g.id)&&boatFree(b.d,b.type,b)):[];
-      h+=row(T.ic,`${dlabel(d)} · You: ${T.n}`,`The ${b.who} (${b.n}), ${fmt(T.start)}, ${L[T.loc].name}.${b.arc?' A family that books you, not your outfit.':''}`,hs.map(g=>btn(`Hand to ${g.name.split(' ')[0]}`,'hand',b.id,g.id)).join(''))});
+      h+=row(T.ic,`${dlabel(d)} · You: ${T.n}`,`The ${b.who} (${b.n}), ${fmt(T.start)}, ${L[T.loc].name}.${b.arc?' A family that books you, not your outfit.':''}`,hs.map(g=>btn(`Hand to ${g.name.split(' ')[0]}`,'hand',b.id,g.id,`Hand the ${b.who}’s ${T.n.toLowerCase()} on ${dlabel(d)} to ${g.name}`)).join(''))});
     if(!any) h+=row('📋','Nothing booked','No trips in the next few days.');
   }
   if(Z.past.length) h+=`<div class="sect">Former staff</div>`+Z.past.map(p=>row('👋',p.name,`${p.why==='quit'?'Quit':'Let go'} after ${p.trips} trips, ${p.net<0?'−':''}${$(Math.abs(p.net))} net${p.cites?`, ${p.cites} citation${p.cites>1?'s':''}`:''}.`)).join('');

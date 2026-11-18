@@ -25,12 +25,14 @@ Environment variables: `STYLES` (comma list), `DIFFS` (space list for run.sh), `
 | `passive` | buys no upgrades, no camping |
 | `ignores` / `hungry` | never buys food |
 | `opport` | rule-breaker: takes bending-the-rules options while it has fewer than two citations |
+| `outfit` | like `food`, and grows the business from the third off-season (36-business.js): hires a reliable guide at a fair wage (a second at Rep 72 and $70k), buys a second jet sled once cash allows, gives raises before a guide sours, lets a guide with a citation go |
+| `tycoon` | like `food`, and over-expands: every guide its reputation allows at the lowest wage, every boat it can afford, no raises |
 | others | `bytb`, `ruler`, `careless`, `nofuel`, `nolog` ... single-habit variants, see `STYLES` in `sim-lib.js` |
 
 Append `_c`, `_p` or `_n` to a style for the careful, pay-everything or full-neglect cabin policy. Camping is played by `campBot` (style flag `camp`).
 
 ## Reading and comparing runs
 
-`node tools/sim/analyze.js tools/sim/out/a.json` prints, per style, difficulty and years: mean season score (careers that were not lost), grade mix (A..F, F is a lost career), score parts, losses and citations. Grade cuts per season are A 62,000, B 55,000, C 44,000, D 27,000 (`CUTS=a,b,c,d` overrides). `MATRIX=1 node tools/sim/analyze.js ...` shows careful / default / neglect side by side with the neglect cost in percent.
+`node tools/sim/analyze.js tools/sim/out/a.json` prints, per style, difficulty and years: mean season score (careers that were not lost), grade mix (A..F, F is a lost career), score parts, losses and citations. Records also carry `staffTrips`, `staffNet`, `staffCites`, `bizStaff`, `bizBoats` and `bizPast` (why each guide left) for the outfit styles. Grade cuts per season are A 62,000, B 55,000, C 44,000, D 27,000 (`CUTS=a,b,c,d` overrides). `MATRIX=1 node tools/sim/analyze.js ...` shows careful / default / neglect side by side with the neglect cost in percent.
 
 To compare a change: run with the same `N` and seeds on the old build (`IDX=/path/old/index.html`) and the new one, then read both. The seeds are the same in both runs, but the game consumes random numbers differently once anything changes, so treat differences under about two standard errors (the `+-` column) as noise, and use `N` of 40 or more.
