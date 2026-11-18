@@ -3013,7 +3013,7 @@ function requestWarn(r){
 }
 // nearest later day in the same season that is legal and free (null if none). Only date problems are fixed by moving the date.
 function nextLegalDay(r){
-  const end=seasonFirst(seasonOf(r.d))+SEASON;
+  const s=seasonOf(r.d),end=weekGap(s)?r.d-sday(r.d)%7+7:seasonFirst(s)+SEASON;   // 1.14.0: weeks apart, a moved trip stays in its week (34-summer.js)
   for(let d=r.d+1;d<end;d++) if(!illegalDay(r.type,d)&&!conflicts(d,r.type,!!r.asst)) return d;
   return null;
 }
@@ -5165,8 +5165,7 @@ function weekType(type,d){
     if(o&&TRIPS[o.type]&&typeof o.d==='number'){const t=weekType(o.type,o.d);
       if(t!==o.type){o=Object.assign({},o,{type:t,n:Math.min(o.n||2,TRIPS[t].max||6)});
         if(conflicts(o.d,t,!!o.asst)){const w0=o.d-sday(o.d)%7;let to=null;for(let d=w0+1;d<w0+6&&to==null;d++)if(d!==o.d&&!conflicts(d,t,!!o.asst)&&!illegalDay(t,d))to=d;
-          if(to==null) return null;           // no room that week for the swapped trip: the party books elsewhere (callers that swap types ignore the result)
-          o.d=to}}}
+          if(to!=null) o.d=to}}}              // no room elsewhere that week: it keeps its day (regulars and Dale's party check the swapped type first)
     return _addBooking(o)};}
 
 // ---- June kings: a trip type of their own ----

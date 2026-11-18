@@ -171,7 +171,7 @@ function requestWarn(r){
 }
 // nearest later day in the same season that is legal and free (null if none). Only date problems are fixed by moving the date.
 function nextLegalDay(r){
-  const end=seasonFirst(seasonOf(r.d))+SEASON;
+  const s=seasonOf(r.d),end=weekGap(s)?r.d-sday(r.d)%7+7:seasonFirst(s)+SEASON;   // 1.14.0: weeks apart, a moved trip stays in its week (34-summer.js)
   for(let d=r.d+1;d<end;d++) if(!illegalDay(r.type,d)&&!conflicts(d,r.type,!!r.asst)) return d;
   return null;
 }

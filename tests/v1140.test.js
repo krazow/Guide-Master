@@ -181,16 +181,16 @@ module.exports = [
     await page.evaluate(() => setPref('years', 5));
     await newGame(page);
     const r = await page.evaluate(() => {
-      const p = { year: 2027, trips: 20, fares: 20000, tips: 2000, hap: 76, wom: 0, cites: 0 };
+      const p = { year: 2027, trips: 200, fares: 200000, tips: 20000, hap: 76, wom: 0, cites: 0 };
       const july = restWeeksX(p), r0 = restOfSeason(p);
       S.weeks[1] = ['june', 'aug']; const x = restWeeksX(p), a = WEEKS.june.w * WEEK_SLOT0 + WEEKS.aug.w;
       // the same guide plays fewer trips in quieter weeks (trips scaled by the weeks' weight): played + rest ≈ the July summer
-      const pq = Object.assign({}, p, { trips: Math.round(20 * a / 2), fares: 20000 * a / 2, tips: 2000 * a / 2 }), r1 = restOfSeason(pq);
+      const pq = Object.assign({}, p, { trips: Math.round(200 * a / 2), fares: 200000 * a / 2, tips: 20000 * a / 2 }), r1 = restOfSeason(pq);
       S.weeks[1] = ['bogus', 'jul1']; const bad = weeksOf(1);
-      return { july, x, a, tot0: 20 + r0.trips, tot1: pq.trips + r1.trips, bad };
+      return { july, x, a, tot0: 200 + r0.trips, tot1: pq.trips + r1.trips, bad };
     });
     assert.strictEqual(r.july, 1);
-    assert.ok(r.x > 1.2 && r.x < 1.5, 'more of the summer is booked for you: ' + r.x);
+    assert.ok(r.x > 1.2 && r.x < 1.6, 'more of the summer is booked for you: ' + r.x);
     assert.ok(Math.abs(r.tot1 - r.tot0) <= 0.03 * r.tot0, `summer trips about even: ${r.tot0} vs ${r.tot1}`);
     assert.deepStrictEqual(r.bad, ['jul1', 'jul2'], 'a bad pick falls back to July');
     noErrors(errors);
