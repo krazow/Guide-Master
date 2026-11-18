@@ -194,7 +194,7 @@ function weeksModal(s){
   if(!WPICK||WPICK.s!==s) WPICK={s,w:weeksOf(s).slice()};
   const sel=WPICK.w,y=2026+s;
   modal(`📆 Your two weeks · ${y}`,`<p>You guide two weeks of the summer yourself; the rest is booked off your reputation and settled in the off-season. A quieter week played means more of the busy summer is booked for you, so the year comes out about even. Pick the water you want to work.</p><p style="font-size:13px;color:var(--mute)">${REG().fc} Tap a week to choose it (two in all), then Done.</p>`,
-    WEEK_ORDER.map(id=>{const W=WEEKS[id],on=sel.includes(id);return {l:`${on?'✅ Chosen:':'⬜'} ${W.ic} ${W.n} · ${weekRange(y,id)}`,s:W.d(),np:true,fn:()=>{
+    WEEK_ORDER.map(id=>{const W=WEEKS[id],on=sel.includes(id);return {l:`${on?'✅ <span class="sr-only">Chosen: </span>':'⬜ <span class="sr-only">Not chosen: </span>'}${W.ic} ${W.n} · ${weekRange(y,id)}`,s:W.d(),np:true,fn:()=>{
       const i=sel.indexOf(id);if(i>=0)sel.splice(i,1);else{if(sel.length>=2)sel.shift();sel.push(id)}setTimeout(()=>weeksModal(s),0)}}}).concat([
       {l:sel.length===2?`Done: ${WEEK_ORDER.filter(x=>sel.includes(x)).map(x=>WEEKS[x].n).join(' and ')}`:'Pick two weeks',dis:sel.length!==2,fn:()=>{weeksSet(s,sel);setTimeout(winterModal,0)}}]));
 }
@@ -205,5 +205,12 @@ function weeksSet(s,w){S.weeks=S.weeks||{};S.weeks[s]=WEEK_ORDER.filter(x=>w.inc
 window.weeksSet=weeksSet;
 // last year's pick carries over to the next summer until you change it
 {const _startSeason=startSeason;startSeason=function(s){if(S.weeks&&!S.weeks[s]&&S.weeks[s-1])S.weeks[s]=S.weeks[s-1].slice();return _startSeason(s)}}
+// the season's first morning was rolled before the pick: once the bookings open, set its sonar count and weather to the week's month
+{const _finishWinter=finishWinter;finishWinter=function(){const s=S.winter&&S.winter.s;_finishWinter.apply(this,arguments);
+  if(s==null||!weekGap(s)) return;const d=s*SEASON,W=weekOf(d),m=mdOf(d),w=S.wxd[d],off=m<701?-3:m<801?0:m<901?-4:-12;
+  if(weekIdOf(d)!=='jul1')S.cum=weekCum(d);if(w&&off)w.temp+=off;
+  say(`📆 ${dlongY(d)}: your first week this year, ${W.ic} ${W.n}. ${W.d()}`)}}
 {const _newState=newState;newState=function(){return Object.assign(_newState(),{weeks:{},goals:null,goalLog:[]})}}
 TITLE.bullets[0]='Each season: two weeks of guiding, the July peak to begin with, and from your second summer June kings, August silvers or September rainbows if you like. Between seasons: bills, upgrades, new rules and new bookings.';
+HELP.splice(2,0,['📆','Your weeks of the summer','Season 1 is the two-week July peak. From the second summer on, the off-season summary lets you pick <strong>which two weeks</strong> you guide yourself: <strong>June kings</strong> (or rainbows and halibut when kings are closed), either <strong>July peak</strong> week, <strong>August silvers</strong> or <strong>September rainbows</strong>. Dates, rules, runs, daylight and the trips on offer follow the week. The weeks you don’t play are booked off your name and settled in the off-season, more of them when you play a quieter week, so the year comes out about even.']);
+const EVM=EV.find(x=>x.id==='mosquitoes');if(EVM){const c0=EVM.cond;EVM.cond=c=>(!c0||c0(c))&&mdOf(day())<901}

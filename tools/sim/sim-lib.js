@@ -256,6 +256,10 @@ window.runCareer=async function(o){
   M.arcs=JSON.parse(JSON.stringify(S.arcs||{}));M.regN=(S.regs||[]).length;M.regTrips=S.book.filter(b=>b.reg&&b.status==='done').length;M.regBooked=S.book.filter(b=>b.reg).length;M.partiesN=new Set(S.book.map(b=>b.who)).size;M.tripsDone=S.book.filter(b=>b.status==='done').length;M.dilMax=0;
   M.cabin=S.cabin?JSON.parse(JSON.stringify(S.cabin)):null;M.up=JSON.parse(JSON.stringify(S.up));M.home=JSON.parse(JSON.stringify(S.home));M.foodDays=foodDays();M.freezerEnd=S.freezer;M.cites=S.cites;M.ev=S.ev.count;M.achievements=S.achGame;M.warns=S.warns;
   M.boatAvg=M.boatSum/Math.max(1,M.energyN);
+  // 1.14.0: own trips and their pay by played week, and how many of each week were played (for the rest-of-summer weights)
+  M.wk={};M.wkN={};const wid=d=>typeof weekIdOf==='function'?weekIdOf(d):(sday(d)<7?'jul1':'jul2');
+  S.book.forEach(b=>{if(b.status!=='done'||b.asst)return;const k=M.wk[wid(b.d)]=M.wk[wid(b.d)]||{n:0,pay:0};k.n++;k.pay+=b.out?b.out.fare-b.out.refund+b.out.tip:0});
+  for(let s=0;s<=seasonOf(Math.min(S.cur,GAME.days-1));s++)(typeof weeksOf==='function'?weeksOf(s):['jul1','jul2']).forEach(id=>M.wkN[id]=(M.wkN[id]||0)+1);
   const out=M;M=null;return out;
 };
 window.simInternals={playDay,resolve,winterPlay,STYLES,initM:(o)=>{window.M={style:o.style,diff:o.diff,years:o.years,seed:o.seed,citeWhy:{},viols:{},tiles:{},steps:{},req:{},tt:{},winters:[],bought:[],camp:[],energySum:0,energyN:0,lowEnergyDays:0,boatSum:0,loss:null,errors:[]}}};window.STYLES=STYLES;window.UPPOL=UPPOL;window.WEEKPOL=WEEKPOL;
