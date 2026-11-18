@@ -99,4 +99,4 @@ function todoView(){
   return `<div class="sect">Today</div>`+todoItems().map(x=>`<div class="todo"><span class="ck">${x.ok?'✅':x.fail?'❌':x.urgent?'⚠️':'⬜'}</span><div><b>${x.l}</b><span>${x.s||''}</span></div>${!x.ok&&!x.fail&&!P.some(q=>q.t===x.l&&!q.done)&&P.length<PRIO_MAX?`<button class="pin" title="Add to my priorities" aria-label="Add to my priorities" onclick="prioAdd(${esc(JSON.stringify(x.l))})">📌</button>`:''}</div>`).join('')+
     prioView()+(typeof RULES_HTML==='string'&&RULES_HTML?`<div class="sect">How it works</div><div class="rules">${RULES_HTML}</div>`:'');
 }
-function logView(){return `<div class="log">${S.log.slice().reverse().map(e=>`<p><em>${dayName(Math.floor(e.t/1440)).slice(0,3)} ${fmt(e.t)}</em>${e.s}</p>`).join('')||'<p>Nothing yet.</p>'}</div>`}
+function logView(){if(typeof wallView==='function'&&LOGSUB==='wall')return wallSwitch()+wallView();return (typeof wallSwitch==='function'?wallSwitch():'')+`<div class="log">${S.log.slice().reverse().map(e=>`<p><em>${dayName(Math.floor(e.t/1440)).slice(0,3)} ${fmt(e.t)}</em>${e.s}</p>`).join('')||'<p>Nothing yet.</p>'}</div>`}

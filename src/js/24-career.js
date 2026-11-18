@@ -175,6 +175,7 @@ function startSeason(s){
   S.rep=Math.round(50+(S.rep-50)*.85);
   const before=S.cites;S.cites=S.citeLog.filter(x=>seasonOf(x)>=s-1).length;
   S.winter={s,bill,expired:before-S.cites,sup:suppliesWinter()};   // 31-supplies.js: stale gas, fridge, a winter outage
+  memSeasonStart(s);                                     // 37-memories.js: postcards and the rating's season milestones, in the morning report
   setTimeout(()=>{if(S&&S.winter&&!S.over)winterModal()},0);   // after the night summary
 }
 function winterModal(){
@@ -200,14 +201,14 @@ function upgradeModal(){
 }
 function finishWinter(){
   homeFinishWinter();                                    // 32-home.js: spring at the cabin, before the bookings open
-  const s=S.winter.s;S.winter=null;const reg=genSeasonBookings(s);homeSeasonOpens(s);
+  const s=S.winter.s;S.winter=null;const reg=genSeasonBookings(s).concat(memSeasonOpen(s));homeSeasonOpens(s);   // memSeasonOpen (37-memories.js): lodge guests, magazine readers
   const n=S.book.filter(b=>seasonOf(b.d)===s).length;
   say(`📅 ${2026+s} bookings are in: <b>${n} trips</b> for the season. ${REG().fc}${reg.length?'<br>'+reg.join('<br>'):''}`);
   showTile('📅',`${n} trips booked`,`Season ${s+1} of ${S.years}`,'good');
 }
 function genSeasonBookings(s){
   const base=s*SEASON,web=S.up.web===s?.15:0,r=Math.random;
-  const p0=clamp((.35+S.rep/200+web+(S.arcs.rival.ally?.03:0)+campBook(s))*rateDemand()*(S.up.dock?1.08:1),.12,.95);
+  const p0=clamp((.35+S.rep/200+web+(S.arcs.rival.ally?.03:0)+campBook(s))*rateDemand()*(S.up.dock?1.08:1)*starBook(),.12,.95);   // starBook (39-stars.js): fewer bookings under ★2.5
   const q=()=>r()<.3?[pick(['drinker','nolicense','kingfan','photo','kid'])]:[];
   const party=()=>pick(PARTIES);
   for(let i=0;i<SEASON;i++){const d=base+i,w=i%7;
