@@ -3,7 +3,9 @@
 Release notes for Guide Master. `/release now` adds a section here for every release, and the GitHub release notes
 are taken from it. Earlier versions are described in the README and the in-game update notice.
 
-## Unreleased
+## 1.16.0 (2026-11-18)
+
+This release includes everything planned for 1.15.0, which was never released on its own.
 
 ### Added
 - **🏆 The trophy wall.** The 📜 Log tab has a switch, **Log | Trophy wall**: your biggest fish of each species (sockeye, silvers,
@@ -24,14 +26,6 @@ are taken from it. Earlier versions are described in the README and the in-game 
 - **🧓 A mentor's first trip.** On a new career's first trip, Walt Brandvold, an old Soldotna guide, rides along and says one thing at
   each call: reading the conditions, choosing a move, what the party came for, a rule dilemma. **I've got this** sends him ashore;
   **Help → Ride with the mentor again** (Help is now also in ⚙️ Settings) brings him back for one trip.
-
-### Changed
-- Regulars, the dock and the Help sheet talk about "next season" rather than "next July"; the Help entry for season goals has its own icon.
-- Save schema 8 (`S.mem`). Saves from 1.12–1.14 (schemas 4–6) run the schema 5, 6 and 8 migrations in order; schema 7 is left
-  for the business layer. Records start from the moment you load, past reviews already count toward the rating, and a career already
-  under way doesn't get the mentor automatically (Help brings him).
-
-### Added (1.16.0)
 - **🧑‍🤝‍🧑 Your outfit.** From your third off-season you can grow the business, if you want to: hire up to three guides (Rep 55, 65
   and 75 for the first, second and third) and buy up to two more boats (a used jet sled for a second lower-river party, or a second
   drift boat for the upper Kenai). The off-season summary has **Your outfit: guides & boats**; the 📅 Bookings tab gets a
@@ -53,11 +47,12 @@ are taken from it. Earlier versions are described in the README and the in-game 
   be handed to a guide.
 - An Outfit row on the end screen; `outfit` (careful hiring) and `tycoon` (over-expanding) bots in the simulator.
 
-### Changed (1.16.0)
+### Changed
+- Regulars, the dock and the Help sheet talk about "next season" rather than "next July"; the Help entry for season goals has its own icon.
+- Games in progress are brought up to date automatically. Records start from the moment you load, past reviews already count
+  toward the rating, and a career already under way doesn't get the mentor automatically (Help brings him).
 - The five-star-review event names your guide when only a staff trip earned it.
-- Save schema 9 (`S.biz`). The business migration (built as schema 7 on 1.12.1 and never released) is now `to:9`, so saves at
-  schemas 4, 5, 6 and 8 run 5, 6, 8 and 9 in order; schema 7 stays unused. A save already past its second season can start an
-  outfit straight away.
+- A career already past its second season can start an outfit straight away.
 
 ## 1.14.0 (2026-11-18)
 
