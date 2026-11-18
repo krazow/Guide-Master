@@ -166,7 +166,10 @@
     100
    ],
    "up": [],
-   "time": "day"
+   "time": [
+    "day",
+    "dusk"
+   ]
   },
   "notes": "Fog keeps it early-morning without needing the dawn palette. Not for players with the 'dock' upgrade (own private launch) if you want to be strict.",
   "v": "3d479d7df1",
@@ -351,7 +354,10 @@
   "when": {
    "boat": "loaner",
    "where": "launch",
-   "time": "day"
+   "time": [
+    "day",
+    "dusk"
+   ]
   },
   "notes": "S.loaner===day() (LOANER_COST option in 20-world.js). An oil sheen behind the transom and a dented bow rail; a clean rig on the far ramp for contrast.",
   "v": "ce08781026",
@@ -1482,6 +1488,52 @@
    ]
   },
   "v": "eaa0facd97",
+  "enabled": false
+ },
+ {
+  "id": "event-16-trip-combat",
+  "set": "event",
+  "n": 16,
+  "title": "Combat fishing",
+  "webp": "boat/11-combat-fishing-big-eddy.webp",
+  "file": "boat/11-combat-fishing-big-eddy.jpg",
+  "fw": 960,
+  "thumbWebp": "boat/11-combat-fishing-big-eddy.thumb.webp",
+  "thumb": "boat/11-combat-fishing-big-eddy.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "A jet sled anchored off a shoulder-to-shoulder crowd of bank anglers on an elevated walkway while a wader low-holes right below the clients and three lines tangle into one bird's nest.",
+  "where": "Trip sheet on a sockeye day on the lower Kenai (Centennial/Big Eddy), and the 'Combat fishing' trip dilemma.",
+  "when": {
+   "event": "combat",
+   "from": "trip",
+   "time": "any"
+  },
+  "notes": "Same picture as boat-11-combat-fishing-big-eddy, shown with the trip incident.",
+  "v": "79f60e811d",
+  "enabled": false
+ },
+ {
+  "id": "event-17-trip-bear",
+  "set": "event",
+  "n": 17,
+  "title": "Sow and two cubs",
+  "webp": "boat/12-sow-and-cubs-eddy.webp",
+  "file": "boat/12-sow-and-cubs-eddy.jpg",
+  "fw": 960,
+  "thumbWebp": "boat/12-sow-and-cubs-eddy.thumb.webp",
+  "thumb": "boat/12-sow-and-cubs-eddy.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "A drift boat holds in an eddy behind a boulder on the turquoise upper Kenai while a brown bear sow and two cubs stand on a gravel bar, one client pointing and another taking a photo.",
+  "where": "The 'bear' trip dilemma on a drift-boat (trout) float on the upper Kenai.",
+  "when": {
+   "event": "bear",
+   "from": "trip",
+   "time": "any"
+  },
+  "notes": "Same picture as boat-12-sow-and-cubs-eddy, shown with the trip incident.",
+  "v": "6e58c5b2de",
   "enabled": false
  }
 ]
