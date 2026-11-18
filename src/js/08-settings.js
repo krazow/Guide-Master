@@ -74,6 +74,7 @@ window.openSettings=()=>{
     {l:'👤 Change name',s:'Updates your name everywhere in the game.',fn:()=>nameModal({back:openSettings})},
     {l:`🔊 Sound: ${prefs().sound?'On':'Off'}`,s:'Alerts and chimes.',fn:()=>{setPref('sound',!prefs().sound);if(prefs().sound)sfx('good');openSettings()}},
     {l:`🔔 Catch chime: ${prefs().chime?'On':'Off'}`,s:'A short chime for trophies, kings, limit-outs and first fish. Off unless you turn it on.',fn:()=>{setPref('chime',!prefs().chime);if(prefs().chime&&typeof memChime==='function')memChime();openSettings()}},
+    ...(ART.any()?[{l:`🖼️ Illustrations: ${artPref()?'On':'Off'}`,s:'Pictures on the Home tab, trips, camping and events. Turn off to keep the drawn scenes only (and save data).',fn:()=>{setPref('art',!artPref());if(S&&!S.over&&!document.querySelector('.title,.end'))render();openSettings()}}]:[]),
     {l:'♿ Accessibility',s:`Text size: ${{n:'Normal',l:'Large',xl:'Extra large'}[prefs().fs]} · High contrast: ${prefs().hc?'On':'Off'} · Reduce motion: ${prefs().rm?'On':'Off'}`,fn:()=>accessModal()},
     {l:`💡 Tips: ${prefs().tips?'On':'Off'}`,s:'One short tip at a time while you learn.',fn:()=>{setPref('tips',!prefs().tips);openSettings()}},
     {l:`🔔 Event pop-ups: ${popupsOn()?'On':'Off'}`,s:popupsOn()?'An OK window for each event during the day. Tap to turn off (the tiles still show).':'Events during the day show as small tiles and log lines. Tap to get an OK window for each. The morning report always shows.',fn:()=>{try{localStorage.setItem(POPUP_KEY,popupsOn()?'off':'on')}catch(e){}openSettings()}},

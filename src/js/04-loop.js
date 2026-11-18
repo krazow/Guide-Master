@@ -53,7 +53,7 @@ function endDay(where){
   const d=day(),notes=[];
   closeModals();
   onNight(where,notes,d);
-  fireHook('night',{where,notes});
+  const nctx={where,notes,fired:[]};fireHook('night',nctx);   // fired: the night's event ids (40-art.js picks a picture for the report)
   const card=dayCard(d);
   achCheck({night:true,where});
   if(S.over) return;
@@ -63,7 +63,7 @@ function endDay(where){
   // One MORNING REPORT replaces the night summary and the pop-ups the new morning would have opened: what happened overnight,
   // events, reminders, and any booking request (which waits in the Bookings tab). Decisions that need an answer queue behind it.
   const night=card+notes.map(n=>`<p>${n}</p>`).join('');
-  DIGEST={night,items:[],lines:[],held:[],open:false,from:d};
+  DIGEST={night,items:[],lines:[],held:[],open:false,from:d,nightIds:nctx.fired};
   startDay();
   const D=DIGEST;DIGEST=null;
   morningReport(D,d);
@@ -77,7 +77,8 @@ function morningReport(D,d){
   const ev=items.map(it=>`<div class="dig"><span class="di" aria-hidden="true">${it.ic}</span><div><b>${it.title}</b>${(it.lines||[]).map(l=>`<p>${l}</p>`).join('')}</div></div>`).join('');
   const rq=(S.reqs||[]).length;
   const lines=D.lines.map(l=>`<p>${l}</p>`).join('');
-  const body=`<div class="digest">${sec(`🌙 ${dayName(d)} night`,D.night)}${sec('☀️ This morning',ev+lines)}${rq?`<div class="dig"><span class="di" aria-hidden="true">📞</span><div><b>${rq} booking request${rq>1?'s':''} waiting</b><p>${(S.reqs||[]).map(q=>`The ${q.r.who}: ${reqKey(q.r)}, ${dlabel(q.r.d)}`).join('<br>')}</p></div></div>`:''}</div>`;
+  const art=artMorning(Object.assign({},D,{items}));   // 40-art.js: a picture on top (the cabin's, the morning's or the night's events) and one over your guides' trips
+  const body=`${art.top}<div class="digest">${sec(`🌙 ${dayName(d)} night`,art.night)}${sec('☀️ This morning',ev+lines)}${rq?`<div class="dig"><span class="di" aria-hidden="true">📞</span><div><b>${rq} booking request${rq>1?'s':''} waiting</b><p>${(S.reqs||[]).map(q=>`The ${q.r.who}: ${reqKey(q.r)}, ${dlabel(q.r.d)}`).join('<br>')}</p></div></div>`:''}</div>`;
   modal(`☀️ Morning report · ${dayName(S.cur)}`,body,[{l:`☀️ Wake up: ${dayName(S.cur)}, ${fmt(S.t)}`,fn:()=>{}},...(rq?[{l:`📞 Review requests in Bookings`,s:'They wait a day or two.',fn:()=>setTab('book')}]:[])]);
   sfx('info');
   D.held.forEach(q=>modal(...q));

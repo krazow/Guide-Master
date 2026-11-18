@@ -3,6 +3,15 @@
 Release notes for Guide Master. `/release now` adds a section here for every release, and the GitHub release notes
 are taken from it. Earlier versions are described in the README and the in-game update notice.
 
+## Unreleased
+
+- **Illustrations framework** (all art off by default): `src/js/40-art.js`, `art/`, `tools/art.py`, a runtime image cache in `sw.js` and a
+  ⚙️ Settings → Illustrations switch that appears once an image is enabled. Nothing changes for players until a set is enabled.
+  Hooks: the Home tab and the fall cabin sheet; arriving at a launch; each trip step (its STEP id) and the boat at the put-in; the
+  dock; repairs, the patch and a loaner at the shop; your guides' trips in the morning report; the cabin's events (CabinUpkeep now
+  reports `events` by id: a storm prompt, then its outcome); camping; event pop-ups and the morning report. 53 drawn images (cabin,
+  boat, camp, event) are in `art/` as WebP + small JPEG fallbacks, all disabled.
+
 ## 1.16.0 (2026-11-18)
 
 This release includes everything planned for 1.15.0, which was never released on its own.

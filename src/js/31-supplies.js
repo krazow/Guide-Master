@@ -146,6 +146,7 @@ function outage(h,winter){
   if(out.fish||out.fresh) out.lines.push(`🧊 ${[out.fish?`${out.fish} red${out.fish>1?'s':''} thawed in the freezer and went in the dump`:'',out.fresh?`${out.fresh} meals of fresh food spoiled`:''].filter(Boolean).join(' and ')}.`);
   else if(out.off>0) out.lines.push(`🧊 The freezer held (${out.off<keep?'it was closed and stayed cold':'barely'}).`);
   if(out.energy) out.lines.push(`😮‍💨 No lights, no coffee maker, a dead phone and a warm cabin: you sleep badly. Energy −${out.energy}.`);
+  if(!winter) homeArtNote([{id:G&&out.run>0?'outage_gen':'outage_dark',sev:0}]);   // 32-home.js: the morning report's picture (40-art.js)
   return out;
 }
 const outageHours=winter=>{const r=Math.random();

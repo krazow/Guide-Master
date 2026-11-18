@@ -126,7 +126,7 @@ function onNight(where,notes,d){
   if(S.energy<15) notes.push('🥱 You’re running on fumes.');
 }
 function onTime(min){if(min>0)adj('energy',-min/50)}
-function onArrive(dest){S.visited[dest]=true}
+function onArrive(dest){S.visited[dest]=true;artLaunch(dest)}   // 40-art.js: the trailer at the ramp before today's trip
 function daySummary(d){const n=S.book.filter(b=>b.d===d&&b.status==='done').length;return [`⭐ ${S.rep}`,`⚡ ${S.energy}`,`🛶 ${n} trip${n===1?'':'s'}`]}
 
 // ---- losing ----

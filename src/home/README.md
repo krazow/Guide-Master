@@ -37,7 +37,7 @@ The off-season costs **free days**, not minutes: the host passes `daysLeft` (Gui
 
 ```js
 CabinUpkeep.newState() / normState(x)             // a fresh state; fill in whatever an older state lacks
-CabinUpkeep.jobs(ticket, { all })                 // jobs due now: [{ id, ic, kind: 'task'|'event', title, why, risk, opts: [{ id: 'diy'|'pay'|'skip', l, s, cash, min, days, energy, dis, why }] }]
+CabinUpkeep.jobs(ticket, { all })                 // jobs due now: [{ id, ic, kind: 'task'|'event', ev (a storm's event id, else null), title, why, risk, opts: [{ id: 'diy'|'pay'|'skip', l, s, cash, min, days, energy, dis, why }] }]
 CabinUpkeep.dueCount(ticket)                      // how many are due in all (the list shows at most MAX_DUE)
 CabinUpkeep.resolve(ticket, jobId, optId, { rand }) → report
 CabinUpkeep.daily(ticket, { rand }) → report      // a July morning: drift, a bear (once a summer), the garden harvest, one reminder
@@ -55,7 +55,8 @@ CabinUpkeep.autoplay(host, { policy, rand })      // headless: 'careful' | 'paya
 
 ```js
 host = {
-  show(title, html, buttons, lock),   // required. Show a pop-up. buttons: [{ l, s, dis, fn }]; call fn after the pop-up has closed. lock=true: Esc must not dismiss it.
+  show(title, html, buttons, lock, meta), // required. Show a pop-up. buttons: [{ l, s, dis, fn }]; call fn after the pop-up has closed. lock=true: Esc must not dismiss it.
+                                      // meta (optional): { id, kind, events } (see the report's events below); Guide Master uses it to pick an illustration. Ignore it if you like.
   ticket(),                           // required. A fresh ticket from the host's numbers (it changes after every report).
   apply(report),                      // required. Apply a report.
   rand(),                             // optional, [0,1)
@@ -97,6 +98,9 @@ host = {
 | `severity` | 0 nothing, 1 a mishap, 2 a serious mishap (show a pop-up) |
 | `remind` | one gentle reminder, or `''` |
 | `cond`, `costs`, `done` | condition now; costs by cause (for balancing); jobs finished |
+| `events` | what happened, for a host that shows it (Guide Master picks an illustration): `[{ id, sev }]`, ids from `CabinUpkeep.EVENTS` only, `sev` 0 news, 1 a mishap, 2 a serious one. Outcomes only; a storm prompt's own id is the job's `ev` |
+
+`CabinUpkeep.EVENTS`: `chimney_fire`, `pipes_frozen`, `pipe_burst`, `cold_snap` and `heavy_snow` (the storm prompts themselves: `jobs()` gives a storm job's `ev`), `ice_dam`, `shed_collapse`, `breakup_stuck`, `frost_heave`, `well_pump`, `septic_backup`, `quake`, `quake_ok` (strapped, no damage), `co_alarm` (the alarm sounded, nobody hurt), `co_night` (no alarm, the ER), `bear_yard`, `bear_raid`, `garden_moose`, `garden_harvest`, `gen_fail`, `outage_gen` (this winter's outage, the generator ran), `outage_dark` (no generator; sev 1 when the cabin went cold), `roof_leak`, `furnace_fail`, `pump_fail` (the July trouble of a run-down cabin), `spoiled_batch`. The ui passes them to `host.show` as `meta.events`: a storm prompt's `ev` before the choice, the report's events after it (or the prompt's `ev` again when nothing happened), and a winter, spring or mishap report's events.
 
 ## Files (concatenated in name order by `tools/build.py`, after `src/camp/` and before `src/js/*.js`)
 

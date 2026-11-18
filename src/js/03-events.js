@@ -37,6 +37,7 @@ function fireHook(hook,ctx={}){
     } else S.ev.force=S.ev.force.filter(x=>x!==e.id);
     S.ev.last[e.id]=day();S.ev.count[e.id]=(S.ev.count[e.id]||0)+1;S.ev.history.push({id:e.id,t:S.t});
     const nBefore=uiNarr.length,mBefore=MQ.length+(document.getElementById('mbg')?1:0);
+    if(Array.isArray(ctx.fired))ctx.fired.push(e.id);   // the caller can ask which events ran (endDay: the morning report's picture)
     EV_RUNNING=e.id;let r;try{r=e.run(ctx)||{}}finally{EV_RUNNING=null}
     // events that didn't open their own modal get collected into one OK pop-up per hook call
     const ownModal=MQ.length+(document.getElementById('mbg')?1:0)!==mBefore;
@@ -62,12 +63,13 @@ const INFO_POP_CAP=1;
 function infoPopsToday(){const p=S&&S.ev&&S.ev.pop;return p&&p.d===day()?p.n:0}
 function eventPopup(hook,items,capped){
   if(!items.length||hook==='night'||!S||S.over) return;
-  if(DIGEST){items.forEach(it=>{const m=it.e.tile||['📍',it.e.id.replace(/_/g,' ')];DIGEST.items.push({ic:m[0],title:m[1],lines:it.lines})});return}   // morning events are part of the morning report
+  if(DIGEST){items.forEach(it=>{const m=it.e.tile||['📍',it.e.id.replace(/_/g,' ')];DIGEST.items.push({ic:m[0],title:m[1],lines:it.lines,id:it.e.id})});return}   // morning events are part of the morning report
   if(!popupsOn()||capped) return;
   S.ev.pop={d:day(),n:infoPopsToday()+1}; // night events go in the "Good night" summary
   const meta=e=>e.tile||['📍',e.id.replace(/_/g,' ')];
   const body=items.map(it=>{const m=meta(it.e);const txt=it.lines.map(l=>`<p style="margin:4px 0 0">${l}</p>`).join('');
     return items.length>1?`<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)"><span style="font-size:24px">${m[0]}</span><div><b>${m[1]}</b>${txt}</div></div>`:txt}).join('');
   const one=items.length===1?meta(items[0].e):null;
-  modal(one?`${one[0]} ${one[1]}`:'📍 Meanwhile…',body||'<p></p>',[{l:'OK',fn:()=>{}}]);
+  const art=artOn()?items.map(it=>artSlot('event',()=>artEventCtx(it.e.id,'game'))).find(Boolean)||'':'';   // 40-art.js: the first event with an illustration
+  modal(one?`${one[0]} ${one[1]}`:'📍 Meanwhile…',art+(body||'<p></p>'),[{l:'OK',fn:()=>{}}]);
 }

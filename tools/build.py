@@ -8,6 +8,8 @@
   src/home/*.js    the CabinUpkeep home-maintenance module (one global namespace, no access to the game), concatenated next, also
                    before the game files. See src/home/README.md.
   src/js/*.js      the game code, concatenated in file-name order
+  art/manifest.json  the illustrations' manifest (tools/art.py writes it): its ENABLED entries are embedded in src/js/40-art.js
+                   between /*@ART@*/ and /*@/ART@*/. The images themselves stay separate files under art/ (never inlined here).
 
 It also keeps sw.js in step with GAME.id and GAME.version (src/js/00-game.js),
 so each release gets a fresh offline cache.
@@ -25,6 +27,22 @@ def game_field(name):
     if not m: sys.exit(f'GAME.{name} not found in src/js/00-game.js')
     return m.group(1)
 
+ART_RE = re.compile(r'/\*@ART@\*/.*?/\*@/ART@\*/', re.S)
+ART_FIELDS = ('id', 'set', 'file', 'fw', 'thumb', 'webp', 'thumbWebp', 'v', 'w', 'h', 'alt', 'when', 'enabled')
+
+def art_entries():
+    """The enabled entries of art/manifest.json, trimmed to what the game reads (a missing manifest is an empty one)."""
+    p = os.path.join(ROOT, 'art', 'manifest.json')
+    if not os.path.exists(p): return []
+    import json
+    data = json.load(open(p, encoding='utf-8'))
+    if not isinstance(data, list): sys.exit('art/manifest.json must be a JSON array (see art/README.md)')
+    return [{k: e[k] for k in ART_FIELDS if k in e} for e in data if isinstance(e, dict) and e.get('enabled') is True]
+
+def art_js(entries):
+    import json
+    return '/*@ART@*/' + json.dumps(entries, ensure_ascii=False, separators=(',', ':')).replace('</', '<\\/') + '/*@/ART@*/'
+
 def build():
     shell = read('src/shell.html')
     css = read('src/style.css').rstrip('\n')
@@ -32,6 +50,8 @@ def build():
     # the home-upkeep module goes second for the same reason (src/js/32-home.js is its adapter)
     files = [f for d in ('camp', 'home', 'js') for f in sorted(glob.glob(os.path.join(ROOT, 'src', d, '*.js')))]
     js = '\n'.join(read(os.path.relpath(f, ROOT)).rstrip('\n') for f in files)
+    assert len(ART_RE.findall(js)) == 1, 'the /*@ART@*/ manifest markers are missing in src/js/40-art.js'
+    js = ART_RE.sub(lambda m: art_js(art_entries()), js)
     assert shell.count('/*@STYLE@*/') == 1 and shell.count('//@SCRIPT@') == 1, 'placeholders missing in src/shell.html'
     return shell.replace('/*@STYLE@*/', css).replace('//@SCRIPT@', js), len(files)
 

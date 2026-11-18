@@ -44,7 +44,7 @@ let ACTS=[];
 function actView(){
   ACTS=[];
   let h=tipView();
-  if(uiNarr.length) h+=`<div class="narr">${uiNarr.slice(-4).map(s=>'<p>'+s+'</p>').join('')}</div>`;
+  if(uiNarr.length) h+=`${artNarrHTML()}<div class="narr">${uiNarr.slice(-4).map(s=>'<p>'+s+'</p>').join('')}</div>`;
   const tags=typeof statusTags==='function'?statusTags():[];
   if(tags.length) h+=`<div class="status">${tags.join('')}</div>`;
   const acts=actionsHere().filter(Boolean);
@@ -61,7 +61,7 @@ function actView(){
     h+=`<div class="dest compact"><div class="dn"><b>${L[k].ic} ${L[k].name}</b><span>${L[k].hours?hoursTxt(k):L[k].desc||''}</span></div><div class="chips"><button class="chip" onclick="ACT(${i})" aria-label="Go to ${esc(L[k].name)} · ${m} min">Go · ${m} min</button></div></div>`});
   return h+'</details>';
 }
-window.ACT=i=>{uiNarr=[];sfx('tap');const f=ACTS[i];f&&f();afterAction();if(S&&!S.over&&!document.querySelector('.title,.end'))render()};
+window.ACT=i=>{uiNarr=[];ART_NARR=null;sfx('tap');const f=ACTS[i];f&&f();afterAction();if(S&&!S.over&&!document.querySelector('.title,.end'))render()};
 
 // ---- tips: one at a time, each shown once per game (TIPS in 21-story.js) ----
 function tipView(){

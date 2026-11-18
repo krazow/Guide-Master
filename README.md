@@ -263,6 +263,16 @@ Not verified (left unchanged): truck camper price, heating oil and propane price
 
 Neglecting the cabin against careful upkeep costs 4.0 to 6.9% on normal and 5.7 to 8.8% on Combat Season (expert 8.8, within noise of the 8% line) for the main styles (ignores-food and the rule-breaker lose more). Two-year Rookie careers that ignore food score A17 B33 C10 against A57 B3 for the by-the-book bot. Combat Season's gap between skilled and expert narrowed because the price-rise trap ("rates" upgrade) and camping and spot-reading credit are tuned on hard only; the normal ladder is unchanged in kind.
 
+## Illustrations (off by default)
+
+`src/js/40-art.js` can put a raster illustration on top of the Home tab and the fall cabin sheet, the trip sheet (the put-in and the
+dock), the winter-camping hub and each day, evening and night, event pop-ups, the morning report and the cabin's storm prompts. The
+images live in `art/<set>/` as separate files (cached on first use by `sw.js`, never precached, left out of the single-file offline
+build), `art/manifest.json` lists them, and `tools/build.py` embeds only the **enabled** entries. Every image ships switched off:
+with none enabled the game is byte-for-byte what it was (`tests/art.test.js` checks every hook). `tools/art.py` imports a drawn set
+(disabled), validates it against the game's real ids, and enables it; **⚙️ Settings → Illustrations** appears once one is enabled.
+See `art/README.md` for the workflow, the `when` keys of each set and the size budget.
+
 ## Cabin upkeep
 
 The cabin in Soldotna is its own engine, **CabinUpkeep**, in `src/home/` (contract, prices with their basis and the balance in `src/home/README.md`). `src/js/32-home.js` is the thin adapter, as for camping: it builds a *ticket* from the save, shows the engine's screens in our pop-ups and applies the *report*. The module never touches `S`, `modal(` or `GAME` (`tests/home.test.js` checks the source).

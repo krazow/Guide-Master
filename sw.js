@@ -1,8 +1,17 @@
-// Service worker: offline-first app shell, runtime-cached Google Fonts.
+// Service worker: offline-first app shell, runtime-cached Google Fonts and illustrations.
 // tools/build.py keeps VERSION in step with GAME.version, so every release replaces the old cache.
 const CACHE_PREFIX = 'guidemaster-';
 const VERSION = CACHE_PREFIX + '1.16.0';
 const FONTS = CACHE_PREFIX + 'fonts';
+// Illustrations (art/, see art/README.md) are never precached: each image is cached the first time it is shown, in its own cache
+// that outlives releases (the URLs carry ?v=<content hash>) and keeps only the ART_MAX most recently added images.
+const ART = CACHE_PREFIX + 'art';
+const ART_MAX = 60;
+const isArt = url => /\/art\/[^?]+\.(png|webp|jpe?g)$/i.test(url.pathname);
+async function trimArt(c) {
+  const keys = await c.keys();
+  for (let i = 0; i < keys.length - ART_MAX; i++) await c.delete(keys[i]);
+}
 const SHELL = ['./', 'index.html', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/maskable-512.png',
   'icons/apple-touch-icon.png', 'icons/favicon-32.png',
@@ -13,7 +22,7 @@ self.addEventListener('install', e => {
 });
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys()
-    .then(keys => Promise.all(keys.filter(k => k.startsWith(CACHE_PREFIX) && k !== VERSION && k !== FONTS).map(k => caches.delete(k))))
+    .then(keys => Promise.all(keys.filter(k => k.startsWith(CACHE_PREFIX) && k !== VERSION && k !== FONTS && k !== ART).map(k => caches.delete(k))))
     .then(() => self.clients.claim()));
 });
 self.addEventListener('fetch', e => {
@@ -30,6 +39,17 @@ self.addEventListener('fetch', e => {
     return;
   }
   if (url.origin !== location.origin) return;
+  // Illustrations: cache first, fetched and stored on first use (runtime cache, size-capped).
+  if (isArt(url)) {
+    e.respondWith(caches.open(ART).then(async c => {
+      const hit = await c.match(req);
+      if (hit) return hit;
+      const r = await fetch(req);
+      if (r.ok) { await c.put(req, r.clone()); trimArt(c); }
+      return r;
+    }));
+    return;
+  }
   // Pages: network first (picks up updates), fall back to the cached shell offline.
   if (req.mode === 'navigate') {
     e.respondWith(fetch(req).then(r => { const copy = r.clone(); caches.open(VERSION).then(c => c.put('index.html', copy)); return r; })
