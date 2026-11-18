@@ -322,10 +322,10 @@ function tripEnd(b,t){
   const mood=happy>=82?'😁 They’re already asking about next July. Word of mouth will bring you more bookings.':happy>=65?'🙂 Solid day. Handshakes at the trailer.':happy>=45?'😐 Polite thanks, small tip.':review?'😠 Tight-lipped goodbyes and a one-star review. Word gets around the Kenai.':'😕 They leave a little deflated.';
   const row=(l,v)=>`<br>${l}: <b>${v>=0?'':'−'}${$(Math.abs(v))}</b>`;
   const why=[];if(skunk)why.push('skunked');if(S.gear<=0&&t.notes.some(n=>n.startsWith('🪱')))why.push('no tackle');if(refund&&happy<42)why.push('unhappy clients');
-  modalSwap(`${T.ic} Back at the dock`,`${t.notes.map(n=>`<p>${n}</p>`).join('')}
+  modalSwap(`${T.ic} Back at the dock`,`${mem.top}${t.notes.map(n=>`<p>${n}</p>`).join('')}
     <p><b>Catch:</b> ${line}${t.kept?` (${t.kept} kept on the sly)`:''}${lost?` · ${lost} minutes lost`:''}</p>
     ${towed?'<p>🛟 <b>Towed in.</b> Half the fare refunded.</p>':''}<p><b>The pay:</b>${row(`Booked fare${b.type==='halibut'&&!S.up.chp?' (day rate)':''}`,fare)}${refund?row(`Refund${why.length?` (${why.join(', ')})`:''}`,-refund):''}${row('Tip',tip)}${xs.map(([l,v])=>row(l,v)).join('')}${costs?row('Launch fee',-costs):''}<br><b>Net: ${net<0?'−':''}${$(Math.abs(net))}</b></p>
-    <p>${mood} Rep ${dRep>=0?'+':'−'}${Math.abs(dRep)}.</p>${reviewHTML(rv,b)}${mem}
+    <p>${mood} Rep ${dRep>=0?'+':'−'}${Math.abs(dRep)}.</p>${reviewHTML(rv,b)}${mem.html}
     <p style="font-size:13px;color:var(--mute)">📓 Log it in your ADF&amp;G logbook before bed.</p>`,[{l:'Head in',fn:()=>{}}].concat(b.card?[{l:'Hand them your card and ask them back',s:'10 minutes. After a day like this, most say yes.',fn:()=>regCard(b)}]:[]));
   sfx(happy>=50?'good':'bad');
 }

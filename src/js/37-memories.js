@@ -107,9 +107,10 @@ function memTripStart(b,t){
 }
 
 // ---- the dock: the last stretches, the review's firsts, the card ----
-// tripEnd (22-trips.js) calls this after the review is written. info: {C, rv, happy, fish}. Returns the html for the dock sheet.
+// tripEnd (22-trips.js) calls this after the review is written. info: {C, rv, happy, fish}. Returns {top, html} for the dock sheet:
+// the moment goes on top, the catch card, the rating's news and the mentor's last word below the review.
 function memDock(b,t,info){
-  const M=MEM(),mm=mmOf(t),C=info.C,rv=info.rv,sp=speciesOf(b.type);let html='';
+  const M=MEM(),mm=mmOf(t),C=info.C,rv=info.rv,sp=speciesOf(b.type);let html='',top='';
   try{
     memScan(b,t,'dock');
     if(C&&bagged(b)&&C.fishers>0&&C.limits===C.fishers&&!mm.lim){mm.lim=true;mm.ev.push({k:'limit',sp,n:C.fish});memFirst('limit',b,`🧊 First limit-out: every one of the ${b.who} limited`)}
@@ -119,12 +120,12 @@ function memDock(b,t,info){
     const best=mm.best;M.trips.push({d:b.d,who:b.who,from:b.from,type:b.type,stars:rv?rv.stars:0,best:best?[best.sp,best.z]:null,tr:(b.tr||[]).slice(0,2),lim:!!mm.lim});
     if(M.trips.length>60)M.trips.splice(0,M.trips.length-60);
     const m=momentOf(mm.ev),said=mm.said.concat(mm.ev.map(e=>e.k));mm.ev=[];
-    if(m){html+=momentHTML(m);memChime()}
+    if(m){top=momentHTML(m);memChime()}
     if(said.some(k=>MM_GO.includes(k))&&best) html+=cardHTML(b,info,best,said);
   }catch(e){}
   if(typeof starsAfterTrip==='function') html+=starsAfterTrip(b,t,info);
   if(typeof mentorDock==='function') html+=mentorDock(b,t);
-  return html;
+  return {top,html};
 }
 
 // ---- the catch card: a shareable-looking card in the dock summary, and a PNG of it ----
@@ -200,9 +201,7 @@ window.logSub=k=>{LOGSUB=k;render();const b=document.querySelector(`.gm-seg butt
 function wallSwitch(){return `<div class="gm-seg" role="group" aria-label="Log or trophy wall">${[['log','📜 Log'],['wall','🏆 Trophy wall']].map(([k,l])=>`<button type="button" data-k="${k}" aria-pressed="${LOGSUB===k}" class="${LOGSUB===k?'on':''}" onclick="logSub('${k}')">${l}</button>`).join('')}</div>`}
 function wallView(){
   const M=MEM(),row=(ic,b,s)=>`<div class="todo"><span class="ck" aria-hidden="true">${ic}</span><div><b>${b}</b><span>${s}</span></div></div>`;
-  let h='';
-  if(typeof starsWall==='function') h+=starsWall();
-  h+='<div class="sect">🏆 Biggest fish</div>';
+  let h='<div class="sect">🏆 Biggest fish</div>';
   const recs=SP_ORDER.filter(sp=>M.rec[sp]);
   h+=recs.length?recs.map(sp=>{const r=M.rec[sp],X=FISH_SZ[sp];return row(X.ic,`${X.n}: ${szShort(sp,r.z)}${isTrophy(sp,r.z)&&sp==='halibut'?' · barn door':''}`,`The ${esc(r.who)}${r.from?`, ${esc(r.from)}`:''} · ${dlabel(r.d)}, ${r.year}`)}).join(''):'<p class="prio-empty">Nothing on the wall yet. Your first fish goes here.</p>';
   const F=[['trip','🛶'],['sp_sockeye','🐟'],['sp_silver','🎣'],['sp_rainbow','🌈'],['sp_halibut','⚓'],['king','👑'],['barn','🚪'],['limit','🧊'],['five','⭐']];
@@ -214,6 +213,7 @@ function wallView(){
   h+='<div class="sect">⭐ Standout clients</div>';
   h+=five.length||regs.length?five.map(r=>row('★',`The ${esc(r.who)} · ${'★'.repeat(5)}`,`“${r.text}” · ${dlabel(r.day)}, ${yearOf(r.day)}`)).join('')+regs.map(g=>row('🔁',`The ${esc(g.who)}: ${g.trips} Julys with you`,`${esc(g.from)} · regulars`)).join(''):'<p class="prio-empty">Five-star reviews and regulars who keep coming back show up here.</p>';
   if(M.cards.length) h+='<div class="sect">📬 Postcards</div>'+M.cards.slice(-4).reverse().map(c=>row('📬',`The ${esc(c.who)}, ${esc(c.from)}`,`${c.txt} · spring ${2026+c.s}`)).join('');
+  if(typeof starsWall==='function') h+=starsWall();
   return h;
 }
 
