@@ -21,6 +21,9 @@ const STYLES={
  expert:  {dil:'first',refuel:true,log:true,fa:true,up:'sensible',camp:false,calls:'daily',service:true,declineIllegal:true,spot:'best'},
 };
 STYLES.skilled=Object.assign({},STYLES.expert,{camp:true,spot:'fit',scout:true,look:true,card:true,up:'skilled',svc:60,food:'smart',haul:true,stab:true});
+// 1.13.0: guide reads the conditions at every beat of the day and matches the plan to the party (the options' value hints, v);
+// skilled is the same player with a fixed plan (it stays where it launched).
+STYLES.guide=Object.assign({},STYLES.skilled,{guide:true});
 STYLES.food=  Object.assign({},STYLES.bytb,{food:'smart',haul:true,stab:true});
 STYLES.foodgen1=Object.assign({},STYLES.bytb,{food:'smart',haul:true,stab:true,gen:1});
 STYLES.foodgen2=Object.assign({},STYLES.bytb,{food:'smart',haul:true,stab:true,gen:2});
@@ -52,6 +55,8 @@ window.simSetup=function(){
 function opts(){return MB.map(o=>o.l)}
 function chooseTrip(cfg){
   const key=S.trip.steps[S.trip.step],n=MB.length,b=bk(S.trip.id);
+  if(cfg.guide&&key!=='pack'&&window.TRIPV&&TRIPV.o&&TRIPV.o.some(o=>o.v!=null)){
+    let bi=-1,bv=-1e9;TRIPV.o.forEach((o,k)=>{if(o.dis||o.legal===false)return;const v=o.v==null?-50:o.v;if(v>bv){bv=v;bi=k}});if(bi>=0)return bi}
   if(key==='pack'){
     const find=re=>{const o=MB.find(x=>re.test(x.l));return o?o.k:null};
     if(cfg.food==='skip') return find(/Skip food/);

@@ -15,7 +15,7 @@
 // ---- returning parties ----
 const ORD=['','first','second','third','fourth','fifth','sixth','seventh','eighth','ninth','tenth'];
 const REG_MAX=10;
-function addReg(b,h,s,arc){S.regs.push({who:b.who,from:b.from,res:!!b.res,type:b.type==='halibut'?'reds':b.type,n:Math.min(b.n,b.type==='trout'?3:b.type==='silver'?4:5),trips:1,last:{h,s},arc:arc?'garza':null});if(arc)S.arcs.garza.st=1}
+function addReg(b,h,s,arc){S.regs.push({who:b.who,from:b.from,res:!!b.res,type:b.type==='halibut'?'reds':b.type,n:Math.min(b.n,b.type==='trout'?3:b.type==='silver'?4:5),trips:1,last:{h,s},arc:arc?'garza':null,tr:(b.tr||[]).slice()});if(arc)S.arcs.garza.st=1}
 // "Hand them your card" at the dock: a party that had a good day and didn't offer their number. Better days say yes more often.
 function regCard(b){
   pass(10);const h=b.out?b.out.happy:75;b.card=false;
@@ -48,7 +48,7 @@ function regsRebook(base,r){
         if(w<1||w>5||(type==='silver'&&i<7)) continue;
         const d=base+i;if(conflicts(d,type)) continue;
         const n=Math.min(g.n+(h>=88&&g.n<(type==='trout'?3:type==='silver'?4:5)?1:0),type==='trout'?3:type==='silver'?4:5);
-        addBooking({d,type,n,who:g.who,from:g.from,res:g.res,quirk:[],reg:true,arc:g.arc||undefined});g.miss=0;
+        addBooking({d,type,n,who:g.who,from:g.from,res:g.res,quirk:[],reg:true,arc:g.arc||undefined,tr:(g.tr||[]).slice()});g.miss=0;
         lines.push(`⭐ The ${g.who} (${g.from}) are back for their ${ORD[Math.min(10,(g.trips||1)+1)]} July${h>=88?': last time was a five-star day':''}.`);break}
     }else{
       g.miss=(g.miss||0)+1;
@@ -78,7 +78,7 @@ Object.assign(STEP,{
     O('Loosen the straps a notch and keep going','Still on, still legal, and a little grumbling.',(b,t)=>{t.happy-=2}),
     O('Let him take it off “just for a minute”','His dad slips you $40 and the kid beams.',(b,t)=>{fx(t,40,'Tip from the grateful dad');violate(t.notes,{p:.25,fine:200,what:'a child without a life jacket on a boat under 26 feet',minor:true})},1)]}),
   whale:(b)=>({t:'🐋 A humpback off the bow',b:'<p>A humpback blows a hundred yards off the bow and the whole boat goes quiet. In Alaska waters vessels are to stay <b>100 yards</b> from humpback whales.</p>',o:[
-    O('Idle down and let it come to you','You drift for 20 minutes and nobody minds.',(b,t)=>{lose(t,20);t.q-=.03;t.happy+=6}),
+    O('Idle down and let it come to you',tv(b,{photo:'You drift for 20 minutes, and the photographers get the shot of the trip.',seasick:'Twenty minutes rolling in the swell.'},'You drift for 20 minutes and nobody minds.'),(b,t)=>{lose(t,20);t.q-=.03;t.happy+=tv(b,{photo:10,kids:6,seasick:-2},6);G(t).shot=1}),
     O('Motor in for the photo','Everybody has their phones out and a client tips $80.',(b,t)=>{t.happy+=6;fx(t,80,'Tip for the whale photos');violate(t.notes,{p:.3,fine:1000,what:'approaching a humpback whale closer than 100 yards',who:NOAA})},1)]}),
   rescue:(b)=>({t:'🛟 A capsized paddler',b:'<p>Rounding the bend you see a rafter’s dry bag floating by, then the raft itself, upside down, with its owner clinging to a root wad.</p>',o:[
     O('Drop everything, pull him aboard and run him to shore','40 minutes lost and a little water in the boat.',(b,t)=>{lose(t,40);adj('boat',-2);adj('rep',4);t.happy+=3;t.notes.push('🛟 You pull him in shivering, wrap him in a rain jacket and get him to the ramp. By evening the story is all over the Kenai.')}),
@@ -90,8 +90,8 @@ Object.assign(STEP,{
     O('Stay below the high-water line or use the public access','A longer walk and a smaller bite.',(b,t)=>{lose(t,15);t.q-=.02}),
     O('Land on the lawn; the owner’s not home','A great spot and a $40 tip.',(b,t)=>{t.q+=.04;fx(t,40,'Tip for the secret spot');violate(t.notes,{p:.2,fine:150,what:'trespassing on a posted private bank',minor:true})},1)]}),
   seasick:(b)=>({t:'🤢 Green faces on deck',b:'<p>The swell is up and three of the passengers are hanging over the rail. The tide is running against a rising wind.</p>',o:[
-    O('Run for the lee of the Spit and fish the slack','40 minutes lost and fewer fish.',(b,t)=>{lose(t,40);t.q-=.03;t.happy-=2}),
-    O('Push on: they’ll feel better when a fish bites','They don’t, and they say so.',(b,t)=>{t.happy-=9;adj('energy',-4)})]}),
+    O('Run for the lee of the Spit and fish the slack',tv(b,{seasick:'40 minutes lost and fewer fish, and the seasick ones will thank you.',meat:'40 minutes lost and fewer fish.'},'40 minutes lost and fewer fish.'),(b,t)=>{lose(t,40);t.q-=.03;t.happy+=tv(b,{seasick:5,meat:-4},-2)}),
+    O('Push on: they’ll feel better when a fish bites',tv(b,{meat:'They want fish more than comfort.'},'They don’t, and they say so.'),(b,t)=>{t.happy-=tv(b,{seasick:15,meat:3},9);G(t).rough=(G(t).rough||0)+1;adj('energy',-4)})]}),
   arc_garza:(b)=>{const st=S.arcs.garza.st;
     if(st===1) return {t:'👦 Mateo’s big fish',b:`<p>The Garzas are back for their second July. Mateo, now 11, has a bent rod and a look of fierce concentration. “I’ll do it myself!”</p>`,o:[
       O('Coach him through it, hand off the rod when he asks','It takes 20 minutes, and you’ll remember his face.',(b,t)=>{lose(t,20);t.happy+=8;S.skill++;t.notes.push('🎣 Mateo lands his first red on his own. His mother cries a little. His father films the whole thing.')}),
