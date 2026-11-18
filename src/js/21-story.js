@@ -402,4 +402,8 @@ const MIGRATIONS=[
     if(!Array.isArray(x.goalLog))x.goalLog=[];
     if(x.goals!=null&&(typeof x.goals!=='object'||!Array.isArray(x.goals.list)))x.goals=null;
   }},
+  // schema 8 (1.15): memories (37-memories.js): the trophy wall, firsts, postcards, the mentor, the rating's milestones, all in S.mem.
+  // Written to run on any earlier save (schemas 5–7): it only adds S.mem. A career already under way has had its first trip, so the mentor
+  // stays home (Help → "Ride with the mentor again" brings him). Records start from here; past reviews already count toward the rating.
+  {to:8,run:x=>{x.mem=fillDefaults(x.mem&&typeof x.mem==='object'&&!Array.isArray(x.mem)?x.mem:{},memBase(x))}},
 ];

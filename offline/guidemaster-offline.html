@@ -1779,8 +1779,8 @@ const GAME={
   title:'Guide Master',
   tagline:'A guide’s career on the Kenai',
   codePrefix:'GUIDEMASTER',   // transfer codes start with this, e.g. POCKETWEEK:eyJ…
-  version:'1.14.0',           // bump on every release: shown in Settings, stamped into saves and sw.js
-  schema:6,                  // bump when the shape of S changes, and add a MIGRATIONS entry (21-story.js)
+  version:'1.15.0',           // bump on every release: shown in Settings, stamped into saves and sw.js
+  schema:8,                  // bump when the shape of S changes, and add a MIGRATIONS entry (21-story.js)
   days:14,                   // days in ONE season (the July peak, Mon–Sun twice; season 1 is Jul 13–26, 2026). A career is 14 × years: see the getter below
   wake:300,                  // default alarm for new games, in minutes after midnight (300 = 5:00 AM: guides start early; saves keep their own S.alarm)
   startLoc:'shop',
@@ -2264,7 +2264,7 @@ function todoView(){
   return `<div class="sect">Today</div>`+todoItems().map(x=>`<div class="todo"><span class="ck">${x.ok?'✅':x.fail?'❌':x.urgent?'⚠️':'⬜'}</span><div><b>${x.l}</b><span>${x.s||''}</span></div>${!x.ok&&!x.fail&&!P.some(q=>q.t===x.l&&!q.done)&&P.length<PRIO_MAX?`<button class="pin" title="Add to my priorities" aria-label="Add to my priorities" onclick="prioAdd(${esc(JSON.stringify(x.l))})">📌</button>`:''}</div>`).join('')+
     prioView()+(typeof RULES_HTML==='string'&&RULES_HTML?`<div class="sect">How it works</div><div class="rules">${RULES_HTML}</div>`:'');
 }
-function logView(){return `<div class="log">${S.log.slice().reverse().map(e=>`<p><em>${dayName(Math.floor(e.t/1440)).slice(0,3)} ${fmt(e.t)}</em>${e.s}</p>`).join('')||'<p>Nothing yet.</p>'}</div>`}
+function logView(){if(typeof wallView==='function'&&LOGSUB==='wall')return wallSwitch()+wallView();return (typeof wallSwitch==='function'?wallSwitch():'')+`<div class="log">${S.log.slice().reverse().map(e=>`<p><em>${dayName(Math.floor(e.t/1440)).slice(0,3)} ${fmt(e.t)}</em>${e.s}</p>`).join('')||'<p>Nothing yet.</p>'}</div>`}
 // ---------------- saving ----------------
 // render() autosaves after every tap, and the page saves when it's hidden (app switch, tab close).
 // Saves live in localStorage, one key per slot. A finished game deletes its save.
@@ -2478,11 +2478,13 @@ window.openSettings=()=>{
   modal('⚙️ Settings',`<p>Playing as <b>{{name}}</b>${inGame?` · ${DF().ic} ${DF().n}`:''}.</p><p style="font-size:12px;color:var(--mute)">${esc(GAME.title)} version ${APP_VERSION}</p>`,[
     {l:'👤 Change name',s:'Updates your name everywhere in the game.',fn:()=>nameModal({back:openSettings})},
     {l:`🔊 Sound: ${prefs().sound?'On':'Off'}`,s:'Alerts and chimes.',fn:()=>{setPref('sound',!prefs().sound);if(prefs().sound)sfx('good');openSettings()}},
+    {l:`🔔 Catch chime: ${prefs().chime?'On':'Off'}`,s:'A short chime for trophies, kings, limit-outs and first fish. Off unless you turn it on.',fn:()=>{setPref('chime',!prefs().chime);if(prefs().chime&&typeof memChime==='function')memChime();openSettings()}},
     {l:'♿ Accessibility',s:`Text size: ${{n:'Normal',l:'Large',xl:'Extra large'}[prefs().fs]} · High contrast: ${prefs().hc?'On':'Off'} · Reduce motion: ${prefs().rm?'On':'Off'}`,fn:()=>accessModal()},
     {l:`💡 Tips: ${prefs().tips?'On':'Off'}`,s:'One short tip at a time while you learn.',fn:()=>{setPref('tips',!prefs().tips);openSettings()}},
     {l:`🔔 Event pop-ups: ${popupsOn()?'On':'Off'}`,s:popupsOn()?'An OK window for each event during the day. Tap to turn off (the tiles still show).':'Events during the day show as small tiles and log lines. Tap to get an OK window for each. The morning report always shows.',fn:()=>{try{localStorage.setItem(POPUP_KEY,popupsOn()?'off':'on')}catch(e){}openSettings()}},
     {l:`🛶 Show every trip step: ${prefs().tripSteps?'On':'Off'}`,s:prefs().tripSteps?'Each choice on a trip opens its own pop-up. Tap to put a trip back on one sheet.':'A trip is one sheet: your choices and the result change in place. Tap to open a pop-up for every step.',fn:()=>{setPref('tripSteps',!prefs().tripSteps);openSettings()}},
     ...(typeof feedbackModal==='function'?[{l:'💬 Send feedback',s:'Ideas, bugs, a rule we got wrong: it goes straight to the developer.',fn:()=>feedbackModal(openSettings)}]:[]),
+    ...(typeof helpModal==='function'?[{l:'❓ Help',s:'How to play, the trophy wall, the rating, and the mentor’s ride-along.',fn:()=>helpModal()}]:[]),
     {l:'⌨️ Keyboard shortcuts',s:'On a computer: numbers press buttons, ? for the list.',fn:()=>keysModal(openSettings)},
     {l:`🏆 Achievements (${achCount()}/${ACH.length})`,s:'Earned on this device, across all your games.',fn:()=>achModal(openSettings)},
     ...(GAME.slots>1?[{l:`💾 Save slots (current: ${curSlot()})`,s:'Continue, start or delete games in each slot.',fn:()=>slotsModal()}]:[]),
@@ -3245,6 +3247,10 @@ const MIGRATIONS=[
     if(!Array.isArray(x.goalLog))x.goalLog=[];
     if(x.goals!=null&&(typeof x.goals!=='object'||!Array.isArray(x.goals.list)))x.goals=null;
   }},
+  // schema 8 (1.15): memories (37-memories.js): the trophy wall, firsts, postcards, the mentor, the rating's milestones, all in S.mem.
+  // Written to run on any earlier save (schemas 5–7): it only adds S.mem. A career already under way has had its first trip, so the mentor
+  // stays home (Help → "Ride with the mentor again" brings him). Records start from here; past reviews already count toward the rating.
+  {to:8,run:x=>{x.mem=fillDefaults(x.mem&&typeof x.mem==='object'&&!Array.isArray(x.mem)?x.mem:{},memBase(x))}},
 ];
 // ============================================================
 //  GUIDE MASTER, part 3: running a trip.
@@ -3447,6 +3453,7 @@ function tripStart(b){
   if(golook) t.steps.push('golook');                     // 33-day.js: the go/no-go weather call on the dock
   t.steps.push('pack','spot');                            // 31-supplies.js: pack the cooler, then pick the spot
   regTripStart(b,t);                                      // 30-stories.js: returning parties remember last time
+  memTripStart(b,t);                                      // 37-memories.js: the mentor climbs aboard (38-mentor.js), a lodge guest's referral fee
   if(b.tr&&b.tr.length) t.notes.push(`🎯 The ${b.who}: ${traitTxt(b.tr,true)}.`);
   const want=2-(golook?1:0),beats=[],q=b.quirk;
   if(b.arc==='garza'&&S.arcs.garza.st>=1&&S.arcs.garza.st<=3) beats.push('arc_garza');
@@ -3496,7 +3503,8 @@ function tripNext(){
   const prog=sheet?` · ${done+1} of ${done+left}`:'';
   const open=sheet&&!t.shown?`<p class="small-note" style="margin:0 0 6px">You load the ${b.who} into the ${b.type==='trout'?'drift boat':b.type==='halibut'?'charter boat':'jet sled'} at ${L[T.loc].name} and push off at ${fmt(S.t)}.</p>`:'';
   t.shown=true;
-  modalSwap(v.t,`<p class="small-note" style="color:var(--mute);margin:0 0 6px">${T.ic} ${T.n} · ${b.who}${prog}</p>${open}${v.b}${packed?packHTML(pv):''}${hot}`,opts.map(({o,k})=>({l:o.l,s:o.s,legal:o.legal!==false,dis:!!o.dis,np:true,k,stay:sheet,fn:()=>{
+  const mm=memSheet(b,t,key);                              // 37-memories.js: a catch moment on top, the mentor's line below
+  modalSwap(v.t,`<p class="small-note" style="color:var(--mute);margin:0 0 6px">${T.ic} ${T.n} · ${b.who}${prog}</p>${open}${mm.top}${v.b}${packed?packHTML(pv):''}${hot}${mm.foot}`,opts.map(({o,k})=>({l:o.l,s:o.s,legal:o.legal!==false,dis:!!o.dis,np:true,k,stay:sheet,fn:()=>{
     const tt=S.trip;if(!tt) return;const bb=bk(tt.id);if(!bb) {S.trip=null;return}
     if(packed){const po=pv.o[PACK?PACK.sel:0];po&&po.fn&&po.fn(bb,tt);tt.step++;PACK=null}
     const q0=tt.q;o.fn&&o.fn(bb,tt);
@@ -3544,7 +3552,7 @@ function tripEnd(b,t){
   const goal=BT?goalOf(b,t,Object.assign({},C,{fish:fish-t.kept})):{h:0,good:[],bad:[]};   // 33-day.js: what the party came for
   const happy=45+frac*45+t.happy+goal.h+upH(b.type)+DF().mood-RATE_MOOD*rateSteps();
   const fare=towed?Math.round(payOf(b)*.5):payOf(b),base=b.type==='halibut'&&!S.up.chp?1200:fare;
-  const tip=Math.round(base*clamp((happy-60)/100,0,.3));
+  const tip=Math.round(base*clamp((happy-60)/100,0,.3)*memTipK());   // 39-stars.js: a top-rated guide's parties tip more
   const skunk=fishers>0&&fish-t.kept<=0&&b.type!=='trout'&&!(b.type==='halibut'&&halClosed(b.d));
   const refundPct=clamp((42-happy)/200,0,.25)+(skunk?.05:0),refund=Math.round(fare*refundPct);
   const xs=(t.x||[]),xnet=xs.reduce((a,[,v])=>a+v,0),xpos=xs.reduce((a,[,v])=>a+Math.max(0,v),0),xneg=xs.reduce((a,[,v])=>a+Math.min(0,v),0);
@@ -3565,14 +3573,15 @@ function tripEnd(b,t){
   const rv=addReview(b,t,happy,C||{fish:fish-t.kept,frac,limits,fishers},goal);  // 33-day.js: their review, in their words
   b.status='done';b.out={happy:Math.round(happy),fish,line,fare,refund,tip,net,stars:rv.stars};S.trip=null;
   storyAfterTrip(b,happy,t.notes);                      // 30-stories.js: returning parties, story arcs
+  const mem=memDock(b,t,{C,rv,happy,fish});              // 37-memories.js: records, firsts, the catch card, the rating's milestones, the mentor's last word
   say(`${T.ic} ${T.n} with the ${b.who}: ${line}. Paid ${$(fare-refund)} + ${$(tip+xpos)} in tips.`);
   const mood=happy>=82?'😁 They’re already asking about next July. Word of mouth will bring you more bookings.':happy>=65?'🙂 Solid day. Handshakes at the trailer.':happy>=45?'😐 Polite thanks, small tip.':review?'😠 Tight-lipped goodbyes and a one-star review. Word gets around the Kenai.':'😕 They leave a little deflated.';
   const row=(l,v)=>`<br>${l}: <b>${v>=0?'':'−'}${$(Math.abs(v))}</b>`;
   const why=[];if(skunk)why.push('skunked');if(S.gear<=0&&t.notes.some(n=>n.startsWith('🪱')))why.push('no tackle');if(refund&&happy<42)why.push('unhappy clients');
-  modalSwap(`${T.ic} Back at the dock`,`${t.notes.map(n=>`<p>${n}</p>`).join('')}
+  modalSwap(`${T.ic} Back at the dock`,`${mem.top}${t.notes.map(n=>`<p>${n}</p>`).join('')}
     <p><b>Catch:</b> ${line}${t.kept?` (${t.kept} kept on the sly)`:''}${lost?` · ${lost} minutes lost`:''}</p>
     ${towed?'<p>🛟 <b>Towed in.</b> Half the fare refunded.</p>':''}<p><b>The pay:</b>${row(`Booked fare${b.type==='halibut'&&!S.up.chp?' (day rate)':''}`,fare)}${refund?row(`Refund${why.length?` (${why.join(', ')})`:''}`,-refund):''}${row('Tip',tip)}${xs.map(([l,v])=>row(l,v)).join('')}${costs?row('Launch fee',-costs):''}<br><b>Net: ${net<0?'−':''}${$(Math.abs(net))}</b></p>
-    <p>${mood} Rep ${dRep>=0?'+':'−'}${Math.abs(dRep)}.</p>${reviewHTML(rv,b)}
+    <p>${mood} Rep ${dRep>=0?'+':'−'}${Math.abs(dRep)}.</p>${reviewHTML(rv,b)}${mem.html}
     <p style="font-size:13px;color:var(--mute)">📓 Log it in your ADF&amp;G logbook before bed.</p>`,[{l:'Head in',fn:()=>{}}].concat(b.card?[{l:'Hand them your card and ask them back',s:'10 minutes. After a day like this, most say yes.',fn:()=>regCard(b)}]:[]));
   sfx(happy>=50?'good':'bad');
 }
@@ -4000,6 +4009,7 @@ function startSeason(s){
   S.rep=Math.round(50+(S.rep-50)*.85);
   const before=S.cites;S.cites=S.citeLog.filter(x=>seasonOf(x)>=s-1).length;
   S.winter={s,bill,expired:before-S.cites,sup:suppliesWinter()};   // 31-supplies.js: stale gas, fridge, a winter outage
+  memSeasonStart(s);                                     // 37-memories.js: postcards and the rating's season milestones, in the morning report
   setTimeout(()=>{if(S&&S.winter&&!S.over)winterModal()},0);   // after the night summary
 }
 function winterModal(){
@@ -4027,14 +4037,14 @@ function upgradeModal(){
 }
 function finishWinter(){
   homeFinishWinter();                                    // 32-home.js: spring at the cabin, before the bookings open
-  const s=S.winter.s;S.winter=null;const reg=genSeasonBookings(s);homeSeasonOpens(s);
+  const s=S.winter.s;S.winter=null;const reg=genSeasonBookings(s).concat(memSeasonOpen(s));homeSeasonOpens(s);   // memSeasonOpen (37-memories.js): lodge guests, magazine readers
   const n=S.book.filter(b=>seasonOf(b.d)===s).length;
   say(`📅 ${2026+s} bookings are in: <b>${n} trips</b> for the season. ${REG().fc}${reg.length?'<br>'+reg.join('<br>'):''}`);
   showTile('📅',`${n} trips booked`,`Season ${s+1} of ${S.years}`,'good');
 }
 function genSeasonBookings(s){
   const base=s*SEASON,web=S.up.web===s?.15:0,r=Math.random;
-  const p0=clamp((.35+S.rep/200+web+(S.arcs.rival.ally?.03:0)+campBook(s))*rateDemand()*(S.up.dock?1.08:1),.12,.95);
+  const p0=clamp((.35+S.rep/200+web+(S.arcs.rival.ally?.03:0)+campBook(s))*rateDemand()*(S.up.dock?1.08:1)*starBook(),.12,.95);   // starBook (39-stars.js): fewer bookings under ★2.5
   const q=()=>r()<.3?[pick(['drinker','nolicense','kingfan','photo','kid'])]:[];
   const party=()=>pick(PARTIES);
   for(let i=0;i<SEASON;i++){const d=base+i,w=i%7,K=weekOf(d),main=K.main(d),second=K.second;   // 34-summer.js: what each week books
@@ -4180,7 +4190,7 @@ const WEB_REST=1.12,REST_X=1.95,QUAL_SPAN=90,WOM_W=.006,REG_W=.003;
 const qualityF=p=>clamp(1+((p.hap==null?HAP0:p.hap)-HAP0)/QUAL_SPAN,.7,1.25);
 function restOfSeason(p){
   if(!p||!p.trips) return {trips:0,gross:0,costs:0,net:0};
-  const trips=Math.round(p.trips*REST_X*restWeeksX(p)*DF().book*clamp(S.rep/70,.5,1.25)*qualityF(p)*(1+clamp((p.wom||0)*WOM_W,-.10,.15))*(1-CITE_REST*Math.min(4,p.cites||0))*(1+REG_W*Math.min(REG_MAX,(S.regs||[]).length))*rateDemand()*(S.up&&S.up.lodge?1.1:1)*(S.up&&S.up.dock?1.08:1)*(S.up&&S.up.web===p.year-2026?WEB_REST:1)),fare=(p.fares+(p.tips||0))/p.trips;
+  const trips=Math.round(p.trips*REST_X*restWeeksX(p)*DF().book*clamp(S.rep/70,.5,1.25)*qualityF(p)*(1+clamp((p.wom||0)*WOM_W,-.10,.15))*(1-CITE_REST*Math.min(4,p.cites||0))*(1+REG_W*Math.min(REG_MAX,(S.regs||[]).length))*rateDemand()*starBook()*(S.up&&S.up.lodge?1.1:1)*(S.up&&S.up.dock?1.08:1)*(S.up&&S.up.web===p.year-2026?WEB_REST:1)),fare=(p.fares+(p.tips||0))/p.trips;
   let gross=Math.round(trips*fare),costs=Math.round(trips*(bn('reds')*fuelPrice('kenai')+LAUNCH_FEE+30));
   if(S.up&&S.up.asst){const x=Math.round(trips*.2);gross+=Math.round(x*fare*(1-ASST_CUT));costs+=Math.round(x*(bn('reds')*fuelPrice('kenai')+LAUNCH_FEE+30))}   // the assistant covers the off-month overflow
   if(S.up&&S.up.lodge){const l=lodgeSeason();gross+=l.gross;costs+=l.costs}
@@ -4209,13 +4219,16 @@ const HELP=[
   ['🔧','Money & gear','The booked fare is your base pay; tips, refunds and word of mouth follow how the day went: the catch, happy clients, tackle and a boat in good shape. A well-kept boat and a fed crew pay: tips run from nothing at 60 happiness to 30% of the fare at 90, and the <strong>rest of your summer</strong> (June, August and September, settled in the off-season) follows how happy your clients were on average, not only how many trips you ran. Run out of tackle, skip meals (after a second hungry night you get a warning and a pricier gas-station fix) or let the boat wear down and you’ll see smaller tips, refunds, breakdowns and a quieter off-season. Restock tackle in Soldotna, service the boats at the shop, buy fuel at the harbor. Overhead is charged every night. The Boat stat warns you at 40, 20 and 10. At 0 your sled and drift boat are out of service until a major repair ($2,400), though an emergency patch ($600, back to 25 for two days, only at 10 or less) or a rented loaner ($600, for the day) keeps a booked trip running. In the off-season you can buy upgrades: a new motor (burns less gas), a new sled (trips finish 30 minutes sooner), a drift boat, marketing, a winter course (skill, which builds with practice and rusts over the winter), higher rates (more per trip, fewer bookings, pickier clients: the first step is cheap, the third is not), your own Homer charter permit and, later in a career, an assistant guide, guest cabins or a riverfront lot with a private launch.'],
   ['🏕️','Winter camping','In the off-season you have <strong>10 free days</strong> for up to three trips and two winter jobs. Pick one of ten Kenai Peninsula spots within 100 road miles of Soldotna, a month (it sets the daylight, ice and weather), who comes along, and what to <strong>pack</strong>: a bear-resistant container, a cold-rated bag, spare layers, stove fuel, a truck kit, ice picks. Each day you choose an activity (one in the dark months, two on long days): <strong>ice fish</strong> a stocked lake (you need a fishing license, and licenses restart every January), snowshoe, ski, track wildlife, scout the upper Kenai or Kasilof, or watch the northern lights. Evenings you can tie flies for tackle next season. Each night has a <strong>50% chance of an encounter</strong>, good or bad; what you packed and where you sleep (tent, wall tent, truck camper, public-use cabin) change the odds. Winter jobs pay a little; a camping log keeps the animals you have seen.'],
   ['🏠','The cabin','The <strong>🏠 Home</strong> tab (and <strong>Home</strong> in the top bar, 0 to 100) tracks your cabin. It leaves you alone for your first week. It drifts down slowly; jobs bring it back up, skipping them wears it down faster, and a run-down cabin has more bad luck, which can land in the guiding season: bad sleep, a repair on a guiding morning or a booked party that cancels. A cabin in good shape sends you out rested. <strong>Never more than two jobs show at once</strong>, and every job offers three ways: <strong>do it yourself</strong> (time and energy), <strong>pay someone</strong> (cash) or <strong>skip it</strong> (a risk). In July: latch the bear bins and clean up fish waste, service the generator, plant a garden (and fence it: moose), keep the fish station clean. In the off-season: fall jobs before the cold (heating oil, or firewood and a chimney sweep if you add a wood stove; heat tape and a skirted crawlspace; smoke and CO detectors), then a cold snap and heavy snow, then spring breakup (driveway, foundation, well test, septic). Do-it-yourself jobs in the off-season spend the same <strong>10 free days</strong> as winter camping. Trouble costs money, days, energy or reputation, but it never ends your career. Never run a generator indoors: exhaust is carbon monoxide.'],
+  ['★','Your rating','The top bar shows your <strong>star rating</strong>: the average of your last 20 reviews (your reputation fills in while there are few). At <strong>★4.5</strong> you are a top-rated guide and parties tip more; at <strong>★4.7</strong> a magazine writes you up once and the phone rings all week; a July that averages <strong>★4.8</strong> brings a lodge partnership with extra trips every season. Under <strong>★2.5</strong>, fewer people book. The bar under the rating is your reputation: at 0, nobody books you.'],
+  ['🏆','The trophy wall','In the <strong>📜 Log</strong> tab, switch to <strong>🏆 Trophy wall</strong>: your biggest fish of each species, your firsts (first king, first barn-door halibut over 100 lb, first limit-out, first five-star review), standout clients and postcards from past parties. Trophies, limit-outs and first fish get a short moment on the trip and a catch card at the dock you can save as an image. A chime for them is off unless you turn it on in ⚙️ Settings.'],
+  ['🧓','The mentor','On a new career’s first trip, Walt Brandvold, an old Soldotna guide, rides along and says one thing at each call: how to read the conditions, how to choose a move, what the party came for, and how to handle a rule dilemma. Tap <strong>I’ve got this</strong> to send him ashore. To have him ride along again, use the button below.'],
   ['💀','How you lose','Three active citations (permit pulled), reputation down to 0 (nobody books you), or $2,000 in debt (the bank takes the sled).'],
   ['💡','Tips','Rig tomorrow’s gear, read the Fish tab and scout the river for better trips. Tips (💡) appear as you play; turn them on or off in ⚙️ Settings. On a computer, number keys press buttons, <strong>Esc</strong> closes a pop-up and <strong>?</strong> lists the shortcuts. Settings has bigger text and high contrast.'],
 ];
 function helpModal(){
   modal('❓ Help! How to play Guide Master',HELP.map(([ic,h,t])=>`<div class="todo"><span class="ck">${ic}</span><div><b>${h}</b><span style="font-size:13.5px;line-height:1.45;color:var(--ink)">${t}</span></div></div>`).join('')+
     '<p style="font-size:12px;color:var(--mute);margin-top:10px">Season 1 follows a simplified version of the real 2026 Kenai rules; later seasons invent plausible changes. This is a game: always check the current regulations and emergency orders at adfg.alaska.gov before you fish.</p>',
-    [{l:'Got it',fn:()=>{}},{l:'💬 Send feedback',s:'Questions, ideas or bugs: tell the developer.',fn:()=>feedbackModal(helpModal)}]);
+    [{l:'Got it',fn:()=>{}},...(typeof mentorCanReplay==='function'&&mentorCanReplay()?[{l:'🧓 Ride with the mentor again',s:'Walt rides along on your next trip and talks you through it.',fn:()=>{const ok=mentorAgain();if(ok&&document.querySelector('.title'))setTimeout(()=>modal('🧓 Walt’s coming along',`<p>He’ll ride along on your next trip. Tap <b>Continue</b> to get going.</p>`,[{l:'OK',fn:()=>{}}]),0)}}]:[]),{l:'💬 Send feedback',s:'Questions, ideas or bugs: tell the developer.',fn:()=>feedbackModal(helpModal)}]);
 }
 window.helpModal=helpModal;
 // ============================================================
@@ -5884,6 +5897,409 @@ function bigAfterTrip(b,notes){
 }
 {const _sat=storyAfterTrip;storyAfterTrip=function(b,happy,notes){_sat(b,happy,notes);bigAfterTrip(b,notes)}}
 HELP.splice(3,0,['🎯','Season goals & big days','Each season has three goals, in the <strong>📅 Bookings</strong> tab: limit-outs, five-star days, a clean record, Homer charters and more. The morning report tells you when you reach one, and the rewards (a bonus, reputation or word of mouth) come on the season’s last night. Some booking requests come with a target, like <em>a 30-pound halibut for Dad’s 70th</em>: get it and they add a bonus.']);
+// ============================================================
+//  GUIDE MASTER, part 7 (1.15): memories. The trophy wall, firsts, standout clients, postcards, and the catch moments.
+//  · Every stretch of a trip that lands fish leaves a "best fish" with a size (a seeded hash, so it never touches Math.random):
+//    the biggest per species goes on the trophy wall (S.mem.rec). Trophies (the day's big fish), kings at the boat, barn-door
+//    halibut (100 lb and up), limit-outs and the first fish of a species get a short moment inside the trip sheet
+//    (≤1.5 s, none with reduced motion; an optional chime, off by default) and a catch card at the dock you can save as a PNG.
+//  · Firsts (S.mem.firsts): the first king, barn door, limit-out, five-star review and first fish of each species.
+//  · Postcards: at the start of a new season, one or two past clients with a good day behind them write in (the morning report).
+//  · The trophy wall lives in the 📜 Log tab (a switch at the top): records, firsts, standout clients, postcards, the rating.
+//  Hooks: tripNext (memSheet), tripStart (memTripStart), tripEnd (memDock), startSeason (memSeasonStart), finishWinter (memSeasonOpen).
+//  The star rating and its milestones live in 39-stars.js; the mentor's ride-along in 38-mentor.js.
+// ============================================================
+
+// ---- the save's memories (S.mem). Created on first use, so a new game and an old save (MIGRATIONS to:8) both get one. ----
+// mentor: 'due' on a new career (no trips yet), 'riding' while he is aboard, 'done' or 'skipped' after (Help → ride again sets 'due')
+function memBase(x){x=x||S;return {v:1,rec:{},firsts:{},trips:[],cards:[],cardS:-1,mentor:x&&x.stats&&x.stats.trips>0?'done':'due',feat:null,lodge:null,top:false}}
+function MEM(){if(!S.mem||typeof S.mem!=='object')S.mem=memBase();return fillDefaults(S.mem,memBase())}
+// a seeded number in [0,1) from a few integers: sizes and postcard picks never consume Math.random (seeded tests and the simulator stay put)
+const memU=(a,b,c)=>{const x=Math.sin(a*12.9898+b*78.233+(c||0)*37.719+1.618)*43758.5453;return x-Math.floor(x)};
+
+// ---- species and sizes ----
+// lo–hi: the range of an ordinary good fish; a trophy (the stretch's big fish in 33-day.js) is above hi. Kings and barn doors are trophies too.
+const FISH_SZ={
+  sockeye:{n:'Sockeye',pl:'sockeye',ic:'🐟',u:'lb',lo:5,hi:9,half:true},
+  silver: {n:'Silver salmon',pl:'silvers',ic:'🎣',u:'lb',lo:8,hi:13,half:true},
+  rainbow:{n:'Rainbow trout',pl:'rainbows',ic:'🌈',u:'in',lo:16,hi:26},
+  halibut:{n:'Halibut',pl:'halibut',ic:'⚓',u:'lb',lo:15,hi:60},
+  king:   {n:'King salmon',pl:'kings',ic:'👑',u:'lb',lo:20,hi:60},
+};
+const SP_ORDER=['king','sockeye','silver','rainbow','halibut'];
+const BARN=100;   // a "barn door" halibut
+// the species a trip type lands (trip types added by other features map by name)
+function speciesOf(type){
+  const m={reds:'sockeye',silver:'silver',trout:'rainbow',halibut:'halibut'};
+  if(m[type]) return m[type];
+  const s=String(type||'');
+  return /king/i.test(s)?'king':/silver|coho/i.test(s)?'silver':/trout|rainbow/i.test(s)?'rainbow':/halibut/i.test(s)?'halibut':/red|sock/i.test(s)?'sockeye':null;
+}
+const szTxt=(sp,z)=>{const S2=FISH_SZ[sp];if(!S2)return '';return S2.u==='in'?`${Math.round(z)}-inch`:`${S2.half&&z%1?z.toFixed(1):Math.round(z)}-pound`};
+const szShort=(sp,z)=>{const S2=FISH_SZ[sp];return S2.u==='in'?`${Math.round(z)} in`:`${S2.half&&z%1?z.toFixed(1):Math.round(z)} lb`};
+// the best fish of a stretch: the trophy's own size when there was one (read off the 🏆 line), else the best of n ordinary fish
+function segSize(b,sg,sp){
+  const X=FISH_SZ[sp];if(!X||!sg||!(sg.n>0)) return null;
+  if(sg.big){const m=/🏆 A (\d+)-(?:pound|inch)/.exec(sg.line||'');return {z:m?+m[1]:Math.round(X.hi*1.15),big:true}}
+  const u=memU((b.id||1)*7+sg.k,b.d,sg.n),x=Math.pow(u,1/Math.max(1,Math.min(sg.n,8)));
+  let z=X.lo+(X.hi-X.lo)*(sp==='halibut'?x*x:x)*.98;
+  z=X.half?Math.round(z*2)/2:Math.round(z);
+  return {z:Math.min(z,X.hi-(X.half?.5:1)),big:false};
+}
+const isTrophy=(sp,z,big)=>!!big||sp==='king'||(sp==='halibut'&&z>=BARN);
+
+// ---- what a trip has landed so far, and what is worth a moment ----
+// t.mm: {segs:[k already counted], best:{sp,z,big}, ev:[pending moment events], lim:bool, king:bool, shown:[...]}
+const mmOf=t=>t.mm||(t.mm={segs:[],best:null,ev:[],lim:false,king:false,said:[]});
+function memNote(b,t,sp,z,big,why){
+  const M=MEM(),mm=mmOf(t),X=FISH_SZ[sp];if(!X||!(z>0)) return;
+  const rank=(s2,z2,b2)=>(s2==='king'?3:isTrophy(s2,z2,b2)?2:1)*1000+z2/FISH_SZ[s2].hi*100;
+  if(!mm.best||rank(sp,z,big)>rank(mm.best.sp,mm.best.z,mm.best.big))mm.best={sp,z,big};
+  const rec=M.rec[sp],year=yearOf(b.d),isNew=!rec||z>rec.z;
+  if(isNew){M.rec[sp]={z,who:b.who,from:b.from,d:b.d,year,type:b.type,id:b.id};if(rec&&rec.id!==b.id)mm.ev.push({k:'record',sp,z,old:rec.z})}   // a personal best over an earlier trip's fish
+  if(!M.firsts['sp_'+sp]){memFirst('sp_'+sp,b,`${X.ic} First ${X.n.toLowerCase()}: a ${szTxt(sp,z)} fish for the ${b.who}`);mm.ev.push({k:'first',sp,z})}
+  // one king moment a trip (a king trip lands several), plus any 50-pounder
+  if(sp==='king'){if(!mm.kingEv||z>=50){mm.kingEv=1;mm.ev.push({k:'king',sp,z})}if(!M.firsts.king)memFirst('king',b,`👑 First king: about ${Math.round(z)} pounds, ${why||'at the boat'} with the ${b.who}`)}
+  else if(sp==='halibut'&&z>=BARN){mm.ev.push({k:'barn',sp,z});if(!M.firsts.barn)memFirst('barn',b,`🚪 First barn door: a ${Math.round(z)}-pound halibut for the ${b.who}`)}
+  else if(big) mm.ev.push({k:'trophy',sp,z});
+}
+function memFirst(k,b,txt){const M=MEM();if(M.firsts[k])return false;M.firsts[k]={d:b?b.d:day(),year:yearOf(b?b.d:day()),who:b?b.who:'',txt};return true}
+// count every stretch that has landed since we last looked, the king at the boat, the leopard rainbow, and the limit
+function memScan(b,t,key){
+  const mm=mmOf(t),sp=speciesOf(b.type),bt=t.bt;
+  if(bt&&bt.segs) bt.segs.forEach(sg=>{if(!sg||mm.segs.includes(sg.k))return;mm.segs.push(sg.k);
+    if(b.type==='halibut'&&halClosed(b.d))return;                 // rockfish and lingcod: no halibut record
+    const s=segSize(b,sg,sp);if(s)memNote(b,t,sp,s.z,s.big)});
+  if(key==='king'&&!mm.king){mm.king=true;memNote(b,t,'king',Math.round(44+memU(b.id||1,b.d,3)*20),true,'at the boat')}
+  if(key==='photo'&&!mm.leo){mm.leo=true;memNote(b,t,'rainbow',26,false)}
+  if(bt&&bagged(b)&&!mm.lim){const f=fishersOf(b,t);if(f>0&&bt.box>=f*limOf(b)){mm.lim=true;mm.ev.push({k:'limit',sp,n:bt.box});if(!MEM().firsts.limit)memFirst('limit',b,`🧊 First limit-out: every one of the ${b.who} limited`)}}
+}
+
+// ---- the moment: a short burst inside the trip sheet ----
+const MM_RANK={king:6,barn:5,trophy:4,limit:3,first:2,record:1};
+const MM_GO=['king','barn','trophy','limit','first'];       // what earns a moment (a personal best alone rides along as a tag)
+function momentOf(ev){
+  if(!ev.some(e=>MM_GO.includes(e.k))) return null;
+  const top=ev.slice().sort((a,c)=>MM_RANK[c.k]-MM_RANK[a.k])[0],X=FISH_SZ[top.sp]||FISH_SZ.sockeye,more=[...new Set(ev.map(e=>e.k))].filter(k=>k!==top.k);
+  const head={king:'👑 King at the boat!',barn:'🚪 Barn door!',trophy:'🏆 Trophy!',limit:'🧊 Limit out!',record:'📏 New personal best!',first:`${X.ic} First ${X.n.toLowerCase()}!`}[top.k];
+  const sub={king:`About ${Math.round(top.z)} pounds of chrome.`,barn:`A ${Math.round(top.z)}-pound halibut over the rail.`,trophy:`A ${szTxt(top.sp,top.z)} ${X.n.toLowerCase()}.`,limit:`Every rod in the boat has its limit: ${top.n} ${X.pl} in the box.`,
+    record:`A ${szTxt(top.sp,top.z)} ${X.n.toLowerCase()}, your biggest yet.`,first:`A ${szTxt(top.sp,top.z)} fish. The first one goes on the wall.`}[top.k];
+  const tags=more.map(k=>({record:'📏 personal best',first:'✨ a first',limit:'🧊 limit out',trophy:'🏆 trophy',barn:'🚪 barn door',king:'👑 king'}[k])).filter(Boolean);
+  return {k:top.k,head,sub:sub+(tags.length?` Also: ${tags.join(', ')}.`:''),ic:top.k==='king'?'👑':top.k==='limit'?'🧊':X.ic};
+}
+function momentHTML(m){
+  if(!m) return '';
+  return `<div class="gm-moment gm-${m.k}" role="status"><svg class="gm-jump" viewBox="0 0 120 60" aria-hidden="true"><path class="gm-arc" d="M8 52 Q60 -14 112 52" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="4 5" opacity=".45"/><g class="gm-fishg"><path d="M0 0 q14 -9 28 0 q-14 9 -28 0z M26 0 l9 -7 v14z" fill="currentColor"/><circle cx="7" cy="-1.5" r="1.6" fill="#fff"/></g><g class="gm-spark" fill="#f4c542"><circle cx="20" cy="14" r="2.5"/><circle cx="96" cy="12" r="2"/><circle cx="60" cy="4" r="2.5"/><circle cx="80" cy="28" r="1.8"/><circle cx="38" cy="30" r="1.8"/></g></svg><div class="gm-mt"><b>${m.head}</b><span>${m.sub}</span></div></div>`;
+}
+// the optional chime: off by default (⚙️ Settings → Catch chime), a three-note bell, no audio files
+function memChime(){if(!prefs().chime)return;try{[[880,0],[1175,.09],[1568,.18]].forEach(([f,w])=>tone(f,.45,'sine',.07,w));tone(2349,.5,'sine',.025,.2)}catch(e){}}
+// called by tripNext (22-trips.js) for every view of the trip sheet: {top, foot} html (the moment, then the mentor's line)
+function memSheet(b,t,key){
+  let top='';
+  try{memScan(b,t,key);const mm=mmOf(t);if(mm.ev.length){const m=momentOf(mm.ev);mm.said.push(...mm.ev.map(e=>e.k));mm.ev=[];top=momentHTML(m);if(m)memChime()}}catch(e){}
+  const foot=typeof mentorLine==='function'?mentorLine(b,t,key):'';
+  return {top,foot};
+}
+// tripStart (22-trips.js): the mentor climbs aboard, a lodge guest's referral fee
+function memTripStart(b,t){
+  if(typeof mentorBoard==='function') mentorBoard(b,t);
+  if(b.lodge&&typeof starsTripStart==='function') starsTripStart(b,t);
+}
+
+// ---- the dock: the last stretches, the review's firsts, the card ----
+// tripEnd (22-trips.js) calls this after the review is written. info: {C, rv, happy, fish}. Returns {top, html} for the dock sheet:
+// the moment goes on top, the catch card, the rating's news and the mentor's last word below the review.
+function memDock(b,t,info){
+  const M=MEM(),mm=mmOf(t),C=info.C,rv=info.rv,sp=speciesOf(b.type);let html='',top='';
+  try{
+    memScan(b,t,'dock');
+    if(C&&bagged(b)&&C.fishers>0&&C.limits===C.fishers&&!mm.lim){mm.lim=true;mm.ev.push({k:'limit',sp,n:C.fish});memFirst('limit',b,`🧊 First limit-out: every one of the ${b.who} limited`)}
+    if(rv&&rv.stars===5) memFirst('five',b,`⭐ First five-star review, from the ${b.who}: “${rv.text.split('. ')[0].replace(/\.$/,'')}.”`);
+    memFirst('trip',b,`🛶 First guided trip: the ${b.who}, ${b.from}`);
+    // remember the trip (postcards, standout clients): the last 60
+    const best=mm.best;M.trips.push({d:b.d,who:b.who,from:b.from,type:b.type,stars:rv?rv.stars:0,best:best?[best.sp,best.z]:null,tr:(b.tr||[]).slice(0,2),lim:!!mm.lim});
+    if(M.trips.length>60)M.trips.splice(0,M.trips.length-60);
+    const m=momentOf(mm.ev),said=mm.said.concat(mm.ev.map(e=>e.k));mm.ev=[];
+    if(m){top=momentHTML(m);memChime()}
+    if(said.some(k=>MM_GO.includes(k))&&best) html+=cardHTML(b,info,best,said);
+  }catch(e){}
+  if(typeof starsAfterTrip==='function') html+=starsAfterTrip(b,t,info);
+  if(typeof mentorDock==='function') html+=mentorDock(b,t);
+  return {top,html};
+}
+
+// ---- the catch card: a shareable-looking card in the dock summary, and a PNG of it ----
+let CARD=null;
+function cardData(b,info,best,said){
+  const X=FISH_SZ[best.sp],T=TRIPS[b.type]||{n:'Trip',ic:'🎣'};
+  const badges=[...new Set(said)].map(k=>({king:'👑 King',barn:'🚪 Barn door',trophy:'🏆 Trophy',limit:'🧊 Limit out',record:'📏 Personal best',first:'✨ First'}[k])).filter(Boolean);
+  return {title:`${szShort(best.sp,best.z)} ${X.n.toLowerCase()}`,ic:X.ic,trip:`${T.n} · the ${b.who}`,when:`${dlong(b.d)}, ${yearOf(b.d)}`,catch:(info.C&&info.C.line)||'',stars:info.rv?info.rv.stars:0,badges,guide:currentName()};
+}
+function cardHTML(b,info,best,said){
+  const c=cardData(b,info,best,said);CARD=c;
+  return `<figure class="gm-card" aria-label="Catch card: ${esc(c.title)}"><div class="gm-c-top"><span>GUIDE MASTER · KENAI RIVER</span><span>${c.when}</span></div>
+    <div class="gm-c-main"><span class="gm-c-ic" aria-hidden="true">${c.ic}</span><div><b>${c.title}</b><span>${esc(c.trip)}</span></div></div>
+    <div class="gm-c-row">${c.badges.map(x=>`<i>${x}</i>`).join('')}</div>
+    <div class="gm-c-foot"><span>${c.catch}</span><span aria-label="${c.stars} of 5 stars">${'★'.repeat(c.stars)}${'☆'.repeat(5-c.stars)}</span></div>
+    <figcaption>Guided by Captain {{name}}</figcaption></figure>
+    <button type="button" class="gm-save" onclick="cardSave()">💾 Save the card as an image</button>`;
+}
+// draws the card on a canvas and downloads it (no network, no libraries)
+function cardPNG(c){
+  c=c||CARD;if(!c) return null;
+  const W=720,H=405,cv=document.createElement('canvas');cv.width=W;cv.height=H;const g=cv.getContext('2d');if(!g) return null;
+  const gr=g.createLinearGradient(0,0,W,H);gr.addColorStop(0,'#14524f');gr.addColorStop(1,'#2b8a84');g.fillStyle=gr;g.fillRect(0,0,W,H);
+  g.fillStyle='rgba(255,255,255,.08)';g.beginPath();g.moveTo(0,330);g.quadraticCurveTo(240,300,480,335);g.quadraticCurveTo(600,350,720,320);g.lineTo(720,405);g.lineTo(0,405);g.fill();
+  const F='system-ui,-apple-system,Segoe UI,Roboto,sans-serif';g.fillStyle='#d7efe9';g.font=`600 18px ${F}`;g.fillText('GUIDE MASTER · KENAI RIVER',36,48);
+  g.textAlign='right';g.fillText(c.when,W-36,48);g.textAlign='left';
+  g.font=`88px ${F}`;g.fillText(c.ic,36,170);
+  g.fillStyle='#fff';g.font=`700 46px ${F}`;g.fillText(c.title,150,140);g.font=`22px ${F}`;g.fillStyle='#d7efe9';g.fillText(c.trip.slice(0,52),150,178);
+  let x=36;g.font=`600 20px ${F}`;c.badges.forEach(bd=>{const w=g.measureText(bd).width+28;g.fillStyle='rgba(255,255,255,.16)';g.fillRect(x,214,w,38);g.fillStyle='#fff';g.fillText(bd,x+14,240);x+=w+10});
+  g.font=`20px ${F}`;g.fillStyle='#d7efe9';g.fillText(String(c.catch).replace(/<[^>]+>/g,'').slice(0,60),36,300);
+  g.fillStyle='#f4c542';g.font=`30px ${F}`;g.textAlign='right';g.fillText('★'.repeat(c.stars)+'☆'.repeat(5-c.stars),W-36,300);g.textAlign='left';
+  g.fillStyle='#fff';g.font=`italic 20px ${F}`;g.fillText('Guided by Captain '+c.guide,36,372);
+  try{return cv.toDataURL('image/png')}catch(e){return null}
+}
+window.cardSave=()=>{const u=cardPNG();if(!u)return;const a=document.createElement('a');a.href=u;a.download=`guide-master-${(CARD.title||'catch').replace(/[^a-z0-9]+/gi,'-').toLowerCase()}.png`;document.body.appendChild(a);a.click();a.remove()};
+window.cardPNG=cardPNG;
+
+// ---- postcards: next season, a past client or two writes in (the morning report on the season's first day) ----
+const POST={
+  best:['“That {fish} is still the story at every barbecue. Same week next July?”','“The picture of the {fish} is on the fridge, right next to the grandkids.”','“We had the {fish} mounted. The taxidermist asked who our guide was.”'],
+  kids:['“The kids still talk about lunch on the gravel bar. They’ve drawn you a picture of the river.”','“Our youngest wants to be a fishing guide now. Thanks a lot.”'],
+  photo:['“We framed the shot from the river. Every guest asks where it was taken.”','“The photos made the family calendar: July is the Kenai.”'],
+  first:['“We bought rods this winter and practiced in the park. We’re ready for round two.”'],
+  meat:['“The last of the fillets went on the grill last week. We need a refill.”'],
+  any:['“Still thinking about that morning on the river. Save us a date.”','“Best day of our trip, and we saw a lot of Alaska. Tell the river hi.”','“The bumper sticker says KENAI. The neighbors are jealous.”'],
+};
+function postcardsFor(s){
+  const M=MEM(),past=M.trips.filter(x=>seasonOf(x.d)<s&&x.stars>=4&&!M.cards.some(c=>c.who===x.who));
+  if(!past.length) return [];
+  const seen=new Set(),pool=past.slice().reverse().filter(x=>!seen.has(x.who)&&seen.add(x.who));
+  pool.sort((a,c)=>(c.stars-a.stars)||(c.best&&isTrophy(c.best[0],c.best[1])?1:0)-(a.best&&isTrophy(a.best[0],a.best[1])?1:0)||c.d-a.d);
+  const n=pool.length>=2&&pool[1].stars>=5?2:1,out=[];
+  for(const x of pool.slice(0,n)){
+    const tr=x.tr||[],key=x.best&&(isTrophy(x.best[0],x.best[1])||x.best[0]==='king')?'best':tr.find(k=>POST[k])||'any';
+    const list=POST[key],line=list[Math.floor(memU(x.d,s,x.who.length)*list.length)];
+    const fish=x.best?`${szTxt(x.best[0],x.best[1])} ${FISH_SZ[x.best[0]].n.toLowerCase()}`:'fish';
+    out.push({s,who:x.who,from:x.from,txt:line.replace('{fish}',fish)});
+  }
+  return out;
+}
+// startSeason (24-career.js), inside the morning report: postcards, then the star milestones of last season (39-stars.js)
+function memSeasonStart(s){
+  const M=MEM();
+  if(M.cardS!==s&&s>=1){M.cardS=s;const ps=postcardsFor(s);ps.forEach(p=>{M.cards.push(p);digestLine(`📬 <b>A postcard from the ${p.who}</b> (${p.from}): ${p.txt}`)});if(M.cards.length>40)M.cards.splice(0,M.cards.length-40)}
+  if(typeof starsSeasonStart==='function') starsSeasonStart(s);
+}
+// finishWinter (24-career.js): this season's bookings are in. Returns lines for the bookings note.
+function memSeasonOpen(s){return typeof starsSeasonOpen==='function'?starsSeasonOpen(s):[]}
+
+// ---- the trophy wall (📜 Log tab → 🏆 Trophy wall) ----
+let LOGSUB='log';
+window.logSub=k=>{LOGSUB=k;render();const b=document.querySelector(`.gm-seg button[data-k="${k}"]`);b&&b.focus({preventScroll:true})};
+function wallSwitch(){return `<div class="gm-seg" role="group" aria-label="Log or trophy wall">${[['log','📜 Log'],['wall','🏆 Trophy wall']].map(([k,l])=>`<button type="button" data-k="${k}" aria-pressed="${LOGSUB===k}" class="${LOGSUB===k?'on':''}" onclick="logSub('${k}')">${l}</button>`).join('')}</div>`}
+function wallView(){
+  const M=MEM(),row=(ic,b,s)=>`<div class="todo"><span class="ck" aria-hidden="true">${ic}</span><div><b>${b}</b><span>${s}</span></div></div>`;
+  let h='<div class="sect">🏆 Biggest fish</div>';
+  const recs=SP_ORDER.filter(sp=>M.rec[sp]);
+  h+=recs.length?recs.map(sp=>{const r=M.rec[sp],X=FISH_SZ[sp];return row(X.ic,`${X.n}: ${szShort(sp,r.z)}${isTrophy(sp,r.z)&&sp==='halibut'?' · barn door':''}`,`The ${esc(r.who)}${r.from?`, ${esc(r.from)}`:''} · ${dlabel(r.d)}, ${r.year}`)}).join(''):'<p class="prio-empty">Nothing on the wall yet. Your first fish goes here.</p>';
+  const F=[['trip','🛶'],['sp_sockeye','🐟'],['sp_silver','🎣'],['sp_rainbow','🌈'],['sp_halibut','⚓'],['king','👑'],['barn','🚪'],['limit','🧊'],['five','⭐']];
+  const fs=F.filter(([k])=>M.firsts[k]);
+  h+='<div class="sect">✨ Firsts</div>'+(fs.length?fs.map(([k,ic])=>{const f=M.firsts[k];return row(ic,f.txt.replace(/^\S+\s/,''),`${dlabel(f.d)}, ${f.year}`)}).join(''):'<p class="prio-empty">Your firsts: first king, first barn door, first limit-out, first five-star review.</p>');
+  const todo=F.filter(([k])=>!M.firsts[k]&&['king','barn','limit','five'].includes(k)).map(([k,ic])=>`${ic} ${{king:'a king',barn:'a barn-door halibut (100 lb+)',limit:'a limit-out',five:'a five-star review'}[k]}`);
+  if(todo.length&&fs.length) h+=`<p class="small-note" style="font-size:12.5px;color:var(--mute);margin:2px 2px 0">Still to come: ${todo.join(' · ')}.</p>`;
+  const five=(S.reviews||[]).filter(r=>r.stars===5).slice(-3).reverse(),regs=(S.regs||[]).filter(g=>(g.trips||1)>=2).sort((a,c)=>(c.trips||1)-(a.trips||1)).slice(0,3);
+  h+='<div class="sect">⭐ Standout clients</div>';
+  h+=five.length||regs.length?five.map(r=>row('★',`The ${esc(r.who)} · ${'★'.repeat(5)}`,`“${r.text}” · ${dlabel(r.day)}, ${yearOf(r.day)}`)).join('')+regs.map(g=>row('🔁',`The ${esc(g.who)}: ${g.trips} Julys with you`,`${esc(g.from)} · regulars`)).join(''):'<p class="prio-empty">Five-star reviews and regulars who keep coming back show up here.</p>';
+  if(M.cards.length) h+='<div class="sect">📬 Postcards</div>'+M.cards.slice(-4).reverse().map(c=>row('📬',`The ${esc(c.who)}, ${esc(c.from)}`,`${c.txt} · spring ${2026+c.s}`)).join('');
+  if(typeof starsWall==='function') h+=starsWall();
+  return h;
+}
+
+// ---- styles (kept here, with the feature: injected once) ----
+(function(){
+  if(typeof document==='undefined'||document.getElementById('gm-mem-css')) return;
+  const st=document.createElement('style');st.id='gm-mem-css';st.textContent=`
+.gm-moment{display:flex;align-items:center;gap:10px;margin:0 0 8px;padding:8px 10px;border-radius:12px;background:linear-gradient(90deg,#fff6d8,#e9f6f2);border:1.5px solid #f0d27a;color:#14524f;animation:gmPop .5s cubic-bezier(.2,1.4,.4,1) both}
+.gm-moment .gm-jump{flex:none;width:72px;height:36px;color:#2b8a84;overflow:visible}
+.gm-moment .gm-fishg{offset-path:path('M8 52 Q60 -14 112 52');offset-rotate:auto;animation:gmJump 1.2s ease-in-out both}
+.gm-moment .gm-spark circle{opacity:0;animation:gmSpark 1.1s ease-out .25s both}
+.gm-moment .gm-mt b{display:block;font-size:16px}.gm-moment .gm-mt span{display:block;font-size:13px;color:var(--ink)}
+@keyframes gmPop{0%{transform:scale(.7);opacity:0}70%{transform:scale(1.04);opacity:1}100%{transform:scale(1)}}
+@keyframes gmJump{0%{offset-distance:0%}100%{offset-distance:100%}}
+@keyframes gmSpark{0%{opacity:0;transform:scale(.2)}40%{opacity:1;transform:scale(1.3)}100%{opacity:0;transform:scale(.6)}}
+@media (prefers-reduced-motion:reduce){.gm-moment,.gm-moment *{animation:none!important}.gm-moment .gm-fishg{offset-distance:50%}.gm-moment .gm-spark circle{opacity:1}}
+html.rm .gm-moment .gm-fishg{offset-distance:50%}html.rm .gm-moment .gm-spark circle{opacity:1}
+.gm-card{margin:10px 0 6px;padding:12px 14px 10px;border-radius:14px;color:#fff;background:linear-gradient(135deg,#14524f,#2b8a84);box-shadow:0 2px 10px rgba(0,0,0,.18)}
+.gm-card .gm-c-top{display:flex;justify-content:space-between;gap:8px;font-size:10.5px;letter-spacing:.8px;opacity:.85;font-weight:700}
+.gm-card .gm-c-main{display:flex;align-items:center;gap:12px;margin:8px 0}.gm-card .gm-c-ic{font-size:40px;line-height:1}
+.gm-card .gm-c-main b{display:block;font-size:22px;line-height:1.15}.gm-card .gm-c-main span{display:block;font-size:13px;opacity:.9}
+.gm-card .gm-c-row{display:flex;flex-wrap:wrap;gap:6px}.gm-card .gm-c-row i{font-style:normal;font-size:12px;font-weight:700;background:rgba(255,255,255,.18);border-radius:999px;padding:3px 9px}
+.gm-card .gm-c-foot{display:flex;justify-content:space-between;gap:8px;margin-top:8px;font-size:12.5px}.gm-card .gm-c-foot span:last-child{color:#f4c542;font-size:16px;white-space:nowrap}
+.gm-card figcaption{font-size:12px;font-style:italic;opacity:.85;margin-top:4px}
+.gm-save,.gm-skip{min-height:44px;padding:8px 14px;border-radius:10px;border:1.5px solid var(--line);background:#fff;color:var(--ink);font:inherit;font-size:14px;font-weight:700;cursor:pointer}
+.gm-save{width:100%;margin:0 0 6px}
+.gm-seg{display:flex;gap:6px;margin:4px 0 8px}.gm-seg button{flex:1;min-height:44px;border-radius:10px;border:1.5px solid var(--line);background:#fff;color:var(--ink);font:inherit;font-weight:700;font-size:14px}
+.gm-seg button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.gm-mentor{display:flex;gap:10px;align-items:flex-start;margin:8px 0 2px;padding:9px 10px;border-radius:12px;background:#f3ecdc;border-left:4px solid #8a6b48;font-size:13.5px;line-height:1.45}
+.gm-mentor .gm-who{flex:none;font-size:26px;line-height:1}.gm-mentor p{margin:0 0 6px}.gm-mentor b{color:#5b4329}
+.gm-stars-ms{font-size:13px;line-height:1.5}.gm-ms{display:flex;gap:8px;align-items:baseline;padding:3px 0}.gm-ms .ok{color:var(--good);font-weight:700}
+html.hc .gm-mentor{background:#fff;border-left-color:#000}html.hc .gm-card{background:#0d3634}`;
+  (document.head||document.documentElement).appendChild(st);
+})();
+// ============================================================
+//  GUIDE MASTER, part 8 (1.15): a mentor's first trip.
+//  On a new career's first trip, Walt Brandvold (forty-some Julys on the Kenai, a Soldotna local) rides along and walks you
+//  through one thing per beat: reading the conditions line, choosing a move, the party's goals and a rule dilemma.
+//  His lines sit inside the trip sheet (no extra pop-ups). "I’ve got this" sends him ashore; he rides once per save
+//  (S.mem.mentor: due → riding → done | skipped), and Help → "Ride with the mentor again" brings him back for one trip.
+// ============================================================
+const MENTOR={n:'Walt Brandvold',sh:'Walt',ic:'🧓'};
+// the lessons, in the order he likes to give them; each one once, on the first sheet where it fits
+function mentorSay(b,t,key){
+  const m=t.mentor,T=TRIPS[b.type]||{},seen=k=>m.seen.includes(k),first=!m.seen.length;
+  const hi=first?`Walt Brandvold climbs in with a thermos and a coffee can of jigs. He has run this river since the sleds were wooden. `:'';
+  const illegal=window.TRIPV&&TRIPV.o&&TRIPV.o.some(o=>o.legal===false);
+  if((key==='spot'||key==='pack')&&!seen('conds')){
+    const c={reds:'Clock, tide, yesterday’s sonar, the boats, the wind and the radio. Fresh reds ride the flood in, and Big Eddy is elbow to elbow by eight.',
+      silver:'Clock, tide, sonar, the boats, the wind. Silvers push in on the flood and turn on toward evening. Six o’clock is the hard stop down here.',
+      trout:'Read the river level and the wind. Spawning reds put the rainbows on the egg bite, and Skilak blows up most afternoons.',
+      halibut:'Tide first, always. Slack holds a chum slick on the bottom; a running tide drags it off. Then the wind: chop out in the open means green faces.'}[b.type]||'Clock, water, boats, wind, the radio: read it top to bottom.';
+    return ['conds',`${hi}“See that list? Read it top to bottom before you pick a spot. ${c} The 🐟 Fish tab gives you the same read ashore, the night before.”`];
+  }
+  if(key==='beat'&&!seen('moves')) return ['moves',`${hi}“Your call now, ${'{{name}}'}. Stay if the bite is holding. Switching tactics costs five minutes; a run costs time and gas. Don’t chase every rumor on the radio, but don’t babysit a dead drift either.”`];
+  if(illegal&&!seen('rules')) return ['rules',`${hi}“Here’s where guides lose permits. There’s always a legal answer, and it always costs you something: time, a fish, a smaller tip. Pay it. The troopers know every boat on this river, and three tickets ends you.”`];
+  if((key==='beat'||(!first&&seen('moves')))&&!seen('goals')&&key!=='pack'){
+    const tr=(b.tr||[]).filter(k=>TRAITS[k]);
+    return ['goals',`${hi}“Look at the 🎯 line. ${tr.length?`The ${b.who} came for ${tr.map(k=>TRAITS[k].want).join(', and ')}.`:`Ask the ${b.who} what they came for.`} Give them that and the tip takes care of itself. Fish count, but the day they wanted counts more.”`];
+  }
+  if(first) return ['hi',`${hi}“Don’t mind me. I’ll speak up when it matters.”`];
+  return null;
+}
+// tripStart: he climbs aboard if he is due (or rode a trip that never launched)
+function mentorBoard(b,t){
+  const M=MEM();
+  if(M.mentor==='due'||M.mentor==='riding'){M.mentor='riding';t.mentor={seen:[]}}
+}
+const mentorOn=t=>!!(t&&t.mentor&&S.mem&&S.mem.mentor==='riding');
+// a line for this sheet of the trip ('' when he has nothing new to say)
+function mentorLine(b,t,key){
+  if(!mentorOn(t)) return '';
+  const r=mentorSay(b,t,key);if(!r) return '';
+  t.mentor.seen.push(r[0]);
+  return `<div class="gm-mentor" role="note" aria-label="${MENTOR.n}, your mentor"><span class="gm-who" aria-hidden="true">${MENTOR.ic}</span><div><p><b>${MENTOR.sh}:</b> ${r[1]}</p><button type="button" class="gm-skip" onclick="mentorSkip()">I’ve got this</button></div></div>`;
+}
+// the dock: his last word, and he heads home
+function mentorDock(b,t){
+  if(!mentorOn(t)) return '';
+  const s=t.mentor.seen,miss=['conds','moves','goals','rules'].filter(k=>!s.includes(k));
+  S.mem.mentor='done';t.mentor=null;
+  const extra=miss.includes('rules')?' And when a client asks you to bend a rule, there is always a legal answer. It costs something. Pay it.':miss.includes('goals')?' Next time, look at what the party came for. That’s where the tip is.':'';
+  return `<div class="gm-mentor" role="note" aria-label="${MENTOR.n}, your mentor"><span class="gm-who" aria-hidden="true">${MENTOR.ic}</span><div><p><b>${MENTOR.sh}:</b> “Not bad, {{name}}. Write it up in the logbook before bed.${extra} You don’t need me in the boat anymore.” He tips his cap and walks up the ramp to his truck.</p></div></div>`;
+}
+// "I’ve got this": he goes quiet for good (this save), and the sheet loses his lines at once
+window.mentorSkip=()=>{
+  if(S&&S.mem)S.mem.mentor='skipped';if(S&&S.trip)S.trip.mentor=null;
+  document.querySelectorAll('#mbg .gm-mentor').forEach(e=>e.remove());
+  const b=document.querySelector('#mbg button.act:not([disabled])');if(b)b.focus({preventScroll:true});
+  if(S&&!S.over)saveGame();
+};
+// Help → "Ride with the mentor again": the game you are playing, or (on the title screen) the saved game in this slot
+window.mentorAgain=()=>{
+  if(S&&!S.over&&!document.querySelector('.title,.end')){MEM().mentor='due';say(`${MENTOR.ic} ${MENTOR.n} says he’ll ride along on your next trip. “Bring the good coffee.”`);saveGame();return true}
+  const r=rawSave();if(!r) return false;
+  try{const d=JSON.parse(r.v);if(!d||!d.S)return false;d.S.mem=d.S.mem&&typeof d.S.mem==='object'?d.S.mem:{};d.S.mem.mentor='due';store().setItem(r.k,JSON.stringify(d));return true}catch(e){return false}
+};
+const mentorCanReplay=()=>!!((S&&!S.over&&!document.querySelector('.title,.end'))||rawSave());
+// ============================================================
+//  GUIDE MASTER, part 9 (1.15): the star rating. Reputation that keeps mattering.
+//  · The rating is the average of the last RATE_N reviews (S.reviews, 33-day.js), with a light prior from S.rep so a new guide
+//    (or a guide with few reviews) starts near ★4.0. The top bar shows it as ★4.6 where Rep used to be; S.rep stays underneath
+//    (word of mouth, upgrade gates, the score and the rep-0 loss all still use it, and its meter still shows under the rating).
+//  · Milestones: ★4.5 over 10+ reviews makes you a top-rated guide: parties that pay well and tip 15% more on a good day.
+//    ★4.7 over 12+ reviews brings a magazine feature, once a career: a burst of up to three extra bookings over the next week.
+//    A season averaging ★4.8 (6+ reviews) signs a lodge partnership: two extra bookings each July, 10% referral fee to the lodge,
+//    until the rating slips under ★4.3 at a season's end.
+//  · Falling ratings hurt: under ★2.5, fewer July bookings and a quieter rest of the summer (starBook(), down to −30%).
+//  Calibrated with tools/sim: the default bots (food, passive, ignores) average ★2.8–3.5 and never reach ★4.5, so none of this
+//  moves their grades; guide/skilled play reaches ★4.5 in most careers and ★4.7 in some.
+// ============================================================
+const RATE_N=20,RATE_PRIOR=3,STAR_TOP=4.5,STAR_TOP_N=10,STAR_FEAT=4.7,STAR_FEAT_N=12,STAR_LODGE=4.8,STAR_LODGE_N=6,STAR_LODGE_OFF=4.3,STAR_LOW=2.5,TOP_TIP=1.15,LODGE_FEE=.1,LODGE_N=2,FEAT_N=3;
+// {r, n}: the rating (1–5) and how many reviews it rests on
+function rating(){
+  const rv=(S&&S.reviews||[]).slice(-RATE_N),n=rv.length,p=clamp(3+((S&&S.rep)||0)/50,1,5);
+  const r=(rv.reduce((a,x)=>a+(x.stars||0),0)+RATE_PRIOR*p)/(n+RATE_PRIOR);
+  return {r:Math.round(r*100)/100,n};
+}
+const starTxt=r=>`★${(Math.round(r*10)/10).toFixed(1)}`;
+const topRated=()=>{const x=rating();return x.n>=STAR_TOP_N&&x.r>=STAR_TOP};
+// July and rest-of-summer bookings (24-career genSeasonBookings, 25-fuel restOfSeason): 1, or less under ★2.5
+function starBook(){const x=rating();return x.n>=5&&x.r<STAR_LOW?Math.max(.7,1-(STAR_LOW-x.r)*.3):1}
+// tips (22-trips tripEnd): a top-rated guide's parties tip more
+const memTipK=()=>topRated()?TOP_TIP:1;
+
+// ---- the top bar: the rating where Rep was (the meter under it is still Rep, the number the rep-0 loss watches) ----
+{const i=STATS.findIndex(s=>s.l==='Rep');const R={l:'Rating',v:()=>starTxt(rating().r),m:()=>S.rep,warn:()=>S.rep<20||(rating().n>=5&&rating().r<STAR_LOW),
+  get title(){const x=rating();return `Rating ${starTxt(x.r)}: the average of your last ${Math.min(RATE_N,x.n)||'few'} reviews${x.n<RATE_N?' (and your reputation, until there are more)':''}. ${topRated()?'Top-rated: better tips. ':''}Reputation ${S.rep}/100 (the bar): word of mouth. At 0, nobody books you.`}};
+  if(i>=0)STATS[i]=R;else STATS.splice(1,0,R)}
+
+// ---- a lodge guest pays the lodge its cut (tripStart, through memTripStart) ----
+function starsTripStart(b,t){const fee=Math.round(payOf(b)*LODGE_FEE);if(fee>0){fx(t,-fee,'Referral fee to the lodge');if(S.mem&&S.mem.lodge)S.mem.lodge.fee+=fee}}
+
+// ---- after each review (the dock sheet): top-rated, the magazine ----
+function starsAfterTrip(b,t,info){
+  const M=MEM(),x=rating(),out=[];
+  if(!M.top&&topRated()){M.top=true;out.push(`⭐ <b>Top-rated guide: ${starTxt(x.r)}.</b> Your reviews put you near the top of every booking site on the Kenai. Parties who pay well find you, and they tip about 15% more on a good day.`)}
+  else if(M.top&&x.n>=STAR_TOP_N&&x.r<STAR_TOP-.2){M.top=false;out.push(`📉 Your rating slips to ${starTxt(x.r)}: you drop off the top-rated lists. Good days bring it back.`)}
+  if(!M.feat&&x.n>=STAR_FEAT_N&&x.r>=STAR_FEAT){
+    const add=featBook(day()+1,7);M.feat={d:day(),s:seasonOf(day()),n:add.length,pend:add.length?0:(isLastSeason()?0:FEAT_N)};
+    out.push(`📰 <b>A magazine feature.</b> A writer from an Alaska fishing magazine has been reading your reviews (${starTxt(x.r)}) and calls to ride along next summer. The story runs online tonight.${add.length?` The phone rings off the hook: ${add.length} more trip${add.length>1?'s':''} booked this week (${add.map(a=>dlabel(a.d)).join(', ')}).`:M.feat.pend?' This week is full, so the readers book the first week of next July.':''}`);
+  }
+  return out.length?`<div class="gm-stars-ms">${out.map(l=>`<p>${l}</p>`).join('')}</div>`:'';
+}
+// up to FEAT_N bookings on open, legal days from d0 for `span` days within the season: magazine readers (deterministic picks)
+function featBook(d0,span,max){
+  const end=seasonFirst(seasonOf(d0))+SEASON,out=[];max=max||FEAT_N;
+  for(let d=d0;d<Math.min(end,d0+span)&&out.length<max;d++){
+    const type=isSunMon(d)?'trout':'reds';if(illegalDay(type,d)||conflicts(d,type))continue;
+    const ps=PARTIES,p=ps[Math.floor(memU(d,out.length,7)*ps.length)];
+    out.push(addBooking({d,type,n:type==='trout'?2:3+Math.floor(memU(d,3,1)*2),who:p.who,from:p.from,res:!!p.res,quirk:[],tr:['photo'],feat:true}));
+  }
+  return out;
+}
+
+// ---- the season turns (startSeason → memSeasonStart, in the morning report) ----
+function starsSeasonStart(s){
+  const M=MEM(),rv=(S.reviews||[]).filter(r=>seasonOf(r.day)===s-1),n=rv.length,avg=n?rv.reduce((a,x)=>a+x.stars,0)/n:0,x=rating();
+  if(!M.lodge&&n>=STAR_LODGE_N&&avg>=STAR_LODGE&&s<S.years){M.lodge={s,n:0,fee:0};digestLine(`🏨 <b>A lodge partnership.</b> Last July’s reviews averaged ${starTxt(avg)}. A riverside lodge in Soldotna wants you as its guide: ${LODGE_N} extra trips with its guests every July, for a ${Math.round(LODGE_FEE*100)}% referral fee.`)}
+  else if(M.lodge&&!M.lodge.off&&x.r<STAR_LODGE_OFF){M.lodge.off=s;digestLine(`🏨 Your rating fell to ${starTxt(x.r)}, and the lodge sends its guests to another guide. The partnership is over.`)}
+  if(x.n>=5&&x.r<STAR_LOW) digestLine(`📉 Your rating is ${starTxt(x.r)}. Fewer parties book a guide with reviews like that: expect a quieter summer until it comes back up.`);
+}
+// finishWinter → memSeasonOpen: the lodge's guests, and magazine readers who couldn't get a date last summer
+function starsSeasonOpen(s){
+  const M=MEM(),lines=[],base=s*SEASON;
+  if(M.feat&&M.feat.pend){const add=featBook(base+1,7,M.feat.pend);M.feat.pend=0;M.feat.n+=add.length;if(add.length)lines.push(`📰 Readers of last summer’s magazine story booked ${add.length} trip${add.length>1?'s':''} in the first week.`)}
+  if(M.lodge&&!M.lodge.off){
+    let k=0;const want=LODGE_N;
+    for(let i=0;i<SEASON*3&&k<want;i++){const d=base+1+Math.floor(memU(s,i,11)*(SEASON-2));if(sday(d)<1||sday(d)>5)continue;
+      if(conflicts(d,'reds')||illegalDay('reds',d))continue;
+      const p=PARTIES[Math.floor(memU(s,i,13)*PARTIES.length)];addBooking({d,type:'reds',n:3+Math.floor(memU(d,s,2)*2),who:p.who,from:p.from,res:!!p.res,quirk:[],tr:['first'],lodge:true});k++}
+    M.lodge.n+=k;if(k)lines.push(`🏨 The lodge sends ${k} part${k>1?'ies':'y'} of its guests (${Math.round(LODGE_FEE*100)}% referral fee).`);
+  }
+  return lines;
+}
+
+// ---- on the trophy wall ----
+function starsWall(){
+  const M=MEM(),x=rating(),rv=(S.reviews||[]).slice(-RATE_N),dist=[5,4,3,2,1].map(k=>[k,rv.filter(r=>r.stars===k).length]);
+  const ms=[[topRated(),`★${STAR_TOP} top-rated guide (${STAR_TOP_N}+ reviews): parties that pay and tip better`],
+    [!!M.feat,`★${STAR_FEAT} magazine feature (${STAR_FEAT_N}+ reviews): a week of extra bookings, once${M.feat?`: ran ${dlabel(M.feat.d)}, ${yearOf(M.feat.d)}`:''}`],
+    [!!(M.lodge&&!M.lodge.off),`★${STAR_LODGE} over a whole July: a lodge partnership, ${LODGE_N} extra trips a season${M.lodge?` (${M.lodge.n} so far${M.lodge.off?', ended':''})`:''}`]];
+  return `<div class="sect">★ Your rating</div><div class="rules gm-stars-ms" style="margin-top:0"><p style="margin:0 0 4px"><b style="font-size:20px">${starTxt(x.r)}</b> from the last ${x.n} review${x.n===1?'':'s'}${x.n<RATE_N?' (with your reputation filling in until there are '+RATE_N+')':''}. Reputation ${S.rep}/100.</p>
+    <p style="margin:0 0 6px;color:var(--mute)">${dist.map(([k,c])=>`${k}★ ${c}`).join(' · ')}</p>${ms.map(([ok,t])=>`<div class="gm-ms"><span class="${ok?'ok':''}" aria-label="${ok?'reached':'not yet'}">${ok?'✓':'○'}</span><span>${t}</span></div>`).join('')}
+    ${x.n>=5&&x.r<STAR_LOW?`<p style="color:var(--bad);margin:6px 0 0">Under ★${STAR_LOW}: fewer bookings until it comes back up.</p>`:''}</div>`;
+}
 // ---------------- boot ----------------
 applyPrefs();
 titleScreen();

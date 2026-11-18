@@ -1,7 +1,7 @@
 // Service worker: offline-first app shell, runtime-cached Google Fonts.
 // tools/build.py keeps VERSION in step with GAME.version, so every release replaces the old cache.
 const CACHE_PREFIX = 'guidemaster-';
-const VERSION = CACHE_PREFIX + '1.14.0';
+const VERSION = CACHE_PREFIX + '1.15.0';
 const FONTS = CACHE_PREFIX + 'fonts';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/maskable-512.png',
