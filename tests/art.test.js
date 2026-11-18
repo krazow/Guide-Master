@@ -89,7 +89,7 @@ module.exports = [
         ctxList: sc({ heat: 'wood' }, { heat: ['oil', 'wood'] }),
         range: sc({ cond: [40, 70] }, { cond: 55 }), rangeLo: sc({ cond: [40, 70] }, { cond: 39 }), rangeEdge: sc({ cond: [40, 70] }, { cond: 70 }),
         hasAll: sc({ has: ['generator', 'freezer'] }, { has: ['freezer', 'generator', 'vise'] }), hasSome: sc({ has: ['generator', 'freezer'] }, { has: ['generator'] }),
-        upOne: sc({ up: 'motor' }, { up: ['motor'] }),
+        upOne: sc({ up: 'motor' }, { up: ['motor'] }), hasNone: sc({ has: [] }, { has: [] }),
         oneOf: sc({ event: ['cold', 'snow'] }, { event: 'snow' }), oneOfNo: sc({ event: ['cold', 'snow'] }, { event: 'moose' }),
         two: sc({ heat: 'wood', season: 'winter', time: 'any' }, { heat: 'wood', season: 'winter', time: 'day' }),
       };
@@ -118,7 +118,7 @@ module.exports = [
     assert.deepStrictEqual(r.bad, [null, null, null]);
     assert.deepStrictEqual(r.def, { enabled: false, w: 1600, h: 900 }); assert.strictEqual(r.truthy, false, 'only enabled:true switches an entry on');
     assert.strictEqual(r.nullWhenOff, null);
-    assert.deepStrictEqual(r.scores, { any: 0, eq: 1, neq: -1, missing: -1, ctxList: 1, range: 1, rangeLo: -1, rangeEdge: 1, hasAll: 1, hasSome: -1, upOne: 1, oneOf: 1, oneOfNo: -1, two: 2 });
+    assert.deepStrictEqual(r.scores, { any: 0, eq: 1, neq: -1, missing: -1, ctxList: 1, range: 1, rangeLo: -1, rangeEdge: 1, hasAll: 1, hasSome: -1, upOne: 1, hasNone: 0, oneOf: 1, oneOfNo: -1, two: 2 });
     assert.strictEqual(r.best, 'winter-wood'); assert.strictEqual(r.mid, 'winter'); assert.strictEqual(r.fallback, 'generic');
     assert.strictEqual(r.none, null); assert.strictEqual(r.noneSet, null); assert.strictEqual(r.slotEmpty, '');
     assert.strictEqual(new Set(r.same).size, 1, 'no flicker'); assert.ok(r.days >= 3, 'ties spread over days: ' + r.days);

@@ -44,7 +44,7 @@ const ART=(()=>{
     if(w===undefined||w===null||w==='any') return 0;
     if(c===undefined||c===null) return -1;
     const has=v=>Array.isArray(c)?c.includes(v):c===v;
-    if(ALLOF.includes(k)){const need=Array.isArray(w)?w:[w];return need.every(has)?1:-1}
+    if(ALLOF.includes(k)){const need=Array.isArray(w)?w:[w];return !need.length?0:need.every(has)?1:-1}   // [] asks for nothing
     if(isRange(w)){const n=Array.isArray(c)?c[0]:c;return typeof n==='number'&&n>=w[0]&&n<=w[1]?1:-1}
     if(Array.isArray(w)) return w.some(v=>v==='any'||has(v))?1:-1;   // one of several values
     return has(w)?1:-1;

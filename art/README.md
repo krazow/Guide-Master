@@ -90,7 +90,7 @@ off-season) and the set, so the same screen shows the same picture all day. Noth
 - a string matches an equal value (or a context list that contains it): `"heat": "wood"`
 - `"any"` (or leaving the key out) matches anything
 - `[min, max]` (two numbers) is an inclusive range: `"cond": [0, 39]`
-- under `has` and `up`, a list must be **all** present: `"has": ["generator", "freezer"]`
+- under `has` and `up`, a list must be **all** present: `"has": ["generator", "freezer"]` (an empty list asks for nothing and scores 0)
 - under any other key, a list is **one of**: `"event": ["cold", "snow"]`, `"time": ["dusk", "night"]`
 
 A context key the game doesn't know (null) only matches `"any"`.
