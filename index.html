@@ -1781,8 +1781,8 @@ const GAME={
   title:'Guide Master',
   tagline:'A guide’s career on the Kenai',
   codePrefix:'GUIDEMASTER',   // transfer codes start with this, e.g. POCKETWEEK:eyJ…
-  version:'1.13.0',           // bump on every release: shown in Settings, stamped into saves and sw.js
-  schema:5,                  // bump when the shape of S changes, and add a MIGRATIONS entry (21-story.js)
+  version:'1.14.0',           // bump on every release: shown in Settings, stamped into saves and sw.js
+  schema:6,                  // bump when the shape of S changes, and add a MIGRATIONS entry (21-story.js)
   days:14,                   // days in ONE season (the July peak, Mon–Sun twice; season 1 is Jul 13–26, 2026). A career is 14 × years: see the getter below
   wake:300,                  // default alarm for new games, in minutes after midnight (300 = 5:00 AM: guides start early; saves keep their own S.alarm)
   startLoc:'shop',
@@ -2680,7 +2680,7 @@ function actionsHere(){
     else a.push({ic:'😠',l:`The ${b.who} gave up on you`,s:'They waited 90 minutes, then left. Expect a review.',cat:'trip',dis:true,fn:()=>{}});
   });
   if(S.loc==='shop'){
-    a.push({ic:'🛏️',l:'Go to bed',s:`Ends the day. Overhead ${$(overhead())} tonight. Alarm ${fmt(S.alarm)}. The sun won’t fully set.${fuelPlan().short&&fuelPlan().tomorrow?` ⛽ The sled has ${fuelPlan().have} gal; tomorrow needs about ${fuelPlan().need}.`:''}`,cat:'rest',cls:m>=1260?'primary':'',fn:()=>endDay('home')});
+    a.push({ic:'🛏️',l:'Go to bed',s:`Ends the day. Overhead ${$(overhead())} tonight. Alarm ${fmt(S.alarm)}. ${sunsetTxt()}${fuelPlan().short&&fuelPlan().tomorrow?` ⛽ The sled has ${fuelPlan().have} gal; tomorrow needs about ${fuelPlan().need}.`:''}`,cat:'rest',cls:m>=1260?'primary':'',fn:()=>endDay('home')});
     a.push({ic:'😴',l:'Nap for an hour',s:'Energy +10.',cat:'rest',fn:()=>{pass(60);adj('energy',10);say('😴 Blackout curtains, earplugs, one glorious hour.')}});
     const logs=S.unlogged+S.overdue;
     if(logs) a.push({ic:'📓',l:`Fill out your ADF&G logbook (${logs} trip${logs>1?'s':''})`,s:`${logs*10} min. Every guided trip gets an entry: anglers, licenses, hours, fish kept and released.`,cat:'work',cls:'primary',fn:()=>{pass(logs*10);say(`📓 You write up ${logs} trip${logs>1?'s':''}: license numbers, hours fished, sockeye kept, kings released.${S.overdue?' A day late, but done.':''}`);S.unlogged=0;S.overdue=0}});
@@ -2713,8 +2713,8 @@ function actionsHere(){
     if(!S.walks[d]) a.push({ic:'🥾',l:'Hike to the Russian River Falls',s:'2 hours. Watch sockeye jump the falls. Energy +8 (it’s good for the soul).',cat:'rest',fn:()=>{pass(120);S.walks[d]=true;adj('energy',8);say('🥾 Two miles of trail to the falls. Reds hurl themselves up the white water while a brown bear fishes the lip below. Bear spray on your hip the whole way.')}});
   }
   if(S.loc==='kbeach'){
-    const ok=m>=360&&m<=1200;
-    if(!S.dipnet[d]) a.push({ic:'🥅',l:'Dipnet for your freezer',s:ok?`3 hours. Alaska residents only. Household limit 25 (${S.pu} so far). Tide: ${tideNow()}.`:'Dipnetting is open 6 AM–11 PM.',cat:'fish',dis:!ok||S.pu>=25,fn:()=>dipnetModal()});
+    const ok=dipOpen(d)&&m>=360&&m<=1200;
+    if(!S.dipnet[d]) a.push({ic:'🥅',l:'Dipnet for your freezer',s:!dipOpen(d)?'The personal-use dipnet fishery is open Jul 10–31 only.':ok?`3 hours. Alaska residents only. Household limit 25 (${S.pu} so far). Tide: ${tideNow()}.`:'Dipnetting is open 6 AM–11 PM.',cat:'fish',dis:!ok||S.pu>=25,fn:()=>dipnetModal()});
     a.push({ic:'🌊',l:'Watch the tide come in',s:'30 min. Energy +4.',cat:'rest',fn:()=>{pass(30);adj('energy',4);say('🌊 Cook Inlet has some of the biggest tides on Earth. The mud flats vanish while you watch. Don’t walk out on them: the silt grabs boots.')}});
   }
   if(S.loc==='homer'){
@@ -2798,20 +2798,22 @@ function alertBar(){
 // ---- extra tabs ----
 const EXTRA_TABS=[
   {k:'book',ic:'📅',l:'Bookings',view:()=>{
-    const s0=seasonFirst();let h=(typeof reqView==='function'?reqView():'')+`<div class="sect">Season ${seasonOf(s0)+1} of ${S.years} · ${dlabel(s0)}–${dlabel(s0+SEASON-1)}, ${yearOf(s0)}</div>`;
+    const s0=seasonFirst();let h=(typeof reqView==='function'?reqView():'')+goalsView()+`<div class="sect">Season ${seasonOf(s0)+1} of ${S.years} · ${weeksLabel(seasonOf(s0))}, ${yearOf(s0)}</div>`;
     for(let d=s0;d<s0+SEASON;d++){
+      h+=weekHead(d);   // 34-summer.js: a line at the top of each played week
       const bs=S.book.filter(b=>b.d===d),rules=[isSunMon(d)?'🚫 guide boats off below Skilak':'',halClosed(d)?'⚓ no charter halibut kept':''].filter(Boolean).join(' · ');
       const lines=bs.map(b=>{const T=TRIPS[b.type],st={booked:d<day()?'—':'',done:'✅',noshow:'❌ no-show',cancelled:'🚫 cancelled'}[b.status]||'';
-        return `${T.ic} <b>${fmt(T.start)}</b> ${T.n} · ${b.who}, ${b.n} ${b.tr&&b.tr.length?`<span title="${traitTxt(b.tr)}" aria-label="${traitTxt(b.tr)}">${traitIcons(b.tr)}</span> `:''}${b.reg?'⭐ ':''}${b.asst?'🧑‍🤝‍🧑 (assistant) ':''}${st}${b.out?` · ${b.out.line}${b.out.stars?` · ${'★'.repeat(b.out.stars)}`:''}`:''}`}).join('<br>');
+        return `${T.ic} <b>${fmt(T.start)}</b> ${T.n} · ${b.who}, ${b.n} ${b.tr&&b.tr.length?`<span title="${traitTxt(b.tr)}" aria-label="${traitTxt(b.tr)}">${traitIcons(b.tr)}</span> `:''}${b.reg?'⭐ ':''}${b.asst?'🧑‍🤝‍🧑 (assistant) ':''}${b.big?`🎯 ${b.big.txt} `:''}${st}${b.out?` · ${b.out.line}${b.out.stars?` · ${'★'.repeat(b.out.stars)}`:''}`:''}`}).join('<br>');
       h+=`<div class="todo"><span class="ck">${d<day()?'✔️':d===day()?'👉':'·'}</span><div><b>${dlong(d)}</b><span>${lines||'<i>Open day</i>'}${rules?`<br><span style="color:var(--warn)">${rules}</span>`:''}</span></div></div>`;
     }
-    return h+`<div class="rules">Trips: 💲 rates ×${S.up.rate.toFixed(1)} · 🐟 sockeye ${$(Math.round(TRIPS.reds.price*S.up.rate))}/angler (6 AM, lower river) · 🎣 silvers ${$(Math.round(TRIPS.silver.price*S.up.rate))}/angler (1 PM, lower river) · 🌈 trout float ${$(Math.round(TRIPS.trout.price*S.up.rate))}/angler (7 AM, Cooper Landing, 3 max) · ⚓ halibut ${S.up.chp?`${$(Math.round(350*S.up.rate))}/passenger on your own boat`:`day rate ${$(TRIPS.halibut.gig)}`} (6 AM, Homer). New requests wait at the top of this tab for a day or two: <b>📞 Return calls</b> at the shop brings more.</div>`}},
+    return h+`<div class="rules">Trips: 💲 rates ×${S.up.rate.toFixed(1)} · 🐟 sockeye ${$(Math.round(TRIPS.reds.price*S.up.rate))}/angler (6 AM, lower river) · 🎣 silvers ${$(Math.round(TRIPS.silver.price*S.up.rate))}/angler (1 PM, lower river) · 🌈 trout float ${$(Math.round(TRIPS.trout.price*S.up.rate))}/angler (7 AM, Cooper Landing, 3 max) ${weekTripsTxt()}· ⚓ halibut ${S.up.chp?`${$(Math.round(350*S.up.rate))}/passenger on your own boat`:`day rate ${$(TRIPS.halibut.gig)}`} (6 AM, Homer). New requests wait at the top of this tab for a day or two: <b>📞 Return calls</b> at the shop brings more.</div>`}},
   {k:'regs',ic:'📖',l:'Regs',view:()=>regsView()},
 ];
 function regsView(){
   const d=day(),fa=S.cred.fa<d?'<b style="color:var(--bad)">EXPIRED</b>':faDue(d)?`expires ${dlong(S.cred.fa)} at midnight`:`good through ${dlongY(S.cred.fa)}`;
   const cred=[['🪪','ADF&G sport fishing guide license + business license','current'],['⚓','USCG OUPV (“six-pack”) captain’s license','current'],['🏞️','Alaska State Parks Kenai River guide permit (KRSMA) + 3-digit boat number','current'],['🏷️','ADF&G guide-vessel decal on both sides of the boat','current'],['⛑️','First aid & CPR card',fa],['📓','ADF&G freshwater guide logbook',S.overdue?`<b style="color:var(--bad)">${S.overdue} entr${S.overdue>1?'ies':'y'} overdue</b>`:S.unlogged?`${S.unlogged} to fill in tonight`:'up to date'],['🧪','Random drug-testing program','enrolled']];
   const R=[
+    ...weekRegRows(),   // 34-summer.js: what this week's date means for the rules
     ['👑 Kenai kings',kingRuleTxt()],
     ['🪝 Gear below Skilak',gearRuleTxt()],
     ['📆 Guide-boat days','May 1–Jul 31, downstream of the Skilak Lake outlet: no fishing from a guide vessel on Sundays or Mondays (Memorial Day excepted), and only 6 AM–6 PM on other days.'],
@@ -2991,12 +2993,12 @@ function makeRequest(){
     const p=pick(PARTIES.filter(x=>!x.res));S.dipnetAsk=s;
     return {kind:'dipnet',d:d0+Math.floor(Math.random()*span),n:2+Math.floor(Math.random()*3),who:p.who,from:p.from,res:false};
   }
-  const roll=()=>{const d=d0+Math.floor(Math.random()*span),types=['reds','reds','reds','reds','trout','trout','halibut'].concat(sday(d)>=8?['silver','silver']:[]);return {d,type:pick(types)}};
+  const roll=()=>{const d=d0+Math.floor(Math.random()*span),types=weekReqTypes(d);return {d,type:pick(types)}};   // 34-summer.js: what the week's water offers
   for(let i=0;i<24;i++){
     let {d,type}=roll();
     if(illegalDay(type,d)) ({d,type}=roll());             // re-roll an illegal date once; the second pick stands, so some illegal requests still teach the lesson
     const p=pick(PARTIES),kind=Math.random()<.22&&type==='reds'?'king':'trip';
-    const nr={reds:[2,6],silver:[2,5],trout:[2,4],halibut:[4,6]}[type],n=nr[0]+Math.floor(Math.random()*(nr[1]-nr[0]+1));
+    const nr={reds:[2,6],silver:[2,5],trout:[2,4],halibut:[4,6],king:[2,4]}[type],n=nr[0]+Math.floor(Math.random()*(nr[1]-nr[0]+1));
     let asst=false;
     if(conflicts(d,type)){if(S.up.asst&&type!=='halibut'&&!conflicts(d,type,true))asst=true;else continue}
     const quirk=Math.random()<.25?[pick(['drinker','nolicense','photo','kid'])]:[];
@@ -3015,7 +3017,7 @@ function requestWarn(r){
 }
 // nearest later day in the same season that is legal and free (null if none). Only date problems are fixed by moving the date.
 function nextLegalDay(r){
-  const end=seasonFirst(seasonOf(r.d))+SEASON;
+  const s=seasonOf(r.d),end=weekGap(s)?r.d-sday(r.d)%7+7:seasonFirst(s)+SEASON;   // 1.14.0: weeks apart, a moved trip stays in its week (34-summer.js)
   for(let d=r.d+1;d<end;d++) if(!illegalDay(r.type,d)&&!conflicts(d,r.type,!!r.asst)) return d;
   return null;
 }
@@ -3030,7 +3032,7 @@ function requestOpts(r){
   const T=TRIPS[r.type],asstNote=r.asst?`<p style="font-size:13px;color:var(--mute)">🧑‍🤝‍🧑 You’re booked then, so your assistant guide would take this party: you keep ${Math.round((1-ASST_CUT)*100)}% of the fare and tips.</p>`:'',price=T.gig?`day rate ${$(T.gig)}`:`${$(T.price)} × ${r.n} = ${$(T.price*r.n)}`;
   if(!r.tr) r.tr=traitsFor(r);                          // 1.13.0: what the party came for (old saved requests get theirs here)
   const goals=`<p class="small-note" style="font-size:13px;margin:4px 0">🎯 What they want: ${traitTxt(r.tr,true)}.</p>`;
-  const book=(n,q,d)=>{const b=addBooking({d:d??r.d,type:r.type,n,who:r.who,from:r.from,res:r.res,quirk:q||r.quirk,asst:r.asst||undefined,tr:r.tr.slice()});sfx('good');say(`📅 Booked: ${T.ic} ${T.n}, ${dlong(b.d)} at ${fmt(T.start)}, the ${b.who} (${b.n})${b.asst?', with your assistant guide':''}.`)};
+  const book=(n,q,d)=>{const b=addBooking({d:d??r.d,type:r.type,n,who:r.who,from:r.from,res:r.res,quirk:q||r.quirk,asst:r.asst||undefined,tr:r.tr.slice(),big:r.big||undefined});sfx('good');say(`📅 Booked: ${T.ic} ${T.n}, ${dlong(b.d)} at ${fmt(T.start)}, the ${b.who} (${b.n})${b.asst?', with your assistant guide':''}.`)};
   if(r.kind==='king'){
     return {body:`<p>${who}, ${r.n} anglers, ${dlong(r.d)}: “We want a <b>Kenai king</b>. A big one. Like the world record.”</p>${goals}${requestWarn(r)}`,opts:[
       ...(kingRule()==='open'?[{l:'Book it: kings are open this year',s:`1 per day, 20 in. or longer. ${$(payOf({type:'reds',n:r.n}))}.`,fn:()=>book(r.n,['kingfan'])}]:[
@@ -3044,14 +3046,14 @@ function requestOpts(r){
   else o.push({l:`${bad?'Book it anyway':'Book it'} — ${$(payOf({type:r.type,n:r.n}))}`,s:bad?'You’ll face the rules on the water.':'',fn:()=>book(r.n)});
   if(bad&&alt!=null) o.splice(0,0,{l:`Offer ${dlong(alt)} instead`,s:`Same party, ${fmt(T.start)}. ${$(payOf({type:r.type,n:bn}))}.`,fn:()=>book(bn,null,alt)});
   o.push({l:'Decline politely',fn:()=>say('📞 You pass on that one.')});
-  return {body:`<p>${who} would like a <b>${T.ic} ${T.n}</b> on <b>${dlong(r.d)}</b> at ${fmt(T.start)} for <b>${r.n}</b>.</p>${goals}${warn}<p style="font-size:13px;color:var(--mute)">${T.long} ${price}.</p>${asstNote}`,opts:o};
+  return {body:`<p>${who} would like a <b>${T.ic} ${T.n}</b> on <b>${dlong(r.d)}</b> at ${fmt(T.start)} for <b>${r.n}</b>.</p>${goals}${bigReqLine(r)}${warn}<p style="font-size:13px;color:var(--mute)">${T.long} ${price}.</p>${asstNote}`,opts:o};
 }
 function requestModal(r){const q=requestOpts(r);modal('📞 Booking request',q.body,q.opts)}
 // ---- requests wait in the Bookings tab ----
 // A request that comes in goes to the top of 📅 Bookings (with a dot on the tab) and waits a day or two; the morning report mentions it.
 // Only a request for tomorrow or sooner, made while you're on the phone, is answered on the spot.
 const REQ_WAIT=2;
-const reqKey=r=>r.kind==='dipnet'?'dipnetting at the mouth':`${TRIPS[r.type].ic} ${TRIPS[r.type].n.toLowerCase()}`;
+const reqKey=r=>r.kind==='dipnet'?'dipnetting at the mouth':`${TRIPS[r.type].ic} ${TRIPS[r.type].n.toLowerCase()}${r.big?` (🎯 ${r.big.txt})`:''}`;
 function queueRequest(r,quiet){
   const q={id:S.reqN++,r,exp:day()+REQ_WAIT};S.reqs.push(q);
   const line=`📞 <b>Booking request:</b> the ${r.who} (${r.n}) want a ${reqKey(r)} on ${dlong(r.d)}. Answer it in the 📅 Bookings tab: it waits ${REQ_WAIT===1?'a day':'two days'}.`;
@@ -3237,6 +3239,13 @@ const MIGRATIONS=[
     (x.book||[]).forEach(b=>{if(!Array.isArray(b.tr))b.tr=traitsFor(b)});
     (x.regs||[]).forEach(g=>{if(!Array.isArray(g.tr))g.tr=traitsFor(g)});
     (x.reqs||[]).forEach(q=>{if(q&&q.r&&q.r.kind!=='dipnet'&&!Array.isArray(q.r.tr))q.r.tr=traitsFor(q.r)});
+  }},
+  // schema 6 (1.14.0): the weeks of the summer you play (34-summer.js) and season goals (35-goals.js). Defaults only, so it runs the same
+  // whether or not 1.13's schema 5 ran first: a season without a pick plays the two July weeks, as before, and goals start with this season.
+  {to:6,run:x=>{
+    if(!x.weeks||typeof x.weeks!=='object'||Array.isArray(x.weeks))x.weeks={};
+    if(!Array.isArray(x.goalLog))x.goalLog=[];
+    if(x.goals!=null&&(typeof x.goals!=='object'||!Array.isArray(x.goals.list)))x.goals=null;
   }},
 ];
 // ============================================================
@@ -3460,6 +3469,7 @@ function tripStart(b){
   dl.forEach((k,i)=>slots[Math.min(K-1,Math.round(i*K/Math.max(1,dl.length)))].push(k));
   slots.forEach((sl,i)=>{if(i>0)t.steps.push('beat');t.steps.push(...sl)});
   if(b.type==='silver') t.steps.push('sixpm');
+  weekTripStart(b,t);                                     // 34-summer.js (1.14.0): the week's rules (no 6 PM rule after Jul 31) and king trips
   S.trip=t;sfx('whoosh');tripNext();
 }
 // ---- one pop-up per trip ----
@@ -3514,6 +3524,7 @@ function tripEnd(b,t){
   if(BT){C=beatCatch(b,t,towR);fish=C.fish;frac=C.frac;limits=C.limits;line=C.line;
     if(bagged(b)&&fishers&&limits===fishers){S.stats.limits++;t.happy+=5}
     if(b.type==='halibut'&&!halClosed(b.d))S.stats.halibut+=fish}
+  else if(b.type==='king'){({fish,frac,line,limits}=weekCatch(b,t,q,fishers))}   // 34-summer.js: a king trip without stretches (never in practice; a fallback)
   else if(b.type==='reds'||b.type==='silver'){
     const lim=b.type==='reds'?S.limit:2,nm=b.type==='reds'?'red':'silver';
     for(let i=0;i<fishers;i++){const c=clamp(Math.round(lim*q+(r()-.5)*1.6),0,lim);fish+=c;if(c===lim)limits++}
@@ -3801,11 +3812,11 @@ function fishView(){
 }
 function runChart(d){
   const x0=166,x1=258,W=440,H=130,X=x=>20+(x-x0)/(x1-x0)*(W-30),Y=v=>H-18-v*(H-34);
-  const series=[['sockeye','#c0392b',x=>runCurve('sockeye',x,d)/1.4],['coho','#2c6e9e',x=>runCurve('coho',x,d)/1.4],['pink','#d36ba6',x=>runCurve('pink',x,d)],['king','#7a7a7a',x=>runCurve('king',x,d)/.35*.4]],w0=doyOf(seasonFirst(seasonOf(d)));
+  const series=[['sockeye','#c0392b',x=>runCurve('sockeye',x,d)/1.4],['coho','#2c6e9e',x=>runCurve('coho',x,d)/1.4],['pink','#d36ba6',x=>runCurve('pink',x,d)],['king','#7a7a7a',x=>runCurve('king',x,d)/.35*.4]];
   const path=f=>{let p='';for(let x=x0;x<=x1;x+=2)p+=(p?'L':'M')+X(x).toFixed(1)+' '+Y(clamp(f(x),0,1)).toFixed(1);return p};
   const months=[[166,'Jun 15'],[182,'Jul 1'],[213,'Aug 1'],[244,'Sep 1']];
   return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;background:#fff;border:1px solid var(--line);border-radius:10px" role="img" aria-label="Run timing chart">
-    <rect x="${X(w0)}" y="8" width="${X(w0+13)-X(w0)}" height="${H-26}" fill="#1f5d63" opacity=".08"/><text x="${X(w0+6.5)}" y="18" text-anchor="middle" font-size="9" fill="#1f5d63" font-family="DM Sans">your 2 weeks · ${yearOf(d)}</text>
+    ${weekBoxes(d,X,H)}
     <line x1="${X(doyOf(d))}" x2="${X(doyOf(d))}" y1="8" y2="${H-18}" stroke="#e3642e" stroke-width="2"/>
     ${months.map(([x,l])=>`<line x1="${X(x)}" x2="${X(x)}" y1="${H-18}" y2="${H-14}" stroke="#999"/><text x="${X(x)}" y="${H-4}" text-anchor="middle" font-size="9" fill="#6b7478" font-family="DM Sans">${l}</text>`).join('')}
     <line x1="20" x2="${W-10}" y1="${H-18}" y2="${H-18}" stroke="#ccc"/>
@@ -3833,12 +3844,13 @@ const seasonFirst=(s=seasonOf(day()))=>s*SEASON;
 const isLastSeason=(d=day())=>seasonOf(d)>=S.years-1;
 // the Monday nearest July 13 of a year, as a UTC date
 function seasonStartUTC(y){const t=Date.UTC(y,6,13),w=new Date(t).getUTCDay();let off=(1-w+7)%7;if(off>3)off-=7;return t+off*864e5}
-const dateOf=d=>new Date(seasonStartUTC(yearOf(d))+sday(d)*864e5);
+// 1.14.0: each half of a season is one played week, July by default or another week of the summer the player picked (34-summer.js)
+const dateOf=d=>new Date(weekStartUTC(yearOf(d),weekIdOf(d))+(sday(d)%7)*864e5);
 const MONTH=['January','February','March','April','May','June','July','August','September','October','November','December'];
 const dlabel=d=>{const x=dateOf(d);return `${dayName(d).slice(0,3)} ${MONTH[x.getUTCMonth()].slice(0,3)} ${x.getUTCDate()}`};
 const dlong=d=>{const x=dateOf(d);return `${dayName(d)}, ${MONTH[x.getUTCMonth()]} ${x.getUTCDate()}`};
 const dlongY=d=>`${dlong(d)}, ${yearOf(d)}`;
-const isSunMon=d=>{const w=((d%7)+7)%7;return w===6||w===0};   // DAYS starts on Monday; seasons are whole weeks
+const isSunMon=d=>{const w=((d%7)+7)%7;return (w===6||w===0)&&guideDaysRule(d)};   // DAYS starts on Monday; seasons are whole weeks. Only May 1–Jul 31 (34-summer.js)
 function doyOf(d){const x=dateOf(d);return Math.round((x-Date.UTC(x.getUTCFullYear(),0,1))/864e5)+1}
 const evenYear=d=>yearOf(d)%2===0;
 // In the off-season the clock is the winter's, not next July's: October for the fall jobs, the month of your latest camping trip while
@@ -3871,19 +3883,19 @@ function genRegs(s){
 }
 const REG=()=>S.reg||genRegs(0);
 const kingRule=()=>REG().king;                              // 'closed' | 'cr' (catch-and-release) | 'open'
-const noBait=()=>REG().king!=='open';                        // single-hook, no-bait EO rides along with king restrictions
+const noBait=(d=day())=>REG().king!=='open'&&baitRule(d);    // single-hook, no-bait EO rides along with king restrictions (Jun 20–Aug 15 below Skilak: 34-summer.js)
 const halSize=()=>REG().hal.size;
-const halClosed=d=>REG().hal.closed.includes(((d%7)+7)%7);
+const halClosed=d=>REG().hal.closed.includes(((d%7)+7)%7)&&halDaysRule(d);   // the closed charter days run early June to late August (34-summer.js)
 const halDaysTxt=()=>{const c=REG().hal.closed;return c.length?c.map(i=>DAYS[i]+'s').join(' and '):'none this year'};
 function kingRuleTxt(){return {closed:`Closed in ${REG().year} by emergency order, including catch-and-release. A king hooked by accident is released right away, without lifting it from the water.`,
   cr:`Catch-and-release only in ${REG().year}. Kings may not be kept, and big kings may not be removed from the water.`,
   open:`Open in ${REG().year}: 1 per day, 20 inches or longer, recorded on your harvest record right away.`}[kingRule()]}
-function gearRuleTxt(){return noBait()?'Below Skilak, Jun 20–Aug 15: one unbaited, single-hook artificial lure. No bait, no treble hooks.':'Bait and multiple hooks allowed below Skilak this year (kings are open). Single hooks still kinder to release fish.'}
+function gearRuleTxt(){if(REG().king!=='open'&&!baitRule(day()))return 'Below Skilak: the single-hook, no-bait rule runs Jun 20–Aug 15, so outside it bait and treble hooks are legal again. Single hooks still kinder to release fish.';return noBait()?'Below Skilak, Jun 20–Aug 15: one unbaited, single-hook artificial lure. No bait, no treble hooks.':'Bait and multiple hooks allowed below Skilak this year (kings are open). Single hooks still kinder to release fish.'}
 // first-aid/CPR: a card lasts two years
 const faDue=(d=day())=>S.cred.fa<(seasonOf(d)+1)*SEASON;     // expires before this season ends
 const faRenewTo=(d=day())=>(seasonOf(d)+2)*SEASON+2;         // the Wednesday of the season two years on
 // Classes: Monday, Tuesday and Thursday, 1:00-4:00 PM at the Soldotna clinic; you can join up to 1:30 PM (late arrivals still sit the 3 hours)
-const faClassDay=d=>[0,1,3].includes(sday(d));
+const faClassDay=d=>[0,1,3].includes(sday(d)%7);          // 1.14.0: both played weeks (a June week of all-day trout floats can't leave the first week's classes free)
 const faJoinable=m=>m>=780&&m<=810;
 // the card runs out this season and today is on or before the expiry day, from the Monday of that week
 const faUrgent=(d=day())=>faDue(d)&&S.cred.fa>=d&&d>=S.cred.fa-(((S.cred.fa%7)+7)%7);
@@ -4000,10 +4012,12 @@ function winterModal(){
     <p>💸 <b>Winter bills ${$(W.bill)}</b>: ${winterCosts().map(([,c,sh])=>`${sh} ${$(c)}`).join(' · ')}. Cash now <b>${$(Math.round(S.money))}</b>.</p>
     <p>📣 <b>${2026+s}:</b> ${REG().fc}<br>⚓ Halibut: 2 a day, the second ${halSize()} inches or less; no retention ${halDaysTxt()}.<br>⛽ Kenai Harbor fuel ${$(fuelPrice('kenai',seasonFirst(s)))}/gal. ${evenYear(seasonFirst(s))?'🩷 Even year: pinks in August.':'Odd year: few pinks.'}</p>
     ${W.sup&&W.sup.length?`<p>${W.sup.join('<br>')}</p>`:''}
+    ${goalsWinterLine(s-1)}
     <p>⛑️ First-aid card: ${fa}.${W.expired>0?`<br>⚖️ ${W.expired} old citation${W.expired>1?'s':''} dropped off.`:''}${S.cites?`<br>⚖️ Active citations: ${S.cites}/3.`:''}</p>
     ${campHintLine()?`<p>${campHintLine()}</p>`:''}
     <p style="font-size:13px;color:var(--mute)">Season ${s+1} of ${S.years}. Bookings open when you finish planning.</p>`,[
     {l:'🛠️ Upgrades & business',s:'Boats, marketing, rates, a Homer charter permit.',fn:()=>upgradeModal()},
+    weeksWinterOpt(s),   // 34-summer.js: which two weeks of the summer you guide yourself
     {l:`🏠 The cabin: ${homeWinterLabel()}`,s:cabinWinterBlurb(),fn:()=>homeWinterModal()},
     {l:'🏕️ Winter camping & work',s:campUsed()?'You’ve used your free days this winter. You can still look at your camping log.':`${campDaysLeft()} free days: camping trips within 100 miles (ice fishing, scouting, company), winter work, a camping log.`,fn:()=>campModal()},
     {l:`🛶 Open bookings for ${2026+s}`,s:'Start the season.',fn:()=>homeOpenGate(()=>finishWinter())}]);
@@ -4025,10 +4039,11 @@ function genSeasonBookings(s){
   const p0=clamp((.35+S.rep/200+web+(S.arcs.rival.ally?.03:0)+campBook(s))*rateDemand()*(S.up.dock?1.08:1),.12,.95);
   const q=()=>r()<.3?[pick(['drinker','nolicense','kingfan','photo','kid'])]:[];
   const party=()=>pick(PARTIES);
-  for(let i=0;i<SEASON;i++){const d=base+i,w=i%7;
+  for(let i=0;i<SEASON;i++){const d=base+i,w=i%7,K=weekOf(d),main=K.main(d),second=K.second;   // 34-summer.js: what each week books
     if(w>=1&&w<=5){
-      if(r()<p0){const p=party();addBooking({d,type:'reds',n:pick([2,3,4,4,4,5]),who:p.who,from:p.from,res:!!p.res,quirk:q()})}
-      if(i>=7&&r()<p0*.6*REG().mult.coho){const p=party();addBooking({d,type:'silver',n:pick([2,3,4]),who:p.who,from:p.from,res:!!p.res,quirk:q()})}
+      if(main==='trout'&&i===1&&faDue(base)) continue;   // a week of trout floats keeps the Tuesday free for the first-aid class (1–4 PM) when the card is due
+      if(r()<p0*(K.book||1)){const p=party();addBooking({d,type:main,n:pick(WEEK_N[main]||[2,3,4,4,4,5]),who:p.who,from:p.from,res:!!p.res,quirk:q()})}
+      if(second&&r()<p0*.6*REG().mult.coho){const p=party();addBooking({d,type:second,n:pick([2,3,4]),who:p.who,from:p.from,res:!!p.res,quirk:q()})}
     }else{
       if(S.up.chp&&r()<p0*.8){const p=party();addBooking({d,type:'halibut',n:pick([4,5,6]),who:p.who,from:p.from,res:!!p.res,quirk:q()})}
       else if(r()<p0*.7){const p=party();addBooking({d,type:'trout',n:pick([2,3,3]),who:p.who,from:p.from,res:!!p.res,quirk:q()})}
@@ -4037,7 +4052,7 @@ function genSeasonBookings(s){
   const regLines=regsRebook(base,r);                      // 30-stories.js: returning parties
   if(S.up.asst) for(let i=1;i<SEASON;i++){const d=base+i,w=i%7;           // your assistant takes a second party when you are booked
     if(w<1||w>5||r()>p0*.9) continue;
-    const types=['reds','reds','trout'].concat(i>=7?['silver']:[]).filter(t=>conflicts(d,t)&&!conflicts(d,t,true));
+    const types=weekAsstTypes(d).filter(t=>conflicts(d,t)&&!conflicts(d,t,true));
     if(!types.length) continue;const type=pick(types),p=party();
     addBooking({d,type,n:type==='trout'?pick([2,3]):pick([2,3,4]),who:p.who,from:p.from,res:!!p.res,quirk:[],asst:true})}
   if(!S.up.chp){const d=base+pick([6,13]);if(!S.book.some(b=>b.d===d&&b.status==='booked')){const p=party();addBooking({d,type:'halibut',n:6,who:p.who,from:p.from,res:!!p.res,quirk:[]})}}
@@ -4167,7 +4182,7 @@ const WEB_REST=1.12,REST_X=1.95,QUAL_SPAN=90,WOM_W=.006,REG_W=.003;
 const qualityF=p=>clamp(1+((p.hap==null?HAP0:p.hap)-HAP0)/QUAL_SPAN,.7,1.25);
 function restOfSeason(p){
   if(!p||!p.trips) return {trips:0,gross:0,costs:0,net:0};
-  const trips=Math.round(p.trips*REST_X*DF().book*clamp(S.rep/70,.5,1.25)*qualityF(p)*(1+clamp((p.wom||0)*WOM_W,-.10,.15))*(1-CITE_REST*Math.min(4,p.cites||0))*(1+REG_W*Math.min(REG_MAX,(S.regs||[]).length))*rateDemand()*(S.up&&S.up.lodge?1.1:1)*(S.up&&S.up.dock?1.08:1)*(S.up&&S.up.web===p.year-2026?WEB_REST:1)),fare=(p.fares+(p.tips||0))/p.trips;
+  const trips=Math.round(p.trips*REST_X*restWeeksX(p)*DF().book*clamp(S.rep/70,.5,1.25)*qualityF(p)*(1+clamp((p.wom||0)*WOM_W,-.10,.15))*(1-CITE_REST*Math.min(4,p.cites||0))*(1+REG_W*Math.min(REG_MAX,(S.regs||[]).length))*rateDemand()*(S.up&&S.up.lodge?1.1:1)*(S.up&&S.up.dock?1.08:1)*(S.up&&S.up.web===p.year-2026?WEB_REST:1)),fare=(p.fares+(p.tips||0))/p.trips;
   let gross=Math.round(trips*fare),costs=Math.round(trips*(bn('reds')*fuelPrice('kenai')+LAUNCH_FEE+30));
   if(S.up&&S.up.asst){const x=Math.round(trips*.2);gross+=Math.round(x*fare*(1-ASST_CUT));costs+=Math.round(x*(bn('reds')*fuelPrice('kenai')+LAUNCH_FEE+30))}   // the assistant covers the off-month overflow
   if(S.up&&S.up.lodge){const l=lodgeSeason();gross+=l.gross;costs+=l.costs}
@@ -4180,9 +4195,9 @@ function driftFuelPrices(){const r=Math.random;S.fuelBase=S.fuelBase||{kenai:6.1
 //  One bottom sheet with a short section per topic; works before a game exists and mid-game.
 // ============================================================
 const HELP=[
-  ['🎯','The goal','Run a Kenai River guide business out of Soldotna for a <strong>2-, 5- or 10-year career</strong>. Each year you play the two-week July peak; between years the off-season handles bills, upgrades and next season’s bookings. Keep clients happy, your boat running and your record clean. The end screen shows how your score adds up. Your grade is your score per season: <strong>A 62,000, B 55,000, C 44,000, D 27,000</strong>, F below (and for any career that ends early). On Licensed Guide, playing it by the book usually earns a B, a sharp career (every request answered, upgrades bought, a clean record) a B or an A, a skilled one (it reads the Fish tab and scouts to pick the right spot each day, keeps the boat up, asks happy clients back and doesn’t overprice) nearly always an A, a passive one a C or a B, and one that skips meals and lunches a C or a D. Combat Season grades about a step lower and Rookie Season about a step higher.'],
+  ['🎯','The goal','Run a Kenai River guide business out of Soldotna for a <strong>2-, 5- or 10-year career</strong>. Each year you play two weeks of the summer (the July peak to begin with, and from the second year the weeks you pick); between years the off-season handles bills, upgrades and next season’s bookings. Keep clients happy, your boat running and your record clean. The end screen shows how your score adds up. Your grade is your score per season: <strong>A 62,000, B 55,000, C 44,000, D 27,000</strong>, F below (and for any career that ends early). On Licensed Guide, playing it by the book usually earns a B, a sharp career (every request answered, upgrades bought, a clean record) a B or an A, a skilled one (it reads the Fish tab and scouts to pick the right spot each day, keeps the boat up, asks happy clients back and doesn’t overprice) nearly always an A, a passive one a C or a B, and one that skips meals and lunches a C or a D. Combat Season grades about a step lower and Rookie Season about a step higher.'],
   ['🕐','How a day works','Time moves only when you act. Tap an action on the <strong>🧭 Here</strong> tab, or <strong>Go somewhere</strong> to travel. Guides start early: the alarm is 5:00 AM (change it at the shop). To skip ahead, use <strong>⏳ Wait until…</strong>: the next launch, the 1 PM first-aid class, or 30 or 60 minutes. <strong>Go to bed</strong> at the shop to end the day; staying up past midnight costs you.'],
-  ['🛶','Trips','Your schedule is on the <strong>📅 Bookings</strong> tab. Be at the launch spot by launch time: sockeye and silvers from the <strong>Lower Kenai launch</strong>, trout floats from <strong>Cooper Landing</strong>, halibut from the <strong>Homer Spit</strong>. On the water you pick a spot (and what to pack for lunch), then the day runs in a few stretches: before each one you see the clock, the tide, yesterday’s sonar count, the boat traffic, the wind and how the bite is going, and you stay, switch tactics, run to another spot (time and fuel), stop for shore lunch or call it early. Fish land between stretches: fresh fish ride the flood tide, boats pile onto the popular drifts by mid-morning, the wind builds in the afternoon and halibut like slack water. A few choices come up along the way, shuffled every time. The whole trip is <strong>one sheet</strong>: each choice and the result change in place. If you like a pop-up for every step, turn on <strong>⚙️ Settings → Show every trip step</strong>. Playing it straight costs something (time, fish or a smaller tip); bending a rule can pay cash, but if a trooper catches you the fine hurts.'],
+  ['🛶','Trips','Your schedule is on the <strong>📅 Bookings</strong> tab. Be at the launch spot by launch time: sockeye, silvers and June kings from the <strong>Lower Kenai launch</strong>, trout floats from <strong>Cooper Landing</strong>, halibut from the <strong>Homer Spit</strong>. On the water you pick a spot (and what to pack for lunch), then the day runs in a few stretches: before each one you see the clock, the tide, yesterday’s sonar count, the boat traffic, the wind and how the bite is going, and you stay, switch tactics, run to another spot (time and fuel), stop for shore lunch or call it early. Fish land between stretches: fresh fish ride the flood tide, boats pile onto the popular drifts by mid-morning, the wind builds in the afternoon and halibut like slack water. A few choices come up along the way, shuffled every time. The whole trip is <strong>one sheet</strong>: each choice and the result change in place. If you like a pop-up for every step, turn on <strong>⚙️ Settings → Show every trip step</strong>. Playing it straight costs something (time, fish or a smaller tip); bending a rule can pay cash, but if a trooper catches you the fine hurts.'],
   ['☀️','The morning report','When you wake up, one pop-up gathers last night (the day in review, bills, meals), anything that happened overnight, morning events and reminders, and any booking request. Decisions that cannot wait, such as a hungry morning, follow it. Things that happen during the day show as a small tile and a line in the 📜 Log. You can turn on an OK pop-up for each in ⚙️ Settings → Event pop-ups.'],
   ['📞','Booking requests','Requests wait at the top of the <strong>📅 Bookings</strong> tab, with a dot on the tab, for two days. Answer with <strong>Book it</strong> or <strong>Decline</strong> right there (an illegal date can be moved, a king request can be set straight). If you wait too long they book somebody else. Calls you return at the shop that ask for tomorrow are answered on the spot.'],
   ['⭐','Regulars & stories','Clients who have a great day may come back next July, and they remember how it went. If a happy party doesn’t offer its number, you can hand them your card at the dock. Over the years you may also meet a rival guide, a family that returns every summer and an invitation to the local fish and game advisory committee. No dilemma comes up more than twice a season.'],
@@ -4420,6 +4435,7 @@ const CHANGELOG={
   '1.10.0':['🏠 The cabin needs you now and then. A new Home tab lists the jobs (never more than two at a time), and each one can be done yourself, paid for, or skipped at a risk: heat for the winter, frozen pipes, snow on the roof and driveway, the generator, the well and septic tank, bears and fish waste, a garden moose, smoke and CO detectors, spring breakup and the odd earthquake.','🔥 New upgrades: a wood stove as a second heat source, a bear-resistant bin and a fish processing station that sells fillet-and-freeze to clients. Cabin condition (Home, in the top bar) drifts down slowly, and a run-down cabin has more bad luck. Your game in progress is brought up to date automatically.'],
   '1.12.0':['☀️ One morning report instead of a stack of pop-ups: last night, anything that happened overnight and any booking request now arrive together when you wake up.','📅 Booking requests wait in your Bookings tab (look for the dot) for a day or two, with Book it and Decline right there. Only a request for tomorrow, taken while you are on the phone, is answered on the spot.','🛶 A trip is one sheet now: the cooler and the spot together, then each choice and the result in the same pop-up. Every choice is still yours, and the rule-bending ones are still marked. Prefer a pop-up for every step? Settings has “Show every trip step”.','🔔 Things that happen during the day show as a small tile and a log line unless you turn Event pop-ups back on in Settings. Your game in progress is brought up to date.'],
   '1.13.0':['🌊 A trip is a day on the water now: the launch, then a call or two through the day. Read the tide, yesterday’s sonar count, the boat traffic, the wind and the bite, then stay, switch tactics, run to another spot, stop for shore lunch or call it early. Fish land between the stretches, all in the same trip sheet.','🎯 Every party comes for something: a full cooler, one big fish, action for the kids, the shot, fish on a fly, patient coaching or calm water. You see it on the booking request and at the launch, and a day that fits them pays better than a pile of fish. They leave a short review at the dock.','🤔 New judgment calls with no rule to break: the marine forecast on the Homer dock, a hook in a client’s hand, a bored kid, a boat dropping in on your drift, a skunked friend on the radio and more. And some old ones cost more or less depending on who is aboard. Your game in progress carries on, and booked parties get their goals.'],
+  '1.14.0':['📆 Play more of the summer. From your second year, the off-season summary lets you pick which two weeks you guide yourself: June kings, either July peak week, August silvers or September rainbows. Dates, rules, runs, daylight and weather follow the week, and the rest of the summer still counts, so the year comes out about even.','👑 New in June: king trips on the lower river when the year’s rules allow, with the same stretches through the day as every other trip.','🎯 Three season goals every year in the Bookings tab (limit-outs, five-star days, a clean record, a family with kids rating you five stars and more), paid on the season’s last night. Some requests come as big days, like a 30-pound halibut for Dad’s 70th, with a bonus if you get it.','⛑️ First-aid classes now run Monday, Tuesday and Thursday of both weeks you guide. Your game in progress carries on in July, as before.'],
   '1.12.1':['🧰 Behind the scenes: a new way to ship updates, with a Windows download and the single-file offline game alongside each release. Your game in progress carries on as before.'],
   '1.11.0':['🌅 A quieter first week: the cabin leaves you alone for your first seven days, and the cold-weather jobs wait until fall.','📅 The off-season top bar now shows the real month and year of the winter you are in.','🏕️ Fish from a winter trip only spare the pantry when you have meals to spare, and a guide who never stocks food now feels it in the season.','⚖️ Combat Season is tougher but fairer: cheaper price rises, less credit for camping and reading the water. License is $20, a wall tent $1,200, and public-use cabins run $50 to $75 a night. Your game in progress is brought up to date.'],
   '1.10.1':['🏠 Letting the cabin go now costs you more, and some of it lands in the guiding season. Skipping a job wears the cabin down, a run-down one has more bad luck, and a stuck truck, a dead well pump, a septic backup, a failed pump in July or a sagging, stained cabin can cost you a booked trip.','🥶 A cold, damp cabin means bad sleep in July, and a warm, dry, tidy one sends you out rested. A bear in your trash now hurts your rep and word of mouth more. Burst pipe, ice dam, well and septic bills are bigger.','💵 Winter living costs are $800 now (they were $1,300), so a player who keeps the place up comes out well ahead. Home trouble still never ends a career. Your game in progress is brought up to date automatically.'],
@@ -4519,7 +4535,7 @@ function regsRebook(base,r){
       for(let k=0;k<12;k++){
         const i=1+Math.floor(r()*13),w=i%7;
         if(w<1||w>5||(type==='silver'&&i<7)) continue;
-        const d=base+i;if(conflicts(d,type)) continue;
+        const d=base+i,tt=weekType(type,d);if(conflicts(d,tt)||illegalDay(tt,d)) continue;   // 34-summer.js: the week's trip (a sockeye regular fishes silvers in August)
         const n=Math.min(g.n+(h>=88&&g.n<(type==='trout'?3:type==='silver'?4:5)?1:0),type==='trout'?3:type==='silver'?4:5);
         addBooking({d,type,n,who:g.who,from:g.from,res:g.res,quirk:[],reg:true,arc:g.arc||undefined,tr:(g.tr||[]).slice()});g.miss=0;
         lines.push(`⭐ The ${g.who} (${g.from}) are back for their ${ORD[Math.min(10,(g.trips||1)+1)]} July${h>=88?': last time was a five-star day':''}.`);break}
@@ -4588,7 +4604,7 @@ defEvent({id:'arc_rival',hook:'wake',tile:['🚤','A rival on your seam','info']
       {l:'Wave, share the water and trade spot reports',s:'Rep +1.',fn:()=>{A.st=2;A.mood=1;adj('rep',1);say('🤝 You nod, then wave him in. By lunch you’re trading notes over the VHF.')}},
       {l:'Hold your seam and make him earn it',s:'Rep −2. You were here first.',fn:()=>{A.st=2;A.mood=-1;adj('rep',-2);say('😤 You nose in and fish the seam hard. Dale says nothing, and you can feel it.')}}]);
     if(A.st===2&&A.mood>0) return modal('📞 Dale calls',`<p>Dale Voss is overbooked this week and has a party he can’t take. “Thought of you first. You’d do the same.”</p>`,[
-      {l:'Take the party',s:'A free booking, and he’ll owe you.',fn:()=>{A.st=3;adj('rep',1);let dd=null;for(let d=seasonFirst()+3;d<seasonFirst()+SEASON&&dd==null;d++)if(!isSunMon(d)&&!conflicts(d,'reds')&&d>day())dd=d;
+      {l:'Take the party',s:'A free booking, and he’ll owe you.',fn:()=>{A.st=3;adj('rep',1);let dd=null;for(let d=seasonFirst()+3;d<seasonFirst()+SEASON&&dd==null;d++)if(!illegalDay(weekType('reds',d),d)&&!conflicts(d,weekType('reds',d))&&d>day())dd=d;
         if(dd!=null){addBooking({d:dd,type:'reds',n:4,who:'party Dale sent over',from:'Oregon',res:false,quirk:[]});say(`📅 Booked: a party Dale sent over, ${dlong(dd)}.`)}else say('📞 You’d like to, but your calendar’s full.')}},
       {l:'Pass politely',s:'Keep your calendar clear.',fn:()=>{A.st=3;say('📞 You tell Dale thanks, but no. He says he understands.')}}]);
     if(A.st===2) return modal('📱 A thread about you',`<p>Somebody forwards you a river-forum thread: Voss Guide Service is telling people your seam is overcrowded and your prices are high.</p>`,[
@@ -5133,7 +5149,7 @@ const TRAIT_HINT=[
   ['trophy',/Navy|Marine|law-firm|startup|bachelor|college buddies|doctors|firefighters|brothers|hunter-ed|paramedics/i],
   ['first',/first|book club|teachers|retired couple|mother and son|newlyweds|night-shift|dentist|sisters/i],
 ];
-const traitOK=(k,type)=>!!(TRAITS[k]&&TRAITS[k].types.includes(type));
+const traitOK=(k,type)=>!!(TRAITS[k]&&TRAITS[k].types.includes(type))&&!(k==='meat'&&type==='king'&&kingRule()!=='open');   // 1.14.0: no meat fishers on a catch-and-release king trip
 // one or two traits for a party on a trip type (hinted by who they are and their quirks, then chance)
 function traitsFor(o){
   const type=o.type||'reds',r=Math.random,tr=[],q=o.quirk||[];
@@ -5188,6 +5204,7 @@ function traffic(type,i,m){                                           // 0 (empt
   if(type==='reds') return [m>=470&&m<900?1:.35,.2,0,.8][i]||0;
   if(type==='silver') return [.5,m>=900?.8:.5,.1][i]||0;
   if(type==='trout') return [m>=540&&m<900?.9:.4,.35,.1][i]||0;
+  if(type==='king') return [m<540?.6:.4,.25,.45][i]||0;            // 1.14.0: June kings (34-summer.js)
   return [.45,.3,.1][i]||0;
 }
 const trafWord=x=>x>=.85?'elbow-to-elbow boats':x>=.55?'busy':x>=.3?'a few boats':'nearly empty';
@@ -5204,6 +5221,11 @@ function segTerms(b,k,i,tac){
     if(i<2) out.push(R(flood?.5:ebb?-.25:0,'the flood pushes fresh silvers in','the ebb leaves the slots empty'));
     if(k===BEATS.silver.at.length-1) out.push(R(.15,'silvers turn on toward evening',''));
     out.push(tac==='troll'?R(.4*c.lvl-.5*windy,'big water fills the deep slots','wind and low water make back-trolling hard'):R(.5*c.trend+.3*c.cloud,'clearing water and soft light for spinners','rising water and bright sun put them off spinners'));
+  }else if(type==='king'){
+    if(i===0) out.push(R(flood?.45:ebb?-.2:0,'fresh kings push in on the flood','the ebb slows the push of fresh kings'));
+    if(i===1) out.push(R(-.4*windy,'','wind on the long run upriver'));
+    if(k===0) out.push(R(.15,'kings move at first light',''));
+    out.push(tac==='troll'?R(.45*c.lvl-.4*windy,'high, cold water holds kings in the deep slots for a plug','low water or wind make back-trolling hard'):R(.4*c.cloud+.4*c.trend,'soft light and clearing water for back-bounced spin-n-glos','bright sun and rising water put them off'));
   }else if(type==='trout'){
     if(i===2) out.push(R(windy>.2?-.9*windy:.3,'a glassy lake','Skilak’s afternoon wind'));
     out.push(tac==='beads'?R(.8*c.sock-.4*Math.max(0,c.lvl),'spawning reds have the rainbows on the egg bite','no egg bite yet, or milky water hides the beads'):R(.45*c.cloud+.25*Math.max(0,c.lvl)+(mm>=600&&mm<840?-.1:.1),'overcast and color bring rainbows up for streamers','bright midday sun keeps them down'));
@@ -5257,15 +5279,17 @@ function landSeg(b,t,k){
     const n=clamp(Math.floor(e*(1+(r()-.5)*.4)+r()),0,room);
     for(let j=0;j<n;j++){let m=0;for(let a=1;a<fishers;a++)if(bt.ang[a]<bt.ang[m])m=a;bt.ang[m]++}   // you rotate the rods: fish go to whoever is shortest
     bt.box+=n;sg.n=n;sg.lost=n>0&&r()<.45?1+(r()<.25?1:0):0;
-  }else if(b.type==='trout'){sg.n=Math.max(0,Math.round(fishers*(2+q*8)*wt+(r()-.5)*2));bt.box+=sg.n}
+  }else if(b.type==='king') weekCatchSeg(b,t,sg,q,wt,fishers);   // 34-summer.js (1.14.0): kings landed this stretch, from the early run's timing (segRun)
+  else if(b.type==='trout'){sg.n=Math.max(0,Math.round(fishers*(2+q*8)*wt+(r()-.5)*2));bt.box+=sg.n}
   else{sg.n=Math.max(0,Math.round(fishers*(1+q*3)*wt+(r()-.5)));bt.box+=sg.n}         // a closed halibut day: rockfish and lingcod
   const mm=w.m0+w.len/2,wind=windAt(b.d,mm);
-  if(fishers&&!(b.type==='halibut'&&halClosed(b.d))&&r()<(.04+(sp.big||0)+({streamers:.1,anchor:.08,troll:.04}[bt.tac]||0))*q*wt*2.2) sg.big=1;
+  if(b.type==='king') sg.big=sg.n>0?1:0;   // every king is the fish of the trip
+  else if(fishers&&!(b.type==='halibut'&&halClosed(b.d))&&r()<(.04+(sp.big||0)+({streamers:.1,anchor:.08,troll:.04}[bt.tac]||0))*q*wt*2.2) sg.big=1;
   if(b.type==='halibut'&&(wind>13&&(bt.spot>=1||bt.tac==='anchor'))) sg.rough=1;
   if(b.type==='trout'&&bt.spot===2&&wind>12) sg.rough=1;
   if(r()<(sp.scenic?.45:.12)*((S.wx[b.d]||'sun')==='rain'?.5:1)+(bt.lunch===k?.25:0)) sg.shot=1;
   bt.segs[k]=sg;
-  sg.line=landLine(b,sg);if(sg.big)sg.line+=' '+bigLine(b);if(sg.rough)sg.line+=b.type==='halibut'?' 🌊 It’s getting lumpy out here.':' 💨 Whitecaps on the lake.';
+  sg.line=landLine(b,sg);if(sg.big&&b.type!=='king')sg.line+=' '+bigLine(b);if(sg.rough)sg.line+=b.type==='halibut'?' 🌊 It’s getting lumpy out here.':' 💨 Whitecaps on the lake.';
   t.notes.push(`${fmt(w.m0+w.len)} · ${sg.line}`);
   return sg;
 }
@@ -5273,6 +5297,7 @@ function landLine(b,sg){
   const n=sg.n;
   if(b.type==='reds'||b.type==='silver'){const nm=b.type==='reds'?'red':'silver';
     return '🐟 '+(n?`${numW(n)} ${nm}${n>1?'s':''} in the box${sg.lost?`, ${lc1(numW(sg.lost))} lost at the net`:''}.`:pick([`Not a ${nm} this stretch.`,`Nothing in the box. The ${nm}s are somewhere else.`]))}
+  if(b.type==='king') return kingSegLine(sg);
   if(b.type==='trout') return '🌈 '+(n?`${numW(n)} rainbow${n>1?'s':''} and Dollies to hand and released.`:'Not a touch. The trout have lockjaw.');
   if(halClosed(b.d)) return `🐟 ${numW(n)} rockfish and lingcod; the halibut go back today.`;
   return '⚓ '+(n?`${numW(n)} halibut in the fish box${sg.lost?`, ${lc1(numW(sg.lost))} spat the hook at the rail`:''}.`:'Bait soaks, nothing bites. The halibut aren’t here.');
@@ -5288,7 +5313,7 @@ const biteWord=q=>q>=.85?'hot':q>=.65?'steady':q>=.45?'slow':'dead';
 function biteTxt(b,t){
   const bt=t.bt,segs=bt.segs.filter(Boolean);if(!segs.length) return '';
   const last=segs[segs.length-1],fishers=fishersOf(b,t),n=bt.box;
-  const tally=bagged(b)?`${n} of ${fishers*limOf(b)} in the box (the limit for ${fishers})`:b.type==='trout'?`${n} trout to hand so far`:`${n} rockfish and lingcod so far`;
+  const tally=b.type==='king'?kingTally(t):bagged(b)?`${n} of ${fishers*limOf(b)} in the box (the limit for ${fishers})`:b.type==='trout'?`${n} trout to hand so far`:`${n} rockfish and lingcod so far`;
   return `So far: ${tally}. The bite at ${SPOTS[b.type][last.spot].sh} was ${biteWord(last.q)}.`;
 }
 // the radio and your own eyes: where the fish are moving this stretch
@@ -5302,7 +5327,8 @@ function radioTxt(b,t,k){
 // the conditions a guide looks at before a call
 function condHTML(b,t,k){
   const T=TRIPS[b.type],d=b.d,m=T.start+BEATS[b.type].at[k],abs=d*1440+m,w=wxOf(d),bt=t.bt,sp=SPOTS[b.type][bt.spot]||SPOTS[b.type][0],end=T.start+T.len,L=[],wk=WX[S.wx[d]||'sun']||WX.sun;
-  if(T.below) L.push(`🕐 ${fmt(m)}. Guide boats below Skilak fish 6 AM to 6 PM: ${hrsLeft(Math.min(1080,end)-m)} left on this trip.`);
+  if(T.below&&guideDaysRule(d)) L.push(`🕐 ${fmt(m)}. Guide boats below Skilak fish 6 AM to 6 PM: ${hrsLeft(Math.min(1080,end)-m)} left on this trip.`);
+  else if(T.below) L.push(`🕐 ${fmt(m)}. Back at the launch by ${fmt(end)}: ${hrsLeft(end-m)} left.`);
   else L.push(`🕐 ${fmt(m)}. ${b.type==='halibut'?'Back at Homer Harbor':'At the Jim’s Landing take-out'} by ${fmt(end)}: ${hrsLeft(end-m)} left.`);
   if(b.type!=='trout'){const nx=tideTable(d).find(x=>x.m>m);L.push(`🌊 Tide ${tideNow(abs)}${nx?`; ${nx.hi?'high':'low'} water at ${fmt(nx.m)}`:''}.`)}
   else L.push(`💧 River ${waterTxt(w)}.`);
@@ -5378,6 +5404,7 @@ function beatCatch(b,t,towRatio){
   let frac,limits=0,line;const fish=bt.box;
   if(bagged(b)){const lim=limOf(b);limits=(bt.ang||[]).filter(a=>a>=lim).length;frac=fishers?fish/(lim*fishers):0;
     const nm=b.type==='reds'?'red':b.type==='silver'?'silver':'halibut';line=`${fish} ${nm}${fish===1||nm==='halibut'?'':'s'}${limits?`, ${limits} limit${limits>1?'s':''}`:''}`}
+  else if(b.type==='king'){const kc=weekCatchEnd(b,t,qw,fishers);frac=kc.frac;limits=kc.limits;line=kc.line}
   else if(b.type==='trout'){frac=clamp(qw,0,1);line=`${fish} trout landed & released`}
   else{frac=clamp(qw,0,1);line=`${fish} rockfish & lingcod, halibut released`}
   const A=BEATS[b.type].at,fished=bt.early!=null&&bt.early!==false&&bt.early<bt.K?A[bt.early]:bt.K<A.length?A[bt.K]:T.len;
@@ -5389,7 +5416,7 @@ function beatCatch(b,t,towRatio){
 function goalOf(b,t,c){
   const bt=t.bt,g=t.g||{},segs=bt?bt.segs.filter(Boolean):[],sp=SPOTS[b.type]||[],out={h:S.diff==='hard'?GOAL_MID-1.5:GOAL_MID,good:[],bad:[]},n=Math.max(1,segs.length);
   const rough=segs.filter(s=>s.rough).length+(g.rough||0),early=bt&&bt.early!=null&&bt.early!==false;
-  const slow=segs.filter(s=>s.n/Math.max(1,c.fishers)<(b.type==='trout'?1.2:.4)).length;
+  const slow=segs.filter(s=>(s.n+(s.dol||0)*.5)/Math.max(1,c.fishers)<(b.type==='trout'?1.2:.4)).length;
   const lunchEarly=(bt&&bt.lunch>=0&&bt.lunch<bt.K-1)||g.lunch;
   const easy=segs.filter(s=>(sp[s.spot]&&sp[s.spot].easy)||s.tac==='bank').length,hard=segs.filter(s=>sp[s.spot]&&sp[s.spot].hard).length;
   const flyN=segs.filter(s=>s.tac==='streamers'||s.tac==='drift').length,beadN=segs.filter(s=>s.tac==='beads'||s.tac==='troll').length;
@@ -5425,7 +5452,7 @@ function reviewOf(b,t,happy,c,goal){
   const st=starsOf(happy),parts=[pick(REV_OPEN[st])];
   goal.good.slice(0,1).forEach(k=>parts.push(pick(REV_T[k][0])));
   goal.bad.slice(0,1).forEach(k=>parts.push(pick(REV_T[k][1])));
-  if(parts.length<3){const n=c.fish;parts.push(b.type==='trout'?(n?`We caught and released ${n} trout.`:'Not a single trout.'):bagged(b)?(c.limits&&c.limits===c.fishers?'Everybody limited.':n?`We took home ${n} fish.`:'We didn’t catch a thing.'):'Rockfish and lingcod only, since halibut were closed that day.')}
+  if(parts.length<3){const n=c.fish;parts.push(b.type==='king'?((b.kings||0)?`${numW(b.kings)} king${b.kings>1?'s':''} to the boat. In June!`:'Not a king all morning, but we saw them roll.'):b.type==='trout'?(n?`We caught and released ${n} trout.`:'Not a single trout.'):bagged(b)?(c.limits&&c.limits===c.fishers?'Everybody limited.':n?`We took home ${n} fish.`:'We didn’t catch a thing.'):'Rockfish and lingcod only, since halibut were closed that day.')}
   if(t.notes.some(n=>n.startsWith('🚨'))) parts.push('Watching our guide get a ticket was not the highlight.');
   else if(t.notes.some(n=>/🐻|🐋/.test(n))&&st>=3) parts.push('And the wildlife!');
   return {stars:st,text:withName(parts.join(' '))};
@@ -5506,6 +5533,359 @@ Object.assign(STEP,{
 
 // ---- help ----
 const DAY_HELP='<p><b>A day on the water.</b> A trip runs in a few stretches: the launch, then a call or two through the day (halibut: the run out, slack tide, the turn and the run home). Before each call you see the clock, the tide, yesterday’s sonar count, the boat traffic, the wind and how the bite is going, and you choose: stay, switch tactics, run to another spot (time and fuel), stop for shore lunch or call it early. Fish land between stretches. Fresh fish ride the flood tide in, boats pile onto the popular drifts by mid-morning, the wind builds in the afternoon, and halibut like slack water.</p><p><b>Clients with goals.</b> Every party wants something: a full cooler, one big fish, action for the kids, the shot, fish on a fly, patient coaching or calm water. You see it on the booking request and at the launch. Matching the day to the party matters as much as the fish count, and they leave a short review.</p>';
+// ============================================================
+//  GUIDE MASTER, part 12 (1.14.0): more of the summer.
+//  A season is still two played weeks (14 day indexes, so careers keep their length), but from the second summer on you pick
+//  WHICH two weeks of the summer you guide yourself: June kings on the lower river, the two July peak weeks (the default, and
+//  season 1 always), August silvers or September rainbows on the upper river. Homer halibut runs all summer. The weeks you don't
+//  play are still settled in the off-season by restOfSeason() (25-fuel.js), scaled by restWeeksX() so the summer's total doesn't
+//  jump with the pick: a quieter week played means more of the busy summer is booked off your name.
+//
+//  Everything that knows the calendar follows the played week's real date: dateOf() (24-career.js) asks weekStartUTC() here;
+//  the Sunday/Monday guide-boat closure and the 6 PM rule run May 1–Jul 31, the no-bait rule Jun 20–Aug 15 below Skilak,
+//  the closed charter-halibut days early June to late August, dipnetting Jul 10–31; daylight and weather follow the month.
+//
+//  Hooks, so the trip engine (22-trips.js, 33-day.js) stays as it is: weekTripStart(b,t) is called from tripStart, and a king trip's
+//  stretches land through weekCatchSeg/weekCatchEnd (landSeg/beatCatch); rollDay, rollWeather, addBooking, startSeason, newState and onNight are wrapped below.
+//  Simplified, plausible Kenai facts: early-run kings peak in the river mid to late June (and have been closed or restricted in
+//  recent years); coho peak mid-August; upper-river rainbows (open from Jun 11) feed on salmon eggs and flesh into the fall.
+// ============================================================
+
+// ---- the weeks ----
+function mondayNear(y,m,dd){const t=Date.UTC(y,m,dd),w=new Date(t).getUTCDay();let off=(1-w+7)%7;if(off>3)off-=7;return t+off*864e5}
+// at: [month (0-based), day] the week's Monday is nearest to. w: what a played week is worth (fares and tips) next to the average July
+// week, as the second week of a season; as the first week it is worth WEEK_SLOT0 of that (fewer phone requests reach it). Measured with
+// tools/sim: Jul 13 (first) + Jul 20 (second) = .83×.88 + 1.27 = 2. For restWeeksX().
+// book: booking odds on the week's weekdays next to July's. main(d): the weekday trip; second: the afternoon trip on the same day.
+const WEEKS={
+  june:{ic:'👑',n:'June: early kings',at:[5,15],w:.87,book:1.1,main:()=>kingRule()==='closed'?'trout':'king',second:null,
+    d:()=>kingRule()==='closed'?`Kenai kings are closed in ${REG().year}, so it’s upper-river rainbows (open from Jun 11) and Homer halibut. Long, light days.`:`Early-run kings on the lower river (${kingRule()==='cr'?'catch-and-release only':'open, 1 a day'}), upper-river rainbows (open from Jun 11) and Homer halibut. Long, light days and high, cold water.`},
+  jul1:{ic:'🐟',n:'July peak, week 1',w:.83,main:()=>'reds',second:null,
+    d:()=>'The late sockeye run builds: sockeye trips, trout floats, Homer halibut and the dipnet beach. The busiest water of the year.'},
+  jul2:{ic:'🐟',n:'July peak, week 2',w:1.27,main:()=>'reds',second:'silver',
+    d:()=>'The late run peaks and the first silvers show: sockeye in the morning, silvers in the afternoon.'},
+  aug:{ic:'🎣',n:'August: silvers',at:[7,17],w:.85,book:1.15,main:()=>'silver',second:null,
+    d:()=>'Coho on the lower river (bait is legal again after Aug 15, and guide boats fish Sundays and Mondays), rainbows fattening behind the spawning reds, Homer halibut.'},
+  sep:{ic:'🍂',n:'September: fall rainbows',at:[8,8],w:.82,book:1.1,main:d=>(((d%7)+7)%7)%2?'trout':'silver',second:null,
+    d:()=>'Big upper-river rainbows on the egg and flesh bite, the last silvers down low and halibut before the charters haul out. Short days and frosty mornings.'},
+};
+const WEEK_ORDER=['june','jul1','jul2','aug','sep'],WEEK_DEF=['jul1','jul2'],WEEK_SLOT0=.88;
+const WEEK_N={king:[2,3,4,4],trout:[2,3,3],silver:[2,3,4,4]};       // party sizes for each week's booked trips (reds keep their own)
+function weekStartUTC(y,id){if(id==='jul2')return seasonStartUTC(y)+7*864e5;const W=WEEKS[id];return W&&W.at?mondayNear(y,W.at[0],W.at[1]):seasonStartUTC(y)}
+// the two weeks of season s (index): a valid pick in calendar order, or the two July weeks
+function weeksOf(s){const w=typeof S!=='undefined'&&S&&S.weeks&&S.weeks[s];return Array.isArray(w)&&w.length===2&&WEEKS[w[0]]&&WEEKS[w[1]]&&WEEK_ORDER.indexOf(w[0])<WEEK_ORDER.indexOf(w[1])?w:WEEK_DEF}
+const weekIdOf=d=>weeksOf(seasonOf(d))[sday(d)<7?0:1];
+const weekOf=d=>WEEKS[weekIdOf(d)];
+const weekGap=s=>{const w=weeksOf(s);return !(w[0]==='jul1'&&w[1]==='jul2')};
+const isJulyPick=s=>!weekGap(s);
+// calendar rules by the played day's date (month*100+day: 715 is Jul 15)
+const mdOf=d=>{const x=dateOf(d);return (x.getUTCMonth()+1)*100+x.getUTCDate()};
+const guideDaysRule=d=>{const m=mdOf(d);return m>=501&&m<=731};        // Sun/Mon closure and 6 AM–6 PM for guide boats below Skilak
+const baitRule=d=>{const m=mdOf(d);return m>=620&&m<=815};             // one unbaited single hook below Skilak (with kings restricted)
+const halDaysRule=d=>mdOf(d)<=831;                                    // closed charter-halibut days: early June to late August
+const dipOpen=d=>{const m=mdOf(d);return m>=710&&m<=731};             // the Kenai personal-use dipnet fishery
+const lateSummer=()=>{try{return !!(S&&!S.winter&&mdOf(day())>=801)}catch(e){return false}};
+const MON3=i=>MONTH[i].slice(0,3);
+function weekRange(y,id){const t=weekStartUTC(y,id),a=new Date(t),b=new Date(t+6*864e5);return `${MON3(a.getUTCMonth())} ${a.getUTCDate()}–${a.getUTCMonth()===b.getUTCMonth()?'':MON3(b.getUTCMonth())+' '}${b.getUTCDate()}`}
+function weeksLabel(s){const s0=s*SEASON;if(!weekGap(s))return `${dlabel(s0)}–${dlabel(s0+SEASON-1)}`;const y=2026+s;return weeksOf(s).map(id=>weekRange(y,id)).join(' & ')}
+const weeksShort=s=>weeksOf(s).map(id=>`${WEEKS[id].ic} ${weekRange(2026+s,id)}`).join(' and ');
+
+// ---- what each week books and offers ----
+function weekReqTypes(d){
+  const id=weekIdOf(d);
+  if(id==='june') return kingRule()==='closed'?['trout','trout','trout','trout','halibut']:['king','king','king','trout','trout','halibut'];
+  if(id==='aug') return ['silver','silver','silver','silver','trout','trout','halibut'];
+  if(id==='sep') return ['trout','trout','trout','silver','silver','halibut'];
+  return ['reds','reds','reds','reds','trout','trout','halibut'].concat(id==='jul2'&&sday(d)%7>=1?['silver','silver']:[]);
+}
+function weekAsstTypes(d){
+  const id=weekIdOf(d);
+  if(id==='june') return kingRule()==='closed'?['trout']:['king','trout'];
+  if(id==='aug') return ['silver','trout'];
+  if(id==='sep') return ['trout','silver'];
+  return ['reds','reds','trout'].concat(id==='jul2'?['silver']:[]);
+}
+const WEEK_OK={june:['trout','halibut','king'],jul1:['reds','silver','trout','halibut'],jul2:['reds','silver','trout','halibut'],aug:['silver','trout','halibut'],sep:['silver','trout','halibut']};
+// a trip type that this week's water doesn't offer, swapped for the one it does (a regular who fished sockeye comes back for silvers in August)
+function weekType(type,d){
+  const id=weekIdOf(d),ok=WEEK_OK[id].filter(t=>t!=='king'||kingRule()!=='closed');
+  if(ok.includes(type)) return type;
+  if(id==='june') return WEEKS.june.main(d);
+  if(id==='aug'||id==='sep') return 'silver';
+  return 'reds';
+}
+{const _addBooking=addBooking;
+  addBooking=function(o){
+    if(o&&TRIPS[o.type]&&typeof o.d==='number'){const t=weekType(o.type,o.d);
+      if(t!==o.type){o=Object.assign({},o,{type:t,n:Math.min(o.n||2,TRIPS[t].max||6)});
+        if(conflicts(o.d,t,!!o.asst)){const w0=o.d-sday(o.d)%7;let to=null;for(let d=w0+1;d<w0+6&&to==null;d++)if(d!==o.d&&!conflicts(d,t,!!o.asst)&&!illegalDay(t,d))to=d;
+          if(to!=null) o.d=to}}}              // no room elsewhere that week: it keeps its day (regulars and Dale's party check the swapped type first)
+    return _addBooking(o)};}
+
+// ---- June kings: a trip type of their own ----
+TRIPS.king={n:'King trip',ic:'👑',loc:'lower',start:360,len:360,price:325,max:4,below:true,fuel:10,energy:28,
+  long:'Lower Kenai early-run kings: back-troll plugs and back-bounce the deep slots for the fish of ten thousand casts.'};
+BURN.king=10;
+TRIP_SP.king=['king','lower',.27];TYPE_IX.king=5;
+SPOTS.king=[
+  {l:'Back-troll plugs through the deep slots below Beaver Creek',s:'Slow, deep water where early kings rest on their way up.',q:.06,h:0,sh:'the Beaver Creek slots',tac:'troll',big:0},
+  {l:'Back-bounce the holes above the Sterling Highway bridge',s:'Big-fish water and a longer run: more fuel.',q:.08,h:0,fuel:3,sh:'the holes above the bridge',tac:'bounce',big:0},
+  {l:'Drift the soft edges near the Pillars',s:'Easy, pretty fishing, fewer fish.',q:.02,h:3,sh:'the Pillars edges',tac:'troll',easy:1,scenic:1,big:0}];
+SPOT_FIT.king=[
+  c=>[R(.6*c.run,'kings are moving through the slots','few kings in the river yet'),R(c.trend,'falling, clearing water settles them in the slots','rising, dirty water moves them on')],
+  c=>[R(.6*c.lvl,'big water fills the deep holes','low water leaves the holes thin'),R(.3*c.calm,'a calm run upriver','wind on the long run')],
+  c=>[R(.5*c.cloud,'overcast keeps them near the edges','bright sun pushes them deep'),R(.3*c.calm,'easy drifting','wind pushes the boat around')]];
+POOL.king=['guide_fish','extra_rod','anchor','combat','motor','rescue','ownrods','bait'];
+// 1.13 beats for the king trip (33-day.js): a 6 AM–noon day in three stretches, two tactics, moves between the three spots
+BEATS.king={at:[0,120,240],nm:['Launch','The tide change','The late morning'],tac:['troll','bounce']};
+TAC.bounce={n:'Back-bounce spin-n-glos through the holes',sh:'back-bouncing spin-n-glos'};
+MOVE.king=[[0,15,10],[15,0,20],[10,20,0]];MOVE_GAL.king=[[0,2,1],[2,0,3],[1,3,0]];
+['meat','trophy','kids','photo','first'].forEach(k=>{if(!TRAITS[k].types.includes('king'))TRAITS[k].types.push('king')});   // meat only when kings can be kept (traitOK)
+POOL.king.push('hookhand','rival','friend','lostrod');
+{const _tripFuel=tripFuel;tripFuel=b=>b&&b.type==='king'?{tank:'fuel',gal:bn('king'),where:'kenai'}:_tripFuel(b)}
+{const k0=STEP.king;STEP.king=function(b,t){const v=k0.call(this,b,t);if(b&&b.type==='king'&&v&&v.b)v.b=v.b.replace('on a sockeye rig','on a back-trolled plug');return v}}
+// the early run: a June bump on the king curve (nothing changes in July); rainbows fatten into September
+{const k0=SPECIES.king.curve;SPECIES.king.curve=x=>k0(x)+(x<190?.3*gauss(x,170,9):0);
+  SPECIES.king.note='Early run in June, late run peaks in late July. Open, catch-and-release or closed, year to year: see Regs.'}
+{const t0=SPECIES.trout.curve;SPECIES.trout.curve=x=>t0(x)+(x>=213?.35*gauss(x,255,13):0);
+  SPECIES.trout.note='Resident fish. Get better as the sockeye spawn and the bead bite starts, and best of all in September.'}
+// silvers after July: no longer "early"
+{const T=TRIPS.silver,n0=T.n,l0=T.long;
+  Object.defineProperty(T,'n',{get(){return lateSummer()?'Silver trip':n0},configurable:true,enumerable:true});
+  Object.defineProperty(T,'long',{get(){return lateSummer()?'Lower Kenai coho: back-troll plugs and drift roe or spinners through the slots as the silvers pour in.':l0},configurable:true,enumerable:true})}
+
+// trip-engine hooks
+function weekTripStart(b,t){
+  if(!guideDaysRule(b.d)) t.steps=t.steps.filter(k=>k!=='sixpm');      // the 6 AM–6 PM guide-boat hours end with July
+  if(b.type==='king'&&!t.steps.includes('king')&&dilN('king')<DIL_MAX){const i=t.steps.indexOf('spot');t.steps.splice(i<0?t.steps.length:i+1,0,'king');dilUse('king')}
+}
+// a king trip without stretches (a fallback: every trip since 1.13 runs in beats, below)
+function weekCatch(b,t,q,fishers){
+  if(b.type!=='king') return null;
+  const r=Math.random,open=kingRule()==='open';let landed=0;
+  for(let i=0;i<fishers;i++) if(r()<clamp(.1+.5*q,.05,.65)) landed++;
+  const dol=Math.round(fishers*(.5+q*2)*(.7+r()*.6));
+  b.kings=landed;
+  if(open)S.stats.legalKings=(S.stats.legalKings||0)+landed;else S.stats.kings+=landed;
+  let limits=0;if(open&&fishers&&landed===fishers){S.stats.limits++;t.happy+=5;limits=landed}
+  const frac=clamp(.3*q+.7*Math.min(1,landed/Math.max(1,fishers)*1.6),0,1);
+  return {fish:landed+dol,frac,limits,line:`${landed} king${landed===1?'':'s'} ${open?'landed and kept':'landed and released in the water'}${dol?`, ${dol} Dolly Varden released`:''}`};
+}
+
+// One stretch of a king trip (landSeg, 33-day.js): each angler who hasn't had a king yet has a chance at one, from the stretch's
+// quality (segQ: the early run's timing, the tide, the spot and tactic) and its share of the day; Dolly Varden come along the way.
+const kingP=q=>clamp(.1+.5*q,.05,.65);
+function weekCatchSeg(b,t,sg,q,wt,fishers){
+  const bt=t.bt,r=Math.random,p=1-Math.pow(1-kingP(q),wt);
+  bt.ang=(bt.ang||[]).slice(0,fishers);while(bt.ang.length<fishers)bt.ang.push(0);
+  let n=0;for(let a=0;a<fishers;a++)if(!bt.ang[a]&&r()<p){bt.ang[a]=1;n++}
+  const dol=Math.max(0,Math.round(fishers*(.5+q*2)*wt*(.7+r()*.6)));
+  sg.n=n;sg.dol=dol;bt.dol=(bt.dol||0)+dol;bt.box+=n+dol;
+}
+function kingSegLine(sg){
+  const dl=sg.dol?`${lc1(numW(sg.dol))} Dolly Varden released`:'';
+  if(!sg.n) return '👑 '+pick(['No kings this stretch','A king rolls behind the boat and is gone'])+(dl?`; ${dl}.`:'.');
+  return `👑 ${numW(sg.n)} king${sg.n>1?'s':''} to the boat${kingRule()==='open'?', kept and on the harvest record':', released in the water'}${dl?`, and ${dl}`:''}.`;
+}
+const kingTally=t=>{const k=(t.bt.ang||[]).filter(Boolean).length;return `${k} king${k===1?'':'s'} to the boat and ${t.bt.dol||0} Dolly Varden`};
+// the day's kings, after the last stretch (beatCatch): the stats, a limit when every angler kept one, and the catch line
+function weekCatchEnd(b,t,qw,fishers){
+  const bt=t.bt,landed=(bt.ang||[]).filter(Boolean).length,dol=bt.dol||0,open=kingRule()==='open';
+  b.kings=landed;
+  if(open)S.stats.legalKings=(S.stats.legalKings||0)+landed;else S.stats.kings+=landed;
+  let limits=0;if(open&&fishers&&landed===fishers){S.stats.limits++;t.happy+=5;limits=landed}
+  const frac=clamp(.3*qw+.7*Math.min(1,landed/Math.max(1,fishers)*1.6),0,1);
+  return {frac,limits,line:`${landed} king${landed===1?'':'s'} ${open?'landed and kept':'landed and released in the water'}${dol?`, ${dol} Dolly Varden released`:''}`};
+}
+
+// ---- the calendar on screen ----
+function weekHead(d){if(sday(d)%7)return '';const W=weekOf(d);return `<div class="sect" style="margin-top:6px">${W.ic} ${W.n} · ${dlabel(d)}–${dlabel(d+6)}</div>`}
+function weekTripsTxt(){const s=seasonOf(day());if(!weeksOf(s).includes('june')||kingRule()==='closed')return '';return `· 👑 kings ${$(Math.round(TRIPS.king.price*S.up.rate))}/angler (6 AM, lower river, 4 max, June) `}
+function weekBoxes(d,X,H){
+  const s=seasonOf(d),y=yearOf(d),box=(a,n,t)=>`<rect x="${X(a)}" y="8" width="${X(a+n)-X(a)}" height="${H-26}" fill="#1f5d63" opacity=".08"/><text x="${X(a+n/2)}" y="18" text-anchor="middle" font-size="9" fill="#1f5d63" font-family="DM Sans">${t}</text>`;
+  if(!weekGap(s)) return box(doyOf(s*SEASON),13,`your 2 weeks · ${y}`);
+  return [0,7].map((k,i)=>box(doyOf(s*SEASON+k),6,`week ${i+1}`)).join('');
+}
+function sunsetTxt(){const m=mdOf(day());return m<801?'The sun won’t fully set.':m<901?'It gets properly dark around eleven now.':'Dark by nine, and frost by morning.'}
+// Regs tab: what this week's date means
+function weekRegRows(){
+  const d=day(),W=weekOf(d),x=[];
+  x.push(guideDaysRule(d)?'Sundays and Mondays: no fishing from guide boats below Skilak, and only 6 AM–6 PM on other days (through Jul 31).':'After Jul 31: guide boats may fish below Skilak on Sundays and Mondays, and the 6 AM–6 PM hours no longer apply.');
+  x.push(baitRule(d)?'Jun 20–Aug 15 below Skilak: one unbaited, single-hook lure while kings are restricted.':REG().king==='open'?'Bait allowed below Skilak this year.':'Outside Jun 20–Aug 15: bait and treble hooks legal below Skilak again.');
+  if(!halDaysRule(d))x.push('Charter halibut: the closed retention days are over for the year.');
+  x.push(dipOpen(d)?'Dipnetting at the mouth is open (Jul 10–31).':'The dipnet fishery is closed (it runs Jul 10–31).');
+  return [[`📆 This week · ${W.ic} ${W.n}, ${weekRange(yearOf(d),weekIdOf(d))}`,x.join(' ')]];
+}
+// daylight in Soldotna by month: [sunrise, sunset] in minutes
+{const sun0=SCENE.sun;Object.defineProperty(SCENE,'sun',{get(){try{if(!S||S.winter)return sun0;const m=mdOf(day());return m<701?[265,1420]:m<801?sun0:m<901?[380,1310]:[430,1250]}catch(e){return sun0}},configurable:true,enumerable:true})}
+// weather by month: June a little cooler than July, August cooler, September cold and wetter (no extra random numbers: hz() is a hash)
+{const _rollWeather=rollWeather;
+  rollWeather=function(d){
+    const m=mdOf(d);
+    if(m>=901&&S.wx[d]==='sun'&&hz(d,9,1)<.45) S.wx[d]=hz(d,9,2)<.5?'rain':'cloud';
+    _rollWeather(d);
+    const w=S.wxd[d],off=m<701?-3:m<801?0:m<901?-4:-12;
+    if(w&&off) w.temp+=off;
+  };}
+{const e=EV.find(x=>x.id==='midnight_sun');if(e){const c0=e.cond;e.cond=c=>(!c0||c0(c))&&mdOf(day())<816}}
+{const e=EV.find(x=>x.id==='traffic');if(e){const c0=e.cond;e.cond=c=>(!c0||c0(c))&&dipOpen(day())}}
+
+// ---- moving between the weeks ----
+// the sonar's season count at the start of each week (late run; June counts the early run), scaled by the year's run
+const WEEK_CUM={june:20000,jul1:650000,jul2:1400000,aug:2300000,sep:2450000};
+const weekCum=d=>Math.round(WEEK_CUM[weekIdOf(d)]*REG().mult.sockeye);
+function weekJump(d){
+  const wks=Math.max(1,Math.round((dateOf(d)-dateOf(d-1))/864e5/7)),W=weekOf(d),l=[];
+  S.cum=Math.max(S.cum||0,weekCum(d));S.water=.5;S.limit=3;S.eo=[];S.scout=-1;S.energy=Math.max(S.energy,90);
+  if(S.food&&S.food.fri>0){S.food.fri=0;l.push('You clear out the fridge: nothing in there survived the weeks between.')}
+  const line=`📆 <b>${wks} weeks on: ${dlong(d)}.</b> ${W.ic} ${W.n}. The guiding in between counts in the rest of the summer, settled in the off-season. ${W.d()}${l.length?' '+l.join(' '):''}`;
+  say(line);digestLine(line);
+}
+{const _rollDay=rollDay;
+  rollDay=function(d){
+    const sd=sday(d);
+    if(sd===7&&weekGap(seasonOf(d))) weekJump(d);
+    else if(sd===0&&weekIdOf(d)!=='jul1') S.cum=weekCum(d);
+    _rollDay(d);
+  };}
+
+// ---- the rest of the summer, scaled by the pick ----
+// The summer is worth 2×(1+REST_X) average July weeks; the two weeks you played were worth a = w1+w2 of them (both July weeks: 2).
+function restWeeksX(p){
+  const s=((p&&p.year)||2026)-2026,w=weeksOf(s);if(!weekGap(s)) return 1;
+  const a=WEEKS[w[0]].w*WEEK_SLOT0+WEEKS[w[1]].w;return (2*(1+REST_X)-a)/(REST_X*a);
+}
+
+// ---- picking the weeks (the off-season summary) ----
+let WPICK=null;
+function weeksWinterOpt(s){return {l:`📆 Your weeks for ${2026+s}: ${weeksShort(s)}`,s:'Pick the two weeks of the summer you guide yourself: June kings, the July peak, August silvers or September rainbows. The rest of the summer is booked off your name either way.',fn:()=>weeksModal(s)}}
+function weeksModal(s){
+  if(!WPICK||WPICK.s!==s) WPICK={s,w:weeksOf(s).slice()};
+  const sel=WPICK.w,y=2026+s;
+  modal(`📆 Your two weeks · ${y}`,`<p>You guide two weeks of the summer yourself; the rest is booked off your reputation and settled in the off-season. A quieter week played means more of the busy summer is booked for you, so the year comes out about even. Pick the water you want to work.</p><p style="font-size:13px;color:var(--mute)">${REG().fc} Tap a week to choose it (two in all), then Done.</p>`,
+    WEEK_ORDER.map(id=>{const W=WEEKS[id],on=sel.includes(id);return {l:`${on?'✅ <span class="sr-only">Chosen: </span>':'⬜ <span class="sr-only">Not chosen: </span>'}${W.ic} ${W.n} · ${weekRange(y,id)}`,s:W.d(),np:true,fn:()=>{
+      const i=sel.indexOf(id);if(i>=0)sel.splice(i,1);else{if(sel.length>=2)sel.shift();sel.push(id)}setTimeout(()=>weeksModal(s),0)}}}).concat([
+      {l:sel.length===2?`Done: ${WEEK_ORDER.filter(x=>sel.includes(x)).map(x=>WEEKS[x].n).join(' and ')}`:'Pick two weeks',dis:sel.length!==2,fn:()=>{weeksSet(s,sel);setTimeout(winterModal,0)}}]));
+}
+function weeksSet(s,w){S.weeks=S.weeks||{};S.weeks[s]=WEEK_ORDER.filter(x=>w.includes(x)).slice(0,2);WPICK=null;
+  if(S.weeks[s].length!==2) delete S.weeks[s];
+  if(S.goals&&S.goals.s===s&&!Object.keys(S.goals.met||{}).length) S.goals=null;   // goals are picked to fit the weeks: pick again
+  say(`📆 ${2026+s}: you’ll guide ${weeksShort(s)}.`)}
+window.weeksSet=weeksSet;
+// last year's pick carries over to the next summer until you change it
+{const _startSeason=startSeason;startSeason=function(s){if(S.weeks&&!S.weeks[s]&&S.weeks[s-1])S.weeks[s]=S.weeks[s-1].slice();return _startSeason(s)}}
+// the season's first morning was rolled before the pick: once the bookings open, set its sonar count and weather to the week's month
+{const _finishWinter=finishWinter;finishWinter=function(){const s=S.winter&&S.winter.s;_finishWinter.apply(this,arguments);
+  if(s==null||!weekGap(s)) return;const d=s*SEASON,W=weekOf(d),m=mdOf(d),w=S.wxd[d],off=m<701?-3:m<801?0:m<901?-4:-12;
+  if(weekIdOf(d)!=='jul1')S.cum=weekCum(d);if(w&&off)w.temp+=off;
+  say(`📆 ${dlongY(d)}: your first week this year, ${W.ic} ${W.n}. ${W.d()}`)}}
+{const _newState=newState;newState=function(){return Object.assign(_newState(),{weeks:{},goals:null,goalLog:[]})}}
+TITLE.bullets[0]='Each season: two weeks of guiding, the July peak to begin with, and from your second summer June kings, August silvers or September rainbows if you like. Between seasons: bills, upgrades, new rules and new bookings.';
+HELP.splice(2,0,['📆','Your weeks of the summer','Season 1 is the two-week July peak. From the second summer on, the off-season summary lets you pick <strong>which two weeks</strong> you guide yourself: <strong>June kings</strong> (or rainbows and halibut when kings are closed), either <strong>July peak</strong> week, <strong>August silvers</strong> or <strong>September rainbows</strong>. Dates, rules, runs, daylight and the trips on offer follow the week. The weeks you don’t play are booked off your name and settled in the off-season, more of them when you play a quieter week, so the year comes out about even.']);
+const EVM=EV.find(x=>x.id==='mosquitoes');if(EVM){const c0=EVM.cond;EVM.cond=c=>(!c0||c0(c))&&mdOf(day())<901}
+// ============================================================
+//  GUIDE MASTER, part 13 (1.14.0): season goals and big days.
+//  Season goals: three a season, picked to fit the weeks you guide, shown in the 📅 Bookings tab. A goal you reach is ticked
+//  off in the morning report; the rewards (word of mouth, reputation or a bonus) are paid on the season's last night, with one
+//  summary line there and in the off-season summary. No pop-ups.
+//  Big days: now and then a booking request comes with a target ("a 30-pound halibut for Dad's 70th", "her first king") and a
+//  bonus if you get it. They ride the normal request flow: the Bookings tab and the morning report.
+//  Goals are chosen with hz() (a hash, 23-fish.js), so they use no random numbers and the rest of the game rolls as before.
+//  Party traits and reviews from 1.13 (b.tr, b.out.stars) feed the five-star and kids goals; an older booking without them falls back
+//  to its quirks and happiness.
+// ============================================================
+const stDelta=k=>((S.stats&&S.stats[k])||0)-((S.st0&&S.st0[k])||0);       // this season so far (S.st0 is the season-start snapshot)
+const seasonDone=s=>S.book.filter(b=>seasonOf(b.d)===s&&b.status==='done'&&!b.asst);
+const hasKids=b=>(b.quirk||[]).includes('kid')||[].concat(b.tr||[],b.traits||[],b.trait||[]).some(x=>/kid|child/i.test(String(x&&(x.id||x.k)||x)))||/kids|grandkids|grandson|granddaughter/i.test(b.who||'');
+const fiveStar=b=>!!b.out&&(typeof b.out.stars==='number'?b.out.stars>=5:b.out.happy>=82);
+const hasWeek=(s,ids)=>weeksOf(s).some(x=>ids.includes(x));
+// k(s): the target; p(s): progress (a number, or for the season-long goals true/false so far); end: only settled on the last night
+const GOALS={
+  limits:{ic:'🐟',n:k=>`${k} limit-outs`,s:'Trips where every client goes home with a limit.',k:()=>3,p:()=>stDelta('limits'),ok:s=>hasWeek(s,['jul1','jul2','aug','sep']),r:{wom:2}},
+  fivestar:{ic:'⭐',n:k=>`${k} five-star days`,s:'Trips the clients would rate five stars.',k:()=>4,p:s=>seasonDone(s).filter(fiveStar).length,ok:()=>true,r:{cash:400}},
+  clean:{ic:'⚖️',n:()=>'A clean season',s:'No citations and no warnings, all season.',end:true,p:()=>stDelta('citesTotal')===0&&stDelta('warnsTotal')===0,ok:()=>true,r:{rep:3}},
+  logbook:{ic:'📓',n:()=>'Logbook never overdue',s:'Write up every trip before bed, all season.',end:true,p:()=>!(S.goals&&S.goals.fail&&S.goals.fail.logbook),ok:()=>true,r:{rep:2}},
+  halibut:{ic:'⚓',n:k=>`${k} Homer halibut charters`,s:'Run them yourself, out of Homer.',k:()=>S.up&&S.up.chp?3:2,p:s=>seasonDone(s).filter(b=>b.type==='halibut').length,ok:()=>true,r:{cash:300}},
+  kingrel:{ic:'👑',n:()=>'A king released the right way',s:'In the water, no lift for the photo.',k:()=>1,p:()=>stDelta('kings'),ok:s=>kingRule()!=='open'&&(hasWeek(s,['june'])&&kingRule()==='cr'||hasWeek(s,['jul1','jul2'])),r:{rep:2}},
+  kids:{ic:'👨‍👩‍👧',n:()=>'A family with kids rates you five stars',s:'Patience, snacks and life jackets that fit.',k:()=>1,p:s=>seasonDone(s).filter(b=>hasKids(b)&&fiveStar(b)).length,ok:()=>true,r:{wom:2}},
+  regular:{ic:'🤝',n:()=>'Win a new regular',s:'A party that wants you back next year.',k:()=>1,p:s=>(S.regs||[]).filter(g=>g.last&&g.last.s===s&&(g.trips||1)===1).length,ok:()=>true,r:{wom:2}},
+  bigday:{ic:'🎯',n:()=>'Land a big-day target',s:'A request with a target, met on the water. Return calls to hear about them.',k:()=>1,p:()=>stDelta('bigHit'),ok:()=>true,r:{cash:300}},
+  trout:{ic:'🌈',n:k=>`${k} rainbows on the upper river`,s:'Landed and released on your trout floats.',k:s=>hasWeek(s,['sep'])?60:40,p:s=>seasonDone(s).filter(b=>b.type==='trout').reduce((a,b)=>a+(b.out.fish||0),0),ok:()=>true,r:{cash:250}},
+};
+const GOAL_N=3;
+const goalSalt=()=>{const w=S.wxd&&S.wxd[0];return w?(w.temp||0)*7+(w.wind||0):3};
+// this season's goals (made the first time anyone asks, from a hash of the season and the game, so no random numbers are used)
+function goalsFor(s){
+  if(S.goals&&S.goals.s===s&&Array.isArray(S.goals.list)) return S.goals;
+  const salt=goalSalt(),ids=Object.keys(GOALS).filter(id=>{try{return GOALS[id].ok(s)}catch(e){return false}}).map((id,i)=>[id,hz(s+1,salt,i*13+7)]).sort((a,b)=>a[1]-b[1]).map(x=>x[0]);
+  // at most one of the two "all season" goals
+  const pickd=[];for(const id of ids){if(pickd.length>=GOAL_N)break;if(GOALS[id].end&&pickd.some(x=>GOALS[x].end))continue;pickd.push(id)}
+  S.goals={s,list:pickd.map(id=>({id,k:GOALS[id].k?GOALS[id].k(s):1})),met:{},fail:{},paid:false};
+  return S.goals;
+}
+const goalName=g=>{const G=GOALS[g.id];return G?G.n(g.k):g.id};
+const rewardTxt=r=>[r.cash?`${$(r.cash)} bonus`:'',r.rep?`rep +${r.rep}`:'',r.wom?'word of mouth (more bookings for the rest of the summer)':''].filter(Boolean).join(', ');
+function goalState(g,s){const G=GOALS[g.id];if(!G)return {v:0,met:false};let v;try{v=G.p(s)}catch(e){v=0}
+  if(G.end) return {v,met:!!v,txt:v?'so far, so good':'missed'};
+  return {v,met:v>=g.k,txt:`${Math.min(v,g.k)}/${g.k}`};}
+// each night: tick off what was reached today, note a broken logbook, and on the season's last night settle up
+function goalsNight(notes,d){
+  if(S.winter||S.over) return;
+  const s=seasonOf(d),G=goalsFor(s);if(G.paid) return;
+  if(S.overdue>0) G.fail.logbook=true;
+  G.list.forEach(g=>{const D=GOALS[g.id];if(!D||D.end||G.met[g.id])return;if(goalState(g,s).met){G.met[g.id]=true;notes.push(`🎯 Season goal reached: <b>${D.ic} ${goalName(g)}</b>. Reward on the season’s last night: ${rewardTxt(D.r)}.`)}});
+  if(sday(d)!==SEASON-1) return;
+  let cash=0,rep=0,wom=0,n=0;
+  G.list.forEach(g=>{const D=GOALS[g.id];if(!D)return;const st=goalState(g,s);if(D.end)G.met[g.id]=st.met;if(!G.met[g.id])return;n++;cash+=D.r.cash||0;rep+=D.r.rep||0;wom+=D.r.wom||0});
+  if(cash){money(cash);S.stats.goalCash=(S.stats.goalCash||0)+cash}
+  if(rep)adj('rep',rep);if(wom)S.wom=(S.wom||0)+wom;
+  G.paid=true;S.goalLog=S.goalLog||[];S.goalLog.push({s,n,of:G.list.length,cash,rep,wom,ids:G.list.map(g=>g.id)});
+  notes.push(`🎯 <b>Season goals: ${n} of ${G.list.length} met</b>${n?`: ${[cash?`${$(cash)} in bonuses`:'',rep?`rep +${rep}`:'',wom?'more word of mouth':''].filter(Boolean).join(', ')}`:'. Next year.'}`);
+}
+{const _onNight=onNight;onNight=function(where,notes,d){_onNight(where,notes,d);goalsNight(notes,d)}}
+// 📅 Bookings tab
+function goalsView(){
+  if(!S||S.over) return '';
+  const s=seasonOf(seasonFirst()),G=goalsFor(s);
+  return `<div class="sect">🎯 Season goals · ${2026+s}</div>`+G.list.map(g=>{const D=GOALS[g.id];if(!D)return '';const st=goalState(g,s),met=G.met[g.id]||(!D.end&&st.met),miss=D.end&&!st.v;
+    return `<div class="todo goal"><span class="ck" aria-hidden="true">${met&&!D.end?'✅':miss?'❌':'🎯'}</span><div><b>${D.ic} ${goalName(g)}</b><span>${D.s} ${D.end?(miss?'Missed this year.':'So far, so good.'):`${st.txt}${met?' · reached':''}`} · Reward: ${rewardTxt(D.r)}.</span></div></div>`}).join('');
+}
+function goalsWinterLine(s){const L=(S.goalLog||[]).find(x=>x.s===s);if(!L)return '';
+  return `<p>🎯 <b>Season goals:</b> ${L.n} of ${L.of} met${L.n?` (${[L.cash?$(L.cash):'',L.rep?`rep +${L.rep}`:'',L.wom?'word of mouth':''].filter(Boolean).join(', ')})`:''}.</p>`}
+{const _endRows=endRows;endRows=function(){const r=_endRows(),L=S.goalLog||[];if(L.length)r.push(['Season goals',`${L.reduce((a,x)=>a+x.n,0)} of ${L.reduce((a,x)=>a+x.of,0)} met${S.stats.bigHit?` · ${S.stats.bigHit} big-day target${S.stats.bigHit>1?'s':''} hit (${$(S.stats.bigPaid||0)})`:''}`]);return r}}
+
+// ---- big days: requests with a target ----
+const BIG={
+  halibut:[{k:'hal30',txt:'a 30-pound halibut for Dad’s 70th',bonus:300},{k:'halwall',txt:'a halibut bigger than the one on Grandpa’s wall',bonus:300}],
+  king:[{k:'first',txt:'her first king',bonus:250},{k:'photo',txt:'one king for the family album',bonus:250}],
+  reds:[{k:'freezer',txt:'a limit for everyone: the freezer back home is empty',bonus:200}],
+  silver:[{k:'smoker',txt:'a limit of silvers for the smoker back home',bonus:200}],
+  trout:[{k:'leopard',txt:'a 25-inch leopard rainbow, photographed wet',bonus:200}],
+};
+const BIG_P=.2;
+{const _makeRequest=makeRequest;
+  makeRequest=function(){const r=_makeRequest();
+    if(r&&r.kind==='trip'&&!r.asst&&BIG[r.type]&&!(r.type==='halibut'&&halClosed(r.d))&&hz(r.d,(S.reqN||0)+(S.t%997),11)<BIG_P){
+      const L=BIG[r.type],x=L[Math.floor(hz(r.d,S.reqN||0,12)*L.length)%L.length];r.big={k:x.k,txt:x.txt,bonus:x.bonus}}
+    return r};}
+function bigReqLine(r){return r&&r.big?`<p class="small-note" style="font-size:13px">🎯 <b>A big day:</b> they want ${r.big.txt}. They’ll add a <b>${$(r.big.bonus)} bonus</b> if you get it.</p>`:''}
+function bigMet(b){const o=b.out||{},n=Math.max(1,b.n);
+  switch(b.big.k){
+    case 'hal30':case 'halwall':return !halClosed(b.d)&&o.fish>=Math.ceil(n*1.2);
+    case 'first':case 'photo':return (b.kings||0)>=1;
+    case 'freezer':return o.fish>=n*Math.min(3,S.limit);
+    case 'smoker':return o.fish>=2*n;
+    case 'leopard':return o.fish>=n*7&&o.happy>=65;
+  }return false}
+function bigAfterTrip(b,notes){
+  if(!b.big||b.big.done!=null) return;
+  const ok=bigMet(b);b.big.done=ok;
+  if(ok){money(b.big.bonus);S.stats.bigHit=(S.stats.bigHit||0)+1;S.stats.bigPaid=(S.stats.bigPaid||0)+b.big.bonus;if(b.out)b.out.net+=b.big.bonus;
+    notes.push(`🎯 They came for ${b.big.txt}, and they got it. A <b>${$(b.big.bonus)} bonus</b> on top of the tip.`)}
+  else notes.push(`🎯 They came for ${b.big.txt}. Not today; they shake your hand anyway.`);
+}
+{const _sat=storyAfterTrip;storyAfterTrip=function(b,happy,notes){_sat(b,happy,notes);bigAfterTrip(b,notes)}}
+HELP.splice(3,0,['🎯','Season goals & big days','Each season has three goals, in the <strong>📅 Bookings</strong> tab: limit-outs, five-star days, a clean record, Homer charters and more. The morning report tells you when you reach one, and the rewards (a bonus, reputation or word of mouth) come on the season’s last night. Some booking requests come with a target, like <em>a 30-pound halibut for Dad’s 70th</em>: get it and they add a bonus.']);
 // ---------------- boot ----------------
 applyPrefs();
 titleScreen();

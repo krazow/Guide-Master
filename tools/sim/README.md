@@ -27,6 +27,8 @@ Environment variables: `STYLES` (comma list), `DIFFS` (space list for run.sh), `
 | `opport` | rule-breaker: takes bending-the-rules options while it has fewer than two citations |
 | others | `bytb`, `ruler`, `careless`, `nofuel`, `nolog` ... single-habit variants, see `STYLES` in `sim-lib.js` |
 
+Weeks (1.14.0): from the second season the bots pick which two weeks of the summer they guide. The default policy, `mix`, keeps one July week and tries June kings, August silvers and September rainbows in turn (seasons 2–5: Jul 13 + Aug, Jun + Jul 20, Jul 20 + Sep, both July weeks). `OVER='{"weeks":"july"}'` plays the two July weeks every year as before; `junaug`, `augsep`, `junsep`, `julaug` are fixed pairs (see `WEEKPOL` in `sim-lib.js`).
+
 Append `_c`, `_p` or `_n` to a style for the careful, pay-everything or full-neglect cabin policy. Camping is played by `campBot` (style flag `camp`).
 
 ## Reading and comparing runs
