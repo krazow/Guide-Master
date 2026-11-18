@@ -59,8 +59,8 @@ function memNote(b,t,sp,z,big,why){
   const rec=M.rec[sp],year=yearOf(b.d),isNew=!rec||z>rec.z;
   if(isNew){M.rec[sp]={z,who:b.who,from:b.from,d:b.d,year,type:b.type,id:b.id};if(rec&&rec.id!==b.id)mm.ev.push({k:'record',sp,z,old:rec.z})}   // a personal best over an earlier trip's fish
   if(!M.firsts['sp_'+sp]){memFirst('sp_'+sp,b,`${X.ic} First ${X.n.toLowerCase()}: a ${szTxt(sp,z)} fish for the ${b.who}`);mm.ev.push({k:'first',sp,z})}
-  // one king moment a trip (a king trip lands several), plus any 50-pounder
-  if(sp==='king'){if(!mm.kingEv||z>=50){mm.kingEv=1;mm.ev.push({k:'king',sp,z})}if(!M.firsts.king)memFirst('king',b,`👑 First king: about ${Math.round(z)} pounds, ${why||'at the boat'} with the ${b.who}`)}
+  // one king moment a trip: a June king trip lands several over its stretches (and the king dilemma can add one); the rest ride on the record
+  if(sp==='king'){if(!mm.kingEv){mm.kingEv=1;mm.ev.push({k:'king',sp,z})}if(!M.firsts.king)memFirst('king',b,`👑 First king: about ${Math.round(z)} pounds, ${why||'at the boat'} with the ${b.who}`)}
   else if(sp==='halibut'&&z>=BARN){mm.ev.push({k:'barn',sp,z});if(!M.firsts.barn)memFirst('barn',b,`🚪 First barn door: a ${Math.round(z)}-pound halibut for the ${b.who}`)}
   else if(big) mm.ev.push({k:'trophy',sp,z});
 }
@@ -166,9 +166,9 @@ window.cardPNG=cardPNG;
 
 // ---- postcards: next season, a past client or two writes in (the morning report on the season's first day) ----
 const POST={
-  best:['“That {fish} is still the story at every barbecue. Same week next July?”','“The picture of the {fish} is on the fridge, right next to the grandkids.”','“We had the {fish} mounted. The taxidermist asked who our guide was.”'],
+  best:['“That {fish} is still the story at every barbecue. Same week next summer?”','“The picture of the {fish} is on the fridge, right next to the grandkids.”','“We had the {fish} mounted. The taxidermist asked who our guide was.”'],
   kids:['“The kids still talk about lunch on the gravel bar. They’ve drawn you a picture of the river.”','“Our youngest wants to be a fishing guide now. Thanks a lot.”'],
-  photo:['“We framed the shot from the river. Every guest asks where it was taken.”','“The photos made the family calendar: July is the Kenai.”'],
+  photo:['“We framed the shot from the river. Every guest asks where it was taken.”','“The photos made the family calendar: a whole month of the Kenai.”'],
   first:['“We bought rods this winter and practiced in the park. We’re ready for round two.”'],
   meat:['“The last of the fillets went on the grill last week. We need a refill.”'],
   any:['“Still thinking about that morning on the river. Save us a date.”','“Best day of our trip, and we saw a lot of Alaska. Tell the river hi.”','“The bumper sticker says KENAI. The neighbors are jealous.”'],
@@ -212,7 +212,7 @@ function wallView(){
   if(todo.length&&fs.length) h+=`<p class="small-note" style="font-size:12.5px;color:var(--mute);margin:2px 2px 0">Still to come: ${todo.join(' · ')}.</p>`;
   const five=(S.reviews||[]).filter(r=>r.stars===5).slice(-3).reverse(),regs=(S.regs||[]).filter(g=>(g.trips||1)>=2).sort((a,c)=>(c.trips||1)-(a.trips||1)).slice(0,3);
   h+='<div class="sect">⭐ Standout clients</div>';
-  h+=five.length||regs.length?five.map(r=>row('★',`The ${esc(r.who)} · ${'★'.repeat(5)}`,`“${r.text}” · ${dlabel(r.day)}, ${yearOf(r.day)}`)).join('')+regs.map(g=>row('🔁',`The ${esc(g.who)}: ${g.trips} Julys with you`,`${esc(g.from)} · regulars`)).join(''):'<p class="prio-empty">Five-star reviews and regulars who keep coming back show up here.</p>';
+  h+=five.length||regs.length?five.map(r=>row('★',`The ${esc(r.who)} · ${'★'.repeat(5)}`,`“${r.text}” · ${dlabel(r.day)}, ${yearOf(r.day)}`)).join('')+regs.map(g=>row('🔁',`The ${esc(g.who)}: ${g.trips} seasons with you`,`${esc(g.from)} · regulars`)).join(''):'<p class="prio-empty">Five-star reviews and regulars who keep coming back show up here.</p>';
   if(M.cards.length) h+='<div class="sect">📬 Postcards</div>'+M.cards.slice(-4).reverse().map(c=>row('📬',`The ${esc(c.who)}, ${esc(c.from)}`,`${c.txt} · spring ${2026+c.s}`)).join('');
   if(typeof starsWall==='function') h+=starsWall();
   return h;

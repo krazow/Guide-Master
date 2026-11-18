@@ -256,7 +256,7 @@ module.exports = [
       const mk = who => addBooking({ d: 3, type: 'reds', n: 3, who, from: 'Ohio', quirk: [] });
       Math.random = () => 0; const notes = [];
       storyAfterTrip(mk('Smiths'), 92, notes); storyAfterTrip(mk('Joneses'), 50, []); storyAfterTrip(mk('Browns'), 90, []);
-      out.regs = S.regs.map(g => g.who); out.note = notes.some(n => /same time next July/i.test(n));
+      out.regs = S.regs.map(g => g.who); out.note = notes.some(n => /same time next season/i.test(n));
       S.regs.find(g => g.who === 'Browns').last.h = 30;                  // a bad last trip
       S.book = []; const lines = regsRebook(14, () => 0.2);
       out.booked = S.book.filter(b => b.reg).map(b => b.who); out.lines = lines.length; out.dropped = !S.regs.some(g => g.who === 'Browns') || lines.some(l => /Browns/.test(l)) || !out.booked.includes('Browns');

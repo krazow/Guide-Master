@@ -321,7 +321,7 @@ function tripEnd(b,t){
   storyAfterTrip(b,happy,t.notes);                      // 30-stories.js: returning parties, story arcs
   const mem=memDock(b,t,{C,rv,happy,fish});              // 37-memories.js: records, firsts, the catch card, the rating's milestones, the mentor's last word
   say(`${T.ic} ${T.n} with the ${b.who}: ${line}. Paid ${$(fare-refund)} + ${$(tip+xpos)} in tips.`);
-  const mood=happy>=82?'😁 They’re already asking about next July. Word of mouth will bring you more bookings.':happy>=65?'🙂 Solid day. Handshakes at the trailer.':happy>=45?'😐 Polite thanks, small tip.':review?'😠 Tight-lipped goodbyes and a one-star review. Word gets around the Kenai.':'😕 They leave a little deflated.';
+  const mood=happy>=82?'😁 They’re already asking about next season. Word of mouth will bring you more bookings.':happy>=65?'🙂 Solid day. Handshakes at the trailer.':happy>=45?'😐 Polite thanks, small tip.':review?'😠 Tight-lipped goodbyes and a one-star review. Word gets around the Kenai.':'😕 They leave a little deflated.';
   const row=(l,v)=>`<br>${l}: <b>${v>=0?'':'−'}${$(Math.abs(v))}</b>`;
   const why=[];if(skunk)why.push('skunked');if(S.gear<=0&&t.notes.some(n=>n.startsWith('🪱')))why.push('no tackle');if(refund&&happy<42)why.push('unhappy clients');
   modalSwap(`${T.ic} Back at the dock`,`${mem.top}${t.notes.map(n=>`<p>${n}</p>`).join('')}

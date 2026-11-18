@@ -110,7 +110,7 @@ module.exports = [
     noErrors(errors);
   } },
 
-  { name: 'rating milestones: top-rated note, a once-a-career magazine feature that books the coming week, a lodge partnership after a ★4.8 July (referral fee, ends under ★4.3)', fn: async ctx => {
+  { name: 'rating milestones: top-rated note, a once-a-career magazine feature that books the coming week, a lodge partnership after a ★4.7 season (referral fee, ends under ★4.3)', fn: async ctx => {
     const { page, errors } = await open(ctx, { seed: 24 });
     await newGame(page); await page.evaluate(install);
     const r = await page.evaluate(() => {
@@ -121,7 +121,7 @@ module.exports = [
       o.feat = JSON.parse(JSON.stringify(S.mem.feat)); o.top = S.mem.top;
       o.legal = S.book.filter(b => b.feat).every(b => !illegalDay(b.type, b.d) && b.d > 2 && b.d <= 9);
       const n1 = S.book.length; starsAfterTrip({ d: 2 }, {}, {}); o.again = S.book.length - n1;
-      // the lodge: a ★4.8 July at the season turn
+      // the lodge: a season averaging ★4.7 or better at the season turn
       S.reviews = Array.from({ length: 8 }, () => rv(5, 3)).concat([rv(4, 4)]);
       DIGEST = { night: '', items: [], lines: [], held: [], open: false, from: 13 }; starsSeasonStart(1); o.lodgeLine = DIGEST.lines.join(' '); DIGEST = null;
       o.lodge = JSON.parse(JSON.stringify(S.mem.lodge));
@@ -259,22 +259,95 @@ module.exports = [
   } },
 
   // ---- 6. migration ----
-  { name: 'migration to schema 8: older saves (5–7) get S.mem without losing anything; a career under way keeps the mentor home', fn: async ctx => {
+  { name: 'migration to schema 8: older saves (4–6) get S.mem without losing anything; a career under way keeps the mentor home', fn: async ctx => {
     const { page, errors } = await open(ctx, { seed: 29 });
     await newGame(page);
     const r = await page.evaluate(() => {
       const o = {};
       S.stats.trips = 9; S.reviews = [{ day: 1, who: 'a', type: 'reds', stars: 5, text: 'x' }];
-      for (const sc of [5, 6, 7]) { const d = JSON.parse(JSON.stringify(packSave())); d.schema = sc; d.app = '1.13.0'; delete d.S.mem; const m = migrate(d); o['s' + sc] = { schema: m.schema, mem: m.S.mem && Object.keys(m.S.mem).sort().join(), mentor: m.S.mem.mentor, rev: m.S.reviews.length } }
-      const d2 = JSON.parse(JSON.stringify(packSave())); d2.schema = 7; d2.S.stats.trips = 0; delete d2.S.mem; o.fresh = migrate(d2).S.mem.mentor;
-      const d3 = JSON.parse(JSON.stringify(packSave())); d3.schema = 7; d3.S.mem = { mentor: 'due', rec: { sockeye: { z: 8, who: 'q', d: 1, year: 2026 } } }; const m3 = migrate(d3).S.mem; o.keep = [m3.mentor, m3.rec.sockeye.z, Array.isArray(m3.trips)];
+      for (const sc of [4, 5, 6]) { const d = JSON.parse(JSON.stringify(packSave())); d.schema = sc; d.app = '1.13.0'; delete d.S.mem; const m = migrate(d); o['s' + sc] = { schema: m.schema, mem: m.S.mem && Object.keys(m.S.mem).sort().join(), mentor: m.S.mem.mentor, rev: m.S.reviews.length } }
+      const d2 = JSON.parse(JSON.stringify(packSave())); d2.schema = 6; d2.S.stats.trips = 0; delete d2.S.mem; o.fresh = migrate(d2).S.mem.mentor;
+      const d3 = JSON.parse(JSON.stringify(packSave())); d3.schema = 6; d3.S.mem = { mentor: 'due', rec: { sockeye: { z: 8, who: 'q', d: 1, year: 2026 } } }; const m3 = migrate(d3).S.mem; o.keep = [m3.mentor, m3.rec.sockeye.z, Array.isArray(m3.trips)];
       // a migrated save plays a trip
       S = migrate(JSON.parse(JSON.stringify(Object.assign(packSave(), { schema: 5 })))).S; delete S.mem; render(); o.hud = !!document.querySelector('.stat[title*="Rating"]');
       return o;
     });
-    for (const sc of [5, 6, 7]) { assert.ok(r['s' + sc].schema >= 8); assert.match(r['s' + sc].mem, /cards.*firsts.*mentor.*rec.*trips/); assert.strictEqual(r['s' + sc].mentor, 'done'); assert.strictEqual(r['s' + sc].rev, 1) }
+    for (const sc of [4, 5, 6]) { assert.ok(r['s' + sc].schema >= 8); assert.match(r['s' + sc].mem, /cards.*firsts.*mentor.*rec.*trips/); assert.strictEqual(r['s' + sc].mentor, 'done'); assert.strictEqual(r['s' + sc].rev, 1) }
     assert.strictEqual(r.fresh, 'due', 'a save from before its first trip still gets the mentor');
     assert.deepStrictEqual(r.keep, ['due', 8, true]); assert.ok(r.hud);
+    noErrors(errors);
+  } },
+  // ---- 1.15 on top of 1.14's summer weeks ----
+  { name: 'with summer weeks: the magazine and the lodge book inside the chosen weeks, on that week’s trip (June kings, August silvers, September rainbows)', fn: async ctx => {
+    const { page, errors } = await open(ctx, { seed: 41 });
+    await page.evaluate(() => setPref('years', 5));
+    await newGame(page); await page.evaluate(install);
+    const r = await page.evaluate(() => {
+      const o = {}, rv = (st, d) => ({ day: d, who: 'x', type: 'reds', stars: st, text: '' });
+      S.weeks = { 1: ['june', 'aug'], 2: ['aug', 'sep'] }; S.reg = genRegs(1); S.reg.king = 'open';
+      // the magazine on a June Tuesday of season 2 (day 15): the coming days are king trips (Tue–Sat) and trout/halibut on Sun/Mon
+      S.cur = 15; S.t = 15 * 1440 + 900; S.book = S.book.filter(b => seasonOf(b.d) !== 1); MEM().feat = null;
+      S.reviews = Array.from({ length: 14 }, () => rv(5, 15));
+      starsAfterTrip({ d: 15 }, {}, {});
+      const fb = S.book.filter(b => b.feat);
+      o.feat = fb.map(b => [b.d, b.type, weekIdOf(b.d), illegalDay(b.type, b.d)]);
+      // the lodge for season 3 (August + September), after a season averaging ★4.7
+      S.mem.lodge = null; S.reviews = [5, 5, 5, 5, 5, 4, 5, 5, 4, 5].map(k => rv(k, 20));
+      DIGEST = { night: '', items: [], lines: [], held: [], open: false, from: 27 }; starsSeasonStart(2); o.line = DIGEST.lines.join(' '); DIGEST = null;
+      S.book = S.book.filter(b => seasonOf(b.d) !== 2); starsSeasonOpen(2);
+      o.lodge = S.book.filter(b => b.lodge).map(b => [b.d, b.type, weekIdOf(b.d), illegalDay(b.type, b.d), sday(b.d) % 7, WEEKS[weekIdOf(b.d)].main(b.d)]);
+      return o;
+    });
+    assert.ok(r.feat.length >= 1 && r.feat.length <= 3, JSON.stringify(r.feat));
+    for (const [d, type, wk, bad] of r.feat) { assert.strictEqual(wk, 'june'); assert.ok(!bad, 'legal'); assert.ok(['king', 'trout', 'halibut'].includes(type), type); }
+    assert.ok(r.feat.some(f => f[1] === 'king'), 'magazine readers book June kings: ' + JSON.stringify(r.feat));
+    assert.match(r.line, /lodge partnership/i); assert.match(r.line, /season’s reviews averaged ★4\.8/); assert.doesNotMatch(r.line, /July/);
+    assert.strictEqual(r.lodge.length, 2, JSON.stringify(r.lodge));
+    for (const [d, type, wk, bad, w, main] of r.lodge) { assert.ok(['aug', 'sep'].includes(wk)); assert.ok(!bad); assert.ok(w >= 1 && w <= 5);
+      assert.strictEqual(type, main, 'the week’s own trip'); assert.notStrictEqual(type, 'reds'); }
+    noErrors(errors);
+  } },
+
+  { name: 'with summer weeks: postcards and the lodge check run once per season turn; a June king trip records kings with one king moment', fn: async ctx => {
+    const { page, errors } = await open(ctx, { seed: 43 });
+    await page.evaluate(() => setPref('years', 5));
+    await newGame(page); await page.evaluate(install);
+    const r = await page.evaluate(() => {
+      const o = {};
+      MEM().trips = [{ d: 3, who: 'Chen family', from: 'Oregon', type: 'reds', stars: 5, best: ['sockeye', 8], tr: ['kids'], lim: false },
+        { d: 5, who: 'Navy buddies', from: 'Virginia', type: 'reds', stars: 5, best: ['sockeye', 7], tr: ['trophy'], lim: true }];
+      S.reviews = Array.from({ length: 9 }, (_, i) => ({ day: 2 + i, who: 'x', type: 'reds', stars: 5, text: '' }));
+      S.weeks = { 1: ['june', 'sep'] };
+      const n0 = S.seasons.length;
+      // the season turn (endDay → startSeason, wrapped by 34-summer.js), then the bookings (finishWinter)
+      closeModals(); clearTiles(); S.money = 30000; S.cur = 13; S.t = 13 * 1440 + 1300; S.loc = 'shop';
+      S.book.forEach(b => { if (b.status === 'booked') b.status = 'done'; if (!b.out) b.out = { happy: 70, fish: 4, line: 'x', fare: 1000, refund: 0, tip: 0, net: 1000 }; });
+      endDay('home'); closeModals();
+      o.turns = S.seasons.length - n0; o.cards = S.mem.cards.length; o.lodge = JSON.parse(JSON.stringify(S.mem.lodge));
+      memSeasonStart(1); o.cards2 = S.mem.cards.length; o.lodgeS = S.mem.lodge && S.mem.lodge.s;
+      S.reg.king = 'open'; finishWinter(); closeModals();
+      o.weeks = weeksOf(1).join(); o.lodgeB = S.book.filter(b => b.lodge).map(b => [weekIdOf(b.d), b.type]);
+      // a June king trip: kings on the wall, one king moment however many land
+      let kings = 0, moments = 0, rec = null, tries = 0;
+      for (let d = 15; d <= 19 && !kings; d++) {
+        tries++; closeModals(); S.cur = d; S.t = d * 1440 + 345; S.loc = 'lower'; S.fuel = 30; S.energy = 80; S.dil = null; S.cred.fa = 999; S.ate = { d: -1, n: 0 };
+        S.book = S.book.filter(b => b.d !== d); S.mem.rec = {};
+        const b = addBooking({ d, type: 'king', n: 4, who: 'king party ' + d, from: 'Idaho', res: false, quirk: [], tr: ['trophy'] });
+        tripStart(b); let g = 0, m = 0; while (S.trip && g++ < 30) { m += document.querySelectorAll('#mbg .gm-moment.gm-king').length; MBTN(legalBtn()); }
+        m += document.querySelectorAll('#mbg .gm-moment.gm-king').length;
+        kings = b.kings || 0; moments = m; rec = S.mem.rec.king || null;
+      }
+      o.kings = kings; o.moments = moments; o.rec = rec; o.sp = speciesOf('king');
+      return o;
+    });
+    assert.strictEqual(r.turns, 1, 'one season turn'); assert.ok(r.cards >= 1 && r.cards <= 2, 'postcards: ' + r.cards); assert.strictEqual(r.cards2, r.cards, 'not again for the same season');
+    assert.ok(r.lodge && r.lodge.s === 1, 'a ★4.7+ season signs the lodge'); assert.strictEqual(r.lodgeS, 1);
+    assert.strictEqual(r.weeks, 'june,sep');
+    assert.strictEqual(r.lodgeB.length, 2); for (const [wk, type] of r.lodgeB) { assert.ok(['june', 'sep'].includes(wk)); assert.ok(type !== 'reds', type); }
+    assert.strictEqual(r.sp, 'king');
+    assert.ok(r.kings >= 1, 'some king landed in five tries');
+    assert.ok(r.rec && r.rec.type === 'king' && r.rec.z >= 20, JSON.stringify(r.rec));
+    assert.strictEqual(r.moments, 1, `one king moment for ${r.kings} kings`);
     noErrors(errors);
   } },
 ];

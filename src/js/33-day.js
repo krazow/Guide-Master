@@ -314,7 +314,7 @@ function goalOf(b,t,c){
 }
 
 // ---- reviews ----
-const REV_OPEN={5:['Best day of our whole Alaska trip.','Five stars, no question.','We’re already planning next July.'],4:['A really good day on the water.','Great day, great guide.','We’d book again.'],
+const REV_OPEN={5:['Best day of our whole Alaska trip.','Five stars, no question.','We’re already planning next summer.'],4:['A really good day on the water.','Great day, great guide.','We’d book again.'],
   3:['A decent day on the water.','It was fine. Not magic, but fine.','Some good, some not.'],2:['Not the day we hoped for.','Disappointing, honestly.','We expected more for the money.'],1:['Save your money.','The low point of our trip.','Never again.']};
 const REV_T={
   meat:[['We flew home with a box full of fillets.','Coolers full. That’s what we came for.'],['We came for fish to take home and didn’t get many.','The cooler was light for what we paid.']],
