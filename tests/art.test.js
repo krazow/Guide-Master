@@ -375,8 +375,12 @@ module.exports = [
       out.own = artBoatCtx(bk('reds'), 'river'); out.king = artBoatCtx(bk('king'), 'river').boat; out.staff = artBoatCtx(bk('trout', { asst: true }), 'staff').boat;
       S.boat = 0; S.loaner = S.cur;
       out.loan = artBoatCtx(bk('reds'), 'launch').boat; out.loanHal = artBoatCtx(bk('halibut'), 'harbor').boat; out.shop = artBoatCtx(null, 'shop').boat;
+      // a repair is matched with the boat as it came in: a worn-sled picture still shows after the service lifts it to 30
+      ART.clear(); ART.register({ id: 'worn', set: 'boat', file: 'x.webp', alt: 'A worn sled.', when: { where: 'shop', cond: [0, 20] }, enabled: true });
+      S.boat = 30; S.loaner = -1; S.loc = 'shop'; artShop(10); out.worn = /data-art="worn"/.test(ART_NARR || ''); artShop(30); out.fine = ART_NARR; ART.clear(); ART_NARR = null;
       return out;
     });
+    assert.strictEqual(r.worn, true); assert.strictEqual(r.fine, null);
     assert.deepStrictEqual(r.own.boat, ['sled']); assert.ok(r.own.up.includes('dock') && r.own.up.includes('motor')); assert.strictEqual(r.own.trip, 'reds');
     assert.deepStrictEqual(r.king, ['king', 'sled']); assert.deepStrictEqual(r.staff, ['staff', 'drift']);
     assert.deepStrictEqual(r.loan, ['loaner', 'sled']); assert.deepStrictEqual(r.loanHal, ['charter']); assert.deepStrictEqual(r.shop, ['loaner', 'sled']);

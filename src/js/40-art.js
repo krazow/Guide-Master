@@ -18,7 +18,7 @@
 //  artCabinCtx(), artBoatCtx(b, where), artCampCtx(session, extra), artEventCtx(id, from)
 //                             build a ctx from the game's state (the keys are listed in ART.KEYS and art/README.md).
 //                             from is where an event id comes from: 'game' (defEvent), 'home' (CabinUpkeep.EVENTS), 'camp', 'trip' (a STEP id)
-//  artNarr(set, ctx)          a picture over the Here tab's narration until the next tap (arriving at a launch, a repair at the shop)
+//  artNarr(set, ctx)          a picture over the Here tab's narration until the next tap (arriving at a launch: artLaunch; a repair: artShop)
 //  artMorning(D)              the morning report's pictures: {top, night} (the cabin's and the game's events, the night's; your guides' trips)
 //
 //  The manifest is art/manifest.json, embedded here by tools/build.py between the markers below. The images stay separate files
@@ -107,6 +107,8 @@ function artImg(e){
 function artSlot(set,ctx){if(!artOn())return '';try{return artImg(artFor(set,typeof ctx==='function'?ctx():ctx))}catch(err){return ''}}   // pass ctx as a function: it is only built when art is on
 function artNarr(set,ctx){ART_NARR=artOn()?artSlot(set,ctx)||null:null}
 const artNarrHTML=()=>ART_NARR&&artOn()?ART_NARR:'';
+// a repair, a service, the patch or a loaner (20-world.js): the boat as it came in (cond0, before the work), at the shop or a launch
+function artShop(cond0,b,where){artNarr('boat',()=>Object.assign(artBoatCtx(b,where||(S.loc==='shop'?'shop':'launch')),{cond:Math.round(cond0)}))}
 // arriving where one of today's trips launches (21-story.js onArrive): the trailer at the ramp, or the harbor
 function artLaunch(dest){
   if(!artOn()||!S||S.winter) return;
