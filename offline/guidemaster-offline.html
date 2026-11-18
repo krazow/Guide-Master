@@ -5578,7 +5578,8 @@ function memNote(b,t,sp,z,big,why){
   const rec=M.rec[sp],year=yearOf(b.d),isNew=!rec||z>rec.z;
   if(isNew){M.rec[sp]={z,who:b.who,from:b.from,d:b.d,year,type:b.type,id:b.id};if(rec&&rec.id!==b.id)mm.ev.push({k:'record',sp,z,old:rec.z})}   // a personal best over an earlier trip's fish
   if(!M.firsts['sp_'+sp]){memFirst('sp_'+sp,b,`${X.ic} First ${X.n.toLowerCase()}: a ${szTxt(sp,z)} fish for the ${b.who}`);mm.ev.push({k:'first',sp,z})}
-  if(sp==='king'){mm.ev.push({k:'king',sp,z});if(!M.firsts.king)memFirst('king',b,`👑 First king: about ${Math.round(z)} pounds, ${why||'at the boat'} with the ${b.who}`)}
+  // one king moment a trip (a king trip lands several), plus any 50-pounder
+  if(sp==='king'){if(!mm.kingEv||z>=50){mm.kingEv=1;mm.ev.push({k:'king',sp,z})}if(!M.firsts.king)memFirst('king',b,`👑 First king: about ${Math.round(z)} pounds, ${why||'at the boat'} with the ${b.who}`)}
   else if(sp==='halibut'&&z>=BARN){mm.ev.push({k:'barn',sp,z});if(!M.firsts.barn)memFirst('barn',b,`🚪 First barn door: a ${Math.round(z)}-pound halibut for the ${b.who}`)}
   else if(big) mm.ev.push({k:'trophy',sp,z});
 }
