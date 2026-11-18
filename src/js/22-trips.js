@@ -202,6 +202,7 @@ function tripStart(b){
   t.steps.push(...beats.slice(0,Math.max(want,beats.length)));
   beats.slice(0,Math.max(want,beats.length)).forEach(k=>{if(k!=='arc_garza')dilUse(k)});
   if(b.type==='silver') t.steps.push('sixpm');
+  weekTripStart(b,t);                                     // 34-summer.js (1.14.0): the week's rules (no 6 PM rule after Jul 31) and king trips
   S.trip=t;sfx('whoosh');tripNext();
 }
 // ---- one pop-up per trip ----
@@ -250,7 +251,9 @@ function tripEnd(b,t){
     if(S[ft.tank]>=gal) S[ft.tank]=Math.round((S[ft.tank]-gal)*10)/10;
     else{q*=Math.max(.2,S[ft.tank]/gal);t.happy-=25;towed=true;if(ft.tank==='fuel')towIn(t.notes);else{S.hfuel=0;S.stats.tows=(S.stats.tows||0)+1;money(-HARBOR_TOW);adj('rep',-4);const tp=fillUp('hfuel','homer',TOW_FILL*3);t.notes.push('🛟 The charter boat runs dry off Anchor Point. The Coast Guard tows you into Homer Harbor and the harbormaster brings you to the fuel dock: '+$(HARBOR_TOW)+'.'+(tp?` You fill the tank: ${tp.gal.toFixed(0)} gallons, ${$(Math.round(tp.cost))}.`:''))}}}
   const fishers=Math.max(0,b.n-t.nofish);let fish=0,frac=0,line='',limits=0;
-  if(b.type==='reds'||b.type==='silver'){
+  const wc=weekCatch(b,t,q,fishers);                     // 34-summer.js (1.14.0): catch for the new trip types (June kings); null for the others
+  if(wc){({fish,frac,line,limits}=wc)}
+  else if(b.type==='reds'||b.type==='silver'){
     const lim=b.type==='reds'?S.limit:2,nm=b.type==='reds'?'red':'silver';
     for(let i=0;i<fishers;i++){const c=clamp(Math.round(lim*q+(r()-.5)*1.6),0,lim);fish+=c;if(c===lim)limits++}
     frac=fishers?fish/(lim*fishers):0;

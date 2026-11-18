@@ -37,6 +37,12 @@ const UPPOL={ // upgrade policies (for A/B)
  sensnorates:['course','web','motor','drift','sled','chp'],sens2:['course','web','rates','motor','drift','sled','asst','lodge','dock','chp'],sens2nr:['course','web','motor','drift','sled','asst','lodge','dock','chp'],sensnoasst:['course','web','rates','motor','drift','sled','chp'],chp:['chp','rates','web'], rateweb:['rates','web']
 };
 
+// 1.14.0: which two weeks of the summer the bot guides (from the second season; season 1 is always July). cfg.weeks picks a policy:
+// mix (the default): keep one July week and try the others in turn; july: the two July weeks every year; or a fixed pair.
+const WEEKPOL={
+ mix:s=>[['jul1','jul2'],['jul1','aug'],['june','jul2'],['jul2','sep'],['jul1','jul2']][s%5],
+ july:()=>null, junaug:()=>['june','aug'], augsep:()=>['aug','sep'], junsep:()=>['june','sep'], julaug:()=>['jul1','aug'],
+};
 window.simSetup=function(){
   window.render=NOOP;window.transition=(ic,c,c2,done)=>done&&done();window.sfx=NOOP;window.buzz=NOOP;
   window.showTile=(ic,t,s,k)=>{if(!M)return;const key=t;M.tiles[key]=(M.tiles[key]||0)+1};
@@ -120,7 +126,7 @@ function act(cfg,re){
 }
 const mins=()=>tod();
 function waitTo(m){if(tod()<m)pass(m-tod())}
-function sledNeeded(d){return S.book.filter(b=>b.d===d&&b.status==='booked'&&(b.type==='reds'||b.type==='silver')).reduce((a,b)=>a+BURN[b.type],0)}
+function sledNeeded(d){return S.book.filter(b=>b.d===d&&b.status==='booked'&&(b.type==='reds'||b.type==='silver'||b.type==='king')).reduce((a,b)=>a+BURN[b.type],0)}
 
 function playDay(cfg){
   const d=S.cur;const alive=()=>!S.over&&S.cur===d&&!S.winter;
@@ -217,6 +223,7 @@ function winterPlay(cfg){
   snap.afford=UPGRADES.filter(u=>u.cost&&S.money>=u.cost).map(u=>u.id);
   // camp
   if(cfg.camp&&S.winter){const m0=S.money,e0=S.energy,r0=S.rep;const rep=campBot(Object.assign({},cfg.campOpts||{},{rand:M.crng}));if(rep&&(rep.tripsTaken||rep.gigs.length))M.camp.push({s,trips:rep.tripsTaken,gigs:rep.gigs.length,nights:rep.nights,dM:Math.round(S.money-m0),dE:S.energy-e0,dR:S.rep-r0,fish:rep.foodFish,tk:rep.tackleCredit,q:rep.firstTripBoost,bk:rep.bookingBoost})}
+  if(typeof weeksSet==='function'){const p=WEEKPOL[cfg.weeks||'mix'],w=p&&p(s);if(w)weeksSet(s,w)}
   closeModals();
   finishWinter();
 }
@@ -251,5 +258,5 @@ window.runCareer=async function(o){
   M.boatAvg=M.boatSum/Math.max(1,M.energyN);
   const out=M;M=null;return out;
 };
-window.simInternals={playDay,resolve,winterPlay,STYLES,initM:(o)=>{window.M={style:o.style,diff:o.diff,years:o.years,seed:o.seed,citeWhy:{},viols:{},tiles:{},steps:{},req:{},tt:{},winters:[],bought:[],camp:[],energySum:0,energyN:0,lowEnergyDays:0,boatSum:0,loss:null,errors:[]}}};window.STYLES=STYLES;window.UPPOL=UPPOL;
+window.simInternals={playDay,resolve,winterPlay,STYLES,initM:(o)=>{window.M={style:o.style,diff:o.diff,years:o.years,seed:o.seed,citeWhy:{},viols:{},tiles:{},steps:{},req:{},tt:{},winters:[],bought:[],camp:[],energySum:0,energyN:0,lowEnergyDays:0,boatSum:0,loss:null,errors:[]}}};window.STYLES=STYLES;window.UPPOL=UPPOL;window.WEEKPOL=WEEKPOL;
 })();

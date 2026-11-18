@@ -148,12 +148,12 @@ function makeRequest(){
     const p=pick(PARTIES.filter(x=>!x.res));S.dipnetAsk=s;
     return {kind:'dipnet',d:d0+Math.floor(Math.random()*span),n:2+Math.floor(Math.random()*3),who:p.who,from:p.from,res:false};
   }
-  const roll=()=>{const d=d0+Math.floor(Math.random()*span),types=['reds','reds','reds','reds','trout','trout','halibut'].concat(sday(d)>=8?['silver','silver']:[]);return {d,type:pick(types)}};
+  const roll=()=>{const d=d0+Math.floor(Math.random()*span),types=weekReqTypes(d);return {d,type:pick(types)}};   // 34-summer.js: what the week's water offers
   for(let i=0;i<24;i++){
     let {d,type}=roll();
     if(illegalDay(type,d)) ({d,type}=roll());             // re-roll an illegal date once; the second pick stands, so some illegal requests still teach the lesson
     const p=pick(PARTIES),kind=Math.random()<.22&&type==='reds'?'king':'trip';
-    const nr={reds:[2,6],silver:[2,5],trout:[2,4],halibut:[4,6]}[type],n=nr[0]+Math.floor(Math.random()*(nr[1]-nr[0]+1));
+    const nr={reds:[2,6],silver:[2,5],trout:[2,4],halibut:[4,6],king:[2,4]}[type],n=nr[0]+Math.floor(Math.random()*(nr[1]-nr[0]+1));
     let asst=false;
     if(conflicts(d,type)){if(S.up.asst&&type!=='halibut'&&!conflicts(d,type,true))asst=true;else continue}
     return {kind,asst,d,type,n,who:p.who,from:p.from,res:!!p.res,quirk:Math.random()<.25?[pick(['drinker','nolicense','photo','kid'])]:[]};
@@ -184,7 +184,7 @@ function requestOpts(r){
       {l:`Take them as your “guests” — ${$(150*r.n)}`,s:'Cash up front.',fn:()=>{money(150*r.n);S.stats.earned+=150*r.n;say('🥅 You pocket the cash and hand nonresidents dipnets on the beach.');violate(null,{p:.35,fine:500,what:'helping nonresidents in the personal-use fishery'})}}]};
   }
   const T=TRIPS[r.type],asstNote=r.asst?`<p style="font-size:13px;color:var(--mute)">🧑‍🤝‍🧑 You’re booked then, so your assistant guide would take this party: you keep ${Math.round((1-ASST_CUT)*100)}% of the fare and tips.</p>`:'',price=T.gig?`day rate ${$(T.gig)}`:`${$(T.price)} × ${r.n} = ${$(T.price*r.n)}`;
-  const book=(n,q,d)=>{const b=addBooking({d:d??r.d,type:r.type,n,who:r.who,from:r.from,res:r.res,quirk:q||r.quirk,asst:r.asst||undefined});sfx('good');say(`📅 Booked: ${T.ic} ${T.n}, ${dlong(b.d)} at ${fmt(T.start)}, the ${b.who} (${b.n})${b.asst?', with your assistant guide':''}.`)};
+  const book=(n,q,d)=>{const b=addBooking({d:d??r.d,type:r.type,n,who:r.who,from:r.from,res:r.res,quirk:q||r.quirk,asst:r.asst||undefined,big:r.big||undefined});sfx('good');say(`📅 Booked: ${T.ic} ${T.n}, ${dlong(b.d)} at ${fmt(T.start)}, the ${b.who} (${b.n})${b.asst?', with your assistant guide':''}.`)};
   if(r.kind==='king'){
     return {body:`<p>${who}, ${r.n} anglers, ${dlong(r.d)}: “We want a <b>Kenai king</b>. A big one. Like the world record.”</p>${requestWarn(r)}`,opts:[
       ...(kingRule()==='open'?[{l:'Book it: kings are open this year',s:`1 per day, 20 in. or longer. ${$(payOf({type:'reds',n:r.n}))}.`,fn:()=>book(r.n,['kingfan'])}]:[
@@ -198,14 +198,14 @@ function requestOpts(r){
   else o.push({l:`${bad?'Book it anyway':'Book it'} — ${$(payOf({type:r.type,n:r.n}))}`,s:bad?'You’ll face the rules on the water.':'',fn:()=>book(r.n)});
   if(bad&&alt!=null) o.splice(0,0,{l:`Offer ${dlong(alt)} instead`,s:`Same party, ${fmt(T.start)}. ${$(payOf({type:r.type,n:bn}))}.`,fn:()=>book(bn,null,alt)});
   o.push({l:'Decline politely',fn:()=>say('📞 You pass on that one.')});
-  return {body:`<p>${who} would like a <b>${T.ic} ${T.n}</b> on <b>${dlong(r.d)}</b> at ${fmt(T.start)} for <b>${r.n}</b>.</p>${warn}<p style="font-size:13px;color:var(--mute)">${T.long} ${price}.</p>${asstNote}`,opts:o};
+  return {body:`<p>${who} would like a <b>${T.ic} ${T.n}</b> on <b>${dlong(r.d)}</b> at ${fmt(T.start)} for <b>${r.n}</b>.</p>${bigReqLine(r)}${warn}<p style="font-size:13px;color:var(--mute)">${T.long} ${price}.</p>${asstNote}`,opts:o};
 }
 function requestModal(r){const q=requestOpts(r);modal('📞 Booking request',q.body,q.opts)}
 // ---- requests wait in the Bookings tab ----
 // A request that comes in goes to the top of 📅 Bookings (with a dot on the tab) and waits a day or two; the morning report mentions it.
 // Only a request for tomorrow or sooner, made while you're on the phone, is answered on the spot.
 const REQ_WAIT=2;
-const reqKey=r=>r.kind==='dipnet'?'dipnetting at the mouth':`${TRIPS[r.type].ic} ${TRIPS[r.type].n.toLowerCase()}`;
+const reqKey=r=>r.kind==='dipnet'?'dipnetting at the mouth':`${TRIPS[r.type].ic} ${TRIPS[r.type].n.toLowerCase()}${r.big?` (🎯 ${r.big.txt})`:''}`;
 function queueRequest(r,quiet){
   const q={id:S.reqN++,r,exp:day()+REQ_WAIT};S.reqs.push(q);
   const line=`📞 <b>Booking request:</b> the ${r.who} (${r.n}) want a ${reqKey(r)} on ${dlong(r.d)}. Answer it in the 📅 Bookings tab: it waits ${REQ_WAIT===1?'a day':'two days'}.`;
@@ -383,5 +383,12 @@ const MIGRATIONS=[
     Object.keys(c.did).forEach(k=>{if(k!=='bins')c.did[k]=y0});c.did.septic=y0-1;c.y=y0;
     if(!x.cabin||typeof x.cabin!=='object')x.cabin=c;
     if(typeof x.homeAsk!=='number')x.homeAsk=-1;
+  }},
+  // schema 6 (1.14.0): the weeks of the summer you play (34-summer.js) and season goals (35-goals.js). Defaults only, so it runs the same
+  // whether or not 1.13's schema 5 ran first: a season without a pick plays the two July weeks, as before, and goals start with this season.
+  {to:6,run:x=>{
+    if(!x.weeks||typeof x.weeks!=='object'||Array.isArray(x.weeks))x.weeks={};
+    if(!Array.isArray(x.goalLog))x.goalLog=[];
+    if(x.goals!=null&&(typeof x.goals!=='object'||!Array.isArray(x.goals.list)))x.goals=null;
   }},
 ];

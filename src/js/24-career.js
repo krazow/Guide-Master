@@ -18,12 +18,13 @@ const seasonFirst=(s=seasonOf(day()))=>s*SEASON;
 const isLastSeason=(d=day())=>seasonOf(d)>=S.years-1;
 // the Monday nearest July 13 of a year, as a UTC date
 function seasonStartUTC(y){const t=Date.UTC(y,6,13),w=new Date(t).getUTCDay();let off=(1-w+7)%7;if(off>3)off-=7;return t+off*864e5}
-const dateOf=d=>new Date(seasonStartUTC(yearOf(d))+sday(d)*864e5);
+// 1.14.0: each half of a season is one played week, July by default or another week of the summer the player picked (34-summer.js)
+const dateOf=d=>new Date(weekStartUTC(yearOf(d),weekIdOf(d))+(sday(d)%7)*864e5);
 const MONTH=['January','February','March','April','May','June','July','August','September','October','November','December'];
 const dlabel=d=>{const x=dateOf(d);return `${dayName(d).slice(0,3)} ${MONTH[x.getUTCMonth()].slice(0,3)} ${x.getUTCDate()}`};
 const dlong=d=>{const x=dateOf(d);return `${dayName(d)}, ${MONTH[x.getUTCMonth()]} ${x.getUTCDate()}`};
 const dlongY=d=>`${dlong(d)}, ${yearOf(d)}`;
-const isSunMon=d=>{const w=((d%7)+7)%7;return w===6||w===0};   // DAYS starts on Monday; seasons are whole weeks
+const isSunMon=d=>{const w=((d%7)+7)%7;return (w===6||w===0)&&guideDaysRule(d)};   // DAYS starts on Monday; seasons are whole weeks. Only May 1–Jul 31 (34-summer.js)
 function doyOf(d){const x=dateOf(d);return Math.round((x-Date.UTC(x.getUTCFullYear(),0,1))/864e5)+1}
 const evenYear=d=>yearOf(d)%2===0;
 // In the off-season the clock is the winter's, not next July's: October for the fall jobs, the month of your latest camping trip while
@@ -56,14 +57,14 @@ function genRegs(s){
 }
 const REG=()=>S.reg||genRegs(0);
 const kingRule=()=>REG().king;                              // 'closed' | 'cr' (catch-and-release) | 'open'
-const noBait=()=>REG().king!=='open';                        // single-hook, no-bait EO rides along with king restrictions
+const noBait=(d=day())=>REG().king!=='open'&&baitRule(d);    // single-hook, no-bait EO rides along with king restrictions (Jun 20–Aug 15 below Skilak: 34-summer.js)
 const halSize=()=>REG().hal.size;
-const halClosed=d=>REG().hal.closed.includes(((d%7)+7)%7);
+const halClosed=d=>REG().hal.closed.includes(((d%7)+7)%7)&&halDaysRule(d);   // the closed charter days run early June to late August (34-summer.js)
 const halDaysTxt=()=>{const c=REG().hal.closed;return c.length?c.map(i=>DAYS[i]+'s').join(' and '):'none this year'};
 function kingRuleTxt(){return {closed:`Closed in ${REG().year} by emergency order, including catch-and-release. A king hooked by accident is released right away, without lifting it from the water.`,
   cr:`Catch-and-release only in ${REG().year}. Kings may not be kept, and big kings may not be removed from the water.`,
   open:`Open in ${REG().year}: 1 per day, 20 inches or longer, recorded on your harvest record right away.`}[kingRule()]}
-function gearRuleTxt(){return noBait()?'Below Skilak, Jun 20–Aug 15: one unbaited, single-hook artificial lure. No bait, no treble hooks.':'Bait and multiple hooks allowed below Skilak this year (kings are open). Single hooks still kinder to release fish.'}
+function gearRuleTxt(){if(REG().king!=='open'&&!baitRule(day()))return 'Below Skilak: the single-hook, no-bait rule runs Jun 20–Aug 15, so outside it bait and treble hooks are legal again. Single hooks still kinder to release fish.';return noBait()?'Below Skilak, Jun 20–Aug 15: one unbaited, single-hook artificial lure. No bait, no treble hooks.':'Bait and multiple hooks allowed below Skilak this year (kings are open). Single hooks still kinder to release fish.'}
 // first-aid/CPR: a card lasts two years
 const faDue=(d=day())=>S.cred.fa<(seasonOf(d)+1)*SEASON;     // expires before this season ends
 const faRenewTo=(d=day())=>(seasonOf(d)+2)*SEASON+2;         // the Wednesday of the season two years on
@@ -185,10 +186,12 @@ function winterModal(){
     <p>💸 <b>Winter bills ${$(W.bill)}</b>: ${winterCosts().map(([,c,sh])=>`${sh} ${$(c)}`).join(' · ')}. Cash now <b>${$(Math.round(S.money))}</b>.</p>
     <p>📣 <b>${2026+s}:</b> ${REG().fc}<br>⚓ Halibut: 2 a day, the second ${halSize()} inches or less; no retention ${halDaysTxt()}.<br>⛽ Kenai Harbor fuel ${$(fuelPrice('kenai',seasonFirst(s)))}/gal. ${evenYear(seasonFirst(s))?'🩷 Even year: pinks in August.':'Odd year: few pinks.'}</p>
     ${W.sup&&W.sup.length?`<p>${W.sup.join('<br>')}</p>`:''}
+    ${goalsWinterLine(s-1)}
     <p>⛑️ First-aid card: ${fa}.${W.expired>0?`<br>⚖️ ${W.expired} old citation${W.expired>1?'s':''} dropped off.`:''}${S.cites?`<br>⚖️ Active citations: ${S.cites}/3.`:''}</p>
     ${campHintLine()?`<p>${campHintLine()}</p>`:''}
     <p style="font-size:13px;color:var(--mute)">Season ${s+1} of ${S.years}. Bookings open when you finish planning.</p>`,[
     {l:'🛠️ Upgrades & business',s:'Boats, marketing, rates, a Homer charter permit.',fn:()=>upgradeModal()},
+    weeksWinterOpt(s),   // 34-summer.js: which two weeks of the summer you guide yourself
     {l:`🏠 The cabin: ${homeWinterLabel()}`,s:cabinWinterBlurb(),fn:()=>homeWinterModal()},
     {l:'🏕️ Winter camping & work',s:campUsed()?'You’ve used your free days this winter. You can still look at your camping log.':`${campDaysLeft()} free days: camping trips within 100 miles (ice fishing, scouting, company), winter work, a camping log.`,fn:()=>campModal()},
     {l:`🛶 Open bookings for ${2026+s}`,s:'Start the season.',fn:()=>homeOpenGate(()=>finishWinter())}]);
@@ -210,10 +213,10 @@ function genSeasonBookings(s){
   const p0=clamp((.35+S.rep/200+web+(S.arcs.rival.ally?.03:0)+campBook(s))*rateDemand()*(S.up.dock?1.08:1),.12,.95);
   const q=()=>r()<.3?[pick(['drinker','nolicense','kingfan','photo','kid'])]:[];
   const party=()=>pick(PARTIES);
-  for(let i=0;i<SEASON;i++){const d=base+i,w=i%7;
+  for(let i=0;i<SEASON;i++){const d=base+i,w=i%7,K=weekOf(d),main=K.main(d),second=K.second;   // 34-summer.js: what each week books
     if(w>=1&&w<=5){
-      if(r()<p0){const p=party();addBooking({d,type:'reds',n:pick([2,3,4,4,4,5]),who:p.who,from:p.from,res:!!p.res,quirk:q()})}
-      if(i>=7&&r()<p0*.6*REG().mult.coho){const p=party();addBooking({d,type:'silver',n:pick([2,3,4]),who:p.who,from:p.from,res:!!p.res,quirk:q()})}
+      if(r()<p0*(K.book||1)){const p=party();addBooking({d,type:main,n:pick(WEEK_N[main]||[2,3,4,4,4,5]),who:p.who,from:p.from,res:!!p.res,quirk:q()})}
+      if(second&&r()<p0*.6*REG().mult.coho){const p=party();addBooking({d,type:second,n:pick([2,3,4]),who:p.who,from:p.from,res:!!p.res,quirk:q()})}
     }else{
       if(S.up.chp&&r()<p0*.8){const p=party();addBooking({d,type:'halibut',n:pick([4,5,6]),who:p.who,from:p.from,res:!!p.res,quirk:q()})}
       else if(r()<p0*.7){const p=party();addBooking({d,type:'trout',n:pick([2,3,3]),who:p.who,from:p.from,res:!!p.res,quirk:q()})}
@@ -222,7 +225,7 @@ function genSeasonBookings(s){
   const regLines=regsRebook(base,r);                      // 30-stories.js: returning parties
   if(S.up.asst) for(let i=1;i<SEASON;i++){const d=base+i,w=i%7;           // your assistant takes a second party when you are booked
     if(w<1||w>5||r()>p0*.9) continue;
-    const types=['reds','reds','trout'].concat(i>=7?['silver']:[]).filter(t=>conflicts(d,t)&&!conflicts(d,t,true));
+    const types=weekAsstTypes(d).filter(t=>conflicts(d,t)&&!conflicts(d,t,true));
     if(!types.length) continue;const type=pick(types),p=party();
     addBooking({d,type,n:type==='trout'?pick([2,3]):pick([2,3,4]),who:p.who,from:p.from,res:!!p.res,quirk:[],asst:true})}
   if(!S.up.chp){const d=base+pick([6,13]);if(!S.book.some(b=>b.d===d&&b.status==='booked')){const p=party();addBooking({d,type:'halibut',n:6,who:p.who,from:p.from,res:!!p.res,quirk:[]})}}
