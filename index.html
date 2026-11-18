@@ -6861,7 +6861,7 @@ ART_MANIFEST.forEach(e=>ART.register(e));
 // Settings → Illustrations (on by default; the switch only shows once an image is enabled)
 const artPref=()=>prefs().art!==false;
 const artOn=()=>ART.any()&&artPref();
-let ART_NARR=null;   // the Here tab's picture: HTML, shown above the narration until the next tap (05-ui.js ACT clears it)
+let ART_NARR=null;   // the Here tab's picture: {html, narr}, shown above the narration it came with (a new narration, uiNarr=[], drops it)
 function artFor(set,ctx){
   if(!artOn()) return null;
   const c=Object.assign({},ctx);
@@ -6883,8 +6883,8 @@ function artImg(e){
   return `<figure class="art-fig" data-art="${esc(e.id)}">${webp?`<picture>${webp}${img}</picture>`:img}</figure>`;
 }
 function artSlot(set,ctx){if(!artOn())return '';try{return artImg(artFor(set,typeof ctx==='function'?ctx():ctx))}catch(err){return ''}}   // pass ctx as a function: it is only built when art is on
-function artNarr(set,ctx){ART_NARR=artOn()?artSlot(set,ctx)||null:null}
-const artNarrHTML=()=>ART_NARR&&artOn()?ART_NARR:'';
+function artNarr(set,ctx){const html=artOn()?artSlot(set,ctx):'';ART_NARR=html?{html,narr:uiNarr}:null}
+const artNarrHTML=()=>ART_NARR&&ART_NARR.narr===uiNarr&&artOn()?ART_NARR.html:'';
 // a repair, a service, the patch or a loaner (20-world.js): the boat as it came in (cond0, before the work), at the shop or a launch
 function artShop(cond0,b,where){artNarr('boat',()=>Object.assign(artBoatCtx(b,where||(S.loc==='shop'?'shop':'launch')),{cond:Math.round(cond0)}))}
 // arriving where one of today's trips launches (21-story.js onArrive): the trailer at the ramp, or the harbor
