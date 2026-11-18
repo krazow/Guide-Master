@@ -77,8 +77,8 @@ function morningReport(D,d){
   const ev=items.map(it=>`<div class="dig"><span class="di" aria-hidden="true">${it.ic}</span><div><b>${it.title}</b>${(it.lines||[]).map(l=>`<p>${l}</p>`).join('')}</div></div>`).join('');
   const rq=(S.reqs||[]).length;
   const lines=D.lines.map(l=>`<p>${l}</p>`).join('');
-  const art=artOn()?items.map(it=>it.id?artSlot('event',()=>artEventCtx(it.id)):'').concat((D.nightIds||[]).map(id=>artSlot('event',()=>Object.assign(artEventCtx(id),{time:'night'})))).find(Boolean)||'':'';   // 40-art.js: the first morning event with an illustration, else the night's
-  const body=`${art}<div class="digest">${sec(`🌙 ${dayName(d)} night`,D.night)}${sec('☀️ This morning',ev+lines)}${rq?`<div class="dig"><span class="di" aria-hidden="true">📞</span><div><b>${rq} booking request${rq>1?'s':''} waiting</b><p>${(S.reqs||[]).map(q=>`The ${q.r.who}: ${reqKey(q.r)}, ${dlabel(q.r.d)}`).join('<br>')}</p></div></div>`:''}</div>`;
+  const art=artMorning(Object.assign({},D,{items}));   // 40-art.js: a picture on top (the cabin's, the morning's or the night's events) and one over your guides' trips
+  const body=`${art.top}<div class="digest">${sec(`🌙 ${dayName(d)} night`,art.night)}${sec('☀️ This morning',ev+lines)}${rq?`<div class="dig"><span class="di" aria-hidden="true">📞</span><div><b>${rq} booking request${rq>1?'s':''} waiting</b><p>${(S.reqs||[]).map(q=>`The ${q.r.who}: ${reqKey(q.r)}, ${dlabel(q.r.d)}`).join('<br>')}</p></div></div>`:''}</div>`;
   modal(`☀️ Morning report · ${dayName(S.cur)}`,body,[{l:`☀️ Wake up: ${dayName(S.cur)}, ${fmt(S.t)}`,fn:()=>{}},...(rq?[{l:`📞 Review requests in Bookings`,s:'They wait a day or two.',fn:()=>setTab('book')}]:[])]);
   sfx('info');
   D.held.forEach(q=>modal(...q));

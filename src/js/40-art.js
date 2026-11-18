@@ -5,16 +5,21 @@
 //  EVERY image ships switched off. With no enabled entry, every hook below returns '' and the screen is exactly what it was
 //  before; callers never need an "if". See art/README.md for how to add a set (tools/art.py import → review → enable → test).
 //
-//  ART.register(entry)        add or replace one manifest entry {id, set, file, thumb?, webp?, thumbWebp?, v?, w, h, alt, when, enabled}
+//  ART.register(entry)        add or replace one manifest entry {id, set, file, fw?, thumb?, webp?, thumbWebp?, v?, w, h, alt, when, enabled}
+//                             (webp: the full picture, w x h; file: the JPEG fallback, fw wide (960); thumb/thumbWebp: 400 wide)
 //                             (enabled is false unless it is exactly true). Returns the stored entry, or null if it is unusable.
 //  artFor(set, ctx)           the best ENABLED entry of a set whose `when` matches ctx, or null (the caller keeps its SVG art).
 //                             Every key in `when` must match; the score is the number of keys that matched something specific
 //                             ("any" matches but scores 0). Ties are broken by a stable hash of the day and the set, so a scene
 //                             doesn't flicker between renders of the same day.
-//  artImg(entry)              the <figure><img></figure> HTML (alt, width/height, lazy, async decode, srcset thumb/full, WebP)
+//  artImg(entry)              the <figure><picture><source webp><img jpeg></picture></figure> HTML (alt, width/height, lazy, async decode,
+//                             srcset thumb 400w + full; the WebP source first, the small JPEG as the fallback)
 //  artSlot(set, ctx)          artImg(artFor(set, ctx)) or '' (never throws)
 //  artCabinCtx(), artBoatCtx(b, where), artCampCtx(session, extra), artEventCtx(id, from)
-//                             build a ctx from the game's state (the keys are listed in ART.KEYS and art/README.md)
+//                             build a ctx from the game's state (the keys are listed in ART.KEYS and art/README.md).
+//                             from is where an event id comes from: 'game' (defEvent), 'home' (CabinUpkeep.EVENTS), 'camp', 'trip' (a STEP id)
+//  artNarr(set, ctx)          a picture over the Here tab's narration until the next tap (arriving at a launch, a repair at the shop)
+//  artMorning(D)              the morning report's pictures: {top, night} (the cabin's and the game's events, the night's; your guides' trips)
 //
 //  The manifest is art/manifest.json, embedded here by tools/build.py between the markers below. The images stay separate files
 //  under art/ (cached on first use by sw.js, never precached) and are left out of the single-file offline build
@@ -78,6 +83,7 @@ ART_MANIFEST.forEach(e=>ART.register(e));
 // Settings → Illustrations (on by default; the switch only shows once an image is enabled)
 const artPref=()=>prefs().art!==false;
 const artOn=()=>ART.any()&&artPref();
+let ART_NARR=null;   // the Here tab's picture: HTML, shown above the narration until the next tap (05-ui.js ACT clears it)
 function artFor(set,ctx){
   if(!artOn()) return null;
   const c=Object.assign({},ctx);
@@ -91,14 +97,36 @@ function artImg(e){
   if(!e) return '';
   const lite=artSaveData()&&e.thumb,full=artUrl(e.file,e.v),th=e.thumb?artUrl(e.thumb,e.v):'';
   const sizes='(max-width: 520px) 100vw, 480px';
-  const set=(f,t)=>t?`${t} 400w, ${f} ${e.w}w`:`${f} ${e.w}w`;
-  const src=lite?th:full,srcset=lite?'':` srcset="${esc(set(full,th))}" sizes="${sizes}"`;
-  const webp=e.webp&&!lite?`<source type="image/webp" srcset="${esc(set(artUrl(e.webp,e.v),e.thumbWebp?artUrl(e.thumbWebp,e.v):''))}" sizes="${sizes}">`:
+  const set=(f,t,w)=>t?`${t} 400w, ${f} ${w}w`:`${f} ${w}w`;
+  const src=lite?th:full,srcset=lite?'':` srcset="${esc(set(full,th,e.fw||e.w))}" sizes="${sizes}"`;
+  const webp=e.webp&&!lite?`<source type="image/webp" srcset="${esc(set(artUrl(e.webp,e.v),e.thumbWebp?artUrl(e.thumbWebp,e.v):'',e.w))}" sizes="${sizes}">`:
     e.thumbWebp&&lite?`<source type="image/webp" srcset="${esc(artUrl(e.thumbWebp,e.v))}">`:'';
   const img=`<img class="art-img" src="${esc(src)}"${srcset} alt="${esc(e.alt||'')}" width="${e.w}" height="${e.h}" loading="lazy" decoding="async" style="object-fit:cover">`;
   return `<figure class="art-fig" data-art="${esc(e.id)}">${webp?`<picture>${webp}${img}</picture>`:img}</figure>`;
 }
 function artSlot(set,ctx){if(!artOn())return '';try{return artImg(artFor(set,typeof ctx==='function'?ctx():ctx))}catch(err){return ''}}   // pass ctx as a function: it is only built when art is on
+function artNarr(set,ctx){ART_NARR=artOn()?artSlot(set,ctx)||null:null}
+const artNarrHTML=()=>ART_NARR&&artOn()?ART_NARR:'';
+// arriving where one of today's trips launches (21-story.js onArrive): the trailer at the ramp, or the harbor
+function artLaunch(dest){
+  if(!artOn()||!S||S.winter) return;
+  const b=todays().find(x=>TRIPS[x.type].loc===dest&&tod()<=TRIPS[x.type].start+90);
+  if(b) artNarr('boat',()=>artBoatCtx(b,dest==='homer'?'harbor':['launch','trailer']));
+}
+// the morning report: a picture on top (the cabin's mishaps first, then the morning's events, the cabin's news, the night's events),
+// and one over your guides' trips in the night section
+function artMorning(D){
+  const out={top:'',night:D.night};
+  if(!artOn()) return out;
+  const H=(D.home||[]).map((e,i)=>({e,i})).sort((a,b)=>(b.e.sev||0)-(a.e.sev||0)||a.i-b.i).map(x=>x.e);
+  const home=f=>H.filter(f).map(e=>artSlot('event',()=>artEventCtx(e.id,'home')));
+  out.top=[...home(e=>e.sev>0),...D.items.map(it=>it.id?artSlot('event',()=>artEventCtx(it.id,'game')):''),...home(e=>!e.sev),
+    ...(D.nightIds||[]).map(id=>artSlot('event',()=>Object.assign(artEventCtx(id,'game'),{time:'night'})))].find(Boolean)||'';
+  const sb=S.book.find(b=>b.asst&&b.d===D.from&&b.status==='done'),at=sb?D.night.indexOf('<p>🧑‍🤝‍🧑'):-1;
+  const sa=at>=0?artSlot('boat',()=>Object.assign(artBoatCtx(sb,'staff'),{time:'day'})):'';
+  if(sa) out.night=D.night.slice(0,at)+sa+D.night.slice(at);
+  return out;
+}
 
 // ---- context builders: what each set's "when" keys are matched against ----
 // time of day the way the scene art draws it (05-ui.js sceneSVG): 'day' | 'dusk' | 'night'
@@ -119,13 +147,16 @@ function artCabinCtx(){
     time:S.winter?['day','night']:t==='dusk'?['dusk','night']:t,   // the off-season has no clock: day and night scenes both fit
     cond:Math.round(s.cond),has};
 }
-// boat: boat, where, cond, up, time, trip. b is a booking; where is 'river' | 'launch' | 'harbor' | 'trailer' | 'shop' (or a list)
+// boat: boat, where, cond, up, time, trip. b is a booking (or null: your own boats); where is 'river' | 'launch' | 'trailer' | 'harbor' |
+// 'dock' | 'shop' | 'staff' (or a list). boat is a list: the hull (sled, drift, charter) plus 'staff' (a hired guide's trip), 'loaner'
+// (a borrowed rig today) and 'king' (a June king trip, on the sled).
 const artBoatKind=type=>type==='halibut'?'charter':type==='trout'?'drift':'sled';
 function artBoatCtx(b,where){
   const U=S.up||{},s=seasonOf(day());
   const up=UPGRADES.map(u=>u.id).filter(id=>id==='web'||id==='course'?U[id]===s:id==='rates'?(U.rate||1)>1:!!U[id]);
-  const kind=b?artBoatKind(b.type):'sled';
-  return {boat:b&&b.asst?['staff',kind]:kind,where:where||(S.loc==='shop'?'shop':S.loc==='homer'?'harbor':'launch'),cond:Math.round(S.boat),up,time:artTime(),trip:b?b.type:null};
+  const kind=b?artBoatKind(b.type):'sled',staff=!!(b&&b.asst);
+  const boat=[staff&&'staff',!staff&&kind!=='charter'&&loanerToday()&&'loaner',b&&b.type==='king'&&'king',kind].filter(Boolean);
+  return {boat,where:where||(S.loc==='shop'?'shop':S.loc==='homer'?'harbor':'launch'),cond:Math.round(S.boat),up,time:artTime(),trip:b?b.type:null};
 }
 // camp: place, shelter, activity, time, weather, read from a KenaiCamp session (28-camping.js keeps the session handle; the engine
 // itself never sees the game). extra: {activity, night} tracked by the adapter.
@@ -137,5 +168,5 @@ function artCampCtx(sess,extra){
   return {place:T?T.place:P&&P.place||null,shelter:T?T.shelter:P&&P.place?P.shelter:null,activity:T?x.activity||null:null,
     time:night?'night':'day',weather:wx,phase:ph};
 }
-// event: event (an id from defEvent, src/home's storm prompts or src/camp's encounters), from ('game' | 'home' | 'camp'), time
+// event: event (an id from defEvent, CabinUpkeep.EVENTS, src/camp's encounters or a trip STEP), from ('game' | 'home' | 'camp' | 'trip'), time
 function artEventCtx(id,from){const t=S&&!S.winter?artTime():null;return {event:id,from:from||'game',time:!t?['day','night']:t==='dusk'?['dusk','night']:t}}   // the off-season has no clock

@@ -1306,13 +1306,20 @@ const CabinUpkeep={
   C.risk=s=>Math.round(cm(s)*100)/100;
 
   // ---- reports ----
-  function newOut(){return {costs:{},cash:0,spent:0,earned:0,energy:0,rep:0,wom:0,minutes:0,days:0,daysLost:0,fuel:0,fresh:0,meals:0,lines:[],tiles:[],done:[],sev:0,remind:'',cancels:0}}
+  // What happened, for a host that wants to show it (Guide Master picks an illustration): report.events is a list of {id, sev}, ids from
+  // this list only (tools/art.py reads it from here). sev: 0 news, 1 a mishap, 2 a serious one. cold_snap and heavy_snow are the storm
+  // prompts themselves (a job's {ev}); the rest are outcomes, reported only after the choice that caused them.
+  C.EVENTS=['chimney_fire','pipes_frozen','pipe_burst','cold_snap','heavy_snow','ice_dam','shed_collapse','breakup_stuck','frost_heave',
+    'well_pump','septic_backup','quake','quake_ok','co_alarm','co_night','bear_yard','bear_raid','garden_moose','garden_harvest','gen_fail',
+    'outage_gen','outage_dark','roof_leak','furnace_fail','pump_fail','spoiled_batch'];
+  function ev(out,id,sev){out.events.push({id,sev:sev||0})}
+  function newOut(){return {events:[],costs:{},cash:0,spent:0,earned:0,energy:0,rep:0,wom:0,minutes:0,days:0,daysLost:0,fuel:0,fresh:0,meals:0,lines:[],tiles:[],done:[],sev:0,remind:'',cancels:0}}
   function line(out,txt){out.lines.push(txt)}
   function cost(out,x,id){x=Math.round(x);out.cash-=x;out.spent+=x;if(id)out.costs[id]=(out.costs[id]||0)+x}
   function report(s,out){
     s.cond=clamp(Math.round(s.cond*10)/10,0,100);
     return {v:C.SCHEMA,state:s,cashDelta:out.cash,spent:out.spent,earned:out.earned,energyDelta:out.energy,repDelta:out.rep,womDelta:out.wom,minutes:out.minutes,
-      daysUsed:out.days,daysLost:out.daysLost,homeFuel:out.fuel,freshLost:out.fresh,foodMeals:out.meals,lines:out.lines,tiles:out.tiles,done:out.done,severity:out.sev,remind:out.remind,cancels:out.cancels,cond:s.cond,costs:out.costs}}
+      daysUsed:out.days,daysLost:out.daysLost,homeFuel:out.fuel,freshLost:out.fresh,foodMeals:out.meals,lines:out.lines,tiles:out.tiles,done:out.done,severity:out.sev,remind:out.remind,cancels:out.cancels,cond:s.cond,costs:out.costs,events:out.events}}
 
   // ---- the three ways ----
   const dayTxt=n=>n<=0?'a few hours':n===1?'1 day':n+' days';
@@ -1333,16 +1340,16 @@ const CabinUpkeep={
     out.push({id:'skip',l:'Skip it',s:cfg.skip.s,cash:0,min:0,days:0,energy:0,dis:false,why:''});
     return out;
   }
-  function describe(job,s,t){return {id:job.id,ic:job.ic,kind:job.kind||'task',title:job.title(s,t),why:job.why(s,t),risk:job.risk(s,t),opts:optList(job,s,t),phase:t.phase,cond:job.cond}}
+  function describe(job,s,t){return {id:job.id,ic:job.ic,kind:job.kind||'task',ev:job.ev||null,title:job.title(s,t),why:job.why(s,t),risk:job.risk(s,t),opts:optList(job,s,t),phase:t.phase,cond:job.cond}}
 
   // ---- storm jobs (the queue): a cold snap and a heavy snow ----
   const QJ={
-    cold:{id:'cold',ic:'🥶',kind:'event',pr:0,cond:2,
+    cold:{id:'cold',ev:'cold_snap',ic:'🥶',kind:'event',pr:0,cond:2,
       title:(s,t,q)=>`Cold snap tonight: ${['−10','−25','−35'][q.sev-1]}°F`,
       why:()=>'Water lines freeze first where the wind gets under the floor. Dripping the taps keeps water moving, and opening the cabinet doors lets the heat in.',
       risk:()=>'Skip it and an unprotected line can freeze or burst.',
       o:(s,t)=>({diy:{cash:0,days:0,min:20,e:3,s:'Drip the taps, open the cabinet doors, check the crawlspace at 2 AM.'},pay:{cash:$c(t,45),s:'The neighbor looks in overnight and runs the taps.'},skip:{s:'Go to bed and hope.'}})},
-    snow:{id:'snow',ic:'🌨️',kind:'event',pr:1,cond:2,
+    snow:{id:'snow',ev:'heavy_snow',ic:'🌨️',kind:'event',pr:1,cond:2,
       title:(s,t,q)=>`${['Heavy','A foot and more of','Two feet of'][q.depth-1]} snow on the roof and driveway`,
       why:()=>'Wet snow loads a roof and ice dams leak, and a plowed-in driveway keeps you from town and from work.',
       risk:()=>'Skip it and the roof can leak and you are plowed in for a day or two.',
@@ -1425,9 +1432,9 @@ const CabinUpkeep={
     if(r()<pf){
       const burst=r()<clamp(T.burstShare*(s.tape?.45:1)*(cold?1.4:1),0,.8);
       out.sev=2;
-      if(burst){cost(out,$c(t,2400),'burst');out.daysLost+=3;s.cond-=12;out.fresh=1;
+      if(burst){cost(out,$c(t,2400),'burst');ev(out,'pipe_burst',2);out.daysLost+=3;s.cond-=12;out.fresh=1;
         line(out,`💦 A pipe under the floor bursts. Water everywhere until you find the shutoff. The plumber and the cleanup come to ${$($c(t,2400))}, it takes about three days to dry out, and the fridge food is a loss.`)}
-      else{cost(out,$c(t,380),'frozen');out.daysLost+=1;s.cond-=4;if(cold)out.fresh=1;
+      else{cost(out,$c(t,380),'frozen');ev(out,'pipes_frozen',2);out.daysLost+=1;s.cond-=4;if(cold)out.fresh=1;
         line(out,`🧊 The kitchen line freezes solid. A plumber thaws it for ${$($c(t,380))} and it eats a day.${cold?' The fridge got cold enough to ruin the fresh food.':''}`)}
     }else line(out,optId==='skip'?'😮‍💨 The pipes hold, this time.':'🚰 The pipes hold. The dripping taps did their job.');
     s.chill=0;s.tot.events++;
@@ -1438,9 +1445,9 @@ const CabinUpkeep={
     const m=cm(s)*t.bad,d=q.depth,safe=optId!=='skip';
     if(safe)line(out,optId==='diy'?'⛏️ You rake the roof and plow the drive. Your back files a complaint.':'🚜 The neighbor plows the drive and a roofer rakes the snow off the roof.');
     const pl=T.roofP[d-1]*(safe?.1:1)*m;
-    if(r()<pl){const c=$c(t,1400*(1+.4*(d-1)));cost(out,c,'icedam');s.cond-=8;out.sev=2;
+    if(r()<pl){const c=$c(t,1400*(1+.4*(d-1)));cost(out,c,'icedam');ev(out,'ice_dam',2);s.cond-=8;out.sev=2;
       line(out,`💧 Snow melts and refreezes at the eaves. An ice dam lets water in and the ceiling stains. Repairs come to ${$(c)}.`)}
-    else if(!safe&&d===3&&r()<T.collapseP*m){const c=$c(t,2600);cost(out,c,'collapse');s.cond-=14;out.daysLost+=1;out.sev=2;
+    else if(!safe&&d===3&&r()<T.collapseP*m){const c=$c(t,2600);cost(out,c,'collapse');ev(out,'shed_collapse',2);s.cond-=14;out.daysLost+=1;out.sev=2;
       line(out,`🏚️ The shed roof gives way under two feet of wet snow. Cleanup and a new roof run ${$(c)}, and a day.`)}
     else if(!safe)line(out,'🏠 The roof carries it. You were lucky.');
     if(!safe){out.daysLost+=d;line(out,`🚧 The plow doesn’t come for a while. You’re snowed in for ${d===1?'a day':d===2?'two days':'three days'}: a winter job slips or a trip gets pushed.`)}
@@ -1455,6 +1462,7 @@ const CabinUpkeep={
     const oilOk=!!s.heat.oil&&s.did.oil===y,woodOk=!!s.heat.stove&&s.did.wood===y,heatOk=oilOk||woodOk;
     // outage: a long one with no generator and no stove leaves the cabin cold
     const O=t.outage;
+    if(O)ev(out,O.gen?'outage_gen':'outage_dark',O.h>=12&&!O.gen&&!woodOk?1:0);
     if(O&&O.h>=12&&!O.gen&&!woodOk){s.chill=1;line(out,'🥶 The power was out long enough for the cabin to go cold: the furnace blower needs electricity. A wood stove or a generator would have kept it warm.')}
     const coldNow=r()<T.coldP,snowNow=r()<T.snowP;
     if(coldNow)s.queue.push({id:'cold',sev:1+(r()<.5?1:0)+(r()<.2?1:0)});
@@ -1463,15 +1471,15 @@ const CabinUpkeep={
     // a chimney fire
     if(s.heat.stove&&s.did.sweep!==y){
       const p=clamp(T.fireP*(1+.8*Math.min(2,s.sweepSkips))*m,0,.5);s.sweepSkips++;
-      if(r()<p){const c=$c(t,s.detect?500:700);cost(out,c,'fire');out.energy-=10;s.cond-=12;out.sev=2;s.tot.events++;
+      if(r()<p){const c=$c(t,s.detect?500:700);cost(out,c,'fire');ev(out,'chimney_fire',2);out.energy-=10;s.cond-=12;out.sev=2;s.tot.events++;
         line(out,`🔥 A roar in the stovepipe: creosote has caught. You shut the damper, get everyone out and the volunteer fire department checks the chimney. A new liner and cleanup run ${$(c)}.${s.detect?' The smoke alarm gave you the head start.':''}`)}
     }
     // carbon monoxide
     const heatsWithFire=!!s.heat.stove||t.gen.owned;
     const pco=(heatsWithFire?T.coP:T.coBase)*m;
     if(r()<pco){
-      if(s.detect){const c=$c(t,60);cost(out,c,'co');s.tot.events++;line(out,`🚨 The CO alarm goes off in the night. You open the doors, get out and find a blocked flue cap. ${$(c)} for a new cap, and thanks to the alarm, nobody gets hurt.`)}
-      else{const c=$c(t,950);cost(out,c,'co');out.daysLost+=2;out.energy-=20;out.sev=2;s.tot.events++;
+      if(s.detect){const c=$c(t,60);cost(out,c,'co');ev(out,'co_alarm',1);s.tot.events++;line(out,`🚨 The CO alarm goes off in the night. You open the doors, get out and find a blocked flue cap. ${$(c)} for a new cap, and thanks to the alarm, nobody gets hurt.`)}
+      else{const c=$c(t,950);cost(out,c,'co');ev(out,'co_night',2);out.daysLost+=2;out.energy-=20;out.sev=2;s.tot.events++;
         line(out,`☠️ You wake with a pounding headache and nausea. It is carbon monoxide from a blocked flue. The ER visit comes to ${$(c)} and a couple of days to recover. Alarms would have caught it; they are cheap.`)}
     }
     return report(s,out);
@@ -1484,23 +1492,23 @@ const CabinUpkeep={
     s.sprung=y;
     // breakup
     if(s.did.breakup!==y&&r()<clamp(T.breakupP*m,0,.95)){
-      if(r()<.6){const c=$c(t,260),x=r()<T.cancelP;cost(out,c,'stuck');out.energy-=6;if(x)out.cancels++;s.tot.events++;out.sev=1;line(out,`🚧 Breakup. The driveway is soup and the truck sinks to the axles on the first morning. A tow costs ${$(c)}.${x?' A party coming for the first days of July will not make it down the drive.':''}`)}
-      else{const c=$c(t,900);cost(out,c,'heave');s.cond-=6;s.tot.events++;out.sev=2;line(out,`🚧 Frost heaves shift a skirting panel and a post settles. The back door sticks. A carpenter sets it right for ${$(c)}.`)}
+      if(r()<.6){const c=$c(t,260),x=r()<T.cancelP;cost(out,c,'stuck');ev(out,'breakup_stuck',1);out.energy-=6;if(x)out.cancels++;s.tot.events++;out.sev=1;line(out,`🚧 Breakup. The driveway is soup and the truck sinks to the axles on the first morning. A tow costs ${$(c)}.${x?' A party coming for the first days of July will not make it down the drive.':''}`)}
+      else{const c=$c(t,900);cost(out,c,'heave');ev(out,'frost_heave',2);s.cond-=6;s.tot.events++;out.sev=2;line(out,`🚧 Frost heaves shift a skirting panel and a post settles. The back door sticks. A carpenter sets it right for ${$(c)}.`)}
     }
     // the well
     const wy=Math.max(0,y-s.did.well);
     if(r()<clamp(s.did.well===y?.003:T.wellBase+T.wellYear*Math.max(0,wy-1),0,.2)*m){
-      const c=$c(t,1500),x=r()<T.cancelP;if(x)out.cancels++;cost(out,c,'well');out.daysLost+=3;out.energy-=10;s.cond-=10;s.tot.events++;out.sev=2;
+      const c=$c(t,1500),x=r()<T.cancelP;if(x)out.cancels++;cost(out,c,'well');ev(out,'well_pump',2);out.daysLost+=3;out.energy-=10;s.cond-=10;s.tot.events++;out.sev=2;
       line(out,`💧 The water turns cloudy, then the pump quits. Many homes around Soldotna rely on a well, and yours needs a new pump and treatment: ${$(c)}, and three days with the house barely usable.${x?' A booked party will not stay at a place with no water.':''}`)}
     // septic
     const over=y-s.did.septic-3;
     if(r()<clamp(over<0?.002:T.septicBase+T.septicYear*over,0,.3)*m){
-      const c=$c(t,2100),x=r()<T.cancelP;if(x)out.cancels++;cost(out,c,'septic');out.daysLost+=2;s.cond-=10;s.tot.events++;out.sev=2;
+      const c=$c(t,2100),x=r()<T.cancelP;if(x)out.cancels++;cost(out,c,'septic');ev(out,'septic_backup',2);out.daysLost+=2;s.cond-=10;s.tot.events++;out.sev=2;
       line(out,`🚽 The septic tank backs up into the house. An emergency pump-out and a cleaned drain field come to ${$(c)}, and the house is unusable for a couple of days.${x?' A booked party hears about it and cancels.':''}`)}
     // an earthquake
     if(r()<T.quakeP*t.bad){
-      if(s.strap){line(out,'🌎 A magnitude 6 quake rattles the cabin, felt across the Kenai. Dishes jump, but the strapped water heater and the anchored shelves stay put.')}
-      else{const c=$c(t,1100);cost(out,c,'quake');out.daysLost+=1;s.cond-=15;s.tot.events++;out.sev=2;
+      if(s.strap){ev(out,'quake_ok',0);line(out,'🌎 A magnitude 6 quake rattles the cabin, felt across the Kenai. Dishes jump, but the strapped water heater and the anchored shelves stay put.')}
+      else{const c=$c(t,1100);cost(out,c,'quake');ev(out,'quake',2);out.daysLost+=1;s.cond-=15;s.tot.events++;out.sev=2;
         line(out,`🌎 A magnitude 6 earthquake, felt across the Kenai (like the big 2018 Anchorage quake). The water heater tips, a shelf comes down and the kitchen is a mess: ${$(c)} to fix, and a day.`)}
     }
     // a run-down place puts off the first parties of the season: the lower the condition, the likelier one looks elsewhere
@@ -1519,9 +1527,9 @@ const CabinUpkeep={
       let p=(T.bearBase+(t.recentFish>0?T.bearFish:0))*(over?(s.bin?3:4):s.bin?.4:1)*m;
       if(r()<clamp(p,0,.5)){
         s.bearY=y;s.tot.bears++;s.tot.events++;const k=r();
-        if(k<.45){const c=$c(t,120+Math.round(r()*280));cost(out,c,'bear');s.cond-=5;out.sev=1;line(out,`🐻 A black bear gets into the garbage and the fish scraps overnight. Torn bags, a dented bin and a mess all over the yard: ${$(c)} to clean and repair.`)}
-        else if(k<.8){const c=$c(t,60);cost(out,c,'bear');out.minutes+=45;out.energy-=4;out.sev=1;line(out,`🐻 You wake to a bear snorting around the yard. It takes 45 minutes and a lot of banging pots before it leaves, and ${$(c)} of cleanup.`)}
-        else{out.rep-=3;out.wom-=4;out.sev=1;line(out,'🐻 A bear gets into your garbage and a Fish and Game officer stops by to talk about attractants. Feeding bears, even by accident with trash, can mean a warning or a fine. You get a warning, and the neighbors hear about it. Rep −3, and word of mouth takes a hit.')}
+        if(k<.45){const c=$c(t,120+Math.round(r()*280));cost(out,c,'bear');ev(out,'bear_raid',1);s.cond-=5;out.sev=1;line(out,`🐻 A black bear gets into the garbage and the fish scraps overnight. Torn bags, a dented bin and a mess all over the yard: ${$(c)} to clean and repair.`)}
+        else if(k<.8){const c=$c(t,60);cost(out,c,'bear');ev(out,'bear_yard',1);out.minutes+=45;out.energy-=4;out.sev=1;line(out,`🐻 You wake to a bear snorting around the yard. It takes 45 minutes and a lot of banging pots before it leaves, and ${$(c)} of cleanup.`)}
+        else{out.rep-=3;out.wom-=4;out.sev=1;ev(out,'bear_raid',1);line(out,'🐻 A bear gets into your garbage and a Fish and Game officer stops by to talk about attractants. Feeding bears, even by accident with trash, can mean a warning or a fine. You get a warning, and the neighbors hear about it. Rep −3, and word of mouth takes a hit.')}
       }
     }
     // a cabin in good shape sends you out rested
@@ -1532,16 +1540,16 @@ const CabinUpkeep={
       if(s.troubleY!==y){s.troubleY=y;s.troubles=0}
       if(s.troubles<T.troubleMax&&r()<clamp(T.troubleP*m*(1+(T.troubleAt-s.cond)/25),0,.5)){
         s.troubles++;s.tot.events++;out.sev=1;const k=r();
-        if(k<.4){const c=$c(t,380),x=r()<T.cancelP;cost(out,c,'trouble');if(x)out.cancels++;out.energy-=6;s.cond+=3;line(out,`🚰 The pump and pressure tank give out in the night. No water for the coffee, the dishes or the clients’ lunch bag. A plumber on a Saturday costs ${$(c)}.${x?' The next party cancels rather than wait.':''}`)}
-        else if(k<.75){const c=$c(t,420);cost(out,c,'trouble');out.minutes+=60;out.energy-=6;s.cond+=3;line(out,`💧 The roof leaks onto the stove and the wiring trips the breaker. An hour on a ladder in the rain and ${$(c)} in parts, and you start the day late and wet.`)}
-        else{const c=$c(t,260);cost(out,c,'trouble');out.energy-=10;out.rep-=1;s.cond+=2;line(out,`🥶 The furnace blower quits on the coldest night of the month. You get no sleep, a clean-up and a repair of ${$(c)}, and the clients notice how tired you look. Energy −10, rep −1.`)}
+        if(k<.4){const c=$c(t,380),x=r()<T.cancelP;cost(out,c,'trouble');ev(out,'pump_fail',1);if(x)out.cancels++;out.energy-=6;s.cond+=3;line(out,`🚰 The pump and pressure tank give out in the night. No water for the coffee, the dishes or the clients’ lunch bag. A plumber on a Saturday costs ${$(c)}.${x?' The next party cancels rather than wait.':''}`)}
+        else if(k<.75){const c=$c(t,420);cost(out,c,'trouble');ev(out,'roof_leak',1);out.minutes+=60;out.energy-=6;s.cond+=3;line(out,`💧 The roof leaks onto the stove and the wiring trips the breaker. An hour on a ladder in the rain and ${$(c)} in parts, and you start the day late and wet.`)}
+        else{const c=$c(t,260);cost(out,c,'trouble');ev(out,'furnace_fail',1);out.energy-=10;out.rep-=1;s.cond+=2;line(out,`🥶 The furnace blower quits on the coldest night of the month. You get no sleep, a clean-up and a repair of ${$(c)}, and the clients notice how tired you look. Energy −10, rep −1.`)}
       }
     }
     // the garden: harvest on day 10
     if(t.sday===10&&s.garden.y===y){
       const eaten=!s.fence&&r()<T.moosePct;
-      if(eaten){s.tot.moose++;out.meals+=2;out.sev=1;line(out,'🫎 A cow moose and her calf stroll through the garden at dawn. They eat the kale, the carrots and half the potatoes, and leave tracks like dinner plates. You get a couple of meals out of what is left.')}
-      else{out.meals+=T.harvest;s.tot.harvest+=T.harvest;line(out,`🥬 The garden comes in: potatoes, kale and carrots. ${T.harvest} meals for the kitchen.`)}
+      if(eaten){s.tot.moose++;out.meals+=2;out.sev=1;ev(out,'garden_moose',1);line(out,'🫎 A cow moose and her calf stroll through the garden at dawn. They eat the kale, the carrots and half the potatoes, and leave tracks like dinner plates. You get a couple of meals out of what is left.')}
+      else{out.meals+=T.harvest;s.tot.harvest+=T.harvest;ev(out,'garden_harvest',0);line(out,`🥬 The garden comes in: potatoes, kale and carrots. ${T.harvest} meals for the kitchen.`)}
     }
     // one gentle reminder a day
     if(s.rem!==t.abs&&t.abs-s.rem>=(t.y===0?3:1)){
@@ -1564,7 +1572,7 @@ const CabinUpkeep={
   // the generator would not start: the shop gets it going (oil, carburetor), and it is in shape afterwards
   C.genFailed=function(t0,o){
     const t=C.normTicket(t0),s=t.state,out=newOut(),c=$c(t,85);
-    cost(out,c,'gen');s.did.genoil=t.y;s.did.genrun=t.y;s.tot.events++;out.sev=1;
+    cost(out,c,'gen');ev(out,'gen_fail',1);s.did.genoil=t.y;s.did.genrun=t.y;s.tot.events++;out.sev=1;
     const why=C.genOdds(t0).why;
     line(out,`🔧 The generator coughs and dies${why.length?` (${why.join(', ')})`:''}. You get it running later with a fresh carburetor clean, oil and a new plug: ${$(c)}. Next time, service it before the power goes out.`);
     return report(s,out);
@@ -1581,7 +1589,7 @@ const CabinUpkeep={
     const fish=Math.min(t.fish,t.clients*3),fee=Math.round(fish*T.fee*T.optIn*t.costMult);
     st.tidy=Math.max(0,st.tidy-6);
     if(r()<spoilP){
-      out.wom-=1;out.rep-=1;s.tot.spoiled++;out.sev=1;
+      out.wom-=1;out.rep-=1;s.tot.spoiled++;out.sev=1;ev(out,'spoiled_batch',1);
       line(out,'🐟 A bag of fillets goes into the wrong cooler, or the sealer didn’t seal. By the time the clients unpack it at home, it’s off. You refund the fee and they tell their friends.');
     }else{
       out.earned+=fee;out.cash+=fee;out.energy-=2;s.tot.fees+=fee;
@@ -1631,7 +1639,10 @@ const CabinUpkeep={
 //
 //  The host adapter: {
 //    show(title, html, buttons, lock, meta), required. Show a pop-up. buttons: [{l, s, dis, fn, stay}]; fn runs after the pop-up has closed.
-//                                        meta (optional, a job's pop-ups only): {id, kind} of the job, e.g. for an illustration; a host may ignore it.
+//                                        meta (optional): {id, kind, events} for an illustration; a host may ignore it. id and kind are the job's (on a
+//                                        job's pop-ups); events is a list of {id, sev} from CabinUpkeep.EVENTS: on a storm prompt its own id (cold_snap,
+//                                        heavy_snow) before the choice, then the report's events (or the prompt's id again if nothing happened);
+//                                        on a winter, spring or mishap report, the report's events.
 //                                        A button with stay:true asks the host to keep the pop-up on screen and show whatever fn shows next in the
 //                                        same sheet (a host that can't just ignores it), so a job, its result and the next job are one pop-up.
 //    ticket(),                           required. A fresh ticket from the host's current numbers (it changes after every report).
@@ -1677,12 +1688,12 @@ const CabinUpkeep={
       const rep=C.resolve(host.ticket(),jobId,o.id,rnd(host));
       if(!rep){if(then)then();return}
       host.apply(rep);
-      if(job.kind==='event'||rep.severity>0)host.show(`${job.ic} ${job.title}`,rep.lines.map(l=>`<p>${l}</p>`).join('')+condLine(rep),[{l:'Continue',stay:true,fn:()=>{if(then)then()}}],lock,{id:job.id,kind:job.kind});
+      if(job.kind==='event'||rep.severity>0)host.show(`${job.ic} ${job.title}`,rep.lines.map(l=>`<p>${l}</p>`).join('')+condLine(rep),[{l:'Continue',stay:true,fn:()=>{if(then)then()}}],lock,{id:job.id,kind:job.kind,events:evOf(rep,job)});
       else if(then)then();
     };
     const btns=job.opts.map(o=>({l:`${o.l}${o.id==='skip'?'':` · ${o.cash?$(o.cash):'free'}`}`,s:o.dis&&o.why?`${o.why}`:o.s,dis:o.dis,stay:true,fn:run(o)}));
     if(!lock)btns.push({l:'Not now',s:'Decide later.',stay:true,fn:()=>{if(then)then()}});
-    host.show(`${job.ic} ${job.title}`,`<p>${esc(job.why)}</p><p class="small-note" style="color:var(--mute);font-size:13px">If you skip it: ${esc(job.risk.replace(/^Skip it and /,'').replace(/^Skip it /,''))}</p>`,btns,!!lock,{id:job.id,kind:job.kind});
+    host.show(`${job.ic} ${job.title}`,`<p>${esc(job.why)}</p><p class="small-note" style="color:var(--mute);font-size:13px">If you skip it: ${esc(job.risk.replace(/^Skip it and /,'').replace(/^Skip it /,''))}</p>`,btns,!!lock,{id:job.id,kind:job.kind,events:job.ev?[{id:job.ev,sev:1}]:[]});
   };
   // every job that is due, on one screen: each with its own three ways. A choice is applied and the screen comes back with what is left.
   U2.batch=function(host,o){
@@ -1693,13 +1704,15 @@ const CabinUpkeep={
         const rep=C.resolve(host.ticket(),job.id,op.id,rnd(host));
         if(!rep){again();return}
         host.apply(rep);
-        if(rep.severity>0)host.show(`${job.ic} ${job.title}`,rep.lines.map(l=>`<p>${l}</p>`).join('')+condLine(rep),[{l:'Continue',stay:true,fn:again}]);else again();
+        if(rep.severity>0)host.show(`${job.ic} ${job.title}`,rep.lines.map(l=>`<p>${l}</p>`).join('')+condLine(rep),[{l:'Continue',stay:true,fn:again}],false,{id:job.id,kind:job.kind,events:evOf(rep,job)});else again();
       };
       job.opts.forEach(op=>btns.push({l:`${job.ic} ${job.title}: ${op.l}${op.id==='skip'?'':` · ${op.cash?$(op.cash):'free'}`}`,s:op.dis&&op.why?op.why:(op.id==='skip'?job.risk:op.s),dis:op.dis,stay:true,fn:run(op)}));
     });
     (o.extra||[]).forEach(b=>btns.push(b));
     host.show(o.title||'🏠 The cabin',`<p style="font-size:13px;color:var(--mute)">${o.intro||''}</p>${jobs.length?`<p>${jobs.length} job${jobs.length>1?'s':''} due. Pick a way for each one.</p>`:'<p>Nothing else is due.</p>'}`,btns);
   };
+  // what a result shows: the report's events, or a storm prompt's own id when nothing came of it
+  const evOf=(rep,job)=>rep.events&&rep.events.length?rep.events:job&&job.ev?[{id:job.ev,sev:0}]:[];
   const condLine=rep=>`<p style="font-size:13px;color:var(--mute)">Cabin condition ${Math.round(rep.cond)}/100.</p>`;
 
   U2.shop=function(host,back){
@@ -1713,13 +1726,13 @@ const CabinUpkeep={
   U2.scenes=function(host,rep,done){
     const events=()=>C.jobs(host.ticket(),{all:true}).filter(j=>j.kind==='event');
     const next=()=>{const e=events()[0];if(!e){if(done)done();return}U2.open(host,e.id,next,true)};
-    if(rep&&rep.lines&&rep.lines.length)host.show('🏠 The cabin this winter',rep.lines.map(l=>`<p>${l}</p>`).join('')+condLine(rep),[{l:'Continue',stay:true,fn:next}],true);
+    if(rep&&rep.lines&&rep.lines.length)host.show('🏠 The cabin this winter',rep.lines.map(l=>`<p>${l}</p>`).join('')+condLine(rep),[{l:'Continue',stay:true,fn:next}],true,{events:evOf(rep)});
     else next();
   };
   // a plain report as a pop-up (spring, a failed generator, a summer bear)
   U2.report=function(host,title,rep,done){
     if(!rep||!rep.lines.length){if(done)done();return}
-    host.show(title,rep.lines.map(l=>`<p>${l}</p>`).join('')+condLine(rep),[{l:'Continue',fn:()=>{if(done)done()}}],true);
+    host.show(title,rep.lines.map(l=>`<p>${l}</p>`).join('')+condLine(rep),[{l:'Continue',fn:()=>{if(done)done()}}],true,{events:evOf(rep)});
   };
 })(CabinUpkeep);
 // ============================================================
@@ -2073,7 +2086,7 @@ function eventPopup(hook,items,capped){
   const body=items.map(it=>{const m=meta(it.e);const txt=it.lines.map(l=>`<p style="margin:4px 0 0">${l}</p>`).join('');
     return items.length>1?`<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)"><span style="font-size:24px">${m[0]}</span><div><b>${m[1]}</b>${txt}</div></div>`:txt}).join('');
   const one=items.length===1?meta(items[0].e):null;
-  const art=artOn()?items.map(it=>artSlot('event',()=>artEventCtx(it.e.id))).find(Boolean)||'':'';   // 40-art.js: the first event with an illustration
+  const art=artOn()?items.map(it=>artSlot('event',()=>artEventCtx(it.e.id,'game'))).find(Boolean)||'':'';   // 40-art.js: the first event with an illustration
   modal(one?`${one[0]} ${one[1]}`:'📍 Meanwhile…',art+(body||'<p></p>'),[{l:'OK',fn:()=>{}}]);
 }
 // ---------------- the game loop ----------------
@@ -2155,8 +2168,8 @@ function morningReport(D,d){
   const ev=items.map(it=>`<div class="dig"><span class="di" aria-hidden="true">${it.ic}</span><div><b>${it.title}</b>${(it.lines||[]).map(l=>`<p>${l}</p>`).join('')}</div></div>`).join('');
   const rq=(S.reqs||[]).length;
   const lines=D.lines.map(l=>`<p>${l}</p>`).join('');
-  const art=artOn()?items.map(it=>it.id?artSlot('event',()=>artEventCtx(it.id)):'').concat((D.nightIds||[]).map(id=>artSlot('event',()=>Object.assign(artEventCtx(id),{time:'night'})))).find(Boolean)||'':'';   // 40-art.js: the first morning event with an illustration, else the night's
-  const body=`${art}<div class="digest">${sec(`🌙 ${dayName(d)} night`,D.night)}${sec('☀️ This morning',ev+lines)}${rq?`<div class="dig"><span class="di" aria-hidden="true">📞</span><div><b>${rq} booking request${rq>1?'s':''} waiting</b><p>${(S.reqs||[]).map(q=>`The ${q.r.who}: ${reqKey(q.r)}, ${dlabel(q.r.d)}`).join('<br>')}</p></div></div>`:''}</div>`;
+  const art=artMorning(Object.assign({},D,{items}));   // 40-art.js: a picture on top (the cabin's, the morning's or the night's events) and one over your guides' trips
+  const body=`${art.top}<div class="digest">${sec(`🌙 ${dayName(d)} night`,art.night)}${sec('☀️ This morning',ev+lines)}${rq?`<div class="dig"><span class="di" aria-hidden="true">📞</span><div><b>${rq} booking request${rq>1?'s':''} waiting</b><p>${(S.reqs||[]).map(q=>`The ${q.r.who}: ${reqKey(q.r)}, ${dlabel(q.r.d)}`).join('<br>')}</p></div></div>`:''}</div>`;
   modal(`☀️ Morning report · ${dayName(S.cur)}`,body,[{l:`☀️ Wake up: ${dayName(S.cur)}, ${fmt(S.t)}`,fn:()=>{}},...(rq?[{l:`📞 Review requests in Bookings`,s:'They wait a day or two.',fn:()=>setTab('book')}]:[])]);
   sfx('info');
   D.held.forEach(q=>modal(...q));
@@ -2221,7 +2234,7 @@ let ACTS=[];
 function actView(){
   ACTS=[];
   let h=tipView();
-  if(uiNarr.length) h+=`<div class="narr">${uiNarr.slice(-4).map(s=>'<p>'+s+'</p>').join('')}</div>`;
+  if(uiNarr.length) h+=`${artNarrHTML()}<div class="narr">${uiNarr.slice(-4).map(s=>'<p>'+s+'</p>').join('')}</div>`;
   const tags=typeof statusTags==='function'?statusTags():[];
   if(tags.length) h+=`<div class="status">${tags.join('')}</div>`;
   const acts=actionsHere().filter(Boolean);
@@ -2238,7 +2251,7 @@ function actView(){
     h+=`<div class="dest compact"><div class="dn"><b>${L[k].ic} ${L[k].name}</b><span>${L[k].hours?hoursTxt(k):L[k].desc||''}</span></div><div class="chips"><button class="chip" onclick="ACT(${i})" aria-label="Go to ${esc(L[k].name)} · ${m} min">Go · ${m} min</button></div></div>`});
   return h+'</details>';
 }
-window.ACT=i=>{uiNarr=[];sfx('tap');const f=ACTS[i];f&&f();afterAction();if(S&&!S.over&&!document.querySelector('.title,.end'))render()};
+window.ACT=i=>{uiNarr=[];ART_NARR=null;sfx('tap');const f=ACTS[i];f&&f();afterAction();if(S&&!S.over&&!document.querySelector('.title,.end'))render()};
 
 // ---- tips: one at a time, each shown once per game (TIPS in 21-story.js) ----
 function tipView(){
@@ -2698,9 +2711,9 @@ function actionsHere(){
     const logs=S.unlogged+S.overdue;
     if(logs) a.push({ic:'📓',l:`Fill out your ADF&G logbook (${logs} trip${logs>1?'s':''})`,s:`${logs*10} min. Every guided trip gets an entry: anglers, licenses, hours, fish kept and released.`,cat:'work',cls:'primary',fn:()=>{pass(logs*10);say(`📓 You write up ${logs} trip${logs>1?'s':''}: license numbers, hours fished, sockeye kept, kings released.${S.overdue?' A day late, but done.':''}`);S.unlogged=0;S.overdue=0}});
     if(S.prep!==d+1&&d+1<GAME.days) a.push({ic:'🪝',l:'Rig tomorrow’s gear',s:S.gear?'45 min. Tie leaders, sharpen hooks, stage the coolers. Better trip tomorrow.':'You’re out of tackle. Restock in Soldotna first.',cat:'work',dis:!S.gear,fn:()=>{pass(45);S.prep=d+1;say('🪝 Leaders tied, hooks sharp, coolers iced, life jackets counted. Tomorrow-you says thanks.')}});
-    if(boatDown()) a.push({ic:'🛠️',l:`Major repair — ${$(rp(MAJOR_REPAIR))}`,s:'Out of service at condition 0: rebuild the jet unit and replace the drift-boat floor and oarlocks. 4 hours; boat back to 50. The dealer puts it on your account if you’re short.',cat:'work',cls:'primary',fn:()=>{spend(rp(MAJOR_REPAIR));pass(240);S.boat=50;adj('energy',-8);say(`🛠️ The dealer rebuilds the jet unit and you replace the drift-boat floor: ${$(rp(MAJOR_REPAIR))}. Back in service at 50.`)}});
-    a.push({ic:'🔧',l:`Service the boats yourself — ${$(rp(165))} in parts`,s:boatDown()?'Out of service: it needs a major repair first.':'3 hours. Boat +20: oil and filter, plugs, water-pump impeller, jet intake, trailer bearings, oarlocks.',cat:'work',dis:boatDown()||S.boat>=95||!canAfford(rp(165)),fn:()=>{spend(rp(165));pass(180);adj('boat',20);adj('energy',-6);say('🔧 Oil, filters, plugs, a new water-pump impeller, a cleaned-out jet intake and greased bearings. Grease to the elbows; she purrs.')}});
-    a.push({ic:'🏪',l:`Dealer 100-hour service — ${$(rp(525))}`,s:boatDown()?'Out of service: it needs a major repair first.':'1 hour to drop off and pick up. Boat +40. Alaska shop rates.',cat:'work',dis:boatDown()||S.boat>=95||!canAfford(rp(525)),fn:()=>{spend(rp(525));pass(60);adj('boat',40);say('🏪 The Soldotna dealer does the 100-hour service, shims the jet impeller and finds a cracked fuel line. Money well spent.')}});
+    if(boatDown()) a.push({ic:'🛠️',l:`Major repair — ${$(rp(MAJOR_REPAIR))}`,s:'Out of service at condition 0: rebuild the jet unit and replace the drift-boat floor and oarlocks. 4 hours; boat back to 50. The dealer puts it on your account if you’re short.',cat:'work',cls:'primary',fn:()=>{spend(rp(MAJOR_REPAIR));pass(240);S.boat=50;adj('energy',-8);say(`🛠️ The dealer rebuilds the jet unit and you replace the drift-boat floor: ${$(rp(MAJOR_REPAIR))}. Back in service at 50.`);artNarr('boat',()=>artBoatCtx(null,'shop'))}});
+    a.push({ic:'🔧',l:`Service the boats yourself — ${$(rp(165))} in parts`,s:boatDown()?'Out of service: it needs a major repair first.':'3 hours. Boat +20: oil and filter, plugs, water-pump impeller, jet intake, trailer bearings, oarlocks.',cat:'work',dis:boatDown()||S.boat>=95||!canAfford(rp(165)),fn:()=>{spend(rp(165));pass(180);adj('boat',20);adj('energy',-6);say('🔧 Oil, filters, plugs, a new water-pump impeller, a cleaned-out jet intake and greased bearings. Grease to the elbows; she purrs.');artNarr('boat',()=>artBoatCtx(null,'shop'))}});
+    a.push({ic:'🏪',l:`Dealer 100-hour service — ${$(rp(525))}`,s:boatDown()?'Out of service: it needs a major repair first.':'1 hour to drop off and pick up. Boat +40. Alaska shop rates.',cat:'work',dis:boatDown()||S.boat>=95||!canAfford(rp(525)),fn:()=>{spend(rp(525));pass(60);adj('boat',40);say('🏪 The Soldotna dealer does the 100-hour service, shims the jet impeller and finds a cracked fuel line. Money well spent.');artNarr('boat',()=>artBoatCtx(null,'shop'))}});
     boatRescueActions(a);
     if(!S.calls[d]) a.push({ic:'📞',l:'Return calls & emails',s:'30 min. Once a day. Booking requests come in.',cat:'work',fn:()=>{pass(30);S.calls[d]=true;const r=makeRequest();if(r)requestArrives(r);else say('📞 Voicemails: two spam, one dentist, no bookings.')}});
     a.push({ic:'📊',l:'Check the ADF&G sonar count',s:'5 min. How many sockeye passed river mile 19 yesterday.',cat:'work',fn:()=>{pass(5);sonarSay()}});
@@ -2744,9 +2757,9 @@ function actionsHere(){
 function boatRescueActions(a){
   const d=day(),trips=todays(d).some(b=>b.type!=='halibut');
   if(canPatch()) a.push({ic:'🩹',l:`Emergency patch — ${$(rp(PATCH_COST))}`,s:`1 hour of epoxy, hose clamps and a borrowed impeller: boat back to ${PATCH_TO}. It still breaks down a lot. The patch gives out after two days. A service or major repair is the real fix.`,cat:'work',dis:!canAfford(rp(PATCH_COST)),
-    fn:()=>{spend(rp(PATCH_COST));pass(60);S.patch={d,base:S.boat};S.boat=Math.max(S.boat,PATCH_TO);adj('energy',-3);say(`🩹 Epoxy, hose clamps and a borrowed impeller: ${$(rp(PATCH_COST))}. The boat is back at ${S.boat}, for a day or two. It won’t hold long.`)}});
+    fn:()=>{spend(rp(PATCH_COST));pass(60);S.patch={d,base:S.boat};S.boat=Math.max(S.boat,PATCH_TO);adj('energy',-3);say(`🩹 Epoxy, hose clamps and a borrowed impeller: ${$(rp(PATCH_COST))}. The boat is back at ${S.boat}, for a day or two. It won’t hold long.`);artNarr('boat',()=>artBoatCtx(null,S.loc==='shop'?'shop':'launch'))}});
   if(boatDown()&&S.loaner!==d&&trips) a.push({ic:'🤝',l:`Rent a loaner sled and drift boat — ${$(rp(LOANER_COST))} for today`,s:'A buddy’s old rig for the day, so today’s booked trips can run. The clients notice it is tired. Your own boat still needs the major repair.',cat:'work',dis:!canAfford(rp(LOANER_COST)),
-    fn:()=>{spend(rp(LOANER_COST));S.loaner=d;say(`🤝 You borrow a buddy’s old jet sled and drift boat for the day: ${$(rp(LOANER_COST))}. Your own boat is still out of service.`)}});
+    fn:()=>{spend(rp(LOANER_COST));S.loaner=d;say(`🤝 You borrow a buddy’s old jet sled and drift boat for the day: ${$(rp(LOANER_COST))}. Your own boat is still out of service.`);artNarr('boat',()=>artBoatCtx(todays(d).find(b=>b.type!=='halibut')||null,S.loc==='shop'?'shop':'launch'))}});
 }
 // ⏳ Wait until…: choices that make sense right now (a launch you're at, the time to leave for one, today's first-aid class, +30/+60 min).
 function waitChoices(){
@@ -2984,7 +2997,7 @@ function onNight(where,notes,d){
   if(S.energy<15) notes.push('🥱 You’re running on fumes.');
 }
 function onTime(min){if(min>0)adj('energy',-min/50)}
-function onArrive(dest){S.visited[dest]=true}
+function onArrive(dest){S.visited[dest]=true;artLaunch(dest)}   // 40-art.js: the trailer at the ramp before today's trip
 function daySummary(d){const n=S.book.filter(b=>b.d===d&&b.status==='done').length;return [`⭐ ${S.rep}`,`⚡ ${S.energy}`,`🛶 ${n} trip${n===1?'':'s'}`]}
 
 // ---- losing ----
@@ -3524,7 +3537,9 @@ function tripNext(){
   const prog=sheet?` · ${done+1} of ${done+left}`:'';
   const open=sheet&&!t.shown?`<p class="small-note" style="margin:0 0 6px">You load the ${b.who} into the ${b.type==='trout'?'drift boat':b.type==='halibut'?'charter boat':'jet sled'} at ${L[T.loc].name} and push off at ${fmt(S.t)}.</p>`:'';
   const first=!t.shown;t.shown=true;
-  const art=first?artSlot('boat',()=>artBoatCtx(b,[T.loc==='homer'?'harbor':'launch','river'])):'';   // 40-art.js: the boat at the put-in, when an illustration is enabled
+  // 40-art.js: this step's own picture (a trip event: the STEP id, from 'trip'), else on the first step the boat at the put-in
+  const art=artOn()?artSlot('event',()=>artEventCtx(key,'trip'))||(packed?artSlot('event',()=>artEventCtx('spot','trip')):'')||
+    (first?artSlot('boat',()=>artBoatCtx(b,T.loc==='homer'?['harbor','river']:['launch','trailer','river'])):''):'';
   const mm=memSheet(b,t,key);                              // 37-memories.js: a catch moment on top, the mentor's line below
   modalSwap(v.t,`${art}<p class="small-note" style="color:var(--mute);margin:0 0 6px">${T.ic} ${T.n} · ${b.who}${prog}</p>${open}${mm.top}${v.b}${packed?packHTML(pv):''}${hot}${mm.foot}`,opts.map(({o,k})=>({l:o.l,s:o.s,legal:o.legal!==false,dis:!!o.dis,np:true,k,stay:sheet,fn:()=>{
     const tt=S.trip;if(!tt) return;const bb=bk(tt.id);if(!bb) {S.trip=null;return}
@@ -3600,7 +3615,7 @@ function tripEnd(b,t){
   const mood=happy>=82?'😁 They’re already asking about next season. Word of mouth will bring you more bookings.':happy>=65?'🙂 Solid day. Handshakes at the trailer.':happy>=45?'😐 Polite thanks, small tip.':review?'😠 Tight-lipped goodbyes and a one-star review. Word gets around the Kenai.':'😕 They leave a little deflated.';
   const row=(l,v)=>`<br>${l}: <b>${v>=0?'':'−'}${$(Math.abs(v))}</b>`;
   const why=[];if(skunk)why.push('skunked');if(S.gear<=0&&t.notes.some(n=>n.startsWith('🪱')))why.push('no tackle');if(refund&&happy<42)why.push('unhappy clients');
-  modalSwap(`${T.ic} Back at the dock`,`${artSlot('boat',()=>artBoatCtx(b,T.loc==='homer'||S.loc==='harbor'?'harbor':'launch'))}${mem.top}${t.notes.map(n=>`<p>${n}</p>`).join('')}
+  modalSwap(`${T.ic} Back at the dock`,`${(t.homeEv&&homeArt(t.homeEv))||artSlot('boat',()=>artBoatCtx(b,['dock',T.loc==='homer'||S.loc==='harbor'?'harbor':'launch']))}${mem.top}${t.notes.map(n=>`<p>${n}</p>`).join('')}
     <p><b>Catch:</b> ${line}${t.kept?` (${t.kept} kept on the sly)`:''}${lost?` · ${lost} minutes lost`:''}</p>
     ${towed?'<p>🛟 <b>Towed in.</b> Half the fare refunded.</p>':''}<p><b>The pay:</b>${row(`Booked fare${b.type==='halibut'&&!S.up.chp?' (day rate)':''}`,fare)}${refund?row(`Refund${why.length?` (${why.join(', ')})`:''}`,-refund):''}${row('Tip',tip)}${xs.map(([l,v])=>row(l,v)).join('')}${costs?row('Launch fee',-costs):''}<br><b>Net: ${net<0?'−':''}${$(Math.abs(net))}</b></p>
     <p>${mood} Rep ${dRep>=0?'+':'−'}${Math.abs(dRep)}.</p>${reviewHTML(rv,b)}${mem.html}
@@ -4830,6 +4845,7 @@ function outage(h,winter){
   if(out.fish||out.fresh) out.lines.push(`🧊 ${[out.fish?`${out.fish} red${out.fish>1?'s':''} thawed in the freezer and went in the dump`:'',out.fresh?`${out.fresh} meals of fresh food spoiled`:''].filter(Boolean).join(' and ')}.`);
   else if(out.off>0) out.lines.push(`🧊 The freezer held (${out.off<keep?'it was closed and stayed cold':'barely'}).`);
   if(out.energy) out.lines.push(`😮‍💨 No lights, no coffee maker, a dead phone and a warm cabin: you sleep badly. Energy −${out.energy}.`);
+  if(!winter) homeArtNote([{id:G&&out.run>0?'outage_gen':'outage_dark',sev:0}]);   // 32-home.js: the morning report's picture (40-art.js)
   return out;
 }
 const outageHours=winter=>{const r=Math.random();
@@ -5068,7 +5084,13 @@ function homeApply(rep,quiet){
   if(!quiet) rep.lines.forEach(l=>say(l));
   return rep;
 }
-const homeHost=()=>({show:(t,h,b,lock,meta)=>modalSwap(t,(meta&&meta.kind==='event'?artSlot('event',()=>artEventCtx(meta.id,'home')):'')+h,b,lock),   // meta: {id, kind} of the job (40-art.js)
+// ---- illustrations (40-art.js): the module reports what happened as events [{id, sev}] (CabinUpkeep.EVENTS); the worst one with a picture wins ----
+const homeEvSort=evs=>(evs||[]).map((e,i)=>({e,i})).sort((a,b)=>(b.e.sev||0)-(a.e.sev||0)||a.i-b.i).map(x=>x.e);
+function homeArt(evs){if(!artOn()||!evs||!evs.length)return '';return homeEvSort(evs).map(e=>artSlot('event',()=>artEventCtx(e.id,'home'))).find(Boolean)||''}
+// the morning report collects the cabin's events of the night and the morning (homeMorning, a summer outage) for its picture
+function homeArtNote(evs){if(DIGEST&&evs&&evs.length)(DIGEST.home=DIGEST.home||[]).push(...evs)}
+const homeHost=()=>({show:(t,h,b,lock,meta)=>modalSwap(t,homeArt(meta&&meta.events)+h,b,lock),   // meta.events: a storm prompt's own id, then its outcome
+
   ticket:()=>homeTicket(),apply:r=>homeApply(r),rand:()=>Math.random()});
 const homeBotHost=()=>({ticket:()=>homeTicket(),apply:r=>homeApply(r,true)});
 
@@ -5077,6 +5099,7 @@ function homeGenCheck(winter){
   const t=homeTicket({season:seasonOf(day())-(winter?1:0)}),o=CabinUpkeep.genOdds(t);
   if(!(o.p>0)||Math.random()>=o.p) return null;
   const rep=homeApply(CabinUpkeep.genFailed(t),true);
+  if(!winter) homeArtNote(rep.events);
   return rep.lines[0];
 }
 // a generator you just bought is in shape
@@ -5086,7 +5109,7 @@ function homeNewGen(){homeApply(CabinUpkeep.noteGen(homeTicket()),true)}
 function homeMorning(){
   if(S.winter||S.over) return;
   const rep=CabinUpkeep.daily(homeTicket());
-  homeApply(rep);
+  homeApply(rep);homeArtNote(rep.events);
   if(rep.severity>0) showTile('🏠','Trouble at the cabin',rep.lines[0].replace(/<[^>]+>/g,'').slice(0,80),'bad');
   else if(rep.remind) showTile('🏠','Cabin job',rep.remind,'info');
 }
@@ -5100,6 +5123,7 @@ function homeProcessing(b,fish,t){
   if(rep.womDelta) S.wom=(S.wom||0)+rep.womDelta;
   if(rep.repDelta) adj('rep',rep.repDelta);
   rep.lines.forEach(l=>t.notes.push(l));
+  if(rep.events&&rep.events.length) t.homeEv=rep.events;   // "Back at the dock" can show a spoiled batch (40-art.js)
 }
 
 // ---- the off-season ----
@@ -6759,16 +6783,21 @@ function starsWall(){
 //  EVERY image ships switched off. With no enabled entry, every hook below returns '' and the screen is exactly what it was
 //  before; callers never need an "if". See art/README.md for how to add a set (tools/art.py import → review → enable → test).
 //
-//  ART.register(entry)        add or replace one manifest entry {id, set, file, thumb?, webp?, thumbWebp?, v?, w, h, alt, when, enabled}
+//  ART.register(entry)        add or replace one manifest entry {id, set, file, fw?, thumb?, webp?, thumbWebp?, v?, w, h, alt, when, enabled}
+//                             (webp: the full picture, w x h; file: the JPEG fallback, fw wide (960); thumb/thumbWebp: 400 wide)
 //                             (enabled is false unless it is exactly true). Returns the stored entry, or null if it is unusable.
 //  artFor(set, ctx)           the best ENABLED entry of a set whose `when` matches ctx, or null (the caller keeps its SVG art).
 //                             Every key in `when` must match; the score is the number of keys that matched something specific
 //                             ("any" matches but scores 0). Ties are broken by a stable hash of the day and the set, so a scene
 //                             doesn't flicker between renders of the same day.
-//  artImg(entry)              the <figure><img></figure> HTML (alt, width/height, lazy, async decode, srcset thumb/full, WebP)
+//  artImg(entry)              the <figure><picture><source webp><img jpeg></picture></figure> HTML (alt, width/height, lazy, async decode,
+//                             srcset thumb 400w + full; the WebP source first, the small JPEG as the fallback)
 //  artSlot(set, ctx)          artImg(artFor(set, ctx)) or '' (never throws)
 //  artCabinCtx(), artBoatCtx(b, where), artCampCtx(session, extra), artEventCtx(id, from)
-//                             build a ctx from the game's state (the keys are listed in ART.KEYS and art/README.md)
+//                             build a ctx from the game's state (the keys are listed in ART.KEYS and art/README.md).
+//                             from is where an event id comes from: 'game' (defEvent), 'home' (CabinUpkeep.EVENTS), 'camp', 'trip' (a STEP id)
+//  artNarr(set, ctx)          a picture over the Here tab's narration until the next tap (arriving at a launch, a repair at the shop)
+//  artMorning(D)              the morning report's pictures: {top, night} (the cabin's and the game's events, the night's; your guides' trips)
 //
 //  The manifest is art/manifest.json, embedded here by tools/build.py between the markers below. The images stay separate files
 //  under art/ (cached on first use by sw.js, never precached) and are left out of the single-file offline build
@@ -6832,6 +6861,7 @@ ART_MANIFEST.forEach(e=>ART.register(e));
 // Settings → Illustrations (on by default; the switch only shows once an image is enabled)
 const artPref=()=>prefs().art!==false;
 const artOn=()=>ART.any()&&artPref();
+let ART_NARR=null;   // the Here tab's picture: HTML, shown above the narration until the next tap (05-ui.js ACT clears it)
 function artFor(set,ctx){
   if(!artOn()) return null;
   const c=Object.assign({},ctx);
@@ -6845,14 +6875,36 @@ function artImg(e){
   if(!e) return '';
   const lite=artSaveData()&&e.thumb,full=artUrl(e.file,e.v),th=e.thumb?artUrl(e.thumb,e.v):'';
   const sizes='(max-width: 520px) 100vw, 480px';
-  const set=(f,t)=>t?`${t} 400w, ${f} ${e.w}w`:`${f} ${e.w}w`;
-  const src=lite?th:full,srcset=lite?'':` srcset="${esc(set(full,th))}" sizes="${sizes}"`;
-  const webp=e.webp&&!lite?`<source type="image/webp" srcset="${esc(set(artUrl(e.webp,e.v),e.thumbWebp?artUrl(e.thumbWebp,e.v):''))}" sizes="${sizes}">`:
+  const set=(f,t,w)=>t?`${t} 400w, ${f} ${w}w`:`${f} ${w}w`;
+  const src=lite?th:full,srcset=lite?'':` srcset="${esc(set(full,th,e.fw||e.w))}" sizes="${sizes}"`;
+  const webp=e.webp&&!lite?`<source type="image/webp" srcset="${esc(set(artUrl(e.webp,e.v),e.thumbWebp?artUrl(e.thumbWebp,e.v):'',e.w))}" sizes="${sizes}">`:
     e.thumbWebp&&lite?`<source type="image/webp" srcset="${esc(artUrl(e.thumbWebp,e.v))}">`:'';
   const img=`<img class="art-img" src="${esc(src)}"${srcset} alt="${esc(e.alt||'')}" width="${e.w}" height="${e.h}" loading="lazy" decoding="async" style="object-fit:cover">`;
   return `<figure class="art-fig" data-art="${esc(e.id)}">${webp?`<picture>${webp}${img}</picture>`:img}</figure>`;
 }
 function artSlot(set,ctx){if(!artOn())return '';try{return artImg(artFor(set,typeof ctx==='function'?ctx():ctx))}catch(err){return ''}}   // pass ctx as a function: it is only built when art is on
+function artNarr(set,ctx){ART_NARR=artOn()?artSlot(set,ctx)||null:null}
+const artNarrHTML=()=>ART_NARR&&artOn()?ART_NARR:'';
+// arriving where one of today's trips launches (21-story.js onArrive): the trailer at the ramp, or the harbor
+function artLaunch(dest){
+  if(!artOn()||!S||S.winter) return;
+  const b=todays().find(x=>TRIPS[x.type].loc===dest&&tod()<=TRIPS[x.type].start+90);
+  if(b) artNarr('boat',()=>artBoatCtx(b,dest==='homer'?'harbor':['launch','trailer']));
+}
+// the morning report: a picture on top (the cabin's mishaps first, then the morning's events, the cabin's news, the night's events),
+// and one over your guides' trips in the night section
+function artMorning(D){
+  const out={top:'',night:D.night};
+  if(!artOn()) return out;
+  const H=(D.home||[]).map((e,i)=>({e,i})).sort((a,b)=>(b.e.sev||0)-(a.e.sev||0)||a.i-b.i).map(x=>x.e);
+  const home=f=>H.filter(f).map(e=>artSlot('event',()=>artEventCtx(e.id,'home')));
+  out.top=[...home(e=>e.sev>0),...D.items.map(it=>it.id?artSlot('event',()=>artEventCtx(it.id,'game')):''),...home(e=>!e.sev),
+    ...(D.nightIds||[]).map(id=>artSlot('event',()=>Object.assign(artEventCtx(id,'game'),{time:'night'})))].find(Boolean)||'';
+  const sb=S.book.find(b=>b.asst&&b.d===D.from&&b.status==='done'),at=sb?D.night.indexOf('<p>🧑‍🤝‍🧑'):-1;
+  const sa=at>=0?artSlot('boat',()=>Object.assign(artBoatCtx(sb,'staff'),{time:'day'})):'';
+  if(sa) out.night=D.night.slice(0,at)+sa+D.night.slice(at);
+  return out;
+}
 
 // ---- context builders: what each set's "when" keys are matched against ----
 // time of day the way the scene art draws it (05-ui.js sceneSVG): 'day' | 'dusk' | 'night'
@@ -6873,13 +6925,16 @@ function artCabinCtx(){
     time:S.winter?['day','night']:t==='dusk'?['dusk','night']:t,   // the off-season has no clock: day and night scenes both fit
     cond:Math.round(s.cond),has};
 }
-// boat: boat, where, cond, up, time, trip. b is a booking; where is 'river' | 'launch' | 'harbor' | 'trailer' | 'shop' (or a list)
+// boat: boat, where, cond, up, time, trip. b is a booking (or null: your own boats); where is 'river' | 'launch' | 'trailer' | 'harbor' |
+// 'dock' | 'shop' | 'staff' (or a list). boat is a list: the hull (sled, drift, charter) plus 'staff' (a hired guide's trip), 'loaner'
+// (a borrowed rig today) and 'king' (a June king trip, on the sled).
 const artBoatKind=type=>type==='halibut'?'charter':type==='trout'?'drift':'sled';
 function artBoatCtx(b,where){
   const U=S.up||{},s=seasonOf(day());
   const up=UPGRADES.map(u=>u.id).filter(id=>id==='web'||id==='course'?U[id]===s:id==='rates'?(U.rate||1)>1:!!U[id]);
-  const kind=b?artBoatKind(b.type):'sled';
-  return {boat:b&&b.asst?['staff',kind]:kind,where:where||(S.loc==='shop'?'shop':S.loc==='homer'?'harbor':'launch'),cond:Math.round(S.boat),up,time:artTime(),trip:b?b.type:null};
+  const kind=b?artBoatKind(b.type):'sled',staff=!!(b&&b.asst);
+  const boat=[staff&&'staff',!staff&&kind!=='charter'&&loanerToday()&&'loaner',b&&b.type==='king'&&'king',kind].filter(Boolean);
+  return {boat,where:where||(S.loc==='shop'?'shop':S.loc==='homer'?'harbor':'launch'),cond:Math.round(S.boat),up,time:artTime(),trip:b?b.type:null};
 }
 // camp: place, shelter, activity, time, weather, read from a KenaiCamp session (28-camping.js keeps the session handle; the engine
 // itself never sees the game). extra: {activity, night} tracked by the adapter.
@@ -6891,7 +6946,7 @@ function artCampCtx(sess,extra){
   return {place:T?T.place:P&&P.place||null,shelter:T?T.shelter:P&&P.place?P.shelter:null,activity:T?x.activity||null:null,
     time:night?'night':'day',weather:wx,phase:ph};
 }
-// event: event (an id from defEvent, src/home's storm prompts or src/camp's encounters), from ('game' | 'home' | 'camp'), time
+// event: event (an id from defEvent, CabinUpkeep.EVENTS, src/camp's encounters or a trip STEP), from ('game' | 'home' | 'camp' | 'trip'), time
 function artEventCtx(id,from){const t=S&&!S.winter?artTime():null;return {event:id,from:from||'game',time:!t?['day','night']:t==='dusk'?['dusk','night']:t}}   // the off-season has no clock
 // ---------------- boot ----------------
 applyPrefs();

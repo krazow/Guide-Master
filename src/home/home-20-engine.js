@@ -80,13 +80,20 @@
   C.risk=s=>Math.round(cm(s)*100)/100;
 
   // ---- reports ----
-  function newOut(){return {costs:{},cash:0,spent:0,earned:0,energy:0,rep:0,wom:0,minutes:0,days:0,daysLost:0,fuel:0,fresh:0,meals:0,lines:[],tiles:[],done:[],sev:0,remind:'',cancels:0}}
+  // What happened, for a host that wants to show it (Guide Master picks an illustration): report.events is a list of {id, sev}, ids from
+  // this list only (tools/art.py reads it from here). sev: 0 news, 1 a mishap, 2 a serious one. cold_snap and heavy_snow are the storm
+  // prompts themselves (a job's {ev}); the rest are outcomes, reported only after the choice that caused them.
+  C.EVENTS=['chimney_fire','pipes_frozen','pipe_burst','cold_snap','heavy_snow','ice_dam','shed_collapse','breakup_stuck','frost_heave',
+    'well_pump','septic_backup','quake','quake_ok','co_alarm','co_night','bear_yard','bear_raid','garden_moose','garden_harvest','gen_fail',
+    'outage_gen','outage_dark','roof_leak','furnace_fail','pump_fail','spoiled_batch'];
+  function ev(out,id,sev){out.events.push({id,sev:sev||0})}
+  function newOut(){return {events:[],costs:{},cash:0,spent:0,earned:0,energy:0,rep:0,wom:0,minutes:0,days:0,daysLost:0,fuel:0,fresh:0,meals:0,lines:[],tiles:[],done:[],sev:0,remind:'',cancels:0}}
   function line(out,txt){out.lines.push(txt)}
   function cost(out,x,id){x=Math.round(x);out.cash-=x;out.spent+=x;if(id)out.costs[id]=(out.costs[id]||0)+x}
   function report(s,out){
     s.cond=clamp(Math.round(s.cond*10)/10,0,100);
     return {v:C.SCHEMA,state:s,cashDelta:out.cash,spent:out.spent,earned:out.earned,energyDelta:out.energy,repDelta:out.rep,womDelta:out.wom,minutes:out.minutes,
-      daysUsed:out.days,daysLost:out.daysLost,homeFuel:out.fuel,freshLost:out.fresh,foodMeals:out.meals,lines:out.lines,tiles:out.tiles,done:out.done,severity:out.sev,remind:out.remind,cancels:out.cancels,cond:s.cond,costs:out.costs}}
+      daysUsed:out.days,daysLost:out.daysLost,homeFuel:out.fuel,freshLost:out.fresh,foodMeals:out.meals,lines:out.lines,tiles:out.tiles,done:out.done,severity:out.sev,remind:out.remind,cancels:out.cancels,cond:s.cond,costs:out.costs,events:out.events}}
 
   // ---- the three ways ----
   const dayTxt=n=>n<=0?'a few hours':n===1?'1 day':n+' days';
@@ -107,16 +114,16 @@
     out.push({id:'skip',l:'Skip it',s:cfg.skip.s,cash:0,min:0,days:0,energy:0,dis:false,why:''});
     return out;
   }
-  function describe(job,s,t){return {id:job.id,ic:job.ic,kind:job.kind||'task',title:job.title(s,t),why:job.why(s,t),risk:job.risk(s,t),opts:optList(job,s,t),phase:t.phase,cond:job.cond}}
+  function describe(job,s,t){return {id:job.id,ic:job.ic,kind:job.kind||'task',ev:job.ev||null,title:job.title(s,t),why:job.why(s,t),risk:job.risk(s,t),opts:optList(job,s,t),phase:t.phase,cond:job.cond}}
 
   // ---- storm jobs (the queue): a cold snap and a heavy snow ----
   const QJ={
-    cold:{id:'cold',ic:'🥶',kind:'event',pr:0,cond:2,
+    cold:{id:'cold',ev:'cold_snap',ic:'🥶',kind:'event',pr:0,cond:2,
       title:(s,t,q)=>`Cold snap tonight: ${['−10','−25','−35'][q.sev-1]}°F`,
       why:()=>'Water lines freeze first where the wind gets under the floor. Dripping the taps keeps water moving, and opening the cabinet doors lets the heat in.',
       risk:()=>'Skip it and an unprotected line can freeze or burst.',
       o:(s,t)=>({diy:{cash:0,days:0,min:20,e:3,s:'Drip the taps, open the cabinet doors, check the crawlspace at 2 AM.'},pay:{cash:$c(t,45),s:'The neighbor looks in overnight and runs the taps.'},skip:{s:'Go to bed and hope.'}})},
-    snow:{id:'snow',ic:'🌨️',kind:'event',pr:1,cond:2,
+    snow:{id:'snow',ev:'heavy_snow',ic:'🌨️',kind:'event',pr:1,cond:2,
       title:(s,t,q)=>`${['Heavy','A foot and more of','Two feet of'][q.depth-1]} snow on the roof and driveway`,
       why:()=>'Wet snow loads a roof and ice dams leak, and a plowed-in driveway keeps you from town and from work.',
       risk:()=>'Skip it and the roof can leak and you are plowed in for a day or two.',
@@ -199,9 +206,9 @@
     if(r()<pf){
       const burst=r()<clamp(T.burstShare*(s.tape?.45:1)*(cold?1.4:1),0,.8);
       out.sev=2;
-      if(burst){cost(out,$c(t,2400),'burst');out.daysLost+=3;s.cond-=12;out.fresh=1;
+      if(burst){cost(out,$c(t,2400),'burst');ev(out,'pipe_burst',2);out.daysLost+=3;s.cond-=12;out.fresh=1;
         line(out,`💦 A pipe under the floor bursts. Water everywhere until you find the shutoff. The plumber and the cleanup come to ${$($c(t,2400))}, it takes about three days to dry out, and the fridge food is a loss.`)}
-      else{cost(out,$c(t,380),'frozen');out.daysLost+=1;s.cond-=4;if(cold)out.fresh=1;
+      else{cost(out,$c(t,380),'frozen');ev(out,'pipes_frozen',2);out.daysLost+=1;s.cond-=4;if(cold)out.fresh=1;
         line(out,`🧊 The kitchen line freezes solid. A plumber thaws it for ${$($c(t,380))} and it eats a day.${cold?' The fridge got cold enough to ruin the fresh food.':''}`)}
     }else line(out,optId==='skip'?'😮‍💨 The pipes hold, this time.':'🚰 The pipes hold. The dripping taps did their job.');
     s.chill=0;s.tot.events++;
@@ -212,9 +219,9 @@
     const m=cm(s)*t.bad,d=q.depth,safe=optId!=='skip';
     if(safe)line(out,optId==='diy'?'⛏️ You rake the roof and plow the drive. Your back files a complaint.':'🚜 The neighbor plows the drive and a roofer rakes the snow off the roof.');
     const pl=T.roofP[d-1]*(safe?.1:1)*m;
-    if(r()<pl){const c=$c(t,1400*(1+.4*(d-1)));cost(out,c,'icedam');s.cond-=8;out.sev=2;
+    if(r()<pl){const c=$c(t,1400*(1+.4*(d-1)));cost(out,c,'icedam');ev(out,'ice_dam',2);s.cond-=8;out.sev=2;
       line(out,`💧 Snow melts and refreezes at the eaves. An ice dam lets water in and the ceiling stains. Repairs come to ${$(c)}.`)}
-    else if(!safe&&d===3&&r()<T.collapseP*m){const c=$c(t,2600);cost(out,c,'collapse');s.cond-=14;out.daysLost+=1;out.sev=2;
+    else if(!safe&&d===3&&r()<T.collapseP*m){const c=$c(t,2600);cost(out,c,'collapse');ev(out,'shed_collapse',2);s.cond-=14;out.daysLost+=1;out.sev=2;
       line(out,`🏚️ The shed roof gives way under two feet of wet snow. Cleanup and a new roof run ${$(c)}, and a day.`)}
     else if(!safe)line(out,'🏠 The roof carries it. You were lucky.');
     if(!safe){out.daysLost+=d;line(out,`🚧 The plow doesn’t come for a while. You’re snowed in for ${d===1?'a day':d===2?'two days':'three days'}: a winter job slips or a trip gets pushed.`)}
@@ -229,6 +236,7 @@
     const oilOk=!!s.heat.oil&&s.did.oil===y,woodOk=!!s.heat.stove&&s.did.wood===y,heatOk=oilOk||woodOk;
     // outage: a long one with no generator and no stove leaves the cabin cold
     const O=t.outage;
+    if(O)ev(out,O.gen?'outage_gen':'outage_dark',O.h>=12&&!O.gen&&!woodOk?1:0);
     if(O&&O.h>=12&&!O.gen&&!woodOk){s.chill=1;line(out,'🥶 The power was out long enough for the cabin to go cold: the furnace blower needs electricity. A wood stove or a generator would have kept it warm.')}
     const coldNow=r()<T.coldP,snowNow=r()<T.snowP;
     if(coldNow)s.queue.push({id:'cold',sev:1+(r()<.5?1:0)+(r()<.2?1:0)});
@@ -237,15 +245,15 @@
     // a chimney fire
     if(s.heat.stove&&s.did.sweep!==y){
       const p=clamp(T.fireP*(1+.8*Math.min(2,s.sweepSkips))*m,0,.5);s.sweepSkips++;
-      if(r()<p){const c=$c(t,s.detect?500:700);cost(out,c,'fire');out.energy-=10;s.cond-=12;out.sev=2;s.tot.events++;
+      if(r()<p){const c=$c(t,s.detect?500:700);cost(out,c,'fire');ev(out,'chimney_fire',2);out.energy-=10;s.cond-=12;out.sev=2;s.tot.events++;
         line(out,`🔥 A roar in the stovepipe: creosote has caught. You shut the damper, get everyone out and the volunteer fire department checks the chimney. A new liner and cleanup run ${$(c)}.${s.detect?' The smoke alarm gave you the head start.':''}`)}
     }
     // carbon monoxide
     const heatsWithFire=!!s.heat.stove||t.gen.owned;
     const pco=(heatsWithFire?T.coP:T.coBase)*m;
     if(r()<pco){
-      if(s.detect){const c=$c(t,60);cost(out,c,'co');s.tot.events++;line(out,`🚨 The CO alarm goes off in the night. You open the doors, get out and find a blocked flue cap. ${$(c)} for a new cap, and thanks to the alarm, nobody gets hurt.`)}
-      else{const c=$c(t,950);cost(out,c,'co');out.daysLost+=2;out.energy-=20;out.sev=2;s.tot.events++;
+      if(s.detect){const c=$c(t,60);cost(out,c,'co');ev(out,'co_alarm',1);s.tot.events++;line(out,`🚨 The CO alarm goes off in the night. You open the doors, get out and find a blocked flue cap. ${$(c)} for a new cap, and thanks to the alarm, nobody gets hurt.`)}
+      else{const c=$c(t,950);cost(out,c,'co');ev(out,'co_night',2);out.daysLost+=2;out.energy-=20;out.sev=2;s.tot.events++;
         line(out,`☠️ You wake with a pounding headache and nausea. It is carbon monoxide from a blocked flue. The ER visit comes to ${$(c)} and a couple of days to recover. Alarms would have caught it; they are cheap.`)}
     }
     return report(s,out);
@@ -258,23 +266,23 @@
     s.sprung=y;
     // breakup
     if(s.did.breakup!==y&&r()<clamp(T.breakupP*m,0,.95)){
-      if(r()<.6){const c=$c(t,260),x=r()<T.cancelP;cost(out,c,'stuck');out.energy-=6;if(x)out.cancels++;s.tot.events++;out.sev=1;line(out,`🚧 Breakup. The driveway is soup and the truck sinks to the axles on the first morning. A tow costs ${$(c)}.${x?' A party coming for the first days of July will not make it down the drive.':''}`)}
-      else{const c=$c(t,900);cost(out,c,'heave');s.cond-=6;s.tot.events++;out.sev=2;line(out,`🚧 Frost heaves shift a skirting panel and a post settles. The back door sticks. A carpenter sets it right for ${$(c)}.`)}
+      if(r()<.6){const c=$c(t,260),x=r()<T.cancelP;cost(out,c,'stuck');ev(out,'breakup_stuck',1);out.energy-=6;if(x)out.cancels++;s.tot.events++;out.sev=1;line(out,`🚧 Breakup. The driveway is soup and the truck sinks to the axles on the first morning. A tow costs ${$(c)}.${x?' A party coming for the first days of July will not make it down the drive.':''}`)}
+      else{const c=$c(t,900);cost(out,c,'heave');ev(out,'frost_heave',2);s.cond-=6;s.tot.events++;out.sev=2;line(out,`🚧 Frost heaves shift a skirting panel and a post settles. The back door sticks. A carpenter sets it right for ${$(c)}.`)}
     }
     // the well
     const wy=Math.max(0,y-s.did.well);
     if(r()<clamp(s.did.well===y?.003:T.wellBase+T.wellYear*Math.max(0,wy-1),0,.2)*m){
-      const c=$c(t,1500),x=r()<T.cancelP;if(x)out.cancels++;cost(out,c,'well');out.daysLost+=3;out.energy-=10;s.cond-=10;s.tot.events++;out.sev=2;
+      const c=$c(t,1500),x=r()<T.cancelP;if(x)out.cancels++;cost(out,c,'well');ev(out,'well_pump',2);out.daysLost+=3;out.energy-=10;s.cond-=10;s.tot.events++;out.sev=2;
       line(out,`💧 The water turns cloudy, then the pump quits. Many homes around Soldotna rely on a well, and yours needs a new pump and treatment: ${$(c)}, and three days with the house barely usable.${x?' A booked party will not stay at a place with no water.':''}`)}
     // septic
     const over=y-s.did.septic-3;
     if(r()<clamp(over<0?.002:T.septicBase+T.septicYear*over,0,.3)*m){
-      const c=$c(t,2100),x=r()<T.cancelP;if(x)out.cancels++;cost(out,c,'septic');out.daysLost+=2;s.cond-=10;s.tot.events++;out.sev=2;
+      const c=$c(t,2100),x=r()<T.cancelP;if(x)out.cancels++;cost(out,c,'septic');ev(out,'septic_backup',2);out.daysLost+=2;s.cond-=10;s.tot.events++;out.sev=2;
       line(out,`🚽 The septic tank backs up into the house. An emergency pump-out and a cleaned drain field come to ${$(c)}, and the house is unusable for a couple of days.${x?' A booked party hears about it and cancels.':''}`)}
     // an earthquake
     if(r()<T.quakeP*t.bad){
-      if(s.strap){line(out,'🌎 A magnitude 6 quake rattles the cabin, felt across the Kenai. Dishes jump, but the strapped water heater and the anchored shelves stay put.')}
-      else{const c=$c(t,1100);cost(out,c,'quake');out.daysLost+=1;s.cond-=15;s.tot.events++;out.sev=2;
+      if(s.strap){ev(out,'quake_ok',0);line(out,'🌎 A magnitude 6 quake rattles the cabin, felt across the Kenai. Dishes jump, but the strapped water heater and the anchored shelves stay put.')}
+      else{const c=$c(t,1100);cost(out,c,'quake');ev(out,'quake',2);out.daysLost+=1;s.cond-=15;s.tot.events++;out.sev=2;
         line(out,`🌎 A magnitude 6 earthquake, felt across the Kenai (like the big 2018 Anchorage quake). The water heater tips, a shelf comes down and the kitchen is a mess: ${$(c)} to fix, and a day.`)}
     }
     // a run-down place puts off the first parties of the season: the lower the condition, the likelier one looks elsewhere
@@ -293,9 +301,9 @@
       let p=(T.bearBase+(t.recentFish>0?T.bearFish:0))*(over?(s.bin?3:4):s.bin?.4:1)*m;
       if(r()<clamp(p,0,.5)){
         s.bearY=y;s.tot.bears++;s.tot.events++;const k=r();
-        if(k<.45){const c=$c(t,120+Math.round(r()*280));cost(out,c,'bear');s.cond-=5;out.sev=1;line(out,`🐻 A black bear gets into the garbage and the fish scraps overnight. Torn bags, a dented bin and a mess all over the yard: ${$(c)} to clean and repair.`)}
-        else if(k<.8){const c=$c(t,60);cost(out,c,'bear');out.minutes+=45;out.energy-=4;out.sev=1;line(out,`🐻 You wake to a bear snorting around the yard. It takes 45 minutes and a lot of banging pots before it leaves, and ${$(c)} of cleanup.`)}
-        else{out.rep-=3;out.wom-=4;out.sev=1;line(out,'🐻 A bear gets into your garbage and a Fish and Game officer stops by to talk about attractants. Feeding bears, even by accident with trash, can mean a warning or a fine. You get a warning, and the neighbors hear about it. Rep −3, and word of mouth takes a hit.')}
+        if(k<.45){const c=$c(t,120+Math.round(r()*280));cost(out,c,'bear');ev(out,'bear_raid',1);s.cond-=5;out.sev=1;line(out,`🐻 A black bear gets into the garbage and the fish scraps overnight. Torn bags, a dented bin and a mess all over the yard: ${$(c)} to clean and repair.`)}
+        else if(k<.8){const c=$c(t,60);cost(out,c,'bear');ev(out,'bear_yard',1);out.minutes+=45;out.energy-=4;out.sev=1;line(out,`🐻 You wake to a bear snorting around the yard. It takes 45 minutes and a lot of banging pots before it leaves, and ${$(c)} of cleanup.`)}
+        else{out.rep-=3;out.wom-=4;out.sev=1;ev(out,'bear_raid',1);line(out,'🐻 A bear gets into your garbage and a Fish and Game officer stops by to talk about attractants. Feeding bears, even by accident with trash, can mean a warning or a fine. You get a warning, and the neighbors hear about it. Rep −3, and word of mouth takes a hit.')}
       }
     }
     // a cabin in good shape sends you out rested
@@ -306,16 +314,16 @@
       if(s.troubleY!==y){s.troubleY=y;s.troubles=0}
       if(s.troubles<T.troubleMax&&r()<clamp(T.troubleP*m*(1+(T.troubleAt-s.cond)/25),0,.5)){
         s.troubles++;s.tot.events++;out.sev=1;const k=r();
-        if(k<.4){const c=$c(t,380),x=r()<T.cancelP;cost(out,c,'trouble');if(x)out.cancels++;out.energy-=6;s.cond+=3;line(out,`🚰 The pump and pressure tank give out in the night. No water for the coffee, the dishes or the clients’ lunch bag. A plumber on a Saturday costs ${$(c)}.${x?' The next party cancels rather than wait.':''}`)}
-        else if(k<.75){const c=$c(t,420);cost(out,c,'trouble');out.minutes+=60;out.energy-=6;s.cond+=3;line(out,`💧 The roof leaks onto the stove and the wiring trips the breaker. An hour on a ladder in the rain and ${$(c)} in parts, and you start the day late and wet.`)}
-        else{const c=$c(t,260);cost(out,c,'trouble');out.energy-=10;out.rep-=1;s.cond+=2;line(out,`🥶 The furnace blower quits on the coldest night of the month. You get no sleep, a clean-up and a repair of ${$(c)}, and the clients notice how tired you look. Energy −10, rep −1.`)}
+        if(k<.4){const c=$c(t,380),x=r()<T.cancelP;cost(out,c,'trouble');ev(out,'pump_fail',1);if(x)out.cancels++;out.energy-=6;s.cond+=3;line(out,`🚰 The pump and pressure tank give out in the night. No water for the coffee, the dishes or the clients’ lunch bag. A plumber on a Saturday costs ${$(c)}.${x?' The next party cancels rather than wait.':''}`)}
+        else if(k<.75){const c=$c(t,420);cost(out,c,'trouble');ev(out,'roof_leak',1);out.minutes+=60;out.energy-=6;s.cond+=3;line(out,`💧 The roof leaks onto the stove and the wiring trips the breaker. An hour on a ladder in the rain and ${$(c)} in parts, and you start the day late and wet.`)}
+        else{const c=$c(t,260);cost(out,c,'trouble');ev(out,'furnace_fail',1);out.energy-=10;out.rep-=1;s.cond+=2;line(out,`🥶 The furnace blower quits on the coldest night of the month. You get no sleep, a clean-up and a repair of ${$(c)}, and the clients notice how tired you look. Energy −10, rep −1.`)}
       }
     }
     // the garden: harvest on day 10
     if(t.sday===10&&s.garden.y===y){
       const eaten=!s.fence&&r()<T.moosePct;
-      if(eaten){s.tot.moose++;out.meals+=2;out.sev=1;line(out,'🫎 A cow moose and her calf stroll through the garden at dawn. They eat the kale, the carrots and half the potatoes, and leave tracks like dinner plates. You get a couple of meals out of what is left.')}
-      else{out.meals+=T.harvest;s.tot.harvest+=T.harvest;line(out,`🥬 The garden comes in: potatoes, kale and carrots. ${T.harvest} meals for the kitchen.`)}
+      if(eaten){s.tot.moose++;out.meals+=2;out.sev=1;ev(out,'garden_moose',1);line(out,'🫎 A cow moose and her calf stroll through the garden at dawn. They eat the kale, the carrots and half the potatoes, and leave tracks like dinner plates. You get a couple of meals out of what is left.')}
+      else{out.meals+=T.harvest;s.tot.harvest+=T.harvest;ev(out,'garden_harvest',0);line(out,`🥬 The garden comes in: potatoes, kale and carrots. ${T.harvest} meals for the kitchen.`)}
     }
     // one gentle reminder a day
     if(s.rem!==t.abs&&t.abs-s.rem>=(t.y===0?3:1)){
@@ -338,7 +346,7 @@
   // the generator would not start: the shop gets it going (oil, carburetor), and it is in shape afterwards
   C.genFailed=function(t0,o){
     const t=C.normTicket(t0),s=t.state,out=newOut(),c=$c(t,85);
-    cost(out,c,'gen');s.did.genoil=t.y;s.did.genrun=t.y;s.tot.events++;out.sev=1;
+    cost(out,c,'gen');ev(out,'gen_fail',1);s.did.genoil=t.y;s.did.genrun=t.y;s.tot.events++;out.sev=1;
     const why=C.genOdds(t0).why;
     line(out,`🔧 The generator coughs and dies${why.length?` (${why.join(', ')})`:''}. You get it running later with a fresh carburetor clean, oil and a new plug: ${$(c)}. Next time, service it before the power goes out.`);
     return report(s,out);
@@ -355,7 +363,7 @@
     const fish=Math.min(t.fish,t.clients*3),fee=Math.round(fish*T.fee*T.optIn*t.costMult);
     st.tidy=Math.max(0,st.tidy-6);
     if(r()<spoilP){
-      out.wom-=1;out.rep-=1;s.tot.spoiled++;out.sev=1;
+      out.wom-=1;out.rep-=1;s.tot.spoiled++;out.sev=1;ev(out,'spoiled_batch',1);
       line(out,'🐟 A bag of fillets goes into the wrong cooler, or the sealer didn’t seal. By the time the clients unpack it at home, it’s off. You refund the fee and they tell their friends.');
     }else{
       out.earned+=fee;out.cash+=fee;out.energy-=2;s.tot.fees+=fee;

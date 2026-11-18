@@ -8,7 +8,10 @@
 //
 //  The host adapter: {
 //    show(title, html, buttons, lock, meta), required. Show a pop-up. buttons: [{l, s, dis, fn, stay}]; fn runs after the pop-up has closed.
-//                                        meta (optional, a job's pop-ups only): {id, kind} of the job, e.g. for an illustration; a host may ignore it.
+//                                        meta (optional): {id, kind, events} for an illustration; a host may ignore it. id and kind are the job's (on a
+//                                        job's pop-ups); events is a list of {id, sev} from CabinUpkeep.EVENTS: on a storm prompt its own id (cold_snap,
+//                                        heavy_snow) before the choice, then the report's events (or the prompt's id again if nothing happened);
+//                                        on a winter, spring or mishap report, the report's events.
 //                                        A button with stay:true asks the host to keep the pop-up on screen and show whatever fn shows next in the
 //                                        same sheet (a host that can't just ignores it), so a job, its result and the next job are one pop-up.
 //    ticket(),                           required. A fresh ticket from the host's current numbers (it changes after every report).
@@ -54,12 +57,12 @@
       const rep=C.resolve(host.ticket(),jobId,o.id,rnd(host));
       if(!rep){if(then)then();return}
       host.apply(rep);
-      if(job.kind==='event'||rep.severity>0)host.show(`${job.ic} ${job.title}`,rep.lines.map(l=>`<p>${l}</p>`).join('')+condLine(rep),[{l:'Continue',stay:true,fn:()=>{if(then)then()}}],lock,{id:job.id,kind:job.kind});
+      if(job.kind==='event'||rep.severity>0)host.show(`${job.ic} ${job.title}`,rep.lines.map(l=>`<p>${l}</p>`).join('')+condLine(rep),[{l:'Continue',stay:true,fn:()=>{if(then)then()}}],lock,{id:job.id,kind:job.kind,events:evOf(rep,job)});
       else if(then)then();
     };
     const btns=job.opts.map(o=>({l:`${o.l}${o.id==='skip'?'':` · ${o.cash?$(o.cash):'free'}`}`,s:o.dis&&o.why?`${o.why}`:o.s,dis:o.dis,stay:true,fn:run(o)}));
     if(!lock)btns.push({l:'Not now',s:'Decide later.',stay:true,fn:()=>{if(then)then()}});
-    host.show(`${job.ic} ${job.title}`,`<p>${esc(job.why)}</p><p class="small-note" style="color:var(--mute);font-size:13px">If you skip it: ${esc(job.risk.replace(/^Skip it and /,'').replace(/^Skip it /,''))}</p>`,btns,!!lock,{id:job.id,kind:job.kind});
+    host.show(`${job.ic} ${job.title}`,`<p>${esc(job.why)}</p><p class="small-note" style="color:var(--mute);font-size:13px">If you skip it: ${esc(job.risk.replace(/^Skip it and /,'').replace(/^Skip it /,''))}</p>`,btns,!!lock,{id:job.id,kind:job.kind,events:job.ev?[{id:job.ev,sev:1}]:[]});
   };
   // every job that is due, on one screen: each with its own three ways. A choice is applied and the screen comes back with what is left.
   U2.batch=function(host,o){
@@ -70,13 +73,15 @@
         const rep=C.resolve(host.ticket(),job.id,op.id,rnd(host));
         if(!rep){again();return}
         host.apply(rep);
-        if(rep.severity>0)host.show(`${job.ic} ${job.title}`,rep.lines.map(l=>`<p>${l}</p>`).join('')+condLine(rep),[{l:'Continue',stay:true,fn:again}]);else again();
+        if(rep.severity>0)host.show(`${job.ic} ${job.title}`,rep.lines.map(l=>`<p>${l}</p>`).join('')+condLine(rep),[{l:'Continue',stay:true,fn:again}],false,{id:job.id,kind:job.kind,events:evOf(rep,job)});else again();
       };
       job.opts.forEach(op=>btns.push({l:`${job.ic} ${job.title}: ${op.l}${op.id==='skip'?'':` · ${op.cash?$(op.cash):'free'}`}`,s:op.dis&&op.why?op.why:(op.id==='skip'?job.risk:op.s),dis:op.dis,stay:true,fn:run(op)}));
     });
     (o.extra||[]).forEach(b=>btns.push(b));
     host.show(o.title||'🏠 The cabin',`<p style="font-size:13px;color:var(--mute)">${o.intro||''}</p>${jobs.length?`<p>${jobs.length} job${jobs.length>1?'s':''} due. Pick a way for each one.</p>`:'<p>Nothing else is due.</p>'}`,btns);
   };
+  // what a result shows: the report's events, or a storm prompt's own id when nothing came of it
+  const evOf=(rep,job)=>rep.events&&rep.events.length?rep.events:job&&job.ev?[{id:job.ev,sev:0}]:[];
   const condLine=rep=>`<p style="font-size:13px;color:var(--mute)">Cabin condition ${Math.round(rep.cond)}/100.</p>`;
 
   U2.shop=function(host,back){
@@ -90,12 +95,12 @@
   U2.scenes=function(host,rep,done){
     const events=()=>C.jobs(host.ticket(),{all:true}).filter(j=>j.kind==='event');
     const next=()=>{const e=events()[0];if(!e){if(done)done();return}U2.open(host,e.id,next,true)};
-    if(rep&&rep.lines&&rep.lines.length)host.show('🏠 The cabin this winter',rep.lines.map(l=>`<p>${l}</p>`).join('')+condLine(rep),[{l:'Continue',stay:true,fn:next}],true);
+    if(rep&&rep.lines&&rep.lines.length)host.show('🏠 The cabin this winter',rep.lines.map(l=>`<p>${l}</p>`).join('')+condLine(rep),[{l:'Continue',stay:true,fn:next}],true,{events:evOf(rep)});
     else next();
   };
   // a plain report as a pop-up (spring, a failed generator, a summer bear)
   U2.report=function(host,title,rep,done){
     if(!rep||!rep.lines.length){if(done)done();return}
-    host.show(title,rep.lines.map(l=>`<p>${l}</p>`).join('')+condLine(rep),[{l:'Continue',fn:()=>{if(done)done()}}],true);
+    host.show(title,rep.lines.map(l=>`<p>${l}</p>`).join('')+condLine(rep),[{l:'Continue',fn:()=>{if(done)done()}}],true,{events:evOf(rep)});
   };
 })(CabinUpkeep);

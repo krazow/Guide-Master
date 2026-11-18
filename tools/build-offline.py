@@ -36,7 +36,7 @@ def inline_art(m):
     for e in entries:
         f = e.get('webp') or e['file']
         mime = 'image/webp' if f.endswith('.webp') else 'image/png' if f.endswith('.png') else 'image/jpeg'
-        x = {k: v for k, v in e.items() if k not in ('thumb', 'webp', 'thumbWebp', 'v')}
+        x = {k: v for k, v in e.items() if k not in ('fw', 'thumb', 'webp', 'thumbWebp', 'v')}
         x['file'] = data_uri('art/' + f, mime)
         out.append(x)
     return '/*@ART@*/' + json.dumps(out, ensure_ascii=False, separators=(',', ':')).replace('</', '<\\/') + '/*@/ART@*/'

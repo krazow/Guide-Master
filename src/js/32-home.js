@@ -68,7 +68,13 @@ function homeApply(rep,quiet){
   if(!quiet) rep.lines.forEach(l=>say(l));
   return rep;
 }
-const homeHost=()=>({show:(t,h,b,lock,meta)=>modalSwap(t,(meta&&meta.kind==='event'?artSlot('event',()=>artEventCtx(meta.id,'home')):'')+h,b,lock),   // meta: {id, kind} of the job (40-art.js)
+// ---- illustrations (40-art.js): the module reports what happened as events [{id, sev}] (CabinUpkeep.EVENTS); the worst one with a picture wins ----
+const homeEvSort=evs=>(evs||[]).map((e,i)=>({e,i})).sort((a,b)=>(b.e.sev||0)-(a.e.sev||0)||a.i-b.i).map(x=>x.e);
+function homeArt(evs){if(!artOn()||!evs||!evs.length)return '';return homeEvSort(evs).map(e=>artSlot('event',()=>artEventCtx(e.id,'home'))).find(Boolean)||''}
+// the morning report collects the cabin's events of the night and the morning (homeMorning, a summer outage) for its picture
+function homeArtNote(evs){if(DIGEST&&evs&&evs.length)(DIGEST.home=DIGEST.home||[]).push(...evs)}
+const homeHost=()=>({show:(t,h,b,lock,meta)=>modalSwap(t,homeArt(meta&&meta.events)+h,b,lock),   // meta.events: a storm prompt's own id, then its outcome
+
   ticket:()=>homeTicket(),apply:r=>homeApply(r),rand:()=>Math.random()});
 const homeBotHost=()=>({ticket:()=>homeTicket(),apply:r=>homeApply(r,true)});
 
@@ -77,6 +83,7 @@ function homeGenCheck(winter){
   const t=homeTicket({season:seasonOf(day())-(winter?1:0)}),o=CabinUpkeep.genOdds(t);
   if(!(o.p>0)||Math.random()>=o.p) return null;
   const rep=homeApply(CabinUpkeep.genFailed(t),true);
+  if(!winter) homeArtNote(rep.events);
   return rep.lines[0];
 }
 // a generator you just bought is in shape
@@ -86,7 +93,7 @@ function homeNewGen(){homeApply(CabinUpkeep.noteGen(homeTicket()),true)}
 function homeMorning(){
   if(S.winter||S.over) return;
   const rep=CabinUpkeep.daily(homeTicket());
-  homeApply(rep);
+  homeApply(rep);homeArtNote(rep.events);
   if(rep.severity>0) showTile('🏠','Trouble at the cabin',rep.lines[0].replace(/<[^>]+>/g,'').slice(0,80),'bad');
   else if(rep.remind) showTile('🏠','Cabin job',rep.remind,'info');
 }
@@ -100,6 +107,7 @@ function homeProcessing(b,fish,t){
   if(rep.womDelta) S.wom=(S.wom||0)+rep.womDelta;
   if(rep.repDelta) adj('rep',rep.repDelta);
   rep.lines.forEach(l=>t.notes.push(l));
+  if(rep.events&&rep.events.length) t.homeEv=rep.events;   // "Back at the dock" can show a spoiled batch (40-art.js)
 }
 
 // ---- the off-season ----
