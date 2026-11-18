@@ -55,7 +55,8 @@ CabinUpkeep.autoplay(host, { policy, rand })      // headless: 'careful' | 'paya
 
 ```js
 host = {
-  show(title, html, buttons, lock),   // required. Show a pop-up. buttons: [{ l, s, dis, fn }]; call fn after the pop-up has closed. lock=true: Esc must not dismiss it.
+  show(title, html, buttons, lock, meta), // required. Show a pop-up. buttons: [{ l, s, dis, fn }]; call fn after the pop-up has closed. lock=true: Esc must not dismiss it.
+                                      // meta (optional, only on a job's pop-ups): { id, kind } of the job; Guide Master uses it to pick an illustration. Ignore it if you like.
   ticket(),                           // required. A fresh ticket from the host's numbers (it changes after every report).
   apply(report),                      // required. Apply a report.
   rand(),                             // optional, [0,1)
