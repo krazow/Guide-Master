@@ -278,7 +278,8 @@ defEvent({id:'gossip',hook:'arrive',tile:['🗣️','Guide gossip','info'],chanc
 defEvent({id:'bear_bin',hook:'night',tile:['🐻','Bear in the bin','bad'],chance:.08,max:1,
   run:()=>{money(-40);S.stats.spent+=40;say('🐻 A black bear tore open the fish-waste bin behind the shop. −$40 for a bear-proof lid. Lesson learned.')}});
 defEvent({id:'good_review',hook:'night',tile:['⭐','Five-star review','good'],chance:.5,cond:()=>S.book.some(b=>b.d===day()&&b.status==='done'&&b.out&&b.out.happy>=80),
-  run:()=>{adj('rep',3);say('⭐ A glowing review goes up: “Best day of our whole Alaska trip. Ask for {{name}}.”')}});
+  run:()=>{adj('rep',3);const ok=b=>b.d===day()&&b.status==='done'&&b.out&&b.out.happy>=80,mine=S.book.some(b=>ok(b)&&b.g==null),st=!mine&&S.book.find(b=>ok(b)&&b.g!=null);   // 1.16.0: a staff trip's party asks for your guide
+    say(`⭐ A glowing review goes up: “Best day of our whole Alaska trip. Ask for ${st&&typeof staffName==='function'?staffName(st.g):'{{name}}'}.”`)}});
 
 // ---- tips ----
 const TIPS=[
@@ -406,4 +407,11 @@ const MIGRATIONS=[
   // Written to run on any earlier save (schemas 5–7): it only adds S.mem. A career already under way has had its first trip, so the mentor
   // stays home (Help → "Ride with the mentor again" brings him). Records start from here; past reviews already count toward the rating.
   {to:8,run:x=>{x.mem=fillDefaults(x.mem&&typeof x.mem==='object'&&!Array.isArray(x.mem)?x.mem:{},memBase(x))}},
+  // schema 9 (1.16.0, grow the business, 36-business.js): the outfit. Touches only x.biz, so it runs the same whether or not schemas 5, 6 and 8 ran first.
+  // (Built as schema 7 on 1.12.1 and never released; 7 stays unused, so the order is 5, 6, 8, 9.)
+  // A save already past its second season gets the outfit unlocked straight away.
+  {to:9,run:x=>{
+    if(!x.biz||typeof x.biz!=='object'||Array.isArray(x.biz))x.biz=bizBase();else fillDefaults(x.biz,bizBase());
+    if(Array.isArray(x.seasons)&&x.seasons.length>=BIZ_UNLOCK)x.biz.on=true;
+  }},
 ];
