@@ -83,7 +83,7 @@ function weekType(type,d){
   addBooking=function(o){
     if(o&&TRIPS[o.type]&&typeof o.d==='number'){const t=weekType(o.type,o.d);
       if(t!==o.type){o=Object.assign({},o,{type:t,n:Math.min(o.n||2,TRIPS[t].max||6)});
-        if(conflicts(o.d,t,!!o.asst)){const w0=o.d-sday(o.d)%7;let to=null;for(let d=w0+1;d<w0+6&&to==null;d++)if(d!==o.d&&!conflicts(d,t,!!o.asst)&&!illegalDay(t,d))to=d;
+        const ln=o.g!=null?o.g:!!o.asst;if(conflicts(o.d,t,ln)){const w0=o.d-sday(o.d)%7;let to=null;for(let d=w0+1;d<w0+6&&to==null;d++)if(d!==o.d&&!conflicts(d,t,ln)&&!illegalDay(t,d))to=d;   // ln: your lane, the assistant's or a hired guide's (36-business.js)
           if(to!=null) o.d=to}}}              // no room elsewhere that week: it keeps its day (regulars and Dale's party check the swapped type first)
     return _addBooking(o)};}
 

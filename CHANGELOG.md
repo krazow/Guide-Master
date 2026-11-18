@@ -51,6 +51,34 @@ are taken from it. Earlier versions are described in the README and the in-game 
   within its own week.
 - Save schema 6 (`S.weeks`, `S.goals`, `S.goalLog`); older saves run the schema 5 and 6 migrations in order and play the two July weeks.
 
+### Added (1.16.0)
+- **🧑‍🤝‍🧑 Your outfit.** From your third off-season you can grow the business, if you want to: hire up to three guides (Rep 55, 65
+  and 75 for the first, second and third) and buy up to two more boats (a used jet sled for a second lower-river party, or a second
+  drift boat for the upper Kenai). The off-season summary has **Your outfit: guides & boats**; the 📅 Bookings tab gets a
+  **📅 Schedule | 🧑‍🤝‍🧑 Outfit** switch, with traits, big-day targets and the Schedule's goals still in place.
+- **Guides are people.** Each applicant has a name, a skill, a reliability, a wage per trip and a line about who they are. They get
+  better every season and expect raises; underpaid or overworked, they grumble and then quit (in the winter, or now and then mid-season).
+- **Licensed like you.** Every guide needs an ADF&G guide license, the Kenai River Guide Academy and a State Parks permit, drug testing,
+  a first-aid/CPR card and a Coast Guard six-pack license: $745 onboarding (or $2,145 without a six-pack license), renewals and
+  insurance every winter.
+- **Two parties at once.** Guides take parties on days you're booked, get calls of their own, and you can hand them one of your own
+  trips (and take it back). A guide needs a free boat. Staff trips run off-screen and land in the morning report: fish, how the
+  clients felt, anything that went wrong (a late start, a dinged jet unit, a ticket) and what you cleared after the guide's wage,
+  fuel, fees and wear. A guide's citation goes on your record.
+- **With the weeks, parties and reviews.** Guides fish the weeks you picked: June kings (on a jet sled), July sockeye and trout,
+  August silvers, September rainbows and silvers; never Homer halibut. Their parties have traits that the guide's skill and
+  reliability meet or miss, and each one leaves a review naming the guide ("Ask for Rosa."). **Staff reviews don't count toward
+  your ★ rating** (or its milestones, goals and the trophy wall): those are about the trips you guide yourself. Each guide's stars
+  show on the Outfit page and in the morning report. Magazine readers, lodge guests and big-day parties booked you, so they can't
+  be handed to a guide.
+- An Outfit row on the end screen; `outfit` (careful hiring) and `tycoon` (over-expanding) bots in the simulator.
+
+### Changed (1.16.0)
+- The five-star-review event names your guide when only a staff trip earned it.
+- Save schema 9 (`S.biz`). The business migration (built as schema 7 on 1.12.1 and never released) is now `to:9`, so saves at
+  schemas 4, 5, 6 and 8 run 5, 6, 8 and 9 in order; schema 7 stays unused. A save already past its second season can start an
+  outfit straight away.
+
 ### Added (1.15.0)
 - **🏆 The trophy wall.** The 📜 Log tab has a switch, **Log | Trophy wall**: your biggest fish of each species (sockeye, silvers,
   rainbows, halibut and kings) with the party and the date, your **firsts** (first trip, first fish of each species, first king, first
