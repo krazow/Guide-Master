@@ -18,9 +18,10 @@
     100
    ],
    "up": [],
-   "time": "dusk"
+   "time": "dusk",
+   "trip": "reds"
   },
-  "notes": "time 'dusk' = the game's dawn/dusk sky window (SCENE: sunrise-30 to sunrise+60 min, i.e. 4:30-6:00 AM), which the 6 AM sockeye start touches. Clean boat, so cond above the first warning tier (boatTier 0, >40)."
+  "notes": "time 'dusk' = the game's dawn/dusk sky window (SCENE: sunrise-30 to sunrise+60 min, i.e. 4:30-6:00 AM), which the 6 AM sockeye start touches. Clean boat, so cond above the first warning tier (boatTier 0, >40). People redrawn in three-quarter/side view (nose, eye, shaded back) for readability."
  },
  {
   "id": "boat-02-sockeye-seam-crowd",
@@ -41,9 +42,10 @@
     100
    ],
    "up": [],
-   "time": "day"
+   "time": "day",
+   "trip": "reds"
   },
-  "notes": "Combat fishing: the crowd is drawn as batched mini figures. Sockeye drawn chrome-silver (fresh July reds)."
+  "notes": "Combat fishing: the crowd is drawn as batched mini figures. Sockeye drawn chrome-silver (fresh July reds). People redrawn in three-quarter/side view (nose, eye, shaded back) for readability."
  },
  {
   "id": "boat-03-drift-boat-upper-kenai",
@@ -64,7 +66,8 @@
     100
    ],
    "up": [],
-   "time": "day"
+   "time": "day",
+   "trip": "trout"
   },
   "notes": "Matches the 'beads' and 'streamers' tactics; the bear echoes the Cooper Landing place art. A variant with up:['drift'] could add a fresh hull."
  },
@@ -87,9 +90,10 @@
     100
    ],
    "up": [],
-   "time": "dusk"
+   "time": "dusk",
+   "trip": "halibut"
   },
-  "notes": "Halibut trips ignore S.boat (the charter is not your sled/drift boat), hence cond 0-100. time 'dusk' = the game's dawn window."
+  "notes": "Halibut trips ignore S.boat (the charter is not your sled/drift boat), hence cond 0-100. time 'dusk' = the game's dawn window. Polished: the glaciers across Kachemak Bay are now valley glaciers (cirque under the ridge, tongue with crevasses, lateral and medial moraines, blue-white shading)."
  },
  {
   "id": "boat-05-halibut-slack-tide",
@@ -110,9 +114,10 @@
     100
    ],
    "up": [],
-   "time": "day"
+   "time": "day",
+   "trip": "halibut"
   },
-  "notes": "There is no 'sea' value for where: 'river' is used here to mean out on the water fishing (Cook Inlet). Swap to a new key if you add one."
+  "notes": "Open water on Cook Inlet. SPEC2 has no 'sea' value, so where stays 'river' (= out on the water fishing) and trip:'halibut' tells it apart from river trips."
  },
  {
   "id": "boat-06-trailer-soldotna-launch",
@@ -221,7 +226,7 @@
   "where": "Mornings when your guides run parties (36-business.js: extra boats bought in the off-season, or the assistant guide's second sled from the 'asst' upgrade).",
   "when": {
    "boat": "staff",
-   "where": "launch",
+   "where": "staff",
    "cond": [
     0,
     100
@@ -229,6 +234,120 @@
    "up": [],
    "time": "day"
   },
-  "notes": "Show when S.biz.boats is non-empty or S.up.asst is true. Three hired guides max (BIZ), two extra boats max (BIZ_MAX_BOATS) - the picture shows two sleds and a drift boat."
+  "notes": "Morning report section for your hired guides' trips (S.biz.boats non-empty or S.up.asst). Three hired guides max (BIZ), two extra boats max (BIZ_MAX_BOATS): the picture shows two sleds and a drift boat."
+ },
+ {
+  "id": "boat-11-combat-fishing-big-eddy",
+  "set": "boat",
+  "n": 11,
+  "title": "Combat fishing at Big Eddy",
+  "file": "boat/11-combat-fishing-big-eddy.png",
+  "svg": "boat/11-combat-fishing-big-eddy.svg",
+  "w": 1600,
+  "h": 900,
+  "alt": "A jet sled anchored off a shoulder-to-shoulder crowd of bank anglers on an elevated walkway while a wader low-holes right below the clients and three lines tangle into one bird's nest.",
+  "where": "Trip sheet on a sockeye day on the lower Kenai (Centennial/Big Eddy), and the 'Combat fishing' trip dilemma.",
+  "when": {
+   "boat": "sled",
+   "where": "river",
+   "trip": "reds",
+   "time": "day"
+  },
+  "notes": "Also the art for event {event:'combat', from:'trip'} (dilemma 'combat' in 22-trips.js POOL reds/trout): the framework can register this same file in the event set, so the event agent need not draw it. The wader's legs are clipped at the waterline with a faint submerged ghost."
+ },
+ {
+  "id": "boat-12-sow-and-cubs-eddy",
+  "set": "boat",
+  "n": 12,
+  "title": "Sow and two cubs on the gravel bar",
+  "file": "boat/12-sow-and-cubs-eddy.png",
+  "svg": "boat/12-sow-and-cubs-eddy.svg",
+  "w": 1600,
+  "h": 900,
+  "alt": "A drift boat holds in an eddy behind a boulder on the turquoise upper Kenai while a brown bear sow and two cubs stand on a gravel bar, one client pointing and another taking a photo.",
+  "where": "The 'bear' trip dilemma on a drift-boat (trout) float on the upper Kenai.",
+  "when": {
+   "boat": "drift",
+   "where": "river",
+   "trip": "trout",
+   "time": "day"
+  },
+  "notes": "Also usable for event {event:'bear', from:'trip'} (dilemma 'bear' is in the trout POOL). Bear spray on the rower's seat; the rower faces upstream pulling to hold the eddy."
+ },
+ {
+  "id": "boat-13-loaner-sled-launch",
+  "set": "boat",
+  "n": 13,
+  "title": "Loaner day",
+  "file": "boat/13-loaner-sled-launch.png",
+  "svg": "boat/13-loaner-sled-launch.svg",
+  "w": 1600,
+  "h": 900,
+  "alt": "A tired borrowed jet sled with mismatched red and olive paint, a primer patch, a duct-taped seat and taped cowling is tied at the launch dock while the guide shrugs at two skeptical clients.",
+  "where": "Trip sheet / launch on a day you rented a loaner because your boat is out of service.",
+  "when": {
+   "boat": "loaner",
+   "where": "launch",
+   "time": "day"
+  },
+  "notes": "S.loaner===day() (LOANER_COST option in 20-world.js). An oil sheen behind the transom and a dented bow rail; a clean rig on the far ramp for contrast."
+ },
+ {
+  "id": "boat-14-private-dock-morning",
+  "set": "boat",
+  "n": 14,
+  "title": "Your own riverfront dock",
+  "file": "boat/14-private-dock-morning.png",
+  "svg": "boat/14-private-dock-morning.svg",
+  "w": 1600,
+  "h": 900,
+  "alt": "Morning on your private riverfront lot: a board-and-batten shed with a lit window and antlers on the gable, a private concrete ramp, a fuel pump on the dock, the sled tied alongside and you with a coffee mug.",
+  "where": "Launch / dock beat when you own the riverfront lot (fuel at your own pump, no launch fees).",
+  "when": {
+   "where": "dock",
+   "up": [
+    "dock"
+   ],
+   "time": "day"
+  },
+  "notes": "Upgrade 'dock' in UPGRADES (24-career.js): 'own ramp and pump on the Kenai'. Also fits where:'launch' with up:['dock']; boat omitted so it fits sled days in general. Low sun at the left and river mist for early morning."
+ },
+ {
+  "id": "boat-15-june-king-backtroll",
+  "set": "boat",
+  "n": 15,
+  "title": "June king at first light",
+  "file": "boat/15-june-king-backtroll.png",
+  "svg": "boat/15-june-king-backtroll.svg",
+  "w": 1600,
+  "h": 900,
+  "alt": "At dawn on the lower Kenai a jet sled back-trolls with plugs off the stern while the guide leans over the side to net a big chrome king salmon, its client's rod bent and a buddy cheering.",
+  "where": "Trip sheet for a king trip (booking kind 'king') or the 'king' trip dilemma on a June/July morning.",
+  "when": {
+   "boat": "king",
+   "where": "river",
+   "trip": "king",
+   "time": "dusk"
+  },
+  "notes": "time 'dusk' = the game's dawn sky window, like 01. Trip ids: booking kind==='king' (21-story.js) and dilemma 'king' in the reds/silver POOL; keep one of boat/trip if the framework ANDs keys strictly. The king is drawn with black-spotted back and tail, deep silver flanks."
+ },
+ {
+  "id": "boat-16-evening-silvers-backtroll",
+  "set": "boat",
+  "n": 16,
+  "title": "Evening silvers in August",
+  "file": "boat/16-evening-silvers-backtroll.png",
+  "svg": "boat/16-evening-silvers-backtroll.svg",
+  "w": 1600,
+  "h": 900,
+  "alt": "At golden hour in August a jet sled back-trolls with three rods bent hard off the stern toward the setting sun while silver salmon leap in the glittering light and birch leaves start to yellow.",
+  "where": "Trip sheet for an evening silver (coho) trip on the Kenai in August.",
+  "when": {
+   "boat": "sled",
+   "where": "river",
+   "trip": "silver",
+   "time": "dusk"
+  },
+  "notes": "Boat mirrored (bow upstream to the left) so the lines run into the sun path. Fireweed gone to seed and dry grass in the foreground mark late summer."
  }
 ]
