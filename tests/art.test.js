@@ -402,68 +402,84 @@ module.exports = [
     const rel = JSON.parse(fs.readFileSync(path.join(ROOT, 'release.json'), 'utf8'));
     assert.ok(!(rel.exclude || []).some(x => /^art\/?$/.test(x)), 'the release keeps art/ in the site');
   } },
-  { only: 'index.html', name: 'tools/art.py: import encodes a set (WebP 1600, JPEG 960, thumbs, no PNG) disabled; validate checks keys, from, event ids, sizes; enable embeds it', fn: async () => {
-    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'gm-art-')), set = path.join(tmp, 'set', 'boat'), evset = path.join(tmp, 'set', 'event'), repo = path.join(tmp, 'repo');
+  { only: 'index.html', name: 'tools/art.py validate: only the set’s when-keys, "from" on events and ids reported from there, file formats and sizes (no Pillow needed); enable embeds an entry', fn: async () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'gm-art-')), repo = path.join(tmp, 'repo');
     try {
-      fs.mkdirSync(set, { recursive: true }); fs.mkdirSync(evset, { recursive: true });
-      // 1600x900 and 400x225 PNGs written by Python (zlib + struct): a soft gradient, like the flat art
+      fs.mkdirSync(repo);
+      for (const d of ['src', 'tools', 'fonts', 'icons']) fs.cpSync(path.join(ROOT, d), path.join(repo, d), { recursive: true });
+      for (const f of ['sw.js', 'manifest.webmanifest']) fs.copyFileSync(path.join(ROOT, f), path.join(repo, f));
+      // real, small files from the repo's own art (a WebP 1600x900, a JPEG 960x540 and the thumbs)
+      const one = JSON.parse(fs.readFileSync(path.join(ROOT, 'art', 'manifest.json'), 'utf8')).find(e => e.set === 'boat');
+      for (const s of ['boat', 'event']) { fs.mkdirSync(path.join(repo, 'art', s), { recursive: true }); for (const k of ['webp', 'file', 'thumbWebp', 'thumb']) fs.copyFileSync(path.join(ROOT, 'art', one[k]), path.join(repo, 'art', s, path.basename(one[k]))); }
+      const ent = (id, set, when, x) => Object.assign({ id, set, n: 1, title: id, webp: `${set}/${path.basename(one.webp)}`, file: `${set}/${path.basename(one.file)}`, fw: 960,
+        thumbWebp: `${set}/${path.basename(one.thumbWebp)}`, thumb: `${set}/${path.basename(one.thumb)}`, v: 'abc', w: 1600, h: 900, alt: 'A sled at the launch.', where: '', when, notes: '', enabled: false }, x || {});
+      fs.writeFileSync(path.join(repo, 'art', 'manifest.json'), JSON.stringify([
+        ent('boat-01', 'boat', { boat: ['sled', 'loaner', 'king'], where: ['launch', 'trailer', 'dock', 'shop', 'staff'], up: ['motor', 'dock'], cond: [40, 100], time: 'day', trip: 'king' }, { meta: { hook: 'launch' }, notes: 'n' }),
+        ent('boat-02', 'boat', { boat: 'drift', up: ['warp-drive'], hook: 'shop' }),
+        ent('boat-03', 'boat', { boat: 'sled' }, { fw: 1200 }),
+        ent('event-01', 'event', { event: 'pipe_burst', time: 'any' }),
+        ent('event-02', 'event', { event: ['combat', 'cold_snap'], from: 'trip' }),
+        ent('event-03', 'event', { event: ['combat', 'bear', 'fog', 'whale'], from: 'trip' }),
+        ent('event-04', 'event', { event: ['pipe_burst', 'cold_snap', 'outage_dark'], from: 'home' }),
+        ent('event-05', 'event', { event: 'moose', from: ['game', 'camp'] }),
+        ent('event-06', 'event', { event: 'moose', from: 'home' })], null, 1));
+      const py = (...a) => { try { return { code: 0, out: execFileSync('python3', [path.join(repo, 'tools', 'art.py'), '--root', repo, ...a], { encoding: 'utf8' }) }; } catch (e) { return { code: e.status, out: String(e.stdout) + String(e.stderr) }; } };
+      const v = py('validate'), errs = v.out.split('\n').filter(l => l.startsWith('ERROR'));
+      assert.strictEqual(v.code, 1);
+      assert.ok(errs.some(l => /boat-02: when\.up has \['warp-drive'\]/.test(l)) && errs.some(l => /boat-02: when\.hook is not a key of the boat set.*notes.*meta/.test(l)), v.out);
+      assert.ok(errs.some(l => /boat-03: art\/boat\/\S+\.jpg is 960x540, expected 1200x675/.test(l)), v.out);
+      assert.ok(errs.some(l => /event-01: when\.from is required/.test(l)) && errs.some(l => /event-02: event \['cold_snap'\] is never reported from trip/.test(l)), v.out);
+      assert.ok(errs.some(l => /event-06: event \['moose'\] is never reported from home/.test(l)), v.out);
+      for (const id of ['boat-01', 'event-03', 'event-04', 'event-05']) assert.ok(!errs.some(l => l.includes(id + ':')), id + ': ' + v.out);
+      assert.strictEqual(errs.length, 6, v.out);
+      assert.strictEqual(py('remove', 'boat-02', 'boat-03', 'event-01', 'event-02', 'event-06').code, 0);
+      const ok = py('validate', '--strict'); assert.strictEqual(ok.code, 0, ok.out); assert.match(ok.out, /4 entries checked: 0 errors, 0 warnings; 0 enabled in all; files: boat \d+ KB, event \d+ KB/);
+      assert.ok(fs.existsSync(path.join(repo, 'art', 'boat', path.basename(one.webp))), 'remove keeps files another entry still uses');
+      assert.strictEqual(py('enable', 'boat-01').code, 0);
+      execFileSync('python3', [path.join(repo, 'tools', 'build.py')], { cwd: repo });
+      const html = fs.readFileSync(path.join(repo, 'index.html'), 'utf8');
+      assert.match(html, /\/\*@ART@\*\/\[\{"id":"boat-01","set":"boat","file":"boat\/[\w-]+\.jpg","fw":960,"thumb":"boat\/[\w-]+\.thumb\.jpg","webp":"boat\/[\w-]+\.webp"/);
+      assert.ok(!/"notes"|"meta"/.test(html.match(/\/\*@ART@\*\/.*?\/\*@\/ART@\*\//s)[0]), 'only what the game reads is embedded');
+      execFileSync('python3', [path.join(repo, 'tools', 'build-offline.py'), '--with-art'], { cwd: repo, stdio: 'pipe' });
+      const off = fs.readdirSync(path.join(repo, 'offline')).map(f => fs.readFileSync(path.join(repo, 'offline', f), 'utf8')).join('').match(/\/\*@ART@\*\/.*?\/\*@\/ART@\*\//s)[0];
+      assert.match(off, /"file":"data:image\/webp;base64,/, 'the offline file inlines the WebP'); assert.ok(!/"fw":/.test(off));
+      fs.unlinkSync(path.join(repo, 'art', 'boat', path.basename(one.file)));
+      const gone = py('validate'); assert.strictEqual(gone.code, 1); assert.match(gone.out, /boat-01: file art\/boat\/\S+\.jpg is missing/);
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  } },
+  { only: 'index.html', name: 'tools/art.py import encodes a drawn set: WebP 1600x900 (≤150 KB), JPEG 960x540, thumbs as WebP + JPEG, no PNG, disabled, notes and meta kept (needs Pillow)', fn: async () => {
+    try { execFileSync('python3', ['-c', "from PIL import features;assert features.check('webp')"], { stdio: 'pipe' }); }
+    catch (e) { console.log('       (skipped: no Pillow with WebP here; tools/art.py import needs it, validate does not)'); return; }
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'gm-art-')), set = path.join(tmp, 'set', 'boat'), repo = path.join(tmp, 'repo');
+    try {
+      fs.mkdirSync(set, { recursive: true });
+      // 1600x900 and 400x225 PNGs written by Python (zlib + struct): soft bands, like the flat art
       const mk = `import struct,zlib,sys
 def png(p,w,h):
   rows=[b'\\x00'+b''.join(bytes([143,(185+x*60//w)%256,207-k*9]) for x in range(w)) for k in range(9)]
   raw=b''.join(rows[y*9//h] for y in range(h))
   ch=lambda t,d:struct.pack('>I',len(d))+t+d+struct.pack('>I',zlib.crc32(t+d)&0xffffffff)
   open(p,'wb').write(b'\\x89PNG\\r\\n\\x1a\\n'+ch(b'IHDR',struct.pack('>IIBBBBB',w,h,8,2,0,0,0))+ch(b'IDAT',zlib.compress(raw,9))+ch(b'IEND',b''))
-for d in sys.argv[1:]:
-  for n in (1,2):
-    png(d+'/0%d-test.png'%n,1600,900); png(d+'/0%d-test.thumb.png'%n,400,225)`;
-      execFileSync('python3', ['-c', mk, set, evset]);
+for n in (1,2):
+  png(sys.argv[1]+'/0%d-test.png'%n,1600,900); png(sys.argv[1]+'/0%d-test.thumb.png'%n,400,225)`;
+      execFileSync('python3', ['-c', mk, set]);
       fs.writeFileSync(path.join(set, 'manifest.json'), JSON.stringify([
-        { id: 'boat-01', set: 'boat', n: 1, title: 'a', file: 'boat/01-test.png', svg: 'boat/01-test.svg', w: 1600, h: 900, alt: 'A jet sled at the launch.', where: 'x', when: { boat: ['sled', 'loaner'], where: ['launch', 'trailer', 'dock'], up: ['motor', 'dock'], cond: [40, 100], time: 'day', trip: 'king' }, notes: 'n', meta: { hook: 'launch' } },
-        { id: 'boat-02', set: 'boat', n: 2, title: 'b', file: 'boat/02-test.png', w: 1600, h: 900, alt: 'A drift boat.', where: 'x', when: { boat: 'drift', up: ['warp-drive'], hook: 'shop' }, notes: '' }]));
-      fs.writeFileSync(path.join(evset, 'manifest.json'), JSON.stringify([
-        { id: 'event-01', set: 'event', n: 1, title: 'a', file: 'event/01-test.png', w: 1600, h: 900, alt: 'A burst pipe.', where: 'x', when: { event: 'pipe_burst', time: 'any' }, notes: '' },
-        { id: 'event-02', set: 'event', n: 2, title: 'b', file: 'event/02-test.png', w: 1600, h: 900, alt: 'Combat fishing.', where: 'x', when: { event: ['combat', 'cold'], from: 'trip' }, notes: '' }]));
-      fs.mkdirSync(repo);
+        { id: 'boat-01', set: 'boat', n: 1, title: 'a', file: 'boat/01-test.png', svg: 'boat/01-test.svg', w: 1600, h: 900, alt: 'A jet sled at the launch.', where: 'x', when: { boat: 'loaner', where: 'launch' }, notes: 'n', meta: { hook: 'launch' } },
+        { id: 'boat-02', set: 'boat', n: 2, title: 'b', file: 'boat/02-test.png', w: 1600, h: 900, alt: 'A drift boat.', where: 'x', when: { boat: 'drift', where: 'dock' }, notes: '' }]));
+      fs.mkdirSync(path.join(repo, 'art'), { recursive: true });
       for (const d of ['src', 'tools']) fs.cpSync(path.join(ROOT, d), path.join(repo, d), { recursive: true });
-      for (const f of ['sw.js']) fs.copyFileSync(path.join(ROOT, f), path.join(repo, f));
-      fs.mkdirSync(path.join(repo, 'art')); fs.writeFileSync(path.join(repo, 'art', 'manifest.json'), '[]\n');
-      const py = (...a) => { try { return { code: 0, out: execFileSync('python3', [path.join(repo, 'tools', 'art.py'), '--root', repo, ...a], { encoding: 'utf8' }) }; } catch (e) { return { code: e.status, out: String(e.stdout) + String(e.stderr) }; } };
-      const imp = py('import', set);
-      assert.strictEqual(imp.code, 1, 'errors fail the import: ' + imp.out);
-      assert.match(imp.out, /boat-02: when\.up has \['warp-drive'\]/); assert.match(imp.out, /boat-02: when\.hook is not a key of the boat set/);
-      assert.ok(!/ERROR {2}boat-01/.test(imp.out), 'loaner, king, dock, trailer and the upgrades are all known: ' + imp.out);
-      const man = JSON.parse(fs.readFileSync(path.join(repo, 'art', 'manifest.json'), 'utf8'));
+      fs.writeFileSync(path.join(repo, 'art', 'manifest.json'), '[]\n');
+      const imp = (() => { try { return { code: 0, out: execFileSync('python3', [path.join(repo, 'tools', 'art.py'), '--root', repo, 'import', set], { encoding: 'utf8' }) }; } catch (e) { return { code: e.status, out: String(e.stdout) + String(e.stderr) }; } })();
+      assert.strictEqual(imp.code, 0, imp.out); assert.match(imp.out, /imported 2 entries \(2 new\).*disabled/);
+      const man = JSON.parse(fs.readFileSync(path.join(repo, 'art', 'manifest.json'), 'utf8')), e1 = man[0], B = f => path.join(repo, 'art', f);
       assert.deepStrictEqual(man.map(e => [e.id, e.enabled]), [['boat-01', false], ['boat-02', false]], 'imported switched off');
-      const e1 = man[0], B = f => path.join(repo, 'art', f);
-      assert.deepStrictEqual([e1.webp, e1.file, e1.fw, e1.thumbWebp, e1.thumb, e1.w, e1.h], ['boat/01-test.webp', 'boat/01-test.jpg', 960, 'boat/01-test.thumb.webp', 'boat/01-test.thumb.jpg', 1600, 1600 * 9 / 16]);
-      assert.deepStrictEqual(e1.meta, { hook: 'launch' }); assert.strictEqual(e1.notes, 'n'); assert.ok(!('svg' in e1));
+      assert.deepStrictEqual([e1.webp, e1.file, e1.fw, e1.thumbWebp, e1.thumb, e1.w, e1.h], ['boat/01-test.webp', 'boat/01-test.jpg', 960, 'boat/01-test.thumb.webp', 'boat/01-test.thumb.jpg', 1600, 900]);
+      assert.deepStrictEqual(e1.meta, { hook: 'launch' }); assert.strictEqual(e1.notes, 'n'); assert.ok(!('svg' in e1)); assert.ok(/^[0-9a-f]{10}$/.test(e1.v), 'a content hash for cache-busting');
       assert.deepStrictEqual(fs.readdirSync(path.join(repo, 'art', 'boat')).sort(), ['01-test.jpg', '01-test.thumb.jpg', '01-test.thumb.webp', '01-test.webp', '02-test.jpg', '02-test.thumb.jpg', '02-test.thumb.webp', '02-test.webp'], 'no PNG is kept');
       const size = f => JSON.parse(execFileSync('python3', ['-c', 'import sys,json;from PIL import Image;im=Image.open(sys.argv[1]);print(json.dumps([im.format,*im.size]))', B(f)], { encoding: 'utf8' }));
       assert.deepStrictEqual(size(e1.webp), ['WEBP', 1600, 900]); assert.deepStrictEqual(size(e1.file), ['JPEG', 960, 540]);
       assert.deepStrictEqual(size(e1.thumbWebp), ['WEBP', 400, 225]); assert.deepStrictEqual(size(e1.thumb), ['JPEG', 400, 225]);
       assert.ok(fs.statSync(B(e1.webp)).size <= 150 * 1024 && fs.statSync(B(e1.file)).size < fs.statSync(path.join(set, '01-test.png')).size);
-      assert.ok(/^[0-9a-f]{10}$/.test(e1.v), 'a content hash for cache-busting');
-      // events: "from" is required, and the id must be reported from there
-      const ev = py('import', evset);
-      assert.strictEqual(ev.code, 1);
-      assert.match(ev.out, /event-01: when\.from is required/);
-      assert.match(ev.out, /event-02: event \['cold'\] is never reported from trip/); assert.ok(!/'combat'/.test(ev.out), ev.out);
-      assert.strictEqual(py('remove', 'boat-02', 'event').code, 0);
-      const ok = py('validate', '--strict'); assert.strictEqual(ok.code, 0, ok.out); assert.match(ok.out, /1 entries checked: 0 errors, 0 warnings/);
-      assert.strictEqual(py('enable', 'boat').code, 0);
-      execFileSync('python3', [path.join(repo, 'tools', 'build.py')], { cwd: repo });
-      const html = fs.readFileSync(path.join(repo, 'index.html'), 'utf8');
-      assert.match(html, /\/\*@ART@\*\/\[\{"id":"boat-01","set":"boat","file":"boat\/01-test\.jpg","fw":960,"thumb":"boat\/01-test\.thumb\.jpg","webp":"boat\/01-test\.webp"/);
-      assert.ok(!/"notes"|"meta"|"where":"x"/.test(html), 'only what the game reads is embedded');
-      // the offline build with --with-art inlines the WebP as the one file
-      fs.mkdirSync(path.join(repo, 'fonts'), { recursive: true });
-      for (const d of ['fonts', 'icons']) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(repo, d), { recursive: true });
-      for (const f of ['manifest.webmanifest', 'VERSION']) if (fs.existsSync(path.join(ROOT, f))) fs.copyFileSync(path.join(ROOT, f), path.join(repo, f));
-      execFileSync('python3', [path.join(repo, 'tools', 'build-offline.py'), '--with-art'], { cwd: repo, stdio: 'pipe' });
-      const off = fs.readdirSync(path.join(repo, 'offline')).map(f => fs.readFileSync(path.join(repo, 'offline', f), 'utf8')).join('');
-      assert.match(off, /"file":"data:image\/webp;base64,/); assert.ok(!/"fw":/.test(off.match(/\/\*@ART@\*\/.*?\/\*@\/ART@\*\//s)[0]));
-      fs.unlinkSync(B('boat/01-test.jpg'));
-      const gone = py('validate'); assert.strictEqual(gone.code, 1); assert.match(gone.out, /boat-01: file art\/boat\/01-test\.jpg is missing/);
     } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
   } },
   { only: 'index.html', name: 'tools/art.py events: the ids it reads from the source are the ids the running game reports (defEvent, CabinUpkeep.EVENTS, camp encounters, trip steps)', fn: async ctx => {

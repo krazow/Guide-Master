@@ -96,12 +96,40 @@ def png_size(path):
     return struct.unpack('>II', head[16:24])
 
 
+def webp_size(path):
+    with open(path, 'rb') as f:
+        h = f.read(30)
+    if h[:4] != b'RIFF' or h[8:12] != b'WEBP': return None
+    kind = h[12:16]
+    if kind == b'VP8 ': return struct.unpack('<H', h[26:28])[0] & 0x3fff, struct.unpack('<H', h[28:30])[0] & 0x3fff
+    if kind == b'VP8L':
+        b = int.from_bytes(h[21:25], 'little'); return (b & 0x3fff) + 1, ((b >> 14) & 0x3fff) + 1
+    if kind == b'VP8X': return int.from_bytes(h[24:27], 'little') + 1, int.from_bytes(h[27:30], 'little') + 1
+    return None
+
+
+def jpeg_size(path):
+    with open(path, 'rb') as f:
+        d = f.read()
+    if d[:2] != b'\xff\xd8': return None
+    i = 2
+    while i + 9 < len(d):
+        if d[i] != 0xff: i += 1; continue
+        m = d[i + 1]
+        if m in (0xd8, 0x01) or 0xd0 <= m <= 0xd7: i += 2; continue
+        n = struct.unpack('>H', d[i + 2:i + 4])[0]
+        if 0xc0 <= m <= 0xcf and m not in (0xc4, 0xc8, 0xcc):
+            hh, ww = struct.unpack('>HH', d[i + 5:i + 9]); return ww, hh
+        i += 2 + n
+    return None
+
+
 def img_size(path):
-    if path.endswith('.png'): return png_size(path)
+    """(width, height) from the file's header (PNG, WebP, JPEG), or None: no Pillow needed to validate."""
     try:
-        from PIL import Image
-        with Image.open(path) as im: return im.size
-    except Exception:
+        ext = os.path.splitext(path)[1].lower()
+        return png_size(path) if ext == '.png' else webp_size(path) if ext == '.webp' else jpeg_size(path) if ext in ('.jpg', '.jpeg') else None
+    except (OSError, struct.error):
         return None
 
 
@@ -214,10 +242,11 @@ def cmd_toggle(a, on):
 def cmd_remove(a):
     es = load(a.root)
     keep = [e for e in es if not match(e, a.names)]
+    used = {e[k] for e in keep for k in FILES if k in e}   # a file another entry still lists stays
     for e in es:
         if match(e, a.names):
             for k in FILES:
-                p = os.path.join(a.root, 'art', e[k]) if k in e else None
+                p = os.path.join(a.root, 'art', e[k]) if k in e and e[k] not in used else None
                 if p and os.path.exists(p): os.remove(p)
     save(a.root, keep)
     print(f'removed {len(es) - len(keep)} entries')
