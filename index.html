@@ -226,6 +226,12 @@ button.act,.ghost,.big{min-height:44px}
 .digest .dig .di{font-size:22px;line-height:1.2}
 .digest .dig p{margin:3px 0 0;font-size:14px}
 .digest .sect{margin-top:10px}
+/* illustrations (40-art.js): a 2:1 banner cropped from the 16:9 art, a soft sky-colored placeholder while it loads */
+.art-fig{margin:0 0 10px;border-radius:12px;overflow:hidden;aspect-ratio:2/1;background:linear-gradient(#cfdfe3,#e7ece2)}
+.art-fig picture{display:contents}
+.art-fig img{display:block;width:100%;height:100%;object-fit:cover}
+.modal .art-fig{margin:0 0 10px}
+@media (prefers-color-scheme:dark){.art-fig{background:linear-gradient(#22313a,#1d2e22)}.art-fig img{filter:brightness(.86) saturate(.95)}}
 </style>
 </head>
 <body>
@@ -1624,7 +1630,8 @@ const CabinUpkeep={
 //  CabinUpkeep.ui.scenes(host, rep, done) a winter report followed by each storm prompt in turn, then done()
 //
 //  The host adapter: {
-//    show(title, html, buttons, lock),   required. Show a pop-up. buttons: [{l, s, dis, fn, stay}]; fn runs after the pop-up has closed.
+//    show(title, html, buttons, lock, meta), required. Show a pop-up. buttons: [{l, s, dis, fn, stay}]; fn runs after the pop-up has closed.
+//                                        meta (optional, a job's pop-ups only): {id, kind} of the job, e.g. for an illustration; a host may ignore it.
 //                                        A button with stay:true asks the host to keep the pop-up on screen and show whatever fn shows next in the
 //                                        same sheet (a host that can't just ignores it), so a job, its result and the next job are one pop-up.
 //    ticket(),                           required. A fresh ticket from the host's current numbers (it changes after every report).
@@ -1670,12 +1677,12 @@ const CabinUpkeep={
       const rep=C.resolve(host.ticket(),jobId,o.id,rnd(host));
       if(!rep){if(then)then();return}
       host.apply(rep);
-      if(job.kind==='event'||rep.severity>0)host.show(`${job.ic} ${job.title}`,rep.lines.map(l=>`<p>${l}</p>`).join('')+condLine(rep),[{l:'Continue',stay:true,fn:()=>{if(then)then()}}],lock);
+      if(job.kind==='event'||rep.severity>0)host.show(`${job.ic} ${job.title}`,rep.lines.map(l=>`<p>${l}</p>`).join('')+condLine(rep),[{l:'Continue',stay:true,fn:()=>{if(then)then()}}],lock,{id:job.id,kind:job.kind});
       else if(then)then();
     };
     const btns=job.opts.map(o=>({l:`${o.l}${o.id==='skip'?'':` · ${o.cash?$(o.cash):'free'}`}`,s:o.dis&&o.why?`${o.why}`:o.s,dis:o.dis,stay:true,fn:run(o)}));
     if(!lock)btns.push({l:'Not now',s:'Decide later.',stay:true,fn:()=>{if(then)then()}});
-    host.show(`${job.ic} ${job.title}`,`<p>${esc(job.why)}</p><p class="small-note" style="color:var(--mute);font-size:13px">If you skip it: ${esc(job.risk.replace(/^Skip it and /,'').replace(/^Skip it /,''))}</p>`,btns,!!lock);
+    host.show(`${job.ic} ${job.title}`,`<p>${esc(job.why)}</p><p class="small-note" style="color:var(--mute);font-size:13px">If you skip it: ${esc(job.risk.replace(/^Skip it and /,'').replace(/^Skip it /,''))}</p>`,btns,!!lock,{id:job.id,kind:job.kind});
   };
   // every job that is due, on one screen: each with its own three ways. A choice is applied and the screen comes back with what is left.
   U2.batch=function(host,o){
@@ -2058,14 +2065,15 @@ const INFO_POP_CAP=1;
 function infoPopsToday(){const p=S&&S.ev&&S.ev.pop;return p&&p.d===day()?p.n:0}
 function eventPopup(hook,items,capped){
   if(!items.length||hook==='night'||!S||S.over) return;
-  if(DIGEST){items.forEach(it=>{const m=it.e.tile||['📍',it.e.id.replace(/_/g,' ')];DIGEST.items.push({ic:m[0],title:m[1],lines:it.lines})});return}   // morning events are part of the morning report
+  if(DIGEST){items.forEach(it=>{const m=it.e.tile||['📍',it.e.id.replace(/_/g,' ')];DIGEST.items.push({ic:m[0],title:m[1],lines:it.lines,id:it.e.id})});return}   // morning events are part of the morning report
   if(!popupsOn()||capped) return;
   S.ev.pop={d:day(),n:infoPopsToday()+1}; // night events go in the "Good night" summary
   const meta=e=>e.tile||['📍',e.id.replace(/_/g,' ')];
   const body=items.map(it=>{const m=meta(it.e);const txt=it.lines.map(l=>`<p style="margin:4px 0 0">${l}</p>`).join('');
     return items.length>1?`<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)"><span style="font-size:24px">${m[0]}</span><div><b>${m[1]}</b>${txt}</div></div>`:txt}).join('');
   const one=items.length===1?meta(items[0].e):null;
-  modal(one?`${one[0]} ${one[1]}`:'📍 Meanwhile…',body||'<p></p>',[{l:'OK',fn:()=>{}}]);
+  const art=artOn()?items.map(it=>artSlot('event',()=>artEventCtx(it.e.id))).find(Boolean)||'':'';   // 40-art.js: the first event with an illustration
+  modal(one?`${one[0]} ${one[1]}`:'📍 Meanwhile…',art+(body||'<p></p>'),[{l:'OK',fn:()=>{}}]);
 }
 // ---------------- the game loop ----------------
 // Time only moves when the player does something. An action calls pass(minutes); travel calls go(dest);
@@ -2146,7 +2154,8 @@ function morningReport(D,d){
   const ev=items.map(it=>`<div class="dig"><span class="di" aria-hidden="true">${it.ic}</span><div><b>${it.title}</b>${(it.lines||[]).map(l=>`<p>${l}</p>`).join('')}</div></div>`).join('');
   const rq=(S.reqs||[]).length;
   const lines=D.lines.map(l=>`<p>${l}</p>`).join('');
-  const body=`<div class="digest">${sec(`🌙 ${dayName(d)} night`,D.night)}${sec('☀️ This morning',ev+lines)}${rq?`<div class="dig"><span class="di" aria-hidden="true">📞</span><div><b>${rq} booking request${rq>1?'s':''} waiting</b><p>${(S.reqs||[]).map(q=>`The ${q.r.who}: ${reqKey(q.r)}, ${dlabel(q.r.d)}`).join('<br>')}</p></div></div>`:''}</div>`;
+  const art=artOn()?items.map(it=>it.id?artSlot('event',()=>artEventCtx(it.id)):'').find(Boolean)||'':'';   // 40-art.js: the first event with an illustration
+  const body=`${art}<div class="digest">${sec(`🌙 ${dayName(d)} night`,D.night)}${sec('☀️ This morning',ev+lines)}${rq?`<div class="dig"><span class="di" aria-hidden="true">📞</span><div><b>${rq} booking request${rq>1?'s':''} waiting</b><p>${(S.reqs||[]).map(q=>`The ${q.r.who}: ${reqKey(q.r)}, ${dlabel(q.r.d)}`).join('<br>')}</p></div></div>`:''}</div>`;
   modal(`☀️ Morning report · ${dayName(S.cur)}`,body,[{l:`☀️ Wake up: ${dayName(S.cur)}, ${fmt(S.t)}`,fn:()=>{}},...(rq?[{l:`📞 Review requests in Bookings`,s:'They wait a day or two.',fn:()=>setTab('book')}]:[])]);
   sfx('info');
   D.held.forEach(q=>modal(...q));
@@ -2481,6 +2490,7 @@ window.openSettings=()=>{
     {l:'👤 Change name',s:'Updates your name everywhere in the game.',fn:()=>nameModal({back:openSettings})},
     {l:`🔊 Sound: ${prefs().sound?'On':'Off'}`,s:'Alerts and chimes.',fn:()=>{setPref('sound',!prefs().sound);if(prefs().sound)sfx('good');openSettings()}},
     {l:`🔔 Catch chime: ${prefs().chime?'On':'Off'}`,s:'A short chime for trophies, kings, limit-outs and first fish. Off unless you turn it on.',fn:()=>{setPref('chime',!prefs().chime);if(prefs().chime&&typeof memChime==='function')memChime();openSettings()}},
+    ...(ART.any()?[{l:`🖼️ Illustrations: ${artPref()?'On':'Off'}`,s:'Pictures on the Home tab, trips, camping and events. Turn off to keep the drawn scenes only (and save data).',fn:()=>{setPref('art',!artPref());if(S&&!S.over&&!document.querySelector('.title,.end'))render();openSettings()}}]:[]),
     {l:'♿ Accessibility',s:`Text size: ${{n:'Normal',l:'Large',xl:'Extra large'}[prefs().fs]} · High contrast: ${prefs().hc?'On':'Off'} · Reduce motion: ${prefs().rm?'On':'Off'}`,fn:()=>accessModal()},
     {l:`💡 Tips: ${prefs().tips?'On':'Off'}`,s:'One short tip at a time while you learn.',fn:()=>{setPref('tips',!prefs().tips);openSettings()}},
     {l:`🔔 Event pop-ups: ${popupsOn()?'On':'Off'}`,s:popupsOn()?'An OK window for each event during the day. Tap to turn off (the tiles still show).':'Events during the day show as small tiles and log lines. Tap to get an OK window for each. The morning report always shows.',fn:()=>{try{localStorage.setItem(POPUP_KEY,popupsOn()?'off':'on')}catch(e){}openSettings()}},
@@ -3512,9 +3522,10 @@ function tripNext(){
   const left=t.steps.slice(t.step).filter(x=>x!=='pack').length,done=t.steps.slice(0,t.step).filter(x=>x!=='pack').length;
   const prog=sheet?` · ${done+1} of ${done+left}`:'';
   const open=sheet&&!t.shown?`<p class="small-note" style="margin:0 0 6px">You load the ${b.who} into the ${b.type==='trout'?'drift boat':b.type==='halibut'?'charter boat':'jet sled'} at ${L[T.loc].name} and push off at ${fmt(S.t)}.</p>`:'';
-  t.shown=true;
+  const first=!t.shown;t.shown=true;
+  const art=first?artSlot('boat',()=>artBoatCtx(b,T.loc==='homer'?'harbor':['launch','river'])):'';   // 40-art.js: the boat at the put-in, when an illustration is enabled
   const mm=memSheet(b,t,key);                              // 37-memories.js: a catch moment on top, the mentor's line below
-  modalSwap(v.t,`<p class="small-note" style="color:var(--mute);margin:0 0 6px">${T.ic} ${T.n} · ${b.who}${prog}</p>${open}${mm.top}${v.b}${packed?packHTML(pv):''}${hot}${mm.foot}`,opts.map(({o,k})=>({l:o.l,s:o.s,legal:o.legal!==false,dis:!!o.dis,np:true,k,stay:sheet,fn:()=>{
+  modalSwap(v.t,`${art}<p class="small-note" style="color:var(--mute);margin:0 0 6px">${T.ic} ${T.n} · ${b.who}${prog}</p>${open}${mm.top}${v.b}${packed?packHTML(pv):''}${hot}${mm.foot}`,opts.map(({o,k})=>({l:o.l,s:o.s,legal:o.legal!==false,dis:!!o.dis,np:true,k,stay:sheet,fn:()=>{
     const tt=S.trip;if(!tt) return;const bb=bk(tt.id);if(!bb) {S.trip=null;return}
     if(packed){const po=pv.o[PACK?PACK.sel:0];po&&po.fn&&po.fn(bb,tt);tt.step++;PACK=null}
     const q0=tt.q;o.fn&&o.fn(bb,tt);
@@ -3588,7 +3599,7 @@ function tripEnd(b,t){
   const mood=happy>=82?'😁 They’re already asking about next season. Word of mouth will bring you more bookings.':happy>=65?'🙂 Solid day. Handshakes at the trailer.':happy>=45?'😐 Polite thanks, small tip.':review?'😠 Tight-lipped goodbyes and a one-star review. Word gets around the Kenai.':'😕 They leave a little deflated.';
   const row=(l,v)=>`<br>${l}: <b>${v>=0?'':'−'}${$(Math.abs(v))}</b>`;
   const why=[];if(skunk)why.push('skunked');if(S.gear<=0&&t.notes.some(n=>n.startsWith('🪱')))why.push('no tackle');if(refund&&happy<42)why.push('unhappy clients');
-  modalSwap(`${T.ic} Back at the dock`,`${mem.top}${t.notes.map(n=>`<p>${n}</p>`).join('')}
+  modalSwap(`${T.ic} Back at the dock`,`${artSlot('boat',()=>artBoatCtx(b,T.loc==='homer'?'harbor':'launch'))}${mem.top}${t.notes.map(n=>`<p>${n}</p>`).join('')}
     <p><b>Catch:</b> ${line}${t.kept?` (${t.kept} kept on the sly)`:''}${lost?` · ${lost} minutes lost`:''}</p>
     ${towed?'<p>🛟 <b>Towed in.</b> Half the fare refunded.</p>':''}<p><b>The pay:</b>${row(`Booked fare${b.type==='halibut'&&!S.up.chp?' (day rate)':''}`,fare)}${refund?row(`Refund${why.length?` (${why.join(', ')})`:''}`,-refund):''}${row('Tip',tip)}${xs.map(([l,v])=>row(l,v)).join('')}${costs?row('Launch fee',-costs):''}<br><b>Net: ${net<0?'−':''}${$(Math.abs(net))}</b></p>
     <p>${mood} Rep ${dRep>=0?'+':'−'}${Math.abs(dRep)}.</p>${reviewHTML(rv,b)}${mem.html}
@@ -4410,16 +4421,34 @@ function campWrap(rep){
   sfx(rep.encounters?'good':'click');
   modal('🏕️ What camping did',campWrapHtml(rep),[{l:'Back to the off-season',fn:()=>setTimeout(winterModal,0)}]);
 }
+// 40-art.js: an illustration on top of the hub and each day, evening and night of a trip (only when one is enabled).
+// The engine never sees the game: the adapter keeps the session handle and reads its state; what the player picked last
+// (an activity, an evening by the fire) is noted from the buttons, and tonight's encounter from the trip's event list.
+const CAMP_ART_PHASES=['hub','day','evening','night','result','leave'];
+let CAMP_ART=null;
+function campArtShow(btns){
+  const A=CAMP_ART,s=A&&A.h&&A.h.session;
+  if(!s) return {art:artSlot('camp',()=>({time:'day',phase:'hub'})),btns};
+  const v=s.view(),ph=v.meta.phase,T=s.state.trip;
+  if(ph==='day'&&T&&T.slotsUsed===0&&!T.today.length){A.act=null;A.night=false}
+  let ev=null;
+  if(T&&ph==='night'&&T.events.length>A.ev) ev=T.events[T.events.length-1];
+  A.ev=T?T.events.length:0;
+  const art=!CAMP_ART_PHASES.includes(ph)||(ph==='result'&&!T)?'':(ev&&artSlot('event',()=>artEventCtx(ev,'camp')))||artSlot('camp',()=>artCampCtx(s,{activity:A.act,night:A.night}));
+  return {art,btns:btns.map((b,i)=>Object.assign({},b,{fn:()=>{const id=v.buttons[i]&&v.buttons[i].id;
+    if((ph==='day'||ph==='evening')&&id&&id!=='evening'){A.act=id;A.night=ph==='evening'}if(b.fn)b.fn()}}))};
+}
 // the player's entry point (from the off-season summary)
 function campModal(){
   if(!S.winter) return;
   if(cabin().rolled!==S.winter.s) return homeBeforeCamping(()=>campModal());   // the winter's first storm lands before the free days are spent
   campW();
-  KenaiCamp.start({mode:'guide',ticket:campTicket(),host:{
-    show:(title,html,btns,lock)=>modal(title,html,btns,lock),
+  CAMP_ART={h:null,act:null,night:false,ev:0};
+  CAMP_ART.h=KenaiCamp.start({mode:'guide',ticket:campTicket(),host:{
+    show:(title,html,btns,lock)=>{if(!artOn())return modal(title,html,btns,lock);const a=campArtShow(btns);modal(title,a.art+html,a.btns,lock)},
     toast:msg=>showTile('🏕️',msg,'','info'),
     rand:()=>Math.random(),now:()=>Date.now(),
-    onFinish:rep=>{campApply(rep);campWrap(rep)},
+    onFinish:rep=>{CAMP_ART=null;campApply(rep);campWrap(rep)},
   }});
 }
 // bots and tests: play a whole winter's camping with the engine's headless policy and apply the report
@@ -5038,7 +5067,8 @@ function homeApply(rep,quiet){
   if(!quiet) rep.lines.forEach(l=>say(l));
   return rep;
 }
-const homeHost=()=>({show:(t,h,b,lock)=>modalSwap(t,h,b,lock),ticket:()=>homeTicket(),apply:r=>homeApply(r),rand:()=>Math.random()});
+const homeHost=()=>({show:(t,h,b,lock,meta)=>modalSwap(t,(meta&&meta.kind==='event'?artSlot('event',()=>artEventCtx(meta.id,'home')):'')+h,b,lock),   // meta: {id, kind} of the job (40-art.js)
+  ticket:()=>homeTicket(),apply:r=>homeApply(r),rand:()=>Math.random()});
 const homeBotHost=()=>({ticket:()=>homeTicket(),apply:r=>homeApply(r,true)});
 
 // ---- generator: will it start in an outage? (called from outage() in 31-supplies.js) ----
@@ -5101,7 +5131,7 @@ function homeWinterModal(){
     return;
   }
   modal(ph==='fall'?'🏠 Get the cabin ready for winter':'🏠 Spring breakup at the cabin',
-    `<p style="font-size:13px;color:var(--mute)">Condition ${Math.round(cabin().cond)}/100. Cash ${$(t.cash)}. ${t.daysLeft} free day${t.daysLeft===1?'':'s'} left this winter, shared with camping and winter work. ${ph==='fall'?'The first cold snap and the first big snow come when you leave for camping or open bookings.':'Last winter’s storms are behind you; breakup comes next.'}</p>${jobs.length?'':'<p>Nothing is due right now.</p>'}${more>0?`<p style="font-size:12.5px;color:var(--mute)">${more} more job${more>1?'s':''} after these.</p>`:''}`,
+    `${artSlot('cabin',artCabinCtx)}<p style="font-size:13px;color:var(--mute)">Condition ${Math.round(cabin().cond)}/100. Cash ${$(t.cash)}. ${t.daysLeft} free day${t.daysLeft===1?'':'s'} left this winter, shared with camping and winter work. ${ph==='fall'?'The first cold snap and the first big snow come when you leave for camping or open bookings.':'Last winter’s storms are behind you; breakup comes next.'}</p>${jobs.length?'':'<p>Nothing is due right now.</p>'}${more>0?`<p style="font-size:12.5px;color:var(--mute)">${more} more job${more>1?'s':''} after these.</p>`:''}`,
     jobs.map(j=>({l:`${j.ic} ${j.title}`,s:`${j.why} ${j.risk}`,fn:()=>setTimeout(()=>CabinUpkeep.ui.open(homeHost(),j.id,()=>homeWinterModal()),0)}))
       .concat([{l:'🏪 Home upgrades',s:'A wood stove, a fish processing station, a bear-resistant bin.',fn:()=>setTimeout(()=>CabinUpkeep.ui.shop(homeHost(),homeWinterModal),0)},{l:'Back to the off-season',fn:()=>setTimeout(winterModal,0)}]));
 }
@@ -5126,7 +5156,7 @@ window.homeBot=homeBot;window.homeBotWinter=homeBotWinter;
 
 // ---- the Home tab, the HUD and the tab dot ----
 const homeDot=()=>{try{return !S.winter&&CabinUpkeep.dueCount(homeTicket())>0}catch(e){return false}};
-function homeView(){return CabinUpkeep.ui.tab(homeTicket())}
+function homeView(){return artSlot('cabin',artCabinCtx)+CabinUpkeep.ui.tab(homeTicket())}   // 40-art.js: an illustration on top, when one is enabled
 EXTRA_TABS.splice(2,0,{k:'home',ic:'🏠',l:'Home',view:homeView});
 document.addEventListener('click',e=>{
   const b=e.target&&e.target.closest?e.target.closest('[data-cab]'):null;
@@ -6721,6 +6751,145 @@ function starsWall(){
     <p style="margin:0 0 6px;color:var(--mute)">${dist.map(([k,c])=>`${k}★ ${c}`).join(' · ')}</p>${ms.map(([ok,t])=>`<div class="gm-ms"><span class="${ok?'ok':''}" aria-label="${ok?'reached':'not yet'}">${ok?'✓':'○'}</span><span>${t}</span></div>`).join('')}
     ${x.n>=5&&x.r<STAR_LOW?`<p style="color:var(--bad);margin:6px 0 0">Under ★${STAR_LOW}: fewer bookings until it comes back up.</p>`:''}</div>`;
 }
+// ============================================================
+//  GUIDE MASTER, part 18: illustrations (the art registry).
+//  Optional raster illustrations that can sit on top of a screen: the Home tab and the fall cabin sheet (set "cabin"), the trip
+//  sheet (set "boat"), the winter-camping screens (set "camp") and event pop-ups / the morning report (set "event").
+//  EVERY image ships switched off. With no enabled entry, every hook below returns '' and the screen is exactly what it was
+//  before; callers never need an "if". See art/README.md for how to add a set (tools/art.py import → review → enable → test).
+//
+//  ART.register(entry)        add or replace one manifest entry {id, set, file, thumb?, webp?, thumbWebp?, v?, w, h, alt, when, enabled}
+//                             (enabled is false unless it is exactly true). Returns the stored entry, or null if it is unusable.
+//  artFor(set, ctx)           the best ENABLED entry of a set whose `when` matches ctx, or null (the caller keeps its SVG art).
+//                             Every key in `when` must match; the score is the number of keys that matched something specific
+//                             ("any" matches but scores 0). Ties are broken by a stable hash of the day and the set, so a scene
+//                             doesn't flicker between renders of the same day.
+//  artImg(entry)              the <figure><img></figure> HTML (alt, width/height, lazy, async decode, srcset thumb/full, WebP)
+//  artSlot(set, ctx)          artImg(artFor(set, ctx)) or '' (never throws)
+//  artCabinCtx(), artBoatCtx(b, where), artCampCtx(session, extra), artEventCtx(id, from)
+//                             build a ctx from the game's state (the keys are listed in ART.KEYS and art/README.md)
+//
+//  The manifest is art/manifest.json, embedded here by tools/build.py between the markers below. The images stay separate files
+//  under art/ (cached on first use by sw.js, never precached) and are left out of the single-file offline build
+//  (tools/build-offline.py --with-art inlines the enabled ones).
+// ============================================================
+const ART_MANIFEST=/*@ART@*/[]/*@/ART@*/;
+const ART=(()=>{
+  // the "when" keys each set understands (tools/art.py validates against the same lists)
+  const KEYS={
+    cabin:['heat','season','time','cond','has'],
+    boat:['boat','where','cond','up','time','trip'],
+    camp:['place','shelter','activity','time','weather'],
+    event:['event','from','time'],
+  };
+  const ALL=[],ALLOF=['has','up'];   // array values under these keys must ALL be present in the context
+  const isRange=v=>Array.isArray(v)&&v.length===2&&v.every(x=>typeof x==='number');
+  function register(e){
+    if(!e||typeof e!=='object'||!e.id||!KEYS[e.set]||!e.file) return null;
+    const x=Object.assign({w:1600,h:900,alt:'',when:{}},e,{id:String(e.id),enabled:e.enabled===true});
+    if(!x.when||typeof x.when!=='object') x.when={};
+    const i=ALL.findIndex(y=>y.id===x.id);
+    if(i>=0) ALL[i]=x; else ALL.push(x);
+    return x;
+  }
+  // one key: -1 no match, 0 matched "any", 1 matched something specific
+  function key(k,w,c){
+    if(w===undefined||w===null||w==='any') return 0;
+    if(c===undefined||c===null) return -1;
+    const has=v=>Array.isArray(c)?c.includes(v):c===v;
+    if(ALLOF.includes(k)){const need=Array.isArray(w)?w:[w];return need.every(has)?1:-1}
+    if(isRange(w)){const n=Array.isArray(c)?c[0]:c;return typeof n==='number'&&n>=w[0]&&n<=w[1]?1:-1}
+    if(Array.isArray(w)) return w.some(v=>v==='any'||has(v))?1:-1;   // one of several values
+    return has(w)?1:-1;
+  }
+  function score(e,ctx){
+    let s=0;
+    for(const k of Object.keys(e.when)){const m=key(k,e.when[k],ctx?ctx[k]:undefined);if(m<0)return -1;s+=m}
+    return s;
+  }
+  // a small stable string hash (FNV-1a)
+  function hash(str){let h=0x811c9dc5;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,0x01000193)>>>0}return h>>>0}
+  function pick(set,ctx,opts){
+    const c=ALL.filter(e=>e.set===set&&(e.enabled||(opts&&opts.all)));
+    let best=-1,top=[];
+    c.forEach(e=>{const s=score(e,ctx||{});if(s<0)return;if(s>best){best=s;top=[e]}else if(s===best)top.push(e)});
+    if(!top.length) return null;
+    top.sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0);
+    const seed=ctx&&ctx.seed!=null?ctx.seed:'';
+    return top[hash(`${seed}|${set}`)%top.length];
+  }
+  const enabled=()=>ALL.filter(e=>e.enabled);
+  return {KEYS,register,score,pick,hash,
+    list:()=>ALL.slice(),enabled,any:()=>ALL.some(e=>e.enabled),get:id=>ALL.find(e=>e.id===id)||null,
+    enable(id,on){const e=ALL.find(x=>x.id===id||x.set===id);ALL.forEach(x=>{if(x.id===id||x.set===id)x.enabled=on!==false});return !!e},
+    clear(){ALL.length=0}};
+})();
+ART_MANIFEST.forEach(e=>ART.register(e));
+
+// Settings → Illustrations (on by default; the switch only shows once an image is enabled)
+const artPref=()=>prefs().art!==false;
+const artOn=()=>ART.any()&&artPref();
+function artFor(set,ctx){
+  if(!artOn()) return null;
+  const c=Object.assign({},ctx);
+  if(c.seed==null) c.seed=S?(S.winter?'w'+S.winter.s:day()):0;   // the same scene all day; a new pick tomorrow
+  return ART.pick(set,c);
+}
+// the image's address: files are relative to art/ (data:, blob: and http(s): addresses pass through, for tests and inlined builds)
+const artUrl=(f,v)=>/^(data:|blob:|https?:)/.test(f)?f:`art/${f}${v?`?v=${encodeURIComponent(v)}`:''}`;
+const artSaveData=()=>{try{return !!(navigator.connection&&navigator.connection.saveData)}catch(e){return false}};
+function artImg(e){
+  if(!e) return '';
+  const lite=artSaveData()&&e.thumb,full=artUrl(e.file,e.v),th=e.thumb?artUrl(e.thumb,e.v):'';
+  const sizes='(max-width: 520px) 100vw, 480px';
+  const set=(f,t)=>t?`${t} 400w, ${f} ${e.w}w`:`${f} ${e.w}w`;
+  const src=lite?th:full,srcset=lite?'':` srcset="${esc(set(full,th))}" sizes="${sizes}"`;
+  const webp=e.webp&&!lite?`<source type="image/webp" srcset="${esc(set(artUrl(e.webp,e.v),e.thumbWebp?artUrl(e.thumbWebp,e.v):''))}" sizes="${sizes}">`:
+    e.thumbWebp&&lite?`<source type="image/webp" srcset="${esc(artUrl(e.thumbWebp,e.v))}">`:'';
+  const img=`<img class="art-img" src="${esc(src)}"${srcset} alt="${esc(e.alt||'')}" width="${e.w}" height="${e.h}" loading="lazy" decoding="async" style="object-fit:cover">`;
+  return `<figure class="art-fig" data-art="${esc(e.id)}">${webp?`<picture>${webp}${img}</picture>`:img}</figure>`;
+}
+function artSlot(set,ctx){if(!artOn())return '';try{return artImg(artFor(set,typeof ctx==='function'?ctx():ctx))}catch(err){return ''}}   // pass ctx as a function: it is only built when art is on
+
+// ---- context builders: what each set's "when" keys are matched against ----
+// time of day the way the scene art draws it (05-ui.js sceneSVG): 'day' | 'dusk' | 'night'
+function artTime(){
+  if(!S) return 'day';
+  const m=tod(),[rise,set]=SCENE.sun;
+  return m<rise||m>set?'night':(m>=set-90&&m<=set+30)||(m>=rise-30&&m<=rise+60)?'dusk':'day';
+}
+// cabin: heat, season, time, cond, has
+function artCabinCtx(){
+  const s=cabin(),y=homeSeason(),t=artTime(),H=S.home||{},C=S.camp||{};
+  const has=[
+    genOf()&&'generator', H.frz&&'freezer', (C.gear||[]).includes('vise')&&'vise', s.detect&&'detectors', s.proc&&'processing',
+    s.garden&&s.garden.y===y&&'garden', s.heat.stove&&'woodstove', s.heat.oil&&'propane',   // the furnace burns "heating oil or propane" (src/home)
+    s.heat.oil&&'furnace', s.bin&&'bearbin', s.fence&&'fence', s.tape&&'heattape', s.skirt&&'skirting', s.strap&&'strapped', H.tank&&'fueltank',
+  ].filter(Boolean);
+  return {heat:[s.heat.oil&&'oil',s.heat.stove&&'wood'].filter(Boolean),season:S.winter?'winter':'summer',
+    time:S.winter?['day','night']:t==='dusk'?['dusk','night']:t,   // the off-season has no clock: day and night scenes both fit
+    cond:Math.round(s.cond),has};
+}
+// boat: boat, where, cond, up, time, trip. b is a booking; where is 'river' | 'launch' | 'harbor' | 'trailer' | 'shop' (or a list)
+const artBoatKind=type=>type==='halibut'?'charter':type==='trout'?'drift':'sled';
+function artBoatCtx(b,where){
+  const U=S.up||{},s=seasonOf(day());
+  const up=UPGRADES.map(u=>u.id).filter(id=>id==='web'||id==='course'?U[id]===s:id==='rates'?(U.rate||1)>1:!!U[id]);
+  const kind=b?artBoatKind(b.type):'sled';
+  return {boat:b&&b.asst?['staff',kind]:kind,where:where||(S.loc==='shop'?'shop':S.loc==='homer'?'harbor':'launch'),cond:Math.round(S.boat),up,time:artTime(),trip:b?b.type:null};
+}
+// camp: place, shelter, activity, time, weather, read from a KenaiCamp session (28-camping.js keeps the session handle; the engine
+// itself never sees the game). extra: {activity, night} tracked by the adapter.
+function artCampCtx(sess,extra){
+  const ss=sess&&sess.state;if(!ss) return {time:'day'};
+  const T=ss.trip,P=ss.plan,ph=ss.phase,x=extra||{};
+  const night=['evening','night'].includes(ph)||(ph==='result'&&x.night);
+  const wx=T?[T.clear&&'clear',T.thaw&&'thaw',T.events.includes('snowstorm')&&'snow',T.events.includes('coldsnap')&&'cold'].filter(Boolean):[];
+  return {place:T?T.place:P&&P.place||null,shelter:T?T.shelter:P&&P.place?P.shelter:null,activity:T?x.activity||null:null,
+    time:night?'night':'day',weather:wx,phase:ph};
+}
+// event: event (an id from defEvent, src/home's storm prompts or src/camp's encounters), from ('game' | 'home' | 'camp'), time
+function artEventCtx(id,from){return {event:id,from:from||'game',time:S&&!S.winter?artTime():'day'}}
 // ---------------- boot ----------------
 applyPrefs();
 titleScreen();

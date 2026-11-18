@@ -68,7 +68,8 @@ function homeApply(rep,quiet){
   if(!quiet) rep.lines.forEach(l=>say(l));
   return rep;
 }
-const homeHost=()=>({show:(t,h,b,lock)=>modalSwap(t,h,b,lock),ticket:()=>homeTicket(),apply:r=>homeApply(r),rand:()=>Math.random()});
+const homeHost=()=>({show:(t,h,b,lock,meta)=>modalSwap(t,(meta&&meta.kind==='event'?artSlot('event',()=>artEventCtx(meta.id,'home')):'')+h,b,lock),   // meta: {id, kind} of the job (40-art.js)
+  ticket:()=>homeTicket(),apply:r=>homeApply(r),rand:()=>Math.random()});
 const homeBotHost=()=>({ticket:()=>homeTicket(),apply:r=>homeApply(r,true)});
 
 // ---- generator: will it start in an outage? (called from outage() in 31-supplies.js) ----
@@ -131,7 +132,7 @@ function homeWinterModal(){
     return;
   }
   modal(ph==='fall'?'🏠 Get the cabin ready for winter':'🏠 Spring breakup at the cabin',
-    `<p style="font-size:13px;color:var(--mute)">Condition ${Math.round(cabin().cond)}/100. Cash ${$(t.cash)}. ${t.daysLeft} free day${t.daysLeft===1?'':'s'} left this winter, shared with camping and winter work. ${ph==='fall'?'The first cold snap and the first big snow come when you leave for camping or open bookings.':'Last winter’s storms are behind you; breakup comes next.'}</p>${jobs.length?'':'<p>Nothing is due right now.</p>'}${more>0?`<p style="font-size:12.5px;color:var(--mute)">${more} more job${more>1?'s':''} after these.</p>`:''}`,
+    `${artSlot('cabin',artCabinCtx)}<p style="font-size:13px;color:var(--mute)">Condition ${Math.round(cabin().cond)}/100. Cash ${$(t.cash)}. ${t.daysLeft} free day${t.daysLeft===1?'':'s'} left this winter, shared with camping and winter work. ${ph==='fall'?'The first cold snap and the first big snow come when you leave for camping or open bookings.':'Last winter’s storms are behind you; breakup comes next.'}</p>${jobs.length?'':'<p>Nothing is due right now.</p>'}${more>0?`<p style="font-size:12.5px;color:var(--mute)">${more} more job${more>1?'s':''} after these.</p>`:''}`,
     jobs.map(j=>({l:`${j.ic} ${j.title}`,s:`${j.why} ${j.risk}`,fn:()=>setTimeout(()=>CabinUpkeep.ui.open(homeHost(),j.id,()=>homeWinterModal()),0)}))
       .concat([{l:'🏪 Home upgrades',s:'A wood stove, a fish processing station, a bear-resistant bin.',fn:()=>setTimeout(()=>CabinUpkeep.ui.shop(homeHost(),homeWinterModal),0)},{l:'Back to the off-season',fn:()=>setTimeout(winterModal,0)}]));
 }
@@ -156,7 +157,7 @@ window.homeBot=homeBot;window.homeBotWinter=homeBotWinter;
 
 // ---- the Home tab, the HUD and the tab dot ----
 const homeDot=()=>{try{return !S.winter&&CabinUpkeep.dueCount(homeTicket())>0}catch(e){return false}};
-function homeView(){return CabinUpkeep.ui.tab(homeTicket())}
+function homeView(){return artSlot('cabin',artCabinCtx)+CabinUpkeep.ui.tab(homeTicket())}   // 40-art.js: an illustration on top, when one is enabled
 EXTRA_TABS.splice(2,0,{k:'home',ic:'🏠',l:'Home',view:homeView});
 document.addEventListener('click',e=>{
   const b=e.target&&e.target.closest?e.target.closest('[data-cab]'):null;

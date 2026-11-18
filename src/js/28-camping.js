@@ -94,16 +94,34 @@ function campWrap(rep){
   sfx(rep.encounters?'good':'click');
   modal('🏕️ What camping did',campWrapHtml(rep),[{l:'Back to the off-season',fn:()=>setTimeout(winterModal,0)}]);
 }
+// 40-art.js: an illustration on top of the hub and each day, evening and night of a trip (only when one is enabled).
+// The engine never sees the game: the adapter keeps the session handle and reads its state; what the player picked last
+// (an activity, an evening by the fire) is noted from the buttons, and tonight's encounter from the trip's event list.
+const CAMP_ART_PHASES=['hub','day','evening','night','result','leave'];
+let CAMP_ART=null;
+function campArtShow(btns){
+  const A=CAMP_ART,s=A&&A.h&&A.h.session;
+  if(!s) return {art:artSlot('camp',()=>({time:'day',phase:'hub'})),btns};
+  const v=s.view(),ph=v.meta.phase,T=s.state.trip;
+  if(ph==='day'&&T&&T.slotsUsed===0&&!T.today.length){A.act=null;A.night=false}
+  let ev=null;
+  if(T&&ph==='night'&&T.events.length>A.ev) ev=T.events[T.events.length-1];
+  A.ev=T?T.events.length:0;
+  const art=!CAMP_ART_PHASES.includes(ph)||(ph==='result'&&!T)?'':(ev&&artSlot('event',()=>artEventCtx(ev,'camp')))||artSlot('camp',()=>artCampCtx(s,{activity:A.act,night:A.night}));
+  return {art,btns:btns.map((b,i)=>Object.assign({},b,{fn:()=>{const id=v.buttons[i]&&v.buttons[i].id;
+    if((ph==='day'||ph==='evening')&&id&&id!=='evening'){A.act=id;A.night=ph==='evening'}if(b.fn)b.fn()}}))};
+}
 // the player's entry point (from the off-season summary)
 function campModal(){
   if(!S.winter) return;
   if(cabin().rolled!==S.winter.s) return homeBeforeCamping(()=>campModal());   // the winter's first storm lands before the free days are spent
   campW();
-  KenaiCamp.start({mode:'guide',ticket:campTicket(),host:{
-    show:(title,html,btns,lock)=>modal(title,html,btns,lock),
+  CAMP_ART={h:null,act:null,night:false,ev:0};
+  CAMP_ART.h=KenaiCamp.start({mode:'guide',ticket:campTicket(),host:{
+    show:(title,html,btns,lock)=>{if(!artOn())return modal(title,html,btns,lock);const a=campArtShow(btns);modal(title,a.art+html,a.btns,lock)},
     toast:msg=>showTile('🏕️',msg,'','info'),
     rand:()=>Math.random(),now:()=>Date.now(),
-    onFinish:rep=>{campApply(rep);campWrap(rep)},
+    onFinish:rep=>{CAMP_ART=null;campApply(rep);campWrap(rep)},
   }});
 }
 // bots and tests: play a whole winter's camping with the engine's headless policy and apply the report

@@ -7,7 +7,8 @@
 //  CabinUpkeep.ui.scenes(host, rep, done) a winter report followed by each storm prompt in turn, then done()
 //
 //  The host adapter: {
-//    show(title, html, buttons, lock),   required. Show a pop-up. buttons: [{l, s, dis, fn, stay}]; fn runs after the pop-up has closed.
+//    show(title, html, buttons, lock, meta), required. Show a pop-up. buttons: [{l, s, dis, fn, stay}]; fn runs after the pop-up has closed.
+//                                        meta (optional, a job's pop-ups only): {id, kind} of the job, e.g. for an illustration; a host may ignore it.
 //                                        A button with stay:true asks the host to keep the pop-up on screen and show whatever fn shows next in the
 //                                        same sheet (a host that can't just ignores it), so a job, its result and the next job are one pop-up.
 //    ticket(),                           required. A fresh ticket from the host's current numbers (it changes after every report).
@@ -53,12 +54,12 @@
       const rep=C.resolve(host.ticket(),jobId,o.id,rnd(host));
       if(!rep){if(then)then();return}
       host.apply(rep);
-      if(job.kind==='event'||rep.severity>0)host.show(`${job.ic} ${job.title}`,rep.lines.map(l=>`<p>${l}</p>`).join('')+condLine(rep),[{l:'Continue',stay:true,fn:()=>{if(then)then()}}],lock);
+      if(job.kind==='event'||rep.severity>0)host.show(`${job.ic} ${job.title}`,rep.lines.map(l=>`<p>${l}</p>`).join('')+condLine(rep),[{l:'Continue',stay:true,fn:()=>{if(then)then()}}],lock,{id:job.id,kind:job.kind});
       else if(then)then();
     };
     const btns=job.opts.map(o=>({l:`${o.l}${o.id==='skip'?'':` · ${o.cash?$(o.cash):'free'}`}`,s:o.dis&&o.why?`${o.why}`:o.s,dis:o.dis,stay:true,fn:run(o)}));
     if(!lock)btns.push({l:'Not now',s:'Decide later.',stay:true,fn:()=>{if(then)then()}});
-    host.show(`${job.ic} ${job.title}`,`<p>${esc(job.why)}</p><p class="small-note" style="color:var(--mute);font-size:13px">If you skip it: ${esc(job.risk.replace(/^Skip it and /,'').replace(/^Skip it /,''))}</p>`,btns,!!lock);
+    host.show(`${job.ic} ${job.title}`,`<p>${esc(job.why)}</p><p class="small-note" style="color:var(--mute);font-size:13px">If you skip it: ${esc(job.risk.replace(/^Skip it and /,'').replace(/^Skip it /,''))}</p>`,btns,!!lock,{id:job.id,kind:job.kind});
   };
   // every job that is due, on one screen: each with its own three ways. A choice is applied and the screen comes back with what is left.
   U2.batch=function(host,o){

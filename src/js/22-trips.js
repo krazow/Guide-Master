@@ -248,9 +248,10 @@ function tripNext(){
   const left=t.steps.slice(t.step).filter(x=>x!=='pack').length,done=t.steps.slice(0,t.step).filter(x=>x!=='pack').length;
   const prog=sheet?` · ${done+1} of ${done+left}`:'';
   const open=sheet&&!t.shown?`<p class="small-note" style="margin:0 0 6px">You load the ${b.who} into the ${b.type==='trout'?'drift boat':b.type==='halibut'?'charter boat':'jet sled'} at ${L[T.loc].name} and push off at ${fmt(S.t)}.</p>`:'';
-  t.shown=true;
+  const first=!t.shown;t.shown=true;
+  const art=first?artSlot('boat',()=>artBoatCtx(b,T.loc==='homer'?'harbor':['launch','river'])):'';   // 40-art.js: the boat at the put-in, when an illustration is enabled
   const mm=memSheet(b,t,key);                              // 37-memories.js: a catch moment on top, the mentor's line below
-  modalSwap(v.t,`<p class="small-note" style="color:var(--mute);margin:0 0 6px">${T.ic} ${T.n} · ${b.who}${prog}</p>${open}${mm.top}${v.b}${packed?packHTML(pv):''}${hot}${mm.foot}`,opts.map(({o,k})=>({l:o.l,s:o.s,legal:o.legal!==false,dis:!!o.dis,np:true,k,stay:sheet,fn:()=>{
+  modalSwap(v.t,`${art}<p class="small-note" style="color:var(--mute);margin:0 0 6px">${T.ic} ${T.n} · ${b.who}${prog}</p>${open}${mm.top}${v.b}${packed?packHTML(pv):''}${hot}${mm.foot}`,opts.map(({o,k})=>({l:o.l,s:o.s,legal:o.legal!==false,dis:!!o.dis,np:true,k,stay:sheet,fn:()=>{
     const tt=S.trip;if(!tt) return;const bb=bk(tt.id);if(!bb) {S.trip=null;return}
     if(packed){const po=pv.o[PACK?PACK.sel:0];po&&po.fn&&po.fn(bb,tt);tt.step++;PACK=null}
     const q0=tt.q;o.fn&&o.fn(bb,tt);
@@ -324,7 +325,7 @@ function tripEnd(b,t){
   const mood=happy>=82?'😁 They’re already asking about next season. Word of mouth will bring you more bookings.':happy>=65?'🙂 Solid day. Handshakes at the trailer.':happy>=45?'😐 Polite thanks, small tip.':review?'😠 Tight-lipped goodbyes and a one-star review. Word gets around the Kenai.':'😕 They leave a little deflated.';
   const row=(l,v)=>`<br>${l}: <b>${v>=0?'':'−'}${$(Math.abs(v))}</b>`;
   const why=[];if(skunk)why.push('skunked');if(S.gear<=0&&t.notes.some(n=>n.startsWith('🪱')))why.push('no tackle');if(refund&&happy<42)why.push('unhappy clients');
-  modalSwap(`${T.ic} Back at the dock`,`${mem.top}${t.notes.map(n=>`<p>${n}</p>`).join('')}
+  modalSwap(`${T.ic} Back at the dock`,`${artSlot('boat',()=>artBoatCtx(b,T.loc==='homer'?'harbor':'launch'))}${mem.top}${t.notes.map(n=>`<p>${n}</p>`).join('')}
     <p><b>Catch:</b> ${line}${t.kept?` (${t.kept} kept on the sly)`:''}${lost?` · ${lost} minutes lost`:''}</p>
     ${towed?'<p>🛟 <b>Towed in.</b> Half the fare refunded.</p>':''}<p><b>The pay:</b>${row(`Booked fare${b.type==='halibut'&&!S.up.chp?' (day rate)':''}`,fare)}${refund?row(`Refund${why.length?` (${why.join(', ')})`:''}`,-refund):''}${row('Tip',tip)}${xs.map(([l,v])=>row(l,v)).join('')}${costs?row('Launch fee',-costs):''}<br><b>Net: ${net<0?'−':''}${$(Math.abs(net))}</b></p>
     <p>${mood} Rep ${dRep>=0?'+':'−'}${Math.abs(dRep)}.</p>${reviewHTML(rv,b)}${mem.html}
