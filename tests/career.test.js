@@ -26,15 +26,15 @@ module.exports = [
       S.book.forEach(b => { if (b.status === 'booked') b.status = 'done'; });
       const m0 = S.money; endDay('home');
       await new Promise(r => setTimeout(r, 10));
-      const winter = !!S.winter, modalTxt = (document.querySelector('#mbg') || {}).textContent || '';
+      const winter = !!S.winter, bill = S.winter ? S.winter.bill : 0, modalTxt = (document.querySelector('#mbg') || {}).textContent || '';
       const acts = actionsHere().map(a => a.l);
       const req = makeRequest();
       closeModals(); finishWinter();
-      return { cur: S.cur, season: seasonOf(S.cur), year: REG().year, paid: m0 - S.money, winter, acts, req,
+      return { cur: S.cur, season: seasonOf(S.cur), year: REG().year, paid: m0 - S.money, bill, winter, acts, req,
         booked: S.book.filter(b => seasonOf(b.d) === 1).length, seasons: S.seasons.length, limit: S.limit };
     });
     assert.strictEqual(r.cur, 14); assert.strictEqual(r.season, 1); assert.strictEqual(r.year, 2027);
-    assert.ok(r.paid >= 3900, 'winter bills paid');   // 1.10.1: living costs $800 (was $1,300), so $500 less than before assert.ok(r.winter, 'off-season pending');
+    assert.ok(r.paid >= 3400 && r.paid >= r.bill, `winter bills paid: ${r.paid} (bill ${r.bill})`);   // 1.13.0: was >= 3900, which leaned on a random cabin cost; the bill itself is the check   // 1.10.1: living costs $800 (was $1,300), so $500 less than before assert.ok(r.winter, 'off-season pending');
     assert.deepStrictEqual(r.acts, ['Plan the off-season']); assert.strictEqual(r.req, null, 'no calls during the off-season');
     assert.ok(r.booked > 0, 'new bookings'); assert.strictEqual(r.seasons, 1); assert.strictEqual(r.limit, 3);
     noErrors(errors);

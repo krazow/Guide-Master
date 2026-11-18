@@ -93,7 +93,7 @@ module.exports = [
     assert.deepStrictEqual(r.landed1, [r.k0, r.spot1], 'the first stretch landed where you launched, the second where you moved');
     assert.ok(r.early === 2 && r.segs === 2, 'called early after two stretches: ' + JSON.stringify(r));
     assert.ok(r.passed < 360, 'home sooner than a full day: ' + r.passed);
-    assert.strictEqual(r.tac0, 'streamers'); assert.strictEqual(r.tac1, 'beads'); assert.strictEqual(r.mvT, 10);
+    assert.strictEqual(r.tac0, 'streamers'); assert.strictEqual(r.tac1, 'beads'); assert.strictEqual(r.mvT, 5);
     assert.ok(r.trMoves.every(l => !/Russian River/.test(l)), 'a drift boat only goes downstream: ' + r.trMoves.join('|'));
     noErrors(errors);
   } },

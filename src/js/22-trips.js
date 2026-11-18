@@ -95,7 +95,7 @@ const STEP={
     if(sp.viol){fx(t,60,'Tip for the empty water');violate(t.notes,sp.viol)}
     if(sp.risk&&Math.random()<sp.risk.p*windRisk()){t.notes.push(sp.risk.txt);t.happy+=sp.risk.h;adj('boat',sp.risk.boat||0);adj('energy',sp.risk.energy||0)}
     if(sp.add) t.steps.splice(t.step+1,0,...sp.add.filter(x=>!t.steps.includes(x)));},!!sp.viol);
-    if(t.bt){let ev=0;for(let k=0;k<t.bt.K;k++)ev+=45*(beatRead(b,t,k,i,sp.tac).q+.7)*segWin(b,k).len/TRIPS[b.type].len;op.v=ev+traitMoveV(b,t,0,{i,tac:sp.tac})+(sp.h||0)-(sp.fuel||0)*.25-(sp.viol?99:0)-(sp.risk?sp.risk.p*windRisk()*12:0);
+    if(t.bt){let ev=0;for(let k=0;k<t.bt.K;k++)ev+=45*(beatRead(b,t,k,i,sp.tac,k>0).q+.7)*segWin(b,k).len/TRIPS[b.type].len;op.v=ev+traitMoveV(b,t,0,{i,tac:sp.tac})+(sp.h||0)-(sp.fuel||0)*.25-(sp.viol?99:0)-(sp.risk?sp.risk.p*windRisk()*12:0);
       if(t.bt.short&&b.type==='halibut'&&i===2){op.dis=true;op.s='You promised to stay close today.'}}
     return op})}},
   beer:(b)=>({t:'🍺 Cooler’s open',b:`<p>It’s barely 7 AM and the ${b.who} crack the cooler. “Have one, Captain {{name}}!”</p>`,o:[
