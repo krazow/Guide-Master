@@ -37,6 +37,7 @@ function fireHook(hook,ctx={}){
     } else S.ev.force=S.ev.force.filter(x=>x!==e.id);
     S.ev.last[e.id]=day();S.ev.count[e.id]=(S.ev.count[e.id]||0)+1;S.ev.history.push({id:e.id,t:S.t});
     const nBefore=uiNarr.length,mBefore=MQ.length+(document.getElementById('mbg')?1:0);
+    if(Array.isArray(ctx.fired))ctx.fired.push(e.id);   // the caller can ask which events ran (endDay: the morning report's picture)
     EV_RUNNING=e.id;let r;try{r=e.run(ctx)||{}}finally{EV_RUNNING=null}
     // events that didn't open their own modal get collected into one OK pop-up per hook call
     const ownModal=MQ.length+(document.getElementById('mbg')?1:0)!==mBefore;

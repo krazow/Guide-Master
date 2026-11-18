@@ -75,7 +75,7 @@ the thumb is used.
 | camp | the camping hub, each day, the evening, the night, results inside a trip, breaking camp | `campArtShow()` in `src/js/28-camping.js` (the adapter keeps the session handle; `src/camp/` is unchanged and never sees the game) | `artCampCtx(session, {activity, night})` |
 | event | a night's encounter on the camping night screen (wins over the camp picture) | `campArtShow()` | `artEventCtx(id, 'camp')` |
 | event | an event's OK pop-up (Settings → Event pop-ups on) | `eventPopup()` in `src/js/03-events.js` | `artEventCtx(id)` (first event with a picture) |
-| event | the ☀️ morning report, on top | `morningReport()` in `src/js/04-loop.js` (morning items now carry the event `id`) | `artEventCtx(id)` (first event with a picture) |
+| event | the ☀️ morning report, on top | `morningReport()` in `src/js/04-loop.js` (morning items now carry the event `id`, and `endDay()` notes the night's event ids) | `artEventCtx(id)`: the first morning event with a picture, else the first night event (`midnight_sun`, `bear_bin`, a staff story…) with `time: "night"` |
 | event | the cabin's storm prompts and their results | `homeHost().show` in `32-home.js`, given `{id, kind}` by `src/home/home-30-ui.js` | `artEventCtx(id, 'home')` |
 
 Every hook is `artSlot(set, ctxFunction)`: it returns `''` without building the context when no image is enabled or the player
@@ -93,7 +93,9 @@ off-season) and the set, so the same screen shows the same picture all day. Noth
 - under `has` and `up`, a list must be **all** present: `"has": ["generator", "freezer"]` (an empty list asks for nothing and scores 0)
 - under any other key, a list is **one of**: `"event": ["cold", "snow"]`, `"time": ["dusk", "night"]`
 
-A context key the game doesn't know (null) only matches `"any"`.
+A context key the game doesn't know (null) only matches `"any"`. A `when` key that isn't in the set's table below is ignored by the
+game (artists' notes like `"source"` or `"hook"` do no harm), but `tools/art.py validate` reports it as an error, so a typo such as
+`"seasn"` can't silently widen a match: move notes to `notes`.
 
 ### cabin — `artCabinCtx()`
 

@@ -90,6 +90,7 @@ module.exports = [
         range: sc({ cond: [40, 70] }, { cond: 55 }), rangeLo: sc({ cond: [40, 70] }, { cond: 39 }), rangeEdge: sc({ cond: [40, 70] }, { cond: 70 }),
         hasAll: sc({ has: ['generator', 'freezer'] }, { has: ['freezer', 'generator', 'vise'] }), hasSome: sc({ has: ['generator', 'freezer'] }, { has: ['generator'] }),
         upOne: sc({ up: 'motor' }, { up: ['motor'] }), hasNone: sc({ has: [] }, { has: [] }),
+        noteKey: ART.score({ set: 'event', when: { event: 'moose', hook: 'travel', source: 'defEvent' } }, { event: 'moose' }),
         oneOf: sc({ event: ['cold', 'snow'] }, { event: 'snow' }), oneOfNo: sc({ event: ['cold', 'snow'] }, { event: 'moose' }),
         two: sc({ heat: 'wood', season: 'winter', time: 'any' }, { heat: 'wood', season: 'winter', time: 'day' }),
       };
@@ -118,7 +119,7 @@ module.exports = [
     assert.deepStrictEqual(r.bad, [null, null, null]);
     assert.deepStrictEqual(r.def, { enabled: false, w: 1600, h: 900 }); assert.strictEqual(r.truthy, false, 'only enabled:true switches an entry on');
     assert.strictEqual(r.nullWhenOff, null);
-    assert.deepStrictEqual(r.scores, { any: 0, eq: 1, neq: -1, missing: -1, ctxList: 1, range: 1, rangeLo: -1, rangeEdge: 1, hasAll: 1, hasSome: -1, upOne: 1, hasNone: 0, oneOf: 1, oneOfNo: -1, two: 2 });
+    assert.deepStrictEqual(r.scores, { any: 0, eq: 1, neq: -1, missing: -1, ctxList: 1, range: 1, rangeLo: -1, rangeEdge: 1, hasAll: 1, hasSome: -1, upOne: 1, hasNone: 0, noteKey: 1, oneOf: 1, oneOfNo: -1, two: 2 });
     assert.strictEqual(r.best, 'winter-wood'); assert.strictEqual(r.mid, 'winter'); assert.strictEqual(r.fallback, 'generic');
     assert.strictEqual(r.none, null); assert.strictEqual(r.noneSet, null); assert.strictEqual(r.slotEmpty, '');
     assert.strictEqual(new Set(r.same).size, 1, 'no flicker'); assert.ok(r.days >= 3, 'ties spread over days: ' + r.days);
@@ -158,6 +159,25 @@ module.exports = [
     assert.ok(storm.length >= 1, 'the cabin storm prompt shows its event picture');
     // the trip sheet shows it on the opening step only, not on every decision
     assert.strictEqual(on.filter(s => /data-art="t-boat"/.test(s[1])).length, 2);
+    noErrors(errors);
+  } },
+  { name: 'morning report: a night event (no pop-up of its own) can bring its picture; a morning event wins', fn: async ctx => {
+    const { page, errors } = await open(ctx);
+    await newGame(page);
+    const r = await page.evaluate(png => {
+      closeModals(); clearTiles();
+      defEvent({ id: 'art_night', hook: 'night', tile: ['🌙', 'Midnight sun', 'info'], chance: 0, run: () => say('🌙 Still light at midnight.') });
+      defEvent({ id: 'art_wake2', hook: 'wake', tile: ['🪿', 'Geese', 'info'], chance: 0, run: () => say('🪿 Geese.') });
+      ART.register({ id: 'n', set: 'event', file: png, alt: 'Light at midnight.', when: { event: 'art_night', time: 'night' }, enabled: true });
+      ART.register({ id: 'w', set: 'event', file: png, alt: 'Geese.', when: { event: 'art_wake2' }, enabled: true });
+      const night = () => { S.cur = 2; S.t = 2 * 1440 + 1300; S.loc = 'shop'; S.book = []; S.calls = {}; S.dipnetAsk = 99; };
+      night(); forceEvent('art_night'); endDay('home');
+      const a = (document.querySelector('#mbg .art-fig') || {}).dataset; closeModals(); clearTiles();
+      night(); forceEvent('art_night'); forceEvent('art_wake2'); endDay('home');
+      const b = (document.querySelector('#mbg .art-fig') || {}).dataset; closeModals(); ART.clear();
+      return { a: a && a.art, b: b && b.art, figs: document.querySelectorAll('.art-fig').length };
+    }, PNG);
+    assert.strictEqual(r.a, 'n'); assert.strictEqual(r.b, 'w');
     noErrors(errors);
   } },
   { name: 'artImg: srcset for thumb and full, WebP source, save-data uses thumbs, dark mode dims, the 2:1 banner', fn: async ctx => {

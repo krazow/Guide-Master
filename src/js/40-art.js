@@ -51,7 +51,9 @@ const ART=(()=>{
   }
   function score(e,ctx){
     let s=0;
-    for(const k of Object.keys(e.when)){const m=key(k,e.when[k],ctx?ctx[k]:undefined);if(m<0)return -1;s+=m}
+    const known=KEYS[e.set];
+    for(const k of Object.keys(e.when)){if(known&&!known.includes(k))continue;   // a key the set doesn't know is a note, not a condition (tools/art.py flags it)
+      const m=key(k,e.when[k],ctx?ctx[k]:undefined);if(m<0)return -1;s+=m}
     return s;
   }
   // a small stable string hash (FNV-1a)

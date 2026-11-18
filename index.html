@@ -2040,6 +2040,7 @@ function fireHook(hook,ctx={}){
     } else S.ev.force=S.ev.force.filter(x=>x!==e.id);
     S.ev.last[e.id]=day();S.ev.count[e.id]=(S.ev.count[e.id]||0)+1;S.ev.history.push({id:e.id,t:S.t});
     const nBefore=uiNarr.length,mBefore=MQ.length+(document.getElementById('mbg')?1:0);
+    if(Array.isArray(ctx.fired))ctx.fired.push(e.id);   // the caller can ask which events ran (endDay: the morning report's picture)
     EV_RUNNING=e.id;let r;try{r=e.run(ctx)||{}}finally{EV_RUNNING=null}
     // events that didn't open their own modal get collected into one OK pop-up per hook call
     const ownModal=MQ.length+(document.getElementById('mbg')?1:0)!==mBefore;
@@ -2130,7 +2131,7 @@ function endDay(where){
   const d=day(),notes=[];
   closeModals();
   onNight(where,notes,d);
-  fireHook('night',{where,notes});
+  const nctx={where,notes,fired:[]};fireHook('night',nctx);   // fired: the night's event ids (40-art.js picks a picture for the report)
   const card=dayCard(d);
   achCheck({night:true,where});
   if(S.over) return;
@@ -2140,7 +2141,7 @@ function endDay(where){
   // One MORNING REPORT replaces the night summary and the pop-ups the new morning would have opened: what happened overnight,
   // events, reminders, and any booking request (which waits in the Bookings tab). Decisions that need an answer queue behind it.
   const night=card+notes.map(n=>`<p>${n}</p>`).join('');
-  DIGEST={night,items:[],lines:[],held:[],open:false,from:d};
+  DIGEST={night,items:[],lines:[],held:[],open:false,from:d,nightIds:nctx.fired};
   startDay();
   const D=DIGEST;DIGEST=null;
   morningReport(D,d);
@@ -2154,7 +2155,7 @@ function morningReport(D,d){
   const ev=items.map(it=>`<div class="dig"><span class="di" aria-hidden="true">${it.ic}</span><div><b>${it.title}</b>${(it.lines||[]).map(l=>`<p>${l}</p>`).join('')}</div></div>`).join('');
   const rq=(S.reqs||[]).length;
   const lines=D.lines.map(l=>`<p>${l}</p>`).join('');
-  const art=artOn()?items.map(it=>it.id?artSlot('event',()=>artEventCtx(it.id)):'').find(Boolean)||'':'';   // 40-art.js: the first event with an illustration
+  const art=artOn()?items.map(it=>it.id?artSlot('event',()=>artEventCtx(it.id)):'').concat((D.nightIds||[]).map(id=>artSlot('event',()=>Object.assign(artEventCtx(id),{time:'night'})))).find(Boolean)||'':'';   // 40-art.js: the first morning event with an illustration, else the night's
   const body=`${art}<div class="digest">${sec(`🌙 ${dayName(d)} night`,D.night)}${sec('☀️ This morning',ev+lines)}${rq?`<div class="dig"><span class="di" aria-hidden="true">📞</span><div><b>${rq} booking request${rq>1?'s':''} waiting</b><p>${(S.reqs||[]).map(q=>`The ${q.r.who}: ${reqKey(q.r)}, ${dlabel(q.r.d)}`).join('<br>')}</p></div></div>`:''}</div>`;
   modal(`☀️ Morning report · ${dayName(S.cur)}`,body,[{l:`☀️ Wake up: ${dayName(S.cur)}, ${fmt(S.t)}`,fn:()=>{}},...(rq?[{l:`📞 Review requests in Bookings`,s:'They wait a day or two.',fn:()=>setTab('book')}]:[])]);
   sfx('info');
@@ -6804,7 +6805,9 @@ const ART=(()=>{
   }
   function score(e,ctx){
     let s=0;
-    for(const k of Object.keys(e.when)){const m=key(k,e.when[k],ctx?ctx[k]:undefined);if(m<0)return -1;s+=m}
+    const known=KEYS[e.set];
+    for(const k of Object.keys(e.when)){if(known&&!known.includes(k))continue;   // a key the set doesn't know is a note, not a condition (tools/art.py flags it)
+      const m=key(k,e.when[k],ctx?ctx[k]:undefined);if(m<0)return -1;s+=m}
     return s;
   }
   // a small stable string hash (FNV-1a)
