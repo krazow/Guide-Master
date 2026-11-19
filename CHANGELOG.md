@@ -3,7 +3,9 @@
 Release notes for Guide Master. `/release now` adds a section here for every release, and the GitHub release notes
 are taken from it. Earlier versions are described in the README and the in-game update notice.
 
-## Unreleased
+## 1.19.0 (2026-11-19)
+
+This release includes everything planned for 1.18.0, which was never released on its own.
 
 ### Added
 - **⚓ Commercial & crab** in the off-season planner, from your second off-season: one sheet for four optional, risky ways to work the
