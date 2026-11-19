@@ -15,6 +15,7 @@ The in-game **❓ Help!** (title screen, or ⚙️ Settings → Help) is the ful
 - **The rules:** the 📖 Regs tab. Bending one can pay today, but every rule broken makes the next likelier to be caught, citations cost bookings, and three active citations end your career.
 - **Keep things running:** fuel only at the Kenai Harbor dock, tackle and groceries in Soldotna, boat service at the shop, the logbook before bed, a current first-aid card, and the cabin's jobs on the 🏠 Home tab.
 - **The season:** requests wait on 📅 Bookings, three season goals a summer, big-day targets. **The off-season:** bills, upgrades, your weeks, the cabin, winter camping and work (10 free days) and, from the second winter, hiring guides and boats.
+- **Commercial & crab (optional, risky):** from the second winter, crew or lease on a Cook Inlet setnet site or drift boat (Monday and Thursday openers), seine for salmon out of Homer (Monday, Wednesday, Friday), set a crab pot in Kachemak Bay or work a winter on a Bering Sea crab boat; from the third winter, buy fish from the fleet with your own tender, then a shore plant or a floating processor. An opener is a day off the river (one commercial day at a time), and your own catch sells to your own buyer when you have one in that water.
 - **The score** is graded per season: **A 62,000, B 55,000, C 44,000, D 27,000**, F below (a career that ends early is an F).
 
 ## The Kenai
@@ -356,6 +357,10 @@ All prices are 2026 estimates, not quotes. Checked: Honda EU7000iS $4,449, 5.1 g
 - **🐟 Fish tab**: today's weather, river level, tide table, odds by place and species, **where to fish today** (a read of every spot for the trips you have booked) and a run-timing chart with your two weeks and today marked.
 - **Spots answer to the day** (1.8.0, `SPOT_FIT` in `23-fish.js`): each spot in the *Where to, Captain?* step does better or worse with the day's water (rising or falling, high or low), wind, cloud, tide and the size of the run: Big Eddy's seams like a strong run and clearing water, the Swiftwater bars like high water, the Centennial walkway likes overcast, Skilak needs a calm lake, the Barren Islands need calm seas. The fit moves the catch by up to ±.15 (`SPOT_Q`) on top of each spot's own trade-offs, so the classic spot is not always the best one. **Nothing is hidden from a player who looks:** after you read the Fish tab today the spot buttons carry a 🐟 *Hot / Good / Fair / Poor* read with the reason, and after you scout the river (or fish the upper river) the buttons carry an exact 🔭 read that also includes the day's local noise. With no look you pick blind. The closed-habitat bank has no read; it is still against the rules. In 70-day samples the best spot beats always taking the first by .04 to .11 of catch.
 
+## Commercial & crab (1.19.0)
+
+Four optional modules, each its own engine in the same pattern as camping and the cabin (one global, a *ticket* in, a *report* out, a thin adapter that is the only file that knows the game): **Gillnet** (`src/gillnet/`, `src/js/42-gillnet.js`: Cook Inlet setnet and drift openers), **Seine** (`src/seine/`, `src/js/43-seine.js`: Homer purse seining), **Crab** (`src/crab/`, `src/js/44-crab.js`: a Kachemak Bay pot, winter Tanner days, a Bering Sea deckhand job) and **Tender** (`src/tender/`, `src/js/46-tender.js`: tenders, plants, a floating processor, the bank). Their state lives in `S.fish.{gillnet, seine, crab, tender}` (defaults through `newState`/`migrate`, no schema bump). What they share is in `src/js/41b-fishhub.js`: the planner's **⚓ Commercial & crab** sheet (each section shows from its own unlock: gillnet, seine and crab from the second off-season, the fish business from the third), the one-commercial-activity-a-day rule, the one way to settle a booked party (hand it to a guide, cancel it for −5 reputation, or keep it), the shared *Commercial today* list on the Here and Bookings tabs, and the **delivery contract**: gillnet, seine and crab-job reports carry `delivery: {species, lbs, area, day, value, share}`, and `fishDeliver()` sells it to your own tender or plant (`tenderRoute`) at your posted price when you have a buyer in that water. Each module's README has its contract, facts and sources, and balance; the sim has bot styles for each (`gillnet`, `gillgreedy`, `seine`, `seinecrew`, `seineall`, `crab`, `crabr`, `processor`, `mogul`, and `fishmix` for gillnet + crab + tender together). Default bots never touch them.
+
 This is a simplified model of typical run timing, not a forecast.
 
 ## Play
@@ -365,7 +370,7 @@ Open `index.html`, or deploy the folder to any static https host (GitHub Pages w
 ## Build & test
 
 ```bash
-python3 tools/build.py            # src/camp + src/home + src/js → index.html
+python3 tools/build.py            # src/camp + src/home + src/gillnet + src/seine + src/crab + src/tender + src/js → index.html
 python3 -m http.server 8000       # then open http://localhost:8000
 npm install && npx playwright install chromium
 npm test
