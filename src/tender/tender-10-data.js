@@ -38,10 +38,10 @@
   };
   // the tender ladder: charter one for a season, then own one
   const VESSELS={
-    lease:{ic:'⚓',n:'Charter an older 58-ft tender for the season',short:'chartered tender',cost:28000,hold:100000,cond:60,
+    lease:{ic:'⚓',n:'Charter an older 58-ft tender for the season',short:'chartered tender',cost:24000,hold:100000,cond:60,
       d:'A bareboat charter of a tired steel tender with a refrigerated seawater (RSW) hold of about 100,000 lb: one season, no haul-out bills. You hire the skipper and deckhands.'},
-    used:{ic:'🚢',n:'Buy a used 58-ft steel tender with RSW',short:'your tender',price:340000,hold:120000,cond:65,upkeep:18000,dep:.05,fall:8000,
-      d:'A 1980s steel tender with a rebuilt RSW system and a 120,000-lb hold. Haul-out, survey, insurance and moorage run about $18,000 a winter, and a processor charters it for fall work when it’s in shape.'},
+    used:{ic:'🚢',n:'Buy a used 58-ft steel tender with RSW',short:'your tender',price:340000,hold:120000,cond:65,upkeep:15000,dep:.05,fall:13000,
+      d:'A 1980s steel tender with a rebuilt RSW system and a 120,000-lb hold. Haul-out, survey, insurance and moorage run about $15,000 a winter, and a processor charters it for fall work when it’s in shape.'},
   };
   // the plant ladder: lease space, a small shore plant, an old floating processor
   const PLANTS={
@@ -70,7 +70,7 @@
   const ENERGY={space:5000,shore:30000,floater:110000};   // diesel for generators and freezers, a season at $5 a gallon
   const FIX_CREW=1800;      // a seasonal plant worker's travel, recruiting and bunkhouse, a season
   // the fleet: pounds a buyer can see on one opener at the run's peak (all buyers together, near your anchorage)
-  const FLEET={uci:{sockeye:170000,coho:16000,pink:10000,chum:9000},lci:{sockeye:90000,pink:300000,chum:16000,coho:3000}};
+  const FLEET={uci:{sockeye:185000,coho:17000,pink:11000,chum:10000},lci:{sockeye:90000,pink:300000,chum:16000,coho:3000}};
   // the timing of each catch through the summer (day of year)
   const TIMING={uci:{sockeye:[198,9],coho:[224,8],pink:[214,7],chum:[205,11]},lci:{sockeye:[186,13],pink:[214,9],chum:[208,11],coho:[230,9]}};
   // outside supply to a plant (other tenders, docks), pounds a season in an average run, and the east-side setnet deliveries

@@ -89,13 +89,13 @@
     const mk=st.maint,mf={full:1.5,basic:1,skip:.45}[mk]||1,mc={full:25,basic:10,skip:-12}[mk]||0;let up=0;
     st.tenders.filter(v=>v.kind==='used').forEach(v=>{up+=D.VESSELS.used.upkeep*mf;v.cond=clamp(v.cond+mc,5,100)});
     if(st.plant&&st.plant.kind!=='space'){up+=D.PLANTS[st.plant.kind].fixed*.25*mf;st.plant.cond=clamp(st.plant.cond+mc,5,100)}
-    up=Math.round(up*scale(t));
+    up=Math.round(up*scale(t));st.pre=(st.pre||0)+up;
     if(up){rep.cashDelta-=up;rep.spent+=up;rep.lines.push(`🔧 Winter upkeep (${mk==='full'?'a full overhaul':mk==='basic'?'the basics':'skipped where you could'}): haul-out, surveys, insurance and moorage, ${$(up)}.`)}
     // the plant crew: hired in the winter (a free day), or an agency hires a lean one late
     if(st.plant){const P=D.PLANTS[st.plant.kind];
-      if(st.crew.s!==t.s){st.crew={s:t.s,lvl:'lean',agency:true};const c=Math.round(P.crew*.7*D.FIX_CREW*(1+K.AGENCY)*scale(t));rep.cashDelta-=c;rep.spent+=c;
+      if(st.crew.s!==t.s){st.crew={s:t.s,lvl:'lean',agency:true};const c=Math.round(P.crew*.7*D.FIX_CREW*(1+K.AGENCY)*scale(t));rep.cashDelta-=c;rep.spent+=c;st.pre=(st.pre||0)+c;
         rep.lines.push(`👷 Nobody hired a crew over the winter, so an agency rounds up a lean one late: ${$(c)} for travel, recruiting and bunks. The line will run short-handed.`)}
-      if(st.plant.kind==='floater'&&st.plant.from&&st.plant.from!==st.plant.area){const c=Math.round(P.move*scale(t));rep.cashDelta-=c;rep.spent+=c;rep.lines.push(`🛳️ The floater is towed to ${D.AREAS[st.plant.area].n}: ${$(c)}.`)}
+      if(st.plant.kind==='floater'&&st.plant.from&&st.plant.from!==st.plant.area){const c=Math.round(P.move*scale(t));rep.cashDelta-=c;rep.spent+=c;st.pre=(st.pre||0)+c;rep.lines.push(`🛳️ The floater is towed to ${D.AREAS[st.plant.area].n}: ${$(c)}.`)}
       st.plant.from=st.plant.area}
     st.season={s:t.s,year:t.year,lv:M.lv,going:M.going,lciRun:M.lci,run:copy(t.run),essn:essnF(t.run.king),
       cal:{uci:T.calendar(t.year,'uci',t.run),lci:T.calendar(t.year,'lci',t.run)},done:[],own:{uci:{},lci:{},west:{}},
@@ -284,10 +284,9 @@
       rep.lines.push(...ps.lines);rep.events.push(...ps.events);
       if(ps.fine)st.tot.fines+=ps.fine;if(ps.shut)st.tot.inspect++;st.tot.plantNet+=ps.net}
     st.tot.lbs+=S0.led.lbs;st.tot.tenderNet+=tNet;
-    const net0=rep.cashDelta;
-    winterBills(t,st,rep,r);
-    st1.winter=rep.cashDelta-net0;st1.net=tNet+st1.plant+st1.winter;
-    st.tot.net+=tNet+st1.plant+st1.winter;st.tot.seasons++;st.yrs++;
+    const wb=winterBills(t,st,rep,r);
+    st1.winter=wb.fall-wb.int;st1.pre=Math.round(st.pre||0);st1.net=tNet+st1.plant+st1.winter-st1.pre;st.pre=0;
+    st.tot.net+=st1.net;st.tot.seasons++;st.yrs++;
     st.last=st1;st.hist.push(st1);if(st.hist.length>12)st.hist.shift();
     st.season=null;
     if(rep.cashDelta>0)rep.earned+=rep.cashDelta;else rep.spent+=-rep.cashDelta;
@@ -296,19 +295,21 @@
   };
   // fall charter, depreciation, the end of charters and leases, the loan payment
   function winterBills(t,st,rep,r){
+    const wb={fall:0,int:0};
     st.tenders.slice().forEach(v=>{
       if(v.kind==='lease'){st.tenders=st.tenders.filter(x=>x!==v);rep.lines.push(`⚓ The charter on the ${v.name} ends; she goes back to her owner.`);return}
       const V=D.VESSELS.used;
-      if(v.cond>=45){const f=Math.round(V.fall*scale(t));rep.cashDelta+=f;v.cond=clamp(v.cond-6,0,100);rep.lines.push(`🚢 A processor charters the ${v.name} for fall work: ${$(f)}.`)}
+      if(v.cond>=45){const f=Math.round(V.fall*scale(t));rep.cashDelta+=f;wb.fall+=f;v.cond=clamp(v.cond-6,0,100);rep.lines.push(`🚢 A processor charters the ${v.name} for fall work: ${$(f)}.`)}
       const drop=Math.round(v.val*V.dep);v.val-=drop});
     if(st.plant){const p=st.plant;
       if(p.kind==='space'){rep.lines.push('🏚️ The lease on your line space ends with the season. Lease it again in the winter if you want it next year.');st.plant=null}
       else{const drop=Math.round(p.val*D.PLANTS[p.kind].dep);p.val-=drop}}
     if(st.loan&&st.loan.bal>0){const L=st.loan,int=Math.round(L.bal*L.rate),pay=Math.round(Math.min(L.bal+int,payment(L.bal,L.rate,Math.max(1,L.left))));
-      L.bal=Math.max(0,Math.round(L.bal+int-pay));L.left=Math.max(0,L.left-1);rep.cashDelta-=pay;st.tot.interest+=int;
+      L.bal=Math.max(0,Math.round(L.bal+int-pay));L.left=Math.max(0,L.left-1);rep.cashDelta-=pay;st.tot.interest+=int;wb.int=int;
       rep.lines.push(`🏦 Loan payment ${$(pay)} (${$(int)} of it interest). ${L.bal>0?`${$(L.bal)} left to pay.`:'The loan is paid off.'}`);
       if(L.bal<=0)st.loan=null}
     st.brep=Math.round(st.brep+(50-st.brep)*.2);
+    return wb;
   }
   // ---- the guardrail: the business can fail and be sold off, but it never takes cash below the floor ----
   function guard(t,st,rep){
@@ -380,10 +381,10 @@
   T.act=function(t0,id,arg){
     const t=T.normTicket(t0),st=copy(t.state),rep=report(st),a=arg||{},w=T.why(Object.assign({},t,{state:st}),id,a);
     if(w){rep.lines.push(w);rep.refused=w;return rep}
-    const pay=c=>{rep.cashDelta-=c;rep.spent+=c};
+    const pay=c=>{rep.cashDelta-=c;rep.spent+=c},pre=c=>{st.pre=(st.pre||0)+c};
     const area=a.area==='lci'?'lci':'uci';
     switch(id){
-      case 'lease':{const c=T.price(t,'lease');pay(c);const v={id:st.nid++,kind:'lease',area,cond:D.VESSELS.lease.cond,val:0,name:nameT(st),from:t.s};st.tenders.push(v);
+      case 'lease':{const c=T.price(t,'lease');pay(c);pre(c);const v={id:st.nid++,kind:'lease',area,cond:D.VESSELS.lease.cond,val:0,name:nameT(st),from:t.s};st.tenders.push(v);
         rep.lines.push(`⚓ You charter the <b>${v.name}</b> for the season (${$(c)}), to buy ${D.AREAS[area].short} fish ${D.AREAS[area].where}.`);rep.events.push({id:'tender_anchor',sev:0});break}
       case 'buyT':{const c=T.price(t,'buyT'),down=a.loan?Math.round(c*K.DOWN):c;pay(down);if(a.loan)borrow(t,st,c-down,rep);
         const v={id:st.nid++,kind:'used',area,cond:D.VESSELS.used.cond,val:c,cost:c,name:nameT(st),from:t.s};st.tenders.push(v);st.tot.bought+=c;
@@ -391,7 +392,7 @@
       case 'sellT':{const v=st.tenders.find(x=>x.id===a.id),p=T.saleValue({state:st},v.id);rep.cashDelta+=p;rep.earned+=p;st.tenders=st.tenders.filter(x=>x!==v);st.tot.sold+=p;
         rep.lines.push(`🚢 You sell the ${v.name} for ${$(p)}.`);payDown(st,rep);break}
       case 'areaT':{const v=st.tenders.find(x=>x.id===a.id);if(v){v.area=area;rep.lines.push(`⚓ The ${v.name} will work ${D.AREAS[area].n} this summer.`)}break}
-      case 'space':{const c=T.price(t,'space');pay(c);st.plant={kind:'space',area,cond:70,val:0,mix:'hg',name:'leased line space',from:area};
+      case 'space':{const c=T.price(t,'space');pay(c);pre(c);st.plant={kind:'space',area,cond:70,val:0,mix:'hg',name:'leased line space',from:area};
         rep.lines.push(`🏚️ You lease line space at a custom processor in ${D.AREAS[area].port} for the season (${$(c)}). Your crew, your fish, their freezers.`);rep.events.push({id:'plant_line',sev:0});break}
       case 'shore':case 'floater':{const P=D.PLANTS[id],c=T.price(t,id),down=a.loan?Math.round(c*K.DOWN):c;pay(down);if(a.loan)borrow(t,st,c-down,rep);
         st.plant={kind:id,area,cond:id==='shore'?62:58,val:c,cost:c,mix:'hg',name:id==='shore'?`plant in ${D.AREAS[area].port}`:'floating processor',from:area};st.tot.bought+=c;st.crew={s:-1,lvl:'full'};
@@ -401,7 +402,7 @@
       case 'mix':{if(st.plant&&D.MIX[a.mix]&&(!D.MIX[a.mix].can||D.PLANTS[st.plant.kind].can)){st.plant.mix=a.mix;rep.lines.push(`🏭 This season the line packs ${D.MIX[a.mix].short}.`)}break}
       case 'parea':{if(st.plant&&st.plant.kind==='floater'){st.plant.area=area;rep.lines.push(`🛳️ The floater will anchor in ${D.AREAS[area].n} this summer (a tow of ${$(Math.round(D.PLANTS.floater.move*scale(t)))} when the season opens).`)}break}
       case 'wcrab':{st.winterCrab=!st.winterCrab;rep.lines.push(st.winterCrab?'🦀 The floater will winter out west, processing crab.':'🦀 The floater stays tied up this winter.');break}
-      case 'crew':{const lvl=a.lvl==='lean'?'lean':'full',c=crewCost(t,st,lvl);pay(c);st.crew={s:t.s,lvl};rep.daysUsed=K.CREW_DAY;
+      case 'crew':{const lvl=a.lvl==='lean'?'lean':'full',c=crewCost(t,st,lvl);pay(c);pre(c);st.crew={s:t.s,lvl};rep.daysUsed=K.CREW_DAY;
         rep.lines.push(`👷 You spend ${K.CREW_DAY===1?'a day':K.CREW_DAY+' days'} on the phone and at a job fair and hire a ${lvl} crew of ${Math.round(D.PLANTS[st.plant.kind].crew*(lvl==='lean'?.7:1))} for next summer: ${$(c)} for travel, recruiting and bunks.`);break}
       case 'maint':{st.maint=['full','basic','skip'].includes(a.lvl)?a.lvl:'basic';rep.lines.push(`🔧 Winter upkeep: ${st.maint==='full'?'a full overhaul':st.maint==='basic'?'the basics':'skip what you can'}. It’s paid when the season opens.`);break}
       case 'price':{st.policy.offset=clamp(Math.round(n0(a.offset,0)*100)/100,-.15,.2);if(a.care)st.policy.care=a.care==='fast'?'fast':'bled';

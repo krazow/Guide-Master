@@ -37,6 +37,11 @@ STYLES.ignores=STYLES.hungry;
 // every boat it can buy, no raises). Both play the rest like `food`.
 STYLES.outfit=Object.assign({},STYLES.food,{biz:'outfit'});
 STYLES.tycoon=Object.assign({},STYLES.food,{biz:'tycoon'});
+// fish buying & processing (45-tender.js, src/tender): `processor` charters a tender, buys one, leases line space and buys a shore plant
+// sensibly, and runs the tender itself on opener days with no party booked; `mogul` borrows for two tenders and a floating processor.
+// Both play the rest like `food`.
+STYLES.processor=Object.assign({},STYLES.food,{tender:'processor',tenderSelf:true});
+STYLES.mogul=Object.assign({},STYLES.food,{tender:'mogul'});
 for(const k of Object.keys(STYLES).slice()){STYLES[k+'_c']=Object.assign({},STYLES[k],{home:'careful'});STYLES[k+'_p']=Object.assign({},STYLES[k],{home:'payall'});STYLES[k+'_n']=Object.assign({},STYLES[k],{home:'neglect'})}
 
 const UPPOL={ // upgrade policies (for A/B)
@@ -145,6 +150,7 @@ function playDay(cfg){
   if(cfg.look) fishView();
   if(S.boat<=0&&cfg.service){act(cfg,/Major repair/);if(!alive())return}
   M.energySum+=S.energy;M.energyN++;if(S.energy<30)M.lowEnergyDays++;
+  if(cfg.tenderSelf&&typeof tenderToday==='function'&&tenderToday()&&!todays(d).length&&S.loc==='shop'){act(cfg,/Run your tender/);if(!alive())return;M.tenderSelf=(M.tenderSelf||0)+1}
   const trips=todays(d).sort((a,b)=>SLOT(a)[0]-SLOT(b)[0]);
   const first=trips[0];
   // first-aid class (Tuesday)
@@ -231,6 +237,7 @@ function winterPlay(cfg){
   }
   if(cfg.gen&&!S.home.gen&&S.money>GENS[cfg.gen].cost+GENS[cfg.gen].install+8000){buyHome('gen'+cfg.gen);M.bought.push({s,id:'gen'+cfg.gen,money:Math.round(S.money)})}
   if(cfg.biz&&typeof bizOn==='function'&&bizOn()) bizBot(cfg.biz,s);
+  if(cfg.tender&&typeof tenderBot==='function'&&typeof tenderOn==='function'&&tenderOn()){const m0=S.money;tenderBot(cfg.tender);(M.tender=M.tender||[]).push({s,spent:Math.round(S.money-m0)})}
   if(S.home.stale>0&&cfg.haul){spend(STALE_FEE);S.home.stale=0}
   if(cfg.home&&typeof homeBotWinter==='function'){const m0=S.money;homeBotWinter(cfg.home,{rand:M.crng});(M.homeWinter=M.homeWinter||[]).push(Math.round(S.money-m0))}
   // note upgrade affordability
@@ -287,6 +294,7 @@ window.runCareer=async function(o){
   M.wk={};M.wkN={};const wid=d=>(typeof weekIdOf==='function'?weekIdOf(d):(sday(d)<7?'jul1':'jul2'))+'/'+(sday(d)<7?0:1);
   S.book.forEach(b=>{if(b.status!=='done'||b.asst)return;const k=M.wk[wid(b.d)]=M.wk[wid(b.d)]||{n:0,pay:0};k.n++;k.pay+=b.out?b.out.fare-b.out.refund+b.out.tip:0});
   for(let s=0;s<=seasonOf(Math.min(S.cur,GAME.days-1));s++)(typeof weeksOf==='function'?weeksOf(s):['jul1','jul2']).forEach((id,i)=>M.wkN[id+'/'+i]=(M.wkN[id+'/'+i]||0)+1);
+  if(S.fish&&S.fish.tender){const T0=S.fish.tender;M.tenderTot=JSON.parse(JSON.stringify(T0.tot));M.tenderVal=Tender.value(T0);M.tenderDebt=Tender.debt(T0);M.tenderHist=T0.hist.map(h=>Math.round(h.net));M.tenderPlant=T0.plant?T0.plant.kind:null;M.tenderN=T0.tenders.length}
   if(S.biz){M.bizTot=JSON.parse(JSON.stringify(S.biz.tot));M.bizStaff=S.biz.staff.length;M.bizBoats=S.biz.boats.length;M.bizPast=S.biz.past.map(p=>p.why);M.staffTrips=S.stats.staffTrips||0;M.staffNet=S.stats.staffNet||0;M.staffCites=S.stats.staffCites||0}
   const out=M;M=null;return out;
 };
