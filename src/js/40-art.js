@@ -167,7 +167,9 @@ function artLaunch(dest){
   if(b) artNarr('boat',()=>artBoatCtx(b,dest==='homer'?'harbor':['launch','trailer']),{rest:true});
 }
 // a trip's one mid-day picture (22-trips.js tripNext, on a 'beat' step): the river at that hour, never the drawing the trip opened with
-function artBeat(b,t){const h=artSlot('boat',()=>artBoatCtx(b,'river'),{rest:true,key:'beat:'+t.id});if(h)t.artBeat=1;return h}
+function artBeat(b,t){const h=artSlot('boat',()=>artBoatCtx(b,'river'),{rest:true,key:'beat:'+t.id,avoid:artTripAhead(t)});if(h)t.artBeat=1;return h}
+// the drawings this trip's coming incidents will show (the combat fishing, the sow and cubs): the river scenes leave them to the incident
+function artTripAhead(t){const out=new Set();t.steps.slice(t.step+1).forEach(k=>{const e=artFor('event',artEventCtx(k,'trip'));if(e)out.add(artKey(e))});return out}
 // the morning report: one picture. The cabin's mishaps first, then the morning's events, the cabin's news, the night's events (on top);
 // with none of those, your guides' trips (above the first line about them, in the night section; a routine scene, so it rests)
 function artMorning(D){
