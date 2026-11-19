@@ -41,6 +41,11 @@ STYLES.tycoon=Object.assign({},STYLES.food,{biz:'tycoon'});
 // (crew a drift boat first, then lease; works an opener only when no trip of its own is booked). `gillgreedy` cancels trips for openers and pushes the rules.
 STYLES.gillnet=Object.assign({},STYLES.food,{gill:{policy:'sensible'}});
 STYLES.gillgreedy=Object.assign({},STYLES.food,{gill:{policy:'greedy',cancel:true}});
+// purse seining (src/seine, 43-seine.js): `seine` plays like `food`, crews from the 2nd off-season and runs its own boat (an emergency
+// transfer) once it has crewed enough; `seinecrew` only crews. Both sign on only for openers that cost no booked trip.
+STYLES.seine=Object.assign({},STYLES.food,{seine:'auto'});
+STYLES.seinecrew=Object.assign({},STYLES.food,{seine:'crew'});
+STYLES.seineall=Object.assign({},STYLES.food,{seine:'all'});   // signs on for every opener, cancelling the trips in the way (the cost of overdoing it)
 for(const k of Object.keys(STYLES).slice()){STYLES[k+'_c']=Object.assign({},STYLES[k],{home:'careful'});STYLES[k+'_p']=Object.assign({},STYLES[k],{home:'payall'});STYLES[k+'_n']=Object.assign({},STYLES[k],{home:'neglect'})}
 
 const UPPOL={ // upgrade policies (for A/B)
@@ -146,6 +151,7 @@ function playDay(cfg){
   const d=S.cur;const alive=()=>!S.over&&S.cur===d&&!S.winter;
   resolve(cfg);if(!alive())return;
   answerReqs(cfg);if(!alive())return;
+  if(cfg.seine&&typeof seineBotDay==='function'&&seineBotDay({rand:M.crng,mode:cfg.seine})){M.seineDays=(M.seineDays||0)+1;return}
   if(cfg.look) fishView();
   if(S.boat<=0&&cfg.service){act(cfg,/Major repair/);if(!alive())return}
   M.energySum+=S.energy;M.energyN++;if(S.energy<30)M.lowEnergyDays++;
@@ -216,6 +222,7 @@ function playDay(cfg){
   const dn=S.book.filter(b=>b.d===d&&b.status==='done').length;(M.dayHist=M.dayHist||{})[dn]=((M.dayHist||{})[dn]||0)+1;M.minMoney=Math.min(M.minMoney==null?1e9:M.minMoney,S.money);
   if(cfg.stab&&sday(d)>=12&&S.home.gal>0&&!isLastSeason(d)){act(cfg,/stabilizer/)}
   if(cfg.home&&typeof homeBot==='function'&&S.loc==='shop'&&tod()<1180&&!S.trip){homeBot(cfg.home,{rand:M.crng})}
+  if(cfg.seine&&typeof seineBotEvening==='function'){seineBotAnswer(cfg.seine);seineBotEvening()}
   endDay('home');
 }
 
@@ -236,6 +243,7 @@ function winterPlay(cfg){
   }
   if(cfg.gen&&!S.home.gen&&S.money>GENS[cfg.gen].cost+GENS[cfg.gen].install+8000){buyHome('gen'+cfg.gen);M.bought.push({s,id:'gen'+cfg.gen,money:Math.round(S.money)})}
   if(cfg.biz&&typeof bizOn==='function'&&bizOn()) bizBot(cfg.biz,s);
+  if(cfg.seine&&typeof seineBotWinter==='function') seineBotWinter(cfg.seine);
   if(S.home.stale>0&&cfg.haul){spend(STALE_FEE);S.home.stale=0}
   if(cfg.home&&typeof homeBotWinter==='function'){const m0=S.money;homeBotWinter(cfg.home,{rand:M.crng});(M.homeWinter=M.homeWinter||[]).push(Math.round(S.money-m0))}
   // note upgrade affordability
@@ -295,6 +303,7 @@ window.runCareer=async function(o){
   for(let s=0;s<=seasonOf(Math.min(S.cur,GAME.days-1));s++)(typeof weeksOf==='function'?weeksOf(s):['jul1','jul2']).forEach((id,i)=>M.wkN[id+'/'+i]=(M.wkN[id+'/'+i]||0)+1);
   if(S.biz){M.bizTot=JSON.parse(JSON.stringify(S.biz.tot));M.bizStaff=S.biz.staff.length;M.bizBoats=S.biz.boats.length;M.bizPast=S.biz.past.map(p=>p.why);M.staffTrips=S.stats.staffTrips||0;M.staffNet=S.stats.staffNet||0;M.staffCites=S.stats.staffCites||0}
   if(S.fish&&S.fish.gillnet){const g=S.fish.gillnet;M.gn={tot:JSON.parse(JSON.stringify(g.tot)),xp:g.xp,did:g.did,own:!!g.own}}
+  if(S.fish&&S.fish.seine){const F=S.fish.seine.st;M.seine={ops:F.openers,crew:F.crewOps,skip:F.skipOps,cash:Math.round((S.stats.seine||{}).cash||0),lbs:F.tot.lbs,inj:F.tot.injuries,torn:F.tot.torn,missed:F.tot.missed}}
   const out=M;M=null;return out;
 };
 window.simInternals={playDay,resolve,winterPlay,STYLES,initM:(o)=>{window.M={style:o.style,diff:o.diff,years:o.years,seed:o.seed,citeWhy:{},viols:{},tiles:{},steps:{},req:{},tt:{},winters:[],bought:[],camp:[],energySum:0,energyN:0,lowEnergyDays:0,boatSum:0,loss:null,errors:[]}}};window.STYLES=STYLES;window.UPPOL=UPPOL;window.WEEKPOL=WEEKPOL;

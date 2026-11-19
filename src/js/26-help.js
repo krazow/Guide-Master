@@ -126,6 +126,13 @@ const HELP=[
     <li>The setnet beach is tied to the Kenai kings. In a year kings are closed it starts the summer closed, and only a huge sockeye run might reopen it. Money paid up front is gone if it never opens.</li>
     <li>Rules have teeth: nets fishing after the close, or a drift across the corridor line into closed water, can mean a citation on your record. Seals, torn nets and wind cost fish.</li>
     <li>With a lease or your own boat, a partner fishes the openers you guide through, for a share. A survival suit is cheap insurance on the water.</li></ul>`,'gillnet'],
+  ['⚓','Purse seining out of Homer',`<p class="help-sum">From your second off-season you can work salmon openers on a Homer seiner, if you want to.</p><ul>
+    <li>Pick it in the off-season under <b>⚓ Commercial & crab</b>: crew on a seiner for a share of each opener (8 to 10% of the catch after fuel, ice and groceries), or later run a chartered boat on an emergency permit transfer or your own permit.</li>
+    <li>Kachemak Bay’s seine periods run <b>Monday, Wednesday and Friday, 6 AM to 10 PM</b> from mid-June. After July they open only in a fair pink year. ADF&G can close a period with a few days’ notice.</li>
+    <li>Sign on or pass for each opener in <b>📅 Bookings</b>. It’s a whole day off the river: a trip booked that day is yours to cancel, hand to one of your guides, or keep.</li>
+    <li>Be at Homer harbor by <b>6:00 AM</b>, or drive down the night before and sleep aboard. A crewman who’s late gets left at the dock.</li>
+    <li>On the water: pick the bay, read the jumpers, set now or wait for a better school, take your turn at the hook-off and stay outside the closed lines. Brail the catch and sell it to the tender.</li>
+    <li>It’s risky: water hauls, a net torn on a reef, a line in the wheel, a hurt hand. Sockeye pay well; pinks pay little.</li></ul>`,'seine'],
   ['💬','Feedback',`<p class="help-sum">Ideas, bugs, or a rule or fact we got wrong? Tell the developer.</p><ul>
     <li>Tap <b>Send feedback</b> below, on the title screen or in ⚙️ Settings.</li>
     <li>Add your email if you’d like a reply. If you’re offline, it’s sent the next time you’re online.</li></ul>`,'feedback'],
