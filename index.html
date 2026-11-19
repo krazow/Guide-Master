@@ -1835,6 +1835,508 @@ const CabinUpkeep={
   };
 })(CabinUpkeep);
 // ============================================================
+//  GILLNET, part 0: the namespace.
+//  Upper Cook Inlet commercial gillnetting (an east-side setnet site on the beach, or a drift boat out of Kenai) behind ONE
+//  global, Gillnet. It never reads or writes anything of the host game: everything it needs comes in through a ticket and a
+//  small host adapter, and everything it produces goes out in a report. See src/gillnet/README.md for the contract.
+//  It touches no browser storage.
+// ============================================================
+const Gillnet={
+  VERSION:'1.0.0',
+  SCHEMA:1,                 // version of the ticket, report and schedule shapes; bump when any of them change
+};
+(function(G){
+  'use strict';
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const r2=x=>Math.round(x*100)/100;
+  const grp=n=>String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+  // money: $1,234 (cents only when there are some), with a real minus sign
+  const $=x=>{const f=(Math.round(Math.abs(x)*100)/100).toFixed(Math.round(x*100)%100?2:0).split('.');f[0]=grp(+f[0]);return (x<0?'−':'')+'$'+f.join('.')};
+  const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  // minutes after midnight → 7:00 AM
+  const hm=m=>{m=((Math.round(m)%1440)+1440)%1440;const h=Math.floor(m/60),mm=m%60;return `${h%12||12}:${String(mm).padStart(2,'0')} ${h<12?'AM':'PM'}`};
+  // a small seeded generator (mulberry32) for tests and the headless sim
+  function seeded(seed){let a=seed>>>0;return ()=>{a=(a+0x6D2B79F5)>>>0;let t=a;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296}}
+  const pick=(rand,a)=>a[Math.floor(rand()*a.length)%a.length];
+  G.util={clamp,r2,grp,$,esc,hm,seeded,pick};
+})(Gillnet);
+// ============================================================
+//  GILLNET, part 1: the numbers and the words.
+//  Prices, shares, leases, fisheries, the calendar, citations and the events the host can illustrate. Facts are simplified
+//  from recent Upper Cook Inlet seasons (see README.md, "Facts and estimates"); money is an estimate for play, not a quote.
+// ============================================================
+(function(G){
+  'use strict';
+  const D={
+    LB:6,                                 // pounds in an average Cook Inlet sockeye
+    // the ex-vessel price a pound: drawn once a season between lo and hi (Upper Cook Inlet sockeye averaged about $1.70 in 2025)
+    PRICE:{lo:1.35,hi:1.95,bled:.20,dock:.10,soft:.15},   // bled & slush-iced bonus; trucked/run to the dock; long-dead fish docked
+    // the two fisheries. fish: sockeye a typical opener at the peak of an average run (one site's three nets, or one drift boat)
+    set:{n:'east-side setnet site',ic:'🪢',fish:240,open:625,close:815,hours:[420,1140],
+      crew:.10,leaseUp:2800,permit:.20,hire:.10,ice:35,gas:15,energy:-20,end:1230},
+    drift:{n:'drift gillnet boat',ic:'🚤',fish:280,open:619,close:815,hours:[420,1140],
+      crew:.12,leaseUp:6000,lease:.15,deck:.12,gal:45,ice:60,energy:-22,end:1260},
+    // owning a drift permit and boat (a limited-entry permit and a used 32-foot gillnetter)
+    OWN:{permit:32000,boat:58000,winter:4200,deprec:.08,sell:.85},
+    REST:{share:.4,set:15,drift:16},      // the rest of the summer: your partner or hired skipper's openers, and the share you keep
+    SUIT:450,CREWLIC:60,                  // an immersion (survival) suit; the commercial crewmember license
+    REPAIR:[350,900],                     // mending a torn net, or a new panel
+    SEINE_WAGE:180,                       // a day helping on an experimental beach seine (cost-neutral: sales only cover costs)
+    UNLOCK:2,                             // seasons played before the planner offers it (the second off-season)
+    SCA:25,                               // knots: a small-craft advisory; at or above it the opener can be sat out
+    // ADF&G areas and statuses, as the host shows them
+    AREA:{beach:'the east-side beach',district:'the whole Central District',corridor:'the corridor along the east-side beaches (the Expanded Kenai and Kasilof Sections)',
+      area1:'Drift Area 1, south of Kalgin Island',west:'the west side of the inlet'},
+    ST:{open:'open',restricted:'restricted',closed:'closed',reopen:'reopened by emergency order',extra:'extra period by emergency order'},
+    // citations (the host turns them into its own; fines before its multipliers)
+    CITE:{
+      late:{what:'set gillnets left fishing after the period closed',fine:1000},
+      line:{what:'drift gillnetting in closed waters across the corridor line',fine:1500},
+      exam:{what:'a fishing vessel with no current Coast Guard dockside exam decal',fine:300,minor:true},
+    },
+    // things that happen, for the host's pictures: {id, sev}
+    EVENTS:['gn_closed_morning','gn_low_tide_site','gn_full_net','gn_seals','gn_kelp','gn_torn_net','gn_tide_rip','gn_corridor_line','gn_corked',
+      'gn_tender','gn_dock','gn_bar','gn_swamped','gn_beach_seine','gn_stay_in','gn_partner'],
+    // who you work for, and who works the days you don't
+    SKIPPERS:{set:['Marge Ostrander','the Kalifornsky Johnsons','Dee Hollier'],drift:['Ray Tikhonov','Carla Weiss','Benny Moller']},
+  };
+  // the roles a summer can be planned around
+  D.ROLES={
+    'set:crew':{kind:'set',role:'crew',ic:'🪢',l:'Crew on a family setnet site',s:'Pick fish on the beach for a share of the catch. No money up front.'},
+    'set:lease':{kind:'set',role:'lease',ic:'🪢',l:'Lease a setnet site and permit',s:'Your own nets on the beach, a share to the permit holder, a hand to help.'},
+    'drift:crew':{kind:'drift',role:'crew',ic:'🚤',l:'Deckhand on a drift boat',s:'Run out of Kenai with a skipper for a crew share.'},
+    'drift:lease':{kind:'drift',role:'lease',ic:'🚤',l:'Lease a drift permit and boat',s:'Run the boat yourself; the owner takes a share; you pay fuel and a deckhand.'},
+    'drift:own':{kind:'drift',role:'own',ic:'⚓',l:'Fish your own drift permit and boat',s:'Your boat, your permit, your fuel bill. A deckhand takes a share.'},
+  };
+  G.data=D;
+})(Gillnet);
+// ============================================================
+//  GILLNET, part 2: the engine.
+//  · schedule(o, {rand}): which of the played days are openers, and what ADF&G does with each (open, restricted, closed,
+//    reopened, an extra period) for a fishery in a season, from the king situation and the sockeye run.
+//  · outlook(kind, king, sock), offers(t): what the off-season planner shows.
+//  · session(ticket, {rand}): one opener as a few beats (set → soak → pick → deliver on the beach; run out → drift line →
+//    the tide → deliver on a boat), with view() / choose(id) / report(). A day on an experimental beach seine is a short session.
+//  · rest(o) and partner(ticket, {rand}): the openers someone else fishes for you (the unplayed summer; a day you guided).
+// ============================================================
+(function(G){
+  'use strict';
+  const D=G.data,U=G.util,{clamp,$,hm}=U;
+
+  // ---------- the season's openers ----------
+  const DOW=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  // o: {kind:'set'|'drift', days:[{d, md (month*100+day), dow (0 Sunday)}], king:'closed'|'cr'|'open', sock (the run's size, 1 average)}
+  G.schedule=function(o,opt){
+    const rand=(opt&&opt.rand)||Math.random,K=D[o.kind],out={v:G.SCHEMA,kind:o.kind,days:{},reopen:null};
+    if(!K) return out;
+    const strong=o.sock>=1.1,weak=o.sock<.75;
+    // a setnet season that starts closed for kings can reopen late if the sockeye flood in (August 2025 did): decided once
+    if(o.kind==='set'&&o.king==='closed'&&o.sock>=1.15&&rand()<.45) out.reopen=718+Math.floor(rand()*10);
+    (o.days||[]).slice().sort((a,b)=>a.d-b.d).forEach(x=>{
+      if(!(x.md>=K.open&&x.md<=K.close)) return;
+      const reg=x.dow===1||x.dow===4;
+      let st,area=o.kind==='set'?'beach':'district',hours=K.hours.slice(),why;
+      if(!reg){   // an extra period by emergency order: a strong run, mid-July on, never on a Sunday
+        if(!strong||x.md<708||x.dow===0) return;
+        if(o.kind==='set'&&o.king==='closed'&&!(out.reopen&&x.md>=out.reopen)) return;
+        if(rand()>=(o.kind==='set'?.2:.12)) return;
+        st='extra';area=o.kind==='set'?'beach':'corridor';hours=[420,1080];
+        why=o.kind==='set'?'An extra period by emergency order: the sockeye run is strong and the Kasilof is filling up.':'An extra period by emergency order, in the corridor along the east-side beaches: the sockeye run is strong.';
+      }else if(o.kind==='set'){
+        if(o.king==='open'){st=rand()<.12?'restricted':'open'}
+        else if(o.king==='cr'){st=rand()<(x.md>=720?.25:.08)?'open':'restricted'}
+        else st=out.reopen&&x.md>=out.reopen?'reopen':'closed';
+        if(st==='restricted') hours=[420,900];
+        if(weak&&st!=='closed'&&rand()<.3){st='closed';why='Closed by emergency order: the sockeye run is tracking weak.'}
+        why=why||{open:'A regular period: Mondays and Thursdays, 7 AM to 7 PM.',restricted:'Restricted to protect Kenai kings: one net within 600 feet of the high-tide line, 7 AM to 3 PM.',
+          closed:'Closed under the Kenai king plan: no setnets on the east-side beach.',reopen:'Reopened by emergency order: the late-run kings reached their goal and the sockeye are pouring in.'}[st];
+      }else{
+        const r=rand();
+        if(x.md>=801){area='west';st='open';why='Early August: the drift fleet fishes the west side of the inlet only. A long run across.'}
+        else{
+          if(o.king==='open') area=r<.65?'district':'corridor';
+          else if(o.king==='cr') area=r<.35?'district':r<.75?'corridor':'area1';
+          else area=r<.2?'district':r<.65?'corridor':'area1';
+          st=area==='district'?'open':'restricted';
+          why={district:'A regular period: Mondays and Thursdays, 7 AM to 7 PM, the whole Central District.',corridor:'Restricted to the corridor along the east-side beaches (the Expanded Kenai and Kasilof Sections).',
+            area1:'Restricted to Drift Area 1, south of Kalgin Island, away from the Kenai kings.'}[area];
+        }
+        if(weak&&rand()<.3){st='closed';why='Closed by emergency order: the sockeye run is tracking weak.'}
+      }
+      const day={st,area,hours,why,reg,dow:DOW[x.dow],md:x.md,ann:x.d-1};
+      if(o.kind==='set'&&st==='closed'&&o.king==='closed'&&reg&&rand()<.6) day.seine=true;   // a family's experimental beach seine fishes the closed beach
+      out.days[x.d]=day;
+    });
+    return out;
+  };
+  G.fishable=day=>!!day&&day.st!=='closed';
+  // fish on an opener next to a regular open period
+  const ST_F={open:1,restricted:.45,reopen:1.15,extra:.85,closed:0};
+  const AREA_F={beach:1,district:1,corridor:.9,area1:.75,west:.8};
+  // (a drift period's restriction is where it may fish: the area does the work)
+  G.openerFactor=day=>!day||day.st==='closed'?0:day.area==='beach'?(ST_F[day.st]||0):(day.st==='restricted'||day.st==='open'?1:ST_F[day.st]||0)*(AREA_F[day.area]||1);
+  // what the winter planner says about a fishery this year
+  G.outlook=function(kind,king,sock){
+    const run=sock>=1.2?'a strong sockeye forecast':sock>=.95?'an average sockeye forecast':sock>=.75?'a below-average sockeye forecast':'a weak sockeye forecast';
+    if(kind==='set') return {closed:`Kenai kings are closed, so the east-side setnets start the summer closed under the king plan. Only a huge sockeye run late in July could reopen them. With ${run}, it’s a gamble.`,
+      cr:`Kenai kings are catch-and-release only, so most setnet periods are restricted: one net close to the beach, fewer hours. ${run.charAt(0).toUpperCase()+run.slice(1)}.`,
+      open:`Kenai kings are open, so the setnets fish their regular periods, Mondays and Thursdays. ${run.charAt(0).toUpperCase()+run.slice(1)}.`}[king];
+    return {closed:`Kenai kings are closed, so many drift periods are pushed into the corridor along the beaches or south to Area 1. ${run.charAt(0).toUpperCase()+run.slice(1)}.`,
+      cr:`Kenai kings are catch-and-release only: some drift periods are restricted to the corridor or Area 1. ${run.charAt(0).toUpperCase()+run.slice(1)}.`,
+      open:`Kenai kings are open: the drift fleet fishes most regular periods district-wide. ${run.charAt(0).toUpperCase()+run.slice(1)}.`}[king];
+  };
+
+  // ---------- the off-season planner ----------
+  // t: {cash, costMult, xp:{set,drift} openers worked, did:{'set:crew':n seasons, ...}, own:{boat}, suit, plan (a role id or null)}
+  G.offers=function(t){
+    const cm=t.costMult||1,did=t.did||{},xp=t.xp||{},own=t.own&&t.own.boat,o=[];
+    const crewed=k=>(did[k+':crew']||0)>=1||(xp[k]||0)>=3;
+    const add=(id,cost,why,extra)=>{const R=D.ROLES[id];o.push(Object.assign({id,ic:R.ic,l:R.l,s:R.s,cost:Math.round(cost),dis:!!why,why:why||''},extra||{}))};
+    add('set:crew',D.CREWLIC*cm,null,{note:`A ${Math.round(D.set.crew*100)}% share of what the site sells.`});
+    add('set:lease',D.set.leaseUp*cm,!crewed('set')?'Crew a season on a site first (or work three setnet openers)':t.cash<D.set.leaseUp*cm?'Can’t afford it':null,
+      {note:`${$(Math.round(D.set.leaseUp*cm))} up front for the site, skiff and nets; ${Math.round(D.set.permit*100)}% of sales to the permit holder and ${Math.round(D.set.hire*100)}% to your hand.`});
+    add('drift:crew',D.CREWLIC*cm,null,{note:`A ${Math.round(D.drift.crew*100)}% crew share.`});
+    if(!own) add('drift:lease',D.drift.leaseUp*cm,!crewed('drift')?'Deckhand a season first (or work three drift openers)':t.cash<D.drift.leaseUp*cm?'Can’t afford it':null,
+      {note:`${$(Math.round(D.drift.leaseUp*cm))} up front; ${Math.round(D.drift.lease*100)}% of sales to the owner, ${Math.round(D.drift.deck*100)}% to your deckhand, fuel and ice on you.`});
+    if(own) add('drift:own',0,null,{note:`No lease. ${Math.round(D.drift.deck*100)}% to your deckhand, fuel and ice on you.`});
+    return o;
+  };
+  G.buyCost=cm=>Math.round((D.OWN.permit+D.OWN.boat)*(cm||1));
+  G.buyWhy=t=>(t.own&&t.own.boat)?'You already own one':(t.did||{})['drift:lease']>=1||(t.did||{})['drift:own']>=1?(t.cash<G.buyCost(t.costMult)+5000?'Can’t afford it (and keep a little cash)':null):'Lease a drift permit and boat for a season first';
+
+  // ---------- one opener ----------
+  function normTicket(x){
+    x=Object.assign({kind:'set',role:'crew',day:null,run:.8,price:1.7,wind:8,wx:'sun',tides:[],amp:9,now:330,energy:80,cash:0,xp:0,suit:false,exam:true,
+      king:'closed',costMult:1,fuel:5.2,skipper:'',seine:false},x||{});
+    if(!x.day) x.day={st:'open',area:x.kind==='set'?'beach':'district',hours:D[x.kind]?D[x.kind].hours.slice():[420,1140],why:''};
+    return x;
+  }
+  G.normTicket=normTicket;
+  // the tide's height at minute m of the day, from the day's highs and lows (cosine between them)
+  function tideAt(T,m){
+    const t=T.tides||[];if(!t.length) return 10;
+    let a=null,b=null;for(const x of t){if(x.m<=m)a=x;else{b=x;break}}
+    if(!a) return b.h;if(!b) return a.h;
+    const f=(m-a.m)/(b.m-a.m);return a.h+(b.h-a.h)*(1-Math.cos(Math.PI*f))/2;
+  }
+  const nextTide=(T,m,hi)=>(T.tides||[]).find(x=>x.m>=m&&x.hi===hi)||null;
+  G.tideAt=tideAt;
+
+  G.session=function(ticket,opt){
+    const T=normTicket(ticket),rand=(opt&&opt.rand)||Math.random,K=D[T.kind]||D.set;
+    const crew=T.role==='crew',seine=!!T.seine;
+    const Q={phase:'brief',done:false,f:1,energy:K.energy,mins:0,price:T.price,lost:0,repair:0,extraFuel:0,lines:[],events:[],cites:[],flags:{},
+      luck:.75+.5*rand(),mood:0,advice:{taken:0,asked:0}};
+    const sev=(id,s)=>{if(!Q.events.some(e=>e.id===id))Q.events.push({id,sev:s||1})};
+    const wind=T.wind,big=T.amp>=10,w=clamp(wind/12,.5,2.2),late=Math.max(0,T.now-T.day.hours[0]);
+    const who=T.skipper||U.pick(rand,D.SKIPPERS[T.kind]||['the skipper']);
+    const follow=clamp(.45+.06*(T.xp||0),.45,.9);
+    const facts=()=>{const lo=nextTide(T,Math.max(300,T.day.hours[0]-60),false),hi=nextTide(T,Math.max(300,T.day.hours[0]-60),true);
+      return `<p class="small-note" style="font-size:12.5px;color:var(--mute,#667)">🕖 ${hm(T.day.hours[0])}–${hm(T.day.hours[1])} · 🌊 ${big?'big tide':'small tide'}${lo?`, low water ${hm(lo.m)}`:''}${hi?`, high water ${hm(hi.m)}`:''} · 💨 ${wind} kt · 💵 about ${$(T.price)}/lb</p>`};
+    // a beat's choice: a crew member advises; the skipper takes the advice or does it their own way (the first, safe button)
+    function decide(id,ids){
+      if(!crew) return id;
+      Q.advice.asked++;
+      if(id===ids[0]||rand()<follow){Q.advice.taken++;if(id!==ids[0])Q.lines.push(`🗣️ ${who} goes with your call.`);return id}
+      Q.lines.push(`🗣️ ${who} hears you out and does it the usual way.`);return ids[0];
+    }
+    function seineView(){
+      return {title:'🏖️ Experimental beach seine',html:`<p>The setnets stay on the bank this morning: the beach is closed for kings. A neighbor’s family is running an <b>experimental beach seine</b> off the same beach, a test permit that may only sell enough sockeye to cover its costs. They could use another pair of hands, for a day’s wage.</p><p>The seine sweeps the fish to the sand alive, so every king goes back in the water.</p>`,
+        buttons:[{id:'careful',l:'Work the seine and release every king first',s:`A long, wet day. About ${$(D.SEINE_WAGE)}.`},{id:'quick',l:'Work the seine at their pace',s:`About ${$(D.SEINE_WAGE)}.`},{id:'skip',l:'Not today',s:'Back to the shop.'}]};
+    }
+    const V={
+      brief(){
+        if(seine) return seineView();
+        const st=T.day,hard=wind>=D.SCA;
+        const role=crew?`You’re crew for <b>${who}</b>: a ${Math.round(K.crew*100)}% share of the fish ticket.`:T.role==='own'?'Your boat, your permit.':T.kind==='set'?'Your leased site and nets.':'Your leased permit and boat.';
+        const where=T.kind==='set'?'the site below the Kalifornsky bluffs':D.AREA[st.area];
+        const body=`<p>${T.kind==='set'?'🪢':'🚤'} <b>${D.ST[st.st].charAt(0).toUpperCase()+D.ST[st.st].slice(1)}</b> · ${where}. ${st.why||''}</p><p>${role}${late>0?` You’re ${late} minutes late for the opening.`:''}</p>${hard?`<p style="color:var(--warn,#b60)">💨 A small-craft advisory: ${wind} knots on the inlet.${T.kind==='drift'&&!T.suit?' You have no survival suit aboard.':''}</p>`:''}${facts()}`;
+        sev(T.kind==='set'?'gn_low_tide_site':'gn_tide_rip',1);
+        return {title:T.kind==='set'?'🪢 Setnet opener':'🚤 Drift opener',html:body,buttons:[
+          {id:'go',l:T.kind==='set'?'Head to the beach':'Run out of the Kenai River',s:T.kind==='set'?'Fifteen minutes to the site. A long day: back around 8:30 PM.':'Out over the bar at the mouth. Back around 9 PM.'},
+          {id:'skip',l:hard?'Sit it out: the weather’s too much':'Sit this one out',s:crew?`${who} will be short a hand.`:'Nothing spent today.'}]};
+      },
+      set(){
+        const lo=nextTide(T,T.day.hours[0]-60,false),good=lo&&lo.m<=T.day.hours[0]+150,hiNear=(nextTide(T,T.day.hours[0]-60,true)||{m:9999}).m<=T.day.hours[0]+90;
+        Q.flags.goodTide=good;Q.flags.deep=hiNear;
+        const ask=crew?`<p>${who} looks at you: “How do you want to set?”</p>`:'';
+        const b=[{id:'all',l:T.day.st==='restricted'?'Set your one net the minute it opens':'Set all three nets the minute it opens',s:good?'Low water: you walk the running lines out across the sand. The flood brings the fish to you.':hiNear?'High water at the opening: you set from the skiff in deep, cold water. Hard work.':'Every minute of the period fishes.'},
+          {id:'flood',l:'Wait for the flood and set on the rising water',s:'Easier on the back and the gear. You give up the first hour.'}];
+        if(wind>=18) b.push({id:'hold',l:'Keep the outer net on the beach: too much chop',s:'Less fish, and no torn web.'});
+        return {title:'🪢 Setting the nets',html:`<p>${good?`Low water at ${hm(lo.m)}. The beach runs out half a mile of wet sand, the buoys and running lines lie where you left them.`:hiNear?'The tide is high at the opening. The running lines are under ten feet of gray water.':'Mid-tide at the opening.'} ${wind>=18?`The wind is up, ${wind} knots out of the southwest.`:''}</p>${ask}${facts()}`,buttons:b};
+      },
+      soak(){
+        const seals=rand()<.35,school=rand()<.4*T.run,kelp=wind>=14&&rand()<.35;Q.flags.seals=seals;Q.flags.school=school;Q.flags.kelp=kelp;
+        if(seals)sev('gn_seals',2);if(kelp)sev('gn_kelp',1);if(school)sev('gn_full_net',2);
+        const ask=crew?`<p>${who}: “Pick now, or let them soak?”</p>`:'';
+        return {title:'🌊 The flood',html:`<p>${school?'The corks are dancing: a school of sockeye is hitting the nets end to end.':'A steady trickle of fish in the nets.'} ${seals?'Two harbor seals are working the outer net, tearing fish out of the web.':''} ${kelp?'The wind is loading the web with kelp and drift.':''}</p>${ask}${facts()}`,
+          buttons:[{id:'pick',l:'Run the skiff down the nets and pick now',s:'The fish stay fresh and the seals get less. More work.'},
+            {id:'soak',l:'Let them soak to high water',s:'A bigger haul if the fish keep coming. Dead fish soften in the web.'}]};
+      },
+      pick(){
+        const ask=crew?`<p>${who}: “How do you want to pick this one?”</p>`:'';
+        const b=[{id:'fast',l:'Pick fast and fill the totes',s:'Done sooner.'},{id:'bleed',l:'Pick on the ebb, bleed every fish and slush-ice the totes',s:`About ${$(D.PRICE.bled)} a pound more at the tender. An hour more on your knees.`}];
+        if(!crew) b.push({id:'late',l:`Leave the nets fishing past ${hm(T.day.hours[1])} while you pick the last fish`,s:'A few more fish. The troopers watch the beach at the close.'});
+        return {title:'🐟 Picking on the ebb',html:`<p>The tide turns and falls away. ${Q.flags.school?'The web is silver from end to end.':'The nets come up out of the water fish by fish.'} The period closes at ${hm(T.day.hours[1])}.</p>${ask}${facts()}`,buttons:b};
+      },
+      line(){
+        const a=T.day.area,ask=crew?`<p>${who}: “Where would you set?”</p>`:'';
+        const b=[];
+        if(a==='district'||a==='corridor') b.push({id:'corridor',l:'Fish the corridor along the east-side beaches',s:a==='corridor'?'The only water open today. Every boat in the fleet is here.':'Close to home, crowded, and the fish are headed for the Kenai and Kasilof.'});
+        if(a==='district') b.push({id:'rip',l:'Run out to the mid-inlet tide rip',s:'Fish and drift collect in the rips. A longer run and big water.'});
+        if(a==='area1') b.push({id:'area1',l:'Run south to Area 1',s:'Twenty more miles of fuel each way.'});
+        if(a==='west') b.push({id:'west',l:'Cross to the west side',s:'A long, wet crossing. Fewer boats over there.'});
+        return {title:'🧭 Picking a drift',html:`<p>Out over the bar on the ebb, the inlet is the color of chocolate milk. ${D.AREA[a].charAt(0).toUpperCase()+D.AREA[a].slice(1)} is open. ${big?'A big tide today: the rips will run hard.':'A small tide: easy drifting.'}</p>${ask}${facts()}`,buttons:b};
+      },
+      set2(){
+        const ask=crew?`<p>${who}: “Long drift or short sets?”</p>`:'';
+        return {title:'🪝 Setting the net',html:`<p>${Q.flags.where==='rip'?'A rip line of foam and drift logs stretches north as far as you can see. Fish are jumping along it.':'Boats every quarter mile, nets laid out across the tide.'} 150 fathoms of net on the reel.</p>${ask}${facts()}`,
+          buttons:[{id:'short',l:'Short sets, pick often, stay off the line',s:'Fresher fish, a little more fuel, less trouble.'},{id:'long',l:'Lay out the whole net and drift a long way',s:'More fish if it holds together. The tide decides where you end up.'}]};
+      },
+      tide(){
+        const restricted=T.day.area==='corridor'||T.day.area==='area1',ev=Q.flags.ev=(()=>{
+          if(restricted&&Q.flags.drift==='long'&&rand()<(big?.55:.35)) return 'line';
+          const r=rand();return r<.3*w*(Q.flags.where==='rip'?1.4:1)?'torn':r<.55?'seals':r<.75&&Q.flags.where==='corridor'?'corked':'school'})();
+        const ask=crew?`<p>${who} looks at you.</p>`:'';
+        const E={
+          line:{id:'gn_corridor_line',sev:3,t:`The flood is setting your whole net toward the corridor line on the plotter. Past it is closed water.`,b:[{id:'pull',l:'Pick up now and re-set inside the line',s:'You lose some fish and some fuel.'},{id:'ride',l:'Let it ride a few more minutes',s:'The fish are hitting. The line is close.'}]},
+          torn:{id:'gn_torn_net',sev:2,t:`The net wraps a drifting spruce log in the rip and tears a hole you could drive a skiff through.`,b:[{id:'mend',l:'Haul back and mend it on deck',s:'An hour of needle work. Fewer fish today, a smaller bill later.'},{id:'fish',l:'Keep fishing the torn net',s:'Fish slip through the hole, and it gets worse.'}]},
+          seals:{id:'gn_seals',sev:2,t:`Sea lions and seals are cruising your corkline, picking fish out of the net.`,b:[{id:'haul',l:'Haul back early and move off them',s:'Fuel and time. They follow sometimes.'},{id:'leave',l:'Leave the net and hope they move on',s:'They might not.'}]},
+          corked:{id:'gn_corked',sev:1,t:`Another boat lays its net right across the tide in front of yours: you’re corked.`,b:[{id:'move',l:'Pick up and find clear water',s:'Fuel and time.'},{id:'stay',l:'Stay and fish behind him',s:'His net gets the fish first.'}]},
+          school:{id:'gn_full_net',sev:2,t:`The corks go under in a row: a school hits the net all at once.`,b:[{id:'pick',l:'Pick it now, before the fish die in the web',s:'Fresh fish and an aching back.'},{id:'soak',l:'Let it soak a while longer',s:'More fish, softer ones.'}]},
+        }[ev];
+        sev(E.id,E.sev);
+        return {title:'🌊 The tide',html:`<p>${E.t}</p>${ask}${facts()}`,buttons:E.b};
+      },
+      deliver(){
+        const ask=crew?`<p>${who}: “Tender, or run it in?”</p>`:'';
+        if(T.kind==='set') return {title:'⚖️ Delivering',html:`<p>The totes are full. The tender is anchored off the beach, and the processor in Kenai pays a little more for well-kept fish.</p>${ask}${facts()}`,
+          buttons:[{id:'tender',l:'Skiff the totes out to the tender',s:'Weighed on the tender, a fish ticket, done.'},{id:'dock',l:'Truck the totes to the processor dock in Kenai',s:`About ${$(D.PRICE.dock)} a pound more for iced fish. An hour more, and gas.`}]};
+        const bar=tideAt(T,1230)<7;Q.flags.bar=bar;
+        return {title:'⚖️ Delivering',html:`<p>The period closes. A tender is working the fleet, and the dock in Kenai pays a little more if you can get over the bar.</p>${ask}${facts()}`,
+          buttons:[{id:'tender',l:'Deliver to the tender on the grounds',s:'A line of boats, a sling, a fish ticket.'},{id:'river',l:'Run in to the Kenai dock on the evening tide',s:`About ${$(D.PRICE.dock)} a pound more. ${bar?'The tide will be low at the bar.':'Good water over the bar.'}`}]};
+      },
+      done(){return {title:'🎣 Opener over',html:sumHtml(),buttons:[{id:'close',l:'Back to the shop',s:''}]}},
+    };
+    const ORDER={set:['brief','set','soak','pick','deliver','done'],drift:['brief','line','set2','tide','deliver','done']};
+    const next=()=>{const o=ORDER[T.kind];Q.phase=o[o.indexOf(Q.phase)+1]||'done';if(Q.phase==='done')finish()};
+    function finish(){
+      if(Q.R) return;
+      const R=Q.R={kind:T.kind,role:T.role,skipped:!!Q.flags.skipped,seine:seine,fish:0,lbs:0,price:0,gross:0,share:0,costs:{lease:0,crew:0,fuel:0,ice:0,gas:0,repair:0},
+        cashDelta:0,energyDelta:0,minutes:30,cites:[],events:Q.events.slice(),lines:[],kings:0,xp:0,mood:0,quality:'plain',status:T.day.st,area:T.day.area};
+      if(Q.flags.skipped){R.lines.push(crew?`You call ${who}: you won’t make this one.`:'You sit this one out.');R.mood=crew?-8:0;R.energyDelta=0;if(wind>=D.SCA)sev('gn_stay_in',1);R.events=Q.events.slice();return}
+      if(seine){
+        const wage=Math.round(D.SEINE_WAGE*(Q.flags.careful?1:1));R.cashDelta=wage;R.share=wage;R.energyDelta=Q.flags.careful?-26:-22;R.minutes=Math.max(60,(Q.flags.careful?1170:1110)-T.now);R.xp=1;
+        R.fish=Math.round(120*T.run*Q.luck);R.kings=Math.max(0,Math.round(R.fish*.01+rand()*1.5));
+        R.lines.push(`🏖️ The seine comes ashore ${R.fish>120?'heavy':'half full'}: about ${R.fish} sockeye to sell, ${R.kings?`${R.kings} king${R.kings>1?'s':''} slid back into the surf alive`:'not a king in it'}. Your day’s wage: <b>${$(wage)}</b>.`);
+        if(Q.flags.careful)R.lines.push('👑 You and the oldest daughter carry every king back to the water by hand. The ADF&G tech watching writes it all down.');
+        sev('gn_beach_seine',2);R.events=Q.events.slice();return;
+      }
+      const sk=T.role==='crew'?1:clamp(.9+.012*(T.xp||0),.9,1.08);
+      const lateF=clamp(1-late/((T.day.hours[1]-T.day.hours[0])||720),.3,1);
+      let fish=K.fish*T.run*G.openerFactor(T.day)*Q.f*Q.luck*sk*lateF;
+      fish=Math.max(0,Math.round(fish*(1-Q.lost)));
+      R.fish=fish;R.lbs=Math.round(fish*D.LB);
+      R.price=Math.round(Math.max(.8,Q.price)*100)/100;
+      R.quality=Q.flags.bled?'bled':Q.flags.soft?'soft':'plain';
+      R.gross=Math.round(R.lbs*R.price);
+      R.kings=fish?Math.round(fish*(T.king==='open'?.006:.003)*(.5+rand())):0;
+      R.costs.repair=Math.round(Q.repair*(T.costMult||1));
+      const cm=T.costMult||1;
+      if(crew){R.share=Math.round(R.gross*K.crew);R.cashDelta=R.share}
+      else if(T.kind==='set'){R.costs.lease=Math.round(R.gross*K.permit);R.costs.crew=Math.round(R.gross*K.hire);R.costs.ice=Math.round(K.ice*cm);R.costs.gas=Math.round((K.gas+(Q.flags.dock?25:0))*cm)}
+      else{R.costs.lease=T.role==='lease'?Math.round(R.gross*K.lease):0;R.costs.crew=Math.round(R.gross*K.deck);R.costs.ice=Math.round(K.ice*cm);R.costs.fuel=Math.round((K.gal+Q.extraFuel)*T.fuel)}
+      if(!crew){const c=R.costs;R.cashDelta=R.gross-c.lease-c.crew-c.ice-c.gas-c.fuel-c.repair}
+      else if(R.costs.repair){R.costs.repair=0}   // the skipper's net, the skipper's bill
+      R.energyDelta=Q.energy;R.minutes=Math.max(60,(K.end+Q.mins)-T.now);R.xp=1;R.mood=crew?(Q.advice.taken>=2?4:2)+(Q.flags.hard?3:0):0;
+      R.cites=Q.cites.slice();R.events=Q.events.slice();
+      if(crew&&R.cites.length){Q.lines.push(`🚨 ${who} gets the ticket: it’s the permit holder’s name on it. The ride home is quiet.`);R.cites=[];R.mood-=10}
+      R.lines=Q.lines.slice();
+      R.lines.push(`⚖️ Fish ticket: <b>${fish} sockeye</b>, ${U.grp(R.lbs)} lb at ${$(R.price)}/lb${R.quality==='bled'?' (bled and iced)':R.quality==='soft'?' (some soft fish)':''} = <b>${$(R.gross)}</b>.${R.kings?` ${R.kings} king${R.kings>1?'s':''} in the nets, on the ticket.`:''}`);
+      if(crew) R.lines.push(`🤝 Your ${Math.round(K.crew*100)}% crew share: <b>${$(R.share)}</b>.`);
+      else{const c=R.costs,parts=[c.lease?`${T.kind==='set'?'permit holder':'boat owner'} ${$(c.lease)}`:'',c.crew?`${T.kind==='set'?'your hand':'your deckhand'} ${$(c.crew)}`:'',c.fuel?`fuel ${$(c.fuel)}`:'',c.ice?`ice ${$(c.ice)}`:'',c.gas?`gas ${$(c.gas)}`:'',c.repair?`net repair ${$(c.repair)}`:''].filter(Boolean);
+        R.lines.push(`💵 After ${parts.join(', ')}: <b>${R.cashDelta<0?'−':''}${$(Math.abs(R.cashDelta))}</b> to you.`)}
+      if(fish>=K.fish*1.1&&!Q.events.some(e=>e.id==='gn_full_net'))R.events.push({id:'gn_full_net',sev:2});
+      R.events.push({id:Q.flags.dock||Q.flags.river?'gn_dock':'gn_tender',sev:1});
+    }
+    function sumHtml(){const R=Q.R;if(!R)return '';return R.lines.map(l=>`<p>${l}</p>`).join('')+(R.cites.length?'':'')+`<p class="small-note" style="font-size:12.5px;color:var(--mute,#667)">Energy ${R.energyDelta} · back at ${hm(T.now+R.minutes)}</p>`}
+    // the choices
+    const ON={
+      brief(id){
+        if(id==='skip'){Q.flags.skipped=true;Q.phase='done';finish();return}
+        if(seine){Q.flags.careful=id==='careful';Q.phase='done';finish();return}
+        next();
+      },
+      set(id,ids){id=decide(id,ids);
+        if(id==='all'){Q.f*=Q.flags.goodTide?1.1:1;Q.energy-=Q.flags.deep?12:8;if(wind>=20&&rand()<.25*w){Q.repair+=U.pick(rand,[350,450,600]);Q.lost+=.05;Q.lines.push('🪢 The chop rolls the outer net into a rope of web and kelp. It needs mending tonight.');sev('gn_torn_net',2)}
+          else Q.lines.push(Q.flags.goodTide?'🪢 Out across the sand at low water, every net set by 7:20. The flood comes in to meet them.':'🪢 All three nets fishing from the opening bell.');Q.flags.hard=true}
+        else if(id==='flood'){Q.f*=.86;Q.energy-=4;Q.lines.push('🪢 You set on the rising water. It costs the first hour.')}
+        else{Q.f*=.72;Q.energy-=3;Q.lines.push('🪢 The outer net stays on the beach. The inside nets fish the flood.')}
+        next()},
+      soak(id,ids){id=decide(id,ids);
+        if(id==='pick'){Q.energy-=8;Q.mins+=0;if(Q.flags.seals)Q.lost+=.03;Q.lines.push(`🛶 You run the skiff down the corkline and pick${Q.flags.seals?', and the seals move off down the beach':''}.`);Q.flags.hard=true}
+        else{if(Q.flags.school)Q.f*=1.15;else Q.f*=1.03;if(Q.flags.seals){Q.lost+=.18;Q.lines.push('🦭 The seals have a feast in the outer net: torn heads and empty mesh.')}
+          if(Q.flags.kelp){Q.repair+=200;Q.lines.push('🌿 The web is loaded with kelp by high water. Hours of cleaning.')}
+          Q.flags.soft=true;Q.price-=D.PRICE.soft;Q.energy-=3}
+        next()},
+      pick(id,ids){id=decide(id,ids);
+        if(id==='bleed'){Q.flags.bled=true;Q.price+=D.PRICE.bled;Q.mins+=45;Q.energy-=10;Q.lines.push('🔪 Every fish bled and laid in slush ice. The tender’s quality bonus is yours.');if(Q.flags.soft){Q.price+=D.PRICE.soft*.5}}
+        else if(id==='late'){Q.f*=1.06;Q.mins+=15;Q.energy-=6;
+          if(rand()<.4){const c=D.CITE.late;Q.cites.push({what:c.what,fine:c.fine,minor:false,who:'an Alaska Wildlife Trooper watching the beach at the close'});Q.lost+=.1;Q.lines.push('🚨 A trooper is waiting on the bluff at the close, and your outer net is still fishing.');sev('gn_corridor_line',3)}
+          else Q.lines.push('⏱️ The last net comes out at 7:15. Nobody was watching. This time.')}
+        else{Q.energy-=6;Q.lines.push('🐟 You pick fast and fill the totes.')}
+        next()},
+      line(id,ids){id=decide(id,ids);Q.flags.where=id;
+        if(id==='rip'){Q.f*=big?1.25:1.15;Q.extraFuel+=15;Q.energy-=4}
+        else if(id==='corridor'){Q.f*=T.day.area==='corridor'?.95:1}
+        else if(id==='area1'){Q.f*=1;Q.extraFuel+=25}
+        else if(id==='west'){Q.f*=1;Q.extraFuel+=35;Q.energy-=4}
+        if(T.role==='own'&&!T.exam&&rand()<.25){const c=D.CITE.exam;Q.cites.push({what:c.what,fine:c.fine,minor:true,who:'a Coast Guard boarding team'})}
+        Q.lines.push({rip:'🧭 You run out to the rip.',corridor:'🧭 You set in the corridor with the fleet.',area1:'🧭 South to Area 1.',west:'🧭 Across the inlet to the west side.'}[id]);
+        if(wind>=20&&!T.suit&&rand()<.15){Q.lost+=.15;Q.energy-=12;Q.lines.push('🌊 A steep sea fills the cockpit and the pumps run for twenty minutes. No survival suits aboard: nobody says a word until it’s over.');sev('gn_swamped',3)}
+        else if(wind>=20&&rand()<.1){Q.lost+=.08;Q.energy-=6;Q.lines.push('🌊 Green water over the stern in the tide rip. Everyone in survival suits is a comfort.');sev('gn_swamped',3)}
+        next()},
+      set2(id,ids){id=decide(id,ids);Q.flags.drift=id;
+        if(id==='long'){Q.f*=1.15;Q.energy-=6;Q.lines.push('🪝 All 150 fathoms out, drifting with the tide.')}
+        else{Q.f*=.95;Q.extraFuel+=8;Q.energy-=8;Q.flags.bledEasy=true;Q.lines.push('🪝 Short sets and quick picks all day.');Q.flags.hard=true}
+        next()},
+      tide(id,ids){id=decide(id,ids);const ev=Q.flags.ev;
+        if(ev==='line'){
+          if(id==='ride'){Q.f*=1.1;if(rand()<(big?.55:.4)){const c=D.CITE.line;Q.cites.push({what:c.what,fine:c.fine,minor:false,who:'an Alaska Wildlife Trooper patrol vessel'});Q.lost+=.25;Q.lines.push('🚨 The trooper boat has been watching the line. Your net is across it: the catch from that set is seized.')}
+            else Q.lines.push('😬 You pick up just inside the line. Lucky.')}
+          else{Q.f*=.9;Q.extraFuel+=5;Q.lines.push('↩️ You pick up and re-set inside the line.')}}
+        else if(ev==='torn'){
+          if(id==='mend'){Q.f*=.95;Q.mins+=30;Q.energy-=5;Q.repair+=D.REPAIR[0];Q.lines.push('🧵 An hour with the needle on a pitching deck. It holds.')}
+          else{Q.f*=.85;Q.repair+=D.REPAIR[1];Q.lines.push('🕳️ You fish the torn net. Fish pour out of the hole, and the tear runs.')}}
+        else if(ev==='seals'){
+          if(id==='haul'){Q.extraFuel+=6;Q.lost+=.03;Q.lines.push('🦭 You haul back and move. They lose interest.')}
+          else{Q.lost+=.15;Q.lines.push('🦭 The seals stay. A tenth of your fish are heads.')}}
+        else if(ev==='corked'){
+          if(id==='move'){Q.extraFuel+=6;Q.lines.push('↪️ You find clear water a mile north.')}
+          else{Q.f*=.85;Q.lines.push('😤 You fish his leftovers.')}}
+        else{
+          if(id==='pick'){Q.energy-=8;Q.lines.push('🐟 A hundred fish over the roller, fresh and bright.');Q.flags.hard=true}
+          else{Q.f*=1.12;Q.flags.soft=true;Q.price-=D.PRICE.soft;Q.lines.push('🐟 You let it soak. The net comes up heavy, and some fish are soft.')}}
+        next()},
+      deliver(id,ids){id=decide(id,ids);
+        if(T.kind==='set'){
+          if(id==='dock'){Q.flags.dock=true;Q.price+=Q.flags.bled?D.PRICE.dock:D.PRICE.dock*.3;Q.mins+=60;Q.energy-=3;Q.lines.push('🚚 You truck the totes to the processor dock in Kenai.')}
+          else Q.lines.push('⚖️ The tender’s crane lifts the brailers aboard.');
+        }else{
+          if(id==='river'){Q.flags.river=true;Q.price+=(Q.flags.bledEasy?D.PRICE.dock:D.PRICE.dock*.5);Q.mins+=30;
+            if(Q.flags.bar){Q.mins+=120;Q.energy-=8;Q.lines.push('⏳ The bar at the mouth is too shallow. You wait two hours outside for the flood, then deliver at the dock.');sev('gn_bar',2)}
+            else Q.lines.push('⚓ Over the bar on the flood and up to the processor dock in Kenai.')}
+          else Q.lines.push('⚖️ You raft up to the tender. Brailer by brailer, onto the scale.');
+        }
+        next()},
+      done(){Q.done=true},
+    };
+    const sess={
+      get phase(){return Q.phase},get done(){return Q.done},state:Q,ticket:T,
+      view(){const v=V[Q.phase]();v.meta={phase:Q.phase,kind:T.kind,role:T.role,events:Q.events.slice()};return v},
+      choose(id){if(Q.done)return false;const v=V[Q.phase](),b=v.buttons.find(x=>x.id===id);if(!b||b.dis)return false;
+        const ids=v.buttons.filter(x=>!x.dis).map(x=>x.id);ON[Q.phase](id,ids);return true},
+      report(){if(!Q.R&&Q.phase==='done')finish();return Q.R?JSON.parse(JSON.stringify(Q.R)):null},
+    };
+    // views draw randomness for their beat (seals, the tide's event): draw it once and keep the view stable
+    const cache={};const V0=V;Object.keys(V0).forEach(k=>{const f=V0[k];V[k]=()=>{if(k!=='done'&&cache[k])return cache[k];const v=f();if(k!=='done')cache[k]=v;return v}});
+    return sess;
+  };
+
+  // ---------- openers fished for you ----------
+  // the rest of the summer (lease or own): your partner or a hired skipper fishes the openers you don't play; you keep REST.share of the net.
+  // o: {kind, role, played (openers you fished), net (their total net), gross, open (fraction of the season's periods open, 0..1), count (periods you didn't play), sock, costMult}
+  G.rest=function(o){
+    const K=D[o.kind];if(!K||o.role==='crew') return {periods:0,gross:0,costs:0,net:0};
+    const per=o.played>0?{net:o.net/o.played,gross:o.gross/o.played}:G.expect(o);
+    const n=Math.round((o.count||0)*clamp(o.open==null?1:o.open,0,1));
+    const gross=Math.round(per.gross*n*D.REST.share),net=Math.round(Math.min(per.net,per.gross)*n*D.REST.share);
+    return {periods:n,gross,costs:gross-net,net};
+  };
+  // what an average opener sells and nets for a role (no decisions), for the rest of the summer when you fished none
+  G.expect=function(o){const K=D[o.kind],fish=K.fish*.75*(o.sock||1),g=fish*D.LB*(o.price||1.65),cm=o.costMult||1;
+    const net=o.kind==='set'?g*(1-K.permit-K.hire)-(K.ice+K.gas)*cm:g*(1-(o.role==='lease'?K.lease:0)-K.deck)-K.ice*cm-K.gal*(o.fuel||5.2);
+    return {gross:Math.round(g),net:Math.round(net)}};
+  // an opener you guided through instead (lease or own): your partner or hired skipper fishes it, and you keep REST.share
+  G.partner=function(ticket,opt){
+    const T=normTicket(ticket),rand=(opt&&opt.rand)||Math.random,K=D[T.kind];
+    const R={kind:T.kind,role:T.role,partner:true,fish:0,lbs:0,price:T.price,gross:0,cashDelta:0,events:[{id:'gn_partner',sev:1}],lines:[],cites:[]};
+    if(T.role==='crew'||!G.fishable(T.day)) return R;
+    const fish=Math.round(K.fish*T.run*G.openerFactor(T.day)*(.75+.5*rand())*.9);
+    const e=G.expect({kind:T.kind,role:T.role,sock:1,price:T.price,costMult:T.costMult,fuel:T.fuel}),per=e.gross?e.net/e.gross:.5;
+    R.fish=fish;R.lbs=fish*D.LB;R.gross=Math.round(R.lbs*T.price);R.cashDelta=Math.round(R.gross*per*D.REST.share);
+    R.lines.push(`${T.kind==='set'?'🪢 The family fished your site':'🚤 Your hired skipper ran the boat'} while you guided: ${fish} sockeye, ${$(R.gross)} on the ticket, <b>${$(R.cashDelta)}</b> to you after their share and the costs.`);
+    return R;
+  };
+})(Gillnet);
+// ============================================================
+//  GILLNET, part 3: start().
+//  Gillnet.start({ticket, host}) runs one opener through the host's own screens:
+//    host.show(title, html, buttons, lock, meta)  show a pop-up; buttons are {l, s, dis, fn}; fn runs after the pop-up closes.
+//                                                 meta: {phase, kind, role, events} (the host may pick a picture from events)
+//    host.onFinish(report)                        the opener is over; apply the report (not called if the player walks away)
+//    host.rand()                                  optional, a number in [0,1)
+//  The engine itself never reads the page or the host's state.
+// ============================================================
+(function(G){
+  'use strict';
+  G.start=function(opts){
+    opts=opts||{};const host=opts.host||{};
+    if(typeof host.show!=='function') throw new Error('Gillnet.start needs host.show');
+    const sess=G.session(opts.ticket,{rand:typeof host.rand==='function'?host.rand:undefined});
+    let stopped=false,finished=false;
+    const later=f=>typeof setTimeout==='function'?setTimeout(f,0):Promise.resolve().then(f);   // the host's event loop (a bare sandbox has no timers)
+    function finish(){if(finished)return;finished=true;const rep=sess.report();if(typeof host.onFinish==='function')host.onFinish(rep)}
+    function show(){
+      if(stopped) return;
+      if(sess.done) return finish();
+      const v=sess.view();
+      // the summary closes the session: the report is applied before the last sheet shows, so walking away there loses nothing
+      if(v.meta.phase==='done'&&!finished){finished=true;const rep=sess.report();if(typeof host.onFinish==='function')host.onFinish(rep)}
+      host.show(v.title,v.html,v.buttons.map(b=>({l:b.l,s:b.s,dis:b.dis,fn:()=>{sess.choose(b.id);later(show)}})),v.meta.phase!=='brief'&&v.meta.phase!=='done',v.meta);
+    }
+    show();
+    return {session:sess,stop(){stopped=true}};
+  };
+})(Gillnet);
+// ============================================================
+//  GILLNET, part 4: headless play.
+//  Gillnet.sim({ticket, seed | rand, policy}) plays one opener with no screen and returns {report, steps}.
+//  Policies: 'first' (the first enabled choice: what a skipper does by habit), 'random', 'sensible' (reads the tide, picks often,
+//  bleeds the fish, stays off the line and sits out a gale without a survival suit), 'greedy' (soaks long and pushes the rules),
+//  or your own function (view, session) → choice id. The host game's bots and the tests use this; it is also how the money is balanced.
+// ============================================================
+(function(G){
+  'use strict';
+  const D=G.data;
+  const P={
+    first:v=>v.buttons.filter(b=>!b.dis)[0].id,
+    random:(v,s,rand)=>{const b=v.buttons.filter(x=>!x.dis);return b[Math.floor(rand()*b.length)%b.length].id},
+    sensible:(v,s)=>{const ids=v.buttons.filter(b=>!b.dis).map(b=>b.id),has=id=>ids.includes(id),T=s.ticket,F=s.state.flags;
+      switch(v.meta.phase){
+        case 'brief':if(T.seine)return 'careful';return T.wind>=D.SCA&&(T.kind==='set'||!T.suit)?'skip':'go';
+        case 'set':return T.wind>=20&&has('hold')?'hold':F.deep?'flood':'all';
+        case 'soak':return F.seals||!F.school?'pick':'soak';
+        case 'pick':return 'bleed';
+        case 'line':return has('rip')&&T.wind<20?'rip':ids[0];
+        case 'set2':return T.day.area==='corridor'||T.day.area==='area1'?'short':'long';
+        case 'tide':return {line:'pull',torn:'mend',seals:'haul',corked:'move',school:'pick'}[F.ev]||ids[0];
+        case 'deliver':return T.kind==='set'?(F.bled?'dock':'tender'):(F.bar?'tender':'river');
+        default:return ids[0];
+      }},
+    greedy:(v,s)=>{const ids=v.buttons.filter(b=>!b.dis).map(b=>b.id),has=id=>ids.includes(id);
+      for(const k of ['go','all','soak','late','rip','long','ride','fish','leave','stay','tender'])if(has(k))return k;return ids[0]},
+  };
+  G.policies=P;
+  G.sim=function(o){
+    o=o||{};const rand=o.rand||(o.seed!=null?G.util.seeded(o.seed):Math.random);
+    const s=G.session(o.ticket,{rand}),pol=typeof o.policy==='function'?o.policy:P[o.policy||'sensible']||P.sensible,steps=[];
+    let g=0;
+    while(!s.done&&g++<40){const v=s.view();if(v.meta.phase==='done'){s.choose('close');break}const id=pol(v,s,rand);steps.push([v.meta.phase,id]);if(!s.choose(id))s.choose(v.buttons.filter(b=>!b.dis)[0].id)}
+    return {report:s.report(),steps};
+  };
+})(Gillnet);
+// ============================================================
 //  GAME CONFIG: start here when you make a new game.
 //  tools/new-game.py rewrites id / title / codePrefix / colors for you
 //  (in this file, src/shell.html, the web manifest and sw.js).
@@ -4155,6 +4657,7 @@ function winterModal(){
     {l:`🏠 ${esc(cabinName())}: ${homeWinterLabel()}`,s:cabinWinterBlurb(),fn:()=>homeWinterModal()},
     {l:'🏕️ Winter camping & work',s:campUsed()?'You’ve used your free days this winter. You can still look at your camping log.':`${campDaysLeft()} free days: camping trips within 100 miles (ice fishing, scouting, company), winter work, a camping log.`,fn:()=>campModal()},
     ...(typeof bizWinterBtns==='function'?bizWinterBtns():[]),   // 36-business.js: the outfit (from the third off-season)
+    ...(typeof fishWinterBtns==='function'?fishWinterBtns():[]),   // 42-gillnet.js, 43-seine.js, 44-crab.js: commercial fishing and crabbing (from the second off-season)
     {l:`🛶 Open bookings for ${2026+s}`,s:'Start the season.',fn:()=>homeOpenGate(()=>finishWinter())}]);
 }
 function upgradeModal(){
@@ -4445,6 +4948,14 @@ const HELP=[
     <li>On an iPhone or iPad it opens <a href="install/ios.html">a short how-to with a video</a>: in Safari, tap Share, then <b>Add to Home Screen</b>, then <b>Add</b>.</li>
     <li>Open it once from the new icon while online. After that it plays offline.</li>
     <li>On iPhone and iPad the Home Screen app keeps its own saves, so play from the icon. Use <b>🔁 Transfer a saved game</b> to move a game there or to another device.</li></ul>`,'install'],
+  ['🪢','Commercial gillnetting',`<p class="help-sum">From your second off-season you can fish Cook Inlet sockeye for the fish ticket, on a setnet beach or a drift boat.</p><ul>
+    <li>Plan it in the off-season under <b>🎣 Commercial & crab</b>: crew for a share first, then lease a setnet site or a drift permit and boat. Later you can buy your own drift permit and boat.</li>
+    <li>Openers are regular periods on <b>Mondays and Thursdays</b>, plus extra periods by emergency order. ADF&amp;G announces each one the morning before; see <b>📅 Bookings</b> and the morning report.</li>
+    <li>An opener is a whole day. Start it from <b>🧭 Here</b> in the early morning. On a day with trips booked you hand them to a guide, cancel them, or guide instead.</li>
+    <li>The day runs in a few calls: when to set on the tide, pick now or let them soak, bleed and ice the fish, and the tender or the dock. A drift boat also picks its drift line and fights the tide.</li>
+    <li>The setnet beach is tied to the Kenai kings. In a year kings are closed it starts the summer closed, and only a huge sockeye run might reopen it. Money paid up front is gone if it never opens.</li>
+    <li>Rules have teeth: nets fishing after the close, or a drift across the corridor line into closed water, can mean a citation on your record. Seals, torn nets and wind cost fish.</li>
+    <li>With a lease or your own boat, a partner fishes the openers you guide through, for a share. A survival suit is cheap insurance on the water.</li></ul>`,'gillnet'],
   ['💬','Feedback',`<p class="help-sum">Ideas, bugs, or a rule or fact we got wrong? Tell the developer.</p><ul>
     <li>Tap <b>Send feedback</b> below, on the title screen or in ⚙️ Settings.</li>
     <li>Add your email if you’d like a reply. If you’re offline, it’s sent the next time you’re online.</li></ul>`,'feedback'],
@@ -7296,6 +7807,297 @@ window.doInstall=async()=>{
   if(isIOS()){if(typeof saveGame==='function'&&S&&!S.over)saveGame();location.href='install/ios.html';return}
   installSheet();
 };
+// ============================================================
+//  GUIDE MASTER, part 14: commercial gillnetting (the adapter).
+//  The fishery itself lives in src/gillnet/ (the Gillnet engine, which knows nothing about this game). This file is the thin
+//  bridge: the off-season plan (crew on a setnet site or a drift boat, lease a site or a permit and boat, or own a drift permit
+//  and boat), the season's openers on the played days, the opener as a day choice (a sheet the player opens from 🧭 Here,
+//  never a pop-up of its own), the report applied back to S, and the rest of the summer's openers settled with the guiding.
+//
+//  State: S.fish.gillnet (gnBase()): {on, plan {s, id, kind, role, paid}, xp {set, drift} openers worked, did {role id: seasons},
+//  suit, own {val, s, exam} | null, sched {s, kind, days {d: opener}, reopen, price}, done {d: result}, sn (this season's ledger), tot}.
+//  Defaults only (newState is wrapped, and migrate() fills what an old save lacks): no save-schema bump.
+//  Nothing here draws a random number until the player plans a summer of gillnetting, so a game without it plays as before.
+//  Hooks (wrapped, not edited): newState, startSeason, finishWinter, onMorning, onNight, actionsHere, restOfSeason, endRows,
+//  todoItems, artMorning and the Bookings tab. Edited elsewhere (one line): the off-season planner's button (24-career.js),
+//  and the Help section (26-help.js).
+// ============================================================
+const GN=Gillnet.data;
+function gnBase(){return {v:1,on:false,plan:null,xp:{set:0,drift:0},did:{},suit:false,own:null,sched:null,done:{},sn:null,
+  tot:{openers:0,fish:0,gross:0,net:0,cites:0,seine:0,partner:0,rest:0},mood:{set:60,drift:60},skip:{set:'',drift:''}}}
+{const _newState=newState;newState=function(){const o=_newState();o.fish=Object.assign({},o.fish&&typeof o.fish==='object'?o.fish:{},{gillnet:gnBase()});return o}}
+const GNS=()=>{if(!S.fish||typeof S.fish!=='object'||Array.isArray(S.fish))S.fish={};const g=S.fish.gillnet;
+  if(!g||typeof g!=='object'||Array.isArray(g))S.fish.gillnet=gnBase();else fillDefaults(g,gnBase());return S.fish.gillnet};
+// unlocked from the second off-season (an older save already that far along unlocks the first time it is asked)
+const gnOn=()=>{const g=S&&S.fish&&S.fish.gillnet;if(!g)return false;if(!g.on&&Array.isArray(S.seasons)&&S.seasons.length>=GN.UNLOCK)g.on=true;return !!g.on};
+const gnSeason=()=>S.winter?S.winter.s:seasonOf(day());
+// this season's plan (null when there is none)
+const gnPlan=(s=gnSeason())=>{const g=S&&S.fish&&S.fish.gillnet,p=g&&g.plan;return p&&p.s===s?p:null};
+const gnSched=(s=seasonOf(day()))=>{const g=S&&S.fish&&S.fish.gillnet,x=g&&g.sched;return x&&x.s===s?x:null};
+const gnDay=(d=day())=>{const x=gnSched(seasonOf(d));return x?x.days[d]||null:null};
+const gnKind=k=>k==='set'?'setnet':'drift';
+const gnIc=k=>k==='set'?'🪢':'🚤';
+const gnFuel=()=>Math.round(fuelPrice('kenai')*100)/100;
+const gnHours=o=>`${fmt(o.hours[0])}–${fmt(o.hours[1])}`;
+function gnSkipper(kind){const g=GNS();if(!g.skip[kind])g.skip[kind]=GN.SKIPPERS[kind][(seasonOf(day())+(S.name||'').length)%GN.SKIPPERS[kind].length];return g.skip[kind]}
+
+// ---- unlock, the season's bills, the season's ledger ----
+const _gnStartSeason=startSeason;
+startSeason=function(s){
+  _gnStartSeason(s);
+  const g=GNS(),lines=[];
+  if(!g.on&&S.seasons.length>=GN.UNLOCK){g.on=true;lines.push('🎣 <b>New: commercial fishing.</b> You can crew or lease on a Cook Inlet setnet site or drift boat this summer, if you want to. Look in <b>Commercial & crab</b> below.')}
+  // last summer: what your own openers and the rest of the summer brought (settled in restOfSeason, at the season's end)
+  const sn=g.sn;
+  if(sn&&sn.s===s-1&&(sn.openers||sn.partner||sn.rest||sn.up||sn.seine)){
+    g.tot.rest+=sn.rest;g.tot.net+=sn.rest;const all=sn.net+sn.pnet+sn.snet+sn.rest-sn.up,m=v=>`${v<0?'−':''}${$(Math.abs(Math.round(v)))}`;
+    lines.push(`🎣 Gillnetting, ${2025+s}: ${sn.openers} opener${sn.openers===1?'':'s'} fished (${m(sn.net)})${sn.partner?`, ${sn.partner} fished for you while you guided (${m(sn.pnet)})`:''}${sn.seine?`, ${sn.seine} beach seine day${sn.seine>1?'s':''} (${m(sn.snet)})`:''}${sn.rest?`, the rest of the summer ${m(sn.rest)}`:''}${sn.up?`, ${m(-sn.up)} up front`:''}: <b>${m(all)}</b> in all.`)}
+  // an owned permit and boat: storage, insurance, haul-out and permit fees, and a year of wear on its value
+  if(g.own){const bill=Math.round(GN.OWN.winter*DF().cost),drop=Math.round(g.own.val*GN.OWN.deprec);
+    money(-bill);S.stats.spent+=bill;g.tot.net-=bill;g.own.val-=drop;S.up.value=Math.max(0,S.up.value-drop);
+    lines.push(`🚤 Your drift permit and boat: ${$(bill)} for haul-out, storage, insurance and the permit card. It’s worth about ${$(g.own.val)} now.`)}
+  g.done={};g.sn=gnLedger(s);
+  if(g.own) g.plan={s,id:'drift:own',kind:'drift',role:'own',paid:0};
+  if(lines.length&&S.winter) S.winter.sup=(S.winter.sup||[]).concat(lines);
+};
+// the season's openers come when the bookings open
+const gnLedger=s=>({s,openers:0,net:0,gross:0,fish:0,partner:0,pnet:0,seine:0,snet:0,rest:0,up:0,cites:0});
+const gnSn=(s=gnSeason())=>{const g=GNS();if(!g.sn||g.sn.s!==s)g.sn=gnLedger(s);else fillDefaults(g.sn,gnLedger(s));return g.sn};
+const _gnFinishWinter=finishWinter;
+finishWinter=function(){
+  const s=S.winter?S.winter.s:null;
+  _gnFinishWinter();
+  if(s==null) return;const p=gnPlan(s);if(!p) return;
+  gnMakeSched(s,p.kind);
+  const x=gnSched(s),ds=Object.keys(x.days).map(Number).sort((a,b)=>a-b);
+  say(`🎣 ${p.kind==='set'?'Setnet':'Drift'} periods in your weeks: ${ds.length?ds.map(d=>dlabel(d)).join(', '):'none (the fishery runs late June to mid-August)'}. ADF&G announces each one, open or closed, the morning before. See 📅 Bookings.`);
+};
+function gnMakeSched(s,kind){
+  const g=GNS(),days=[];
+  for(let d=s*SEASON;d<s*SEASON+SEASON;d++){const x=dateOf(d);days.push({d,md:mdOf(d),dow:x.getUTCDay()})}
+  const x=Gillnet.schedule({kind,days,king:kingRule(),sock:REG().mult.sockeye},{rand:Math.random});
+  x.s=s;x.price=Math.round((GN.PRICE.lo+Math.random()*(GN.PRICE.hi-GN.PRICE.lo))*100)/100;
+  g.sched=x;return x;
+}
+// is an opener announced yet? (regular periods and extras are announced the morning before; a day you can see is known)
+const gnKnown=(o,d)=>!!o&&day()>=o.ann;
+
+// ---- the morning: today's opener and tomorrow's announcement, in the morning report ----
+const _gnOnMorning=onMorning;
+onMorning=function(d){
+  _gnOnMorning(d);
+  if(S.winter) return;const p=gnPlan(seasonOf(d)),x=gnSched(seasonOf(d));if(!p||!x) return;
+  const o=x.days[d],t=x.days[d+1],K=gnKind(p.kind);
+  if(o&&Gillnet.fishable(o)) gnNote(`${gnIc(p.kind)} <b>Today: ${K} opener</b>, ${gnHours(o)}, ${GN.ST[o.st]}. ${o.why} Start it from 🧭 Here before ${fmt(o.hours[0]+60)}.`,'gn_low_tide_site');
+  else if(o&&o.seine&&p.kind==='set') gnNote(`🏖️ <b>The beach is closed for kings today.</b> A neighbor’s experimental beach seine could use a hand (🧭 Here).`,'gn_closed_morning');
+  else if(o) gnNote(`🚫 <b>No ${K} opener today.</b> ${o.why}`,'gn_closed_morning');
+  if(t&&seasonOf(d+1)===seasonOf(d)) gnNote(Gillnet.fishable(t)?`📣 ADF&G: tomorrow (${dayName(d+1)}) the ${K} fleet fishes ${GN.AREA[t.area]}, ${gnHours(t)}${t.st==='extra'?': an extra period':t.st==='reopen'?': reopened':t.st==='restricted'?', restricted':''}.`:`📣 ADF&G: no ${K} fishing tomorrow (${dayName(d+1)}). ${t.why}`);
+};
+function gnNote(l,ev){digestLine(l);if(ev&&DIGEST)(DIGEST.gn=DIGEST.gn||[]).push({id:ev,sev:ev==='gn_closed_morning'?1:0})}
+// a picture for the morning report from the opener's news, when nothing else has one (40-art.js: from 'gillnet')
+{const _am=artMorning;artMorning=function(D){const o=_am(D);if(o.top||!artOn()||!D.gn||!D.gn.length) return o;
+  o.top=artFirst(D.gn.map(e=>()=>artSlot('event',()=>artEventCtx(e.id,'gillnet'),{deco:true,key:'morning'})));return o}}
+
+// ---- the day: the opener is a choice on 🧭 Here ----
+function gnTodayAction(){
+  const d=day(),p=gnPlan(),o=gnDay(d),g=GNS();if(!p||!o||S.trip||S.winter) return null;
+  const done=g.done[d];if(done) return null;
+  const m=tod(),last=o.hours[0]+60,trips=todays(d);
+  if(Gillnet.fishable(o)){
+    const R=GN.ROLES[p.id],who=p.role==='crew'?` with ${gnSkipper(p.kind)}`:'';
+    const busy=trips.length?` You have ${trips.map(b=>`the ${b.who} at ${fmt(TRIPS[b.type].start)}`).join(' and ')}: you’d have to hand them off or cancel.`:'';
+    if(m>last) return {ic:gnIc(p.kind),l:`The ${gnKind(p.kind)} opener started without you`,s:`It opened at ${fmt(o.hours[0])}. ${p.role==='crew'?`${gnSkipper(p.kind)} went short-handed.`:'Your partner is fishing it.'}`,cat:'trip',dis:true,fn:()=>{}};
+    return {ic:gnIc(p.kind),l:`Work the ${gnKind(p.kind)} opener${who}`,s:`${R.ic} ${gnHours(o)}, ${GN.ST[o.st]}, ${p.kind==='set'?'the east-side beach':GN.AREA[o.area]}. A long day: back around ${fmt(GN[p.kind].end)}.${busy}`,cat:'trip',cls:trips.length?'':'primary',fn:()=>gnGo(d)};
+  }
+  if(o.seine&&p.kind==='set'&&m<=last) return {ic:'🏖️',l:'Help on the experimental beach seine',s:`The setnets are closed for kings. A day’s wage, about ${$(GN.SEINE_WAGE)}.${trips.length?' You have trips booked today.':''}`,cat:'trip',fn:()=>gnGo(d,true)};
+  return null;
+}
+{const _ah=actionsHere;actionsHere=function(){const a=_ah();try{if(gnOn()&&!S.winter){const x=gnTodayAction();if(x)a.unshift(x)}}catch(e){}return a}}
+// booked trips in the way: hand them to your guides, cancel them, or guide today instead
+function gnGo(d,seine){
+  const trips=todays(d);
+  if(!trips.length) return gnStart(d,seine);
+  const hand=typeof canHand==='function'&&typeof staffLane==='function'&&trips.every(b=>canHand(b)&&staffLane(b.d,b.type,null,b)!=null);
+  const list=trips.map(b=>`${TRIPS[b.type].ic} the <b>${b.who}</b> (${b.n}), ${fmt(TRIPS[b.type].start)}, ${$(payOf(b))}`).join('<br>');
+  modal(`${seine?'🏖️':gnIc(gnPlan().kind)} Trips booked today`,`<p>You can’t guide and fish the same day:</p><p>${list}</p><p style="font-size:13px;color:var(--mute)">Cancelling refunds the deposit, and the party remembers it.</p>`,[
+    ...(hand?[{l:'Hand them to your guides, and go fishing',s:'Your guides take the parties.',fn:()=>{trips.forEach(b=>{const g=staffLane(b.d,b.type,null,b);if(g!=null)bizAssign(b.id,g)});gnStart(d,seine)}}]:[]),
+    {l:`Cancel ${trips.length>1?`all ${trips.length} trips`:'the trip'} and go fishing`,s:`Rep −${3*trips.length}. They’ll find another guide.`,fn:()=>{trips.forEach(b=>{b.status='cancelled';S.stats.cancelled++;adj('rep',-3)});
+      say(`📵 You call ${trips.map(b=>'the '+b.who).join(' and ')} to cancel: a commercial opener. You refund the deposit${trips.length>1?'s':''}.`);gnStart(d,seine)}},
+    {l:'Guide today instead',s:gnPlan().role==='crew'?`${gnSkipper(gnPlan().kind)} fishes without you.`:'Your partner fishes the opener for you.',fn:()=>{}}]);
+}
+function gnTicket(d,seine){
+  const p=gnPlan(),o=gnDay(d),g=GNS(),w=wxOf(d),tt=tideTable(d);
+  return {kind:p.kind,role:p.role,day:Object.assign({},o),seine:!!seine,run:clamp(abundance('sockeye','kbeach',d),.15,1.4),price:(gnSched()||{}).price||1.65,
+    wind:w.wind,wx:S.wx[d]||'sun',tides:tt.map(x=>({m:x.m,h:Math.round(x.h*10)/10,hi:x.hi})),amp:Math.round(tide(d*1440+720).amp*10)/10,now:tod(),
+    energy:S.energy,cash:Math.round(S.money),xp:g.xp[p.kind]||0,suit:!!g.suit,exam:!!(g.own&&g.own.exam===seasonOf(d)),king:kingRule(),costMult:DF().cost,fuel:gnFuel(),
+    skipper:p.role==='crew'?gnSkipper(p.kind):''};
+}
+// the sheets: an illustration from the beat's events (the worst first), from 'gillnet'
+function gnArt(evs){if(!artOn()||!evs||!evs.length)return '';return artFirst(evs.map((e,i)=>({e,i})).sort((a,b)=>(b.e.sev||0)-(a.e.sev||0)||a.i-b.i).map(x=>()=>artSlot('event',()=>artEventCtx(x.e.id,'gillnet'),{deco:true,key:'gillnet'})))}
+const gnHost=d=>({show:(t,h,b,lock,meta)=>modal(t,gnArt(meta&&meta.events)+h,b,lock),rand:()=>Math.random(),onFinish:rep=>gnApply(rep,d)});
+function gnStart(d,seine){if(!gnPlan()||!gnDay(d))return;Gillnet.start({ticket:gnTicket(d,seine),host:gnHost(d)})}
+// the report goes back into the save
+function gnApply(rep,d){
+  if(!rep) return rep;
+  const g=GNS(),p=gnPlan(),K=p?p.kind:rep.kind,sn=gnSn(seasonOf(d));
+  g.done[d]={skipped:!!rep.skipped,seine:!!rep.seine,fish:rep.fish,net:rep.cashDelta,gross:rep.gross};
+  if(rep.lines) rep.lines.forEach(l=>say(l));
+  if(rep.skipped){if(p&&p.role==='crew')g.mood[K]=clamp(g.mood[K]+(rep.mood||-8),0,100);return rep}
+  money(rep.cashDelta);
+  if(rep.cashDelta<0)S.stats.spent+=-rep.cashDelta;
+  if(rep.energyDelta) adj('energy',rep.energyDelta);
+  const room=Math.max(0,(d+1)*1440-2-S.t);if(rep.minutes>0)pass(Math.min(rep.minutes,room));
+  S.loc='shop';
+  (rep.cites||[]).forEach(c=>{const c0=S.stats.citesTotal||0;cite(c.what,c.fine,!!c.minor,null,c.who);if((S.stats.citesTotal||0)>c0){g.tot.cites++;sn.cites++}});
+  if(rep.seine){g.tot.seine++;sn.seine++;sn.snet+=rep.cashDelta;g.tot.net+=rep.cashDelta}
+  else{g.xp[K]=(g.xp[K]||0)+(rep.xp||0);sn.openers++;sn.net+=rep.cashDelta;sn.gross+=rep.gross;sn.fish+=rep.fish;
+    g.tot.openers++;g.tot.fish+=rep.fish;g.tot.gross+=rep.gross;g.tot.net+=rep.cashDelta;
+    if(p&&p.role==='crew')g.mood[K]=clamp(g.mood[K]+(rep.mood||0)-(rep.cites&&rep.cites.length?10:0),0,100)}
+  S.stats.gnNet=(S.stats.gnNet||0)+rep.cashDelta;S.stats.gnOpeners=(S.stats.gnOpeners||0)+(rep.seine?0:1);
+  sfx(rep.cashDelta>0?'good':'info');
+  showTile(rep.seine?'🏖️':gnIc(K),rep.seine?'Beach seine day':`${rep.fish} sockeye`,`${rep.cashDelta<0?'−':'+'}${$(Math.abs(rep.cashDelta))} to you`,rep.cashDelta>=0?'good':'bad');
+  return rep;
+}
+// ---- the night: an opener you guided through (or slept through) ----
+const _gnOnNight=onNight;
+onNight=function(where,notes,d){
+  _gnOnNight(where,notes,d);
+  if(S.winter||!gnOn()) return;
+  const p=gnPlan(seasonOf(d)),o=gnDay(d),g=GNS();if(!p||!o||!Gillnet.fishable(o)) return;
+  const r=g.done[d];if(r&&(!r.skipped||r.partner||p.role==='crew')) return;
+  if(p.role==='crew'){g.done[d]={skipped:true,fish:0,net:0,gross:0};g.mood[p.kind]=clamp(g.mood[p.kind]-6,0,100);notes.push(`${gnIc(p.kind)} ${gnSkipper(p.kind)} fished today’s opener a hand short.`);return}
+  const t=gnTicket(d);t.now=o.hours[0];
+  const rep=Gillnet.partner(t,{rand:Math.random});
+  money(rep.cashDelta);g.done[d]={skipped:true,partner:true,fish:rep.fish,net:rep.cashDelta,gross:rep.gross};
+  const sn=gnSn(seasonOf(d));sn.partner++;sn.pnet+=rep.cashDelta;g.tot.partner++;g.tot.net+=rep.cashDelta;S.stats.gnNet=(S.stats.gnNet||0)+rep.cashDelta;
+  rep.lines.forEach(l=>notes.push(l));
+};
+
+// ---- the rest of the summer (lease or own): your partner or a hired skipper fishes the openers you don't play ----
+function gnRest(p){
+  const g=S&&S.fish&&S.fish.gillnet;if(!p||!g||!g.plan) return null;
+  const s=(p.year||0)-2026,pl=g.plan;if(pl.s!==s||pl.role==='crew') return null;
+  const x=g.sched&&g.sched.s===s?g.sched:null,sn=g.sn&&g.sn.s===s?g.sn:{openers:0,net:0,gross:0,partner:0};
+  const reg=x?Object.values(x.days).filter(o=>o.reg):[],seen=reg.length;
+  const king=REG().king,open=x&&reg.length?reg.filter(o=>Gillnet.fishable(o)).length/reg.length:pl.kind==='set'?{open:1,cr:.9,closed:0}[king]:.95;
+  const lateOpen=pl.kind==='set'&&king==='closed'&&x&&x.reopen?.35:0;
+  return Gillnet.rest({kind:pl.kind,role:pl.role,played:sn.openers,net:sn.net,gross:sn.gross,open:Math.max(open,lateOpen),count:Math.max(0,GN.REST[pl.kind]-seen),
+    sock:REG().mult.sockeye,price:x?x.price:1.65,costMult:DF().cost,fuel:gnFuel()});
+}
+const _gnRestOfSeason=restOfSeason;
+restOfSeason=function(p){
+  const R=_gnRestOfSeason(p);
+  let x=null;try{x=gnRest(p)}catch(e){x=null}
+  if(!x||!x.net&&!x.gross) return R;
+  const g=GNS();if(g.sn&&g.sn.s===(p.year||0)-2026)g.sn.rest=x.net;
+  return Object.assign({},R,{gross:R.gross+x.gross,costs:R.costs+x.costs,net:R.net+x.net,gill:x});
+};
+const _gnEndRows=endRows;
+endRows=function(){const rows=_gnEndRows(),g=S.fish&&S.fish.gillnet;
+  if(g&&(g.tot.openers||g.tot.seine||g.tot.partner||g.own)) rows.push(['Commercial fishing',`${g.tot.openers} opener${g.tot.openers===1?'':'s'} fished (${grp(g.tot.fish)} sockeye)${g.tot.partner?`, ${g.tot.partner} fished for you`:''}${g.tot.seine?`, ${g.tot.seine} beach seine day${g.tot.seine>1?'s':''}`:''}, ${g.tot.net<0?'−':''}${$(Math.abs(Math.round(g.tot.net)))} net${g.tot.cites?`, ${g.tot.cites} citation${g.tot.cites>1?'s':''}`:''}${g.own?'; your own drift permit and boat':''}`]);
+  return rows};
+// the To-do list: today's opener
+{const _todo=todoItems;todoItems=function(){const it=_todo();try{const o=gnDay(),p=gnPlan();if(p&&o&&!S.winter&&(Gillnet.fishable(o)||o.seine&&p.kind==='set')){const r=GNS().done[day()];
+  it.splice(0,0,{l:Gillnet.fishable(o)?`${gnIc(p.kind)} ${p.kind==='set'?'Setnet':'Drift'} opener, ${gnHours(o)}`:'🏖️ Beach seine day (optional)',s:Gillnet.fishable(o)?(p.role==='crew'?`Crew for ${gnSkipper(p.kind)}.`:'Fish it, or your partner fishes it for a share.'):'A neighbor’s test seine.',ok:!!(r&&!r.skipped),fail:!!(r&&r.skipped),urgent:!r&&Gillnet.fishable(o)&&tod()<=o.hours[0]+60})}}catch(e){}return it}}
+
+// ---- the off-season planner: one shared "Commercial & crab" sheet ----
+// Shared with the seine and crab adapters (same names and shapes in each branch, so a merge keeps one copy): FISH_HUB (the sheet's
+// sections {id, order, ic, l, short, s(), open(back)}: gillnet 1, seine 2, crab 3, tender 4), fishHubOn(), fishWinterBtns() (the planner's
+// button, called from winterModal in 24-career.js) and fishHubModal(). Each is defined only if no other adapter defined it first.
+var FISH_HUB=typeof FISH_HUB!=='undefined'&&Array.isArray(FISH_HUB)?FISH_HUB:[];
+if(typeof fishHubOn!=='function') var fishHubOn=function(){return !!(S&&S.winter&&S.seasons&&S.seasons.length>=GN.UNLOCK)};
+if(typeof fishWinterBtns!=='function') var fishWinterBtns=function(){
+  if(!fishHubOn()||!FISH_HUB.length) return [];
+  const t=FISH_HUB.slice().sort((a,b)=>a.order-b.order).map(x=>x.short).join(' · ');
+  return [{l:'⚓ Commercial & crab',s:t.charAt(0).toUpperCase()+t.slice(1)+'. Optional, and risky.',fn:()=>fishHubModal()}];
+};
+if(typeof fishHubModal!=='function') var fishHubModal=function(){
+  const back=()=>setTimeout(winterModal,0),again=()=>setTimeout(fishHubModal,0),H=FISH_HUB.slice().sort((a,b)=>a.order-b.order);
+  if(H.length===1) return H[0].open(back);
+  modal('⚓ Commercial & crab',`<p style="font-size:13px;color:var(--mute)">Work the water when you are not guiding. Cash ${$(Math.round(S.money))}. ${campDaysLeft()} free day${campDaysLeft()===1?'':'s'} left this winter.</p>`,
+    H.map(x=>({l:`${x.ic} ${x.l}`,s:x.s(),fn:()=>x.open(again)})).concat([{l:'Back to the off-season',fn:back}]));
+};
+FISH_HUB.push({id:'gillnet',order:1,ic:'🪢',l:'Gillnetting: setnet or drift',short:'a setnet site or a drift boat',s:()=>gnPlanSum(),
+  open:back=>{gnOn();gnWinterModal(back)}});
+function gnPlanSum(){const p=gnPlan(),g=GNS();if(!p) return g.own?'Your drift boat waits on the hard.':'Gillnetting: not this summer.';return `Gillnetting: ${GN.ROLES[p.id].l.toLowerCase()}.`}
+function gnTk(){const g=GNS();return {cash:Math.round(S.money),costMult:DF().cost,xp:g.xp,did:g.did,own:g.own?{boat:true}:null,suit:g.suit,plan:gnPlan()?gnPlan().id:null}}
+function gnSetPlan(id){
+  const g=GNS(),s=gnSeason(),cur=gnPlan(s),R=GN.ROLES[id];
+  if(cur){if(cur.paid){money(cur.paid);S.stats.spent-=cur.paid;gnSn(s).up-=cur.paid;g.tot.net+=cur.paid}if(g.did[cur.id])g.did[cur.id]--;g.plan=null}
+  if(!id||!R) return true;
+  const o=Gillnet.offers(gnTk()).find(x=>x.id===id);if(!o||o.dis){if(cur)gnSetPlan(cur.id);return false}
+  money(-o.cost);S.stats.spent+=o.cost;gnSn(s).up+=o.cost;g.tot.net-=o.cost;g.plan={s,id,kind:R.kind,role:R.role,paid:o.cost};g.did[id]=(g.did[id]||0)+1;
+  say(`${R.ic} ${R.l} this summer${o.cost?` (${$(o.cost)} up front)`:''}.`);sfx('good');return true;
+}
+function gnBuy(){const g=GNS(),c=Gillnet.buyCost(DF().cost);if(Gillnet.buyWhy(Object.assign(gnTk(),{cash:Math.round(S.money)})))return false;
+  const cur=gnPlan();if(cur)gnSetPlan(null);
+  money(-c);S.stats.spent+=c;S.up.value+=c;g.own={val:c,s:gnSeason(),exam:-1};g.plan={s:gnSeason(),id:'drift:own',kind:'drift',role:'own',paid:0};g.did['drift:own']=(g.did['drift:own']||0)+1;
+  say(`⚓ You buy a Cook Inlet drift permit and a used 32-foot gillnetter (${$(c)}). The permit is yours; the boat needs a name.`);sfx('good');return true}
+function gnSell(){const g=GNS();if(!g.own||!S.winter)return false;const v=Math.round(g.own.val*GN.OWN.sell);money(v);S.up.value=Math.max(0,S.up.value-g.own.val);g.own=null;
+  const p=gnPlan();if(p&&p.role==='own')g.plan=null;say(`⚓ You sell the drift permit and boat for ${$(v)}.`);return true}
+function gnSuit(){const g=GNS(),c=Math.round(GN.SUIT*DF().cost);if(g.suit||S.money<c)return false;money(-c);S.stats.spent+=c;g.suit=true;say(`🦺 A survival (immersion) suit in a bag with your name on it: ${$(c)}. Every boat in the inlet should have one for each person aboard.`);return true}
+function gnExam(){const g=GNS();if(!g.own||!S.winter||g.own.exam===gnSeason()||campDaysLeft()<1)return false;campW();S.camp.days+=1;g.own.exam=gnSeason();
+  say('⚓ A Coast Guard examiner walks your boat at the harbor: life raft, EPIRB, flares, survival suits, fire extinguishers. A free exam and a new decal. It took a free day.');return true}
+window.gnAct=(k,a)=>{const f={plan:()=>gnSetPlan(a),buy:gnBuy,sell:gnSell,suit:gnSuit,exam:gnExam}[k];return f?f():false};
+let GN_BACK=null;
+function gnWinterModal(back){
+  if(back)GN_BACK=back;
+  const g=GNS(),s=gnSeason(),p=gnPlan(s),again=f=>()=>{f();setTimeout(gnWinterModal,0)},cm=DF().cost,sock=REG().mult.sockeye;
+  const o=Gillnet.offers(gnTk()).filter(x=>!p||x.id!==p.id).map(x=>({l:`${x.ic} ${x.l}${x.cost?` — ${$(x.cost)}`:''}`,s:`${x.dis?x.why+'. ':''}${x.s} ${x.note||''}`,dis:x.dis,fn:again(()=>gnSetPlan(x.id))}));
+  if(p) o.unshift({l:'No gillnetting this summer',s:p.paid?`Gets back the ${$(p.paid)} you paid.`:'Guiding only.',fn:again(()=>gnSetPlan(null))});
+  if(!g.own){const why=Gillnet.buyWhy(Object.assign(gnTk(),{cash:Math.round(S.money)}));o.push({l:`⚓ Buy a drift permit and boat — ${$(Gillnet.buyCost(cm))}`,s:`${why?why+'. ':''}A limited-entry permit and a used 32-foot gillnetter. About ${$(Math.round(GN.OWN.winter*cm))} a winter to keep; worth a little less every year.`,dis:!!why,fn:again(gnBuy)})}
+  else{o.push({l:`⚓ Sell the permit and boat — ${$(Math.round(g.own.val*GN.OWN.sell))}`,s:'Back to guiding only, or leasing.',fn:again(gnSell)});
+    o.push({l:'⚓ Coast Guard dockside exam',s:g.own.exam===s?'Done this winter: the decal is on the cabin.':campDaysLeft()<1?'No free days left this winter.':'Free, and it takes one of your free days. Without a current decal a boarding can mean a ticket.',dis:g.own.exam===s||campDaysLeft()<1,fn:again(gnExam)})}
+  if(!g.suit) o.push({l:`🦺 Buy a survival suit — ${$(Math.round(GN.SUIT*cm))}`,s:'An immersion suit for the cold inlet. Worth it on a drift boat in a blow.',dis:S.money<Math.round(GN.SUIT*cm),fn:again(gnSuit)});
+  o.push({l:'Done',s:'Back to the off-season.',fn:()=>{const b=GN_BACK||(()=>setTimeout(winterModal,0));GN_BACK=null;b()}});
+  const xp=`Openers worked: ${g.xp.set} setnet, ${g.xp.drift} drift.`;
+  modal(`🎣 Gillnetting · cash ${$(Math.round(S.money))}`,`${artSlot('event',()=>artEventCtx('gn_low_tide_site','gillnet'),{deco:true,key:'gn-plan'})}<p style="font-size:13px"><b>This summer:</b> ${p?GN.ROLES[p.id].l:'guiding only'}. ${xp}</p>
+    <p style="font-size:13px">🪢 <b>Setnets:</b> ${Gillnet.outlook('set',kingRule(),sock)}</p><p style="font-size:13px">🚤 <b>Drift boats:</b> ${Gillnet.outlook('drift',kingRule(),sock)}</p>
+    <p style="font-size:13px;color:var(--mute)">${GN_HOW}</p>`,o);
+}
+const GN_HOW='Openers are regular periods on Mondays and Thursdays (and extra periods by emergency order) in the weeks you play. Each one is a day you fish instead of guiding: Mondays are free below Skilak in July, Thursdays may mean handing off or cancelling a party. Money paid up front is gone if the fishery closes. With a lease or your own boat, someone fishes the openers you don’t, for a share.';
+TIPS.push({id:'gillnet',when:()=>gnOn()&&!!S.winter&&!gnPlan(),t:'🎣 You can try commercial fishing this summer: crew on a setnet site or a drift boat for a share, or lease one. It’s optional. Look in <b>Commercial & crab</b>.'});
+
+// ---- the Bookings tab: this season's openers at the top ----
+{const bt=EXTRA_TABS.find(t=>t.k==='book');if(bt){const v0=bt.view;bt.view=()=>{const h=v0();try{const x=gnBookView();if(!x)return h;const i=h.indexOf('<div class="sect">Season ');return i<0?x+h:h.slice(0,i)+x+h.slice(i)}catch(e){return h}}}}
+function gnBookView(){
+  const p=gnPlan(),x=gnSched();if(!p||!x||S.winter) return '';
+  const g=GNS(),ds=Object.keys(x.days).map(Number).sort((a,b)=>a-b);
+  const rows=ds.map(d=>{const o=x.days[d],r=g.done[d],k=gnKnown(o,d)||d<=day();
+    const st=!k?'scheduled: ADF&G announces it the morning before':Gillnet.fishable(o)?`${GN.ST[o.st]}, ${gnHours(o)}, ${p.kind==='set'?'the east-side beach':GN.AREA[o.area]}`:o.seine&&p.kind==='set'?'closed for kings · a beach seine day':'closed';
+    const res=r?(r.skipped?(r.partner?` · fished for you: ${$(r.net)}`:' · missed'):` · ✅ ${r.fish} sockeye, ${r.net<0?'−':''}${$(Math.abs(r.net))}`):'';
+    const clash=k&&Gillnet.fishable(o)&&!r&&d>=day()&&todays(d).length?` · <span style="color:var(--warn)">you have ${todays(d).length} trip${todays(d).length>1?'s':''} booked</span>`:'';
+    return `<div class="todo"><span class="ck" aria-hidden="true">${d<day()?'✔️':d===day()?'👉':!k?'·':Gillnet.fishable(o)?gnIc(p.kind):'🚫'}</span><div><b>${dlong(d)}</b><span>${st}${res}${clash}</span></div></div>`}).join('');
+  const sn=g.sn&&g.sn.s===seasonOf(day())?g.sn:null,so=sn?sn.net+sn.pnet+sn.snet:0;
+  return `<div class="sect">🎣 ${p.kind==='set'?'Setnet':'Drift'} openers · ${GN.ROLES[p.id].l}${sn&&(sn.openers||sn.partner||sn.seine)?` · ${so<0?'−':''}${$(Math.abs(Math.round(so)))} so far`:''}</div>${rows||'<div class="todo"><span class="ck">·</span><div><b>No periods in your weeks</b><span>The fishery runs from late June to mid-August.</span></div></div>'}`;
+}
+
+// ---- bots (tools/sim) and tests: a sensible gillnetter ----
+// winter: crew a drift boat the first summer it opens up, then lease a drift permit and boat once there's a cushion of cash;
+// a setnet lease only in a year kings are open. Days: work an opener only when no trip of your own is booked; sit out a gale.
+function gnBotWinter(o){
+  o=o||{};if(!S.winter||!gnOn()) return null;const g=GNS(),k=kingRule();
+  if(o.suit!==false&&!g.suit&&S.money>3000) gnSuit();
+  const offers=Gillnet.offers(gnTk()),ok=id=>{const x=offers.find(y=>y.id===id);return x&&!x.dis};
+  let id=o.role||null;
+  if(!id){
+    if(k==='open'&&ok('set:lease')&&S.money>(o.reserve||12000)) id='set:lease';
+    else if(ok('drift:lease')&&S.money>(o.reserve||12000)) id='drift:lease';
+    else id=(g.did['drift:crew']||0)<1?'drift:crew':k!=='closed'&&(g.did['set:crew']||0)<1?'set:crew':'drift:crew';
+  }
+  if(id==='none'){gnSetPlan(null);return null}
+  gnSetPlan(id);return gnPlan();
+}
+function gnBotDay(o){
+  o=o||{};const d=day(),p=gnPlan(),x=gnDay(d),g=GNS();if(!p||!x||g.done[d]||S.trip||S.winter) return null;
+  const seine=!Gillnet.fishable(x)&&x.seine&&p.kind==='set';if(!Gillnet.fishable(x)&&!seine) return null;
+  if(todays(d).length&&!o.cancel) return null;
+  if(tod()>x.hours[0]+60) return null;
+  todays(d).forEach(b=>{b.status='cancelled';S.stats.cancelled++;adj('rep',-3)});
+  const r=Gillnet.sim({ticket:gnTicket(d,seine),rand:Math.random,policy:o.policy||'sensible'}).report;
+  return gnApply(r,d);
+}
+window.gnBot={winter:gnBotWinter,day:gnBotDay};
 // ============================================================
 //  GUIDE MASTER, part 19: names for your cabin and your boats.
 //  The cabin carries the player's name ("Krazow’s Cabin": always ’s, so "James’s Cabin"; "Your Cabin" with no name picked). It is
