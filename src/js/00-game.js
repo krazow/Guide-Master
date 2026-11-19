@@ -18,7 +18,7 @@
 //    21-story.js     ← YOUR GAME: events, tips, to-do, achievements, scoring, migrations
 //    31-supplies.js  ← YOUR GAME: food, home fuel storage, power outages and the generator
 //    32-home.js      ← YOUR GAME: the cabin (the adapter for src/home/, the CabinUpkeep module)
-//    41-install.js   the title screen's Install app button (Android/Chrome prompt, other browsers' steps, iPhone page)
+//    41-install.js   the title screen's install bar and Install app button (Android/Chrome prompt, other browsers' steps, iPhone page)
 //    99-boot.js      starts the app
 //  Engine files (00–09) shouldn't need much editing; your game lives in 20+.
 // ============================================================
