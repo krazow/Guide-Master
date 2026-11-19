@@ -24,7 +24,7 @@
 :root{
   --brand:#1f5d63; --brand-dark:#0f3b3f; --accent:#2f6d5a; --accent-soft:#6f8f5a; --surface:#f3ecdc; --paper:#fbf8f1;
   --cta:#e3642e; --cta-dark:#a9441b; --ink:#1b2326; --mute:#6b7478; --line:#ddd4c0; --good:#2f7d4f; --bad:#b8402a; --warn:#c98a12;
-  /* Fraunces is self-hosted (fonts/, @font-face in src/shell.html); DM Sans comes from Google Fonts and is cached by sw.js after the
+  /* Fraunces is self-hosted (the woff2 next to index.html, @font-face in src/shell.html); DM Sans comes from Google Fonts and is cached by sw.js after the
      first online visit. Every font-family ends in a fallback stack, so an unloaded font never drops to the browser's default serif. */
   --serif:"Fraunces",Georgia,"Times New Roman",serif;
   --sans:"DM Sans",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
@@ -3267,7 +3267,7 @@ function todoItems(){
   it.push({l:'Optional: fill the freezer with 25 dipnet reds',s:`${S.freezer}/25. Kenai City Beach, 6 AM–11 PM.`,ok:S.freezer>=25});
   return it;
 }
-const RULES_HTML='<p>Guide two weeks every summer of a 2-, 5- or 10-year career. You lose if you get 3 active citations (permit pulled; citations drop off after the next season), your reputation hits 0, or you fall $2,000 in debt.</p><p>Score: net cash + the estimated rest of your last summer + nine tenths of the value of boats and permits you bought + reputation ×15 + 60 per trip − 400 per citation + 2 per freezer fish, plus 300 a season for a career without a violation. The grade is per season, so careers of any length compare: A at 62,000 a season, B 55,000, C 44,000, D 27,000 (a lost career is always an F). On Licensed Guide a by-the-book career lands mostly on B, a sharp one (phone requests, every upgrade, no violations) on B or A, a skilled one (Fish tab and scouting to pick spots, a well-kept boat, regulars, no overpricing) on A, a passive one on C or B and one that skips meals and lunches on C or D. Combat Season grades about a step lower and Rookie Season about a step higher.</p><p>Difficulty gives no score bonus. It changes the game instead: <b>Rookie</b> has fewer patrols, gentler fines, cheaper fuel and bills, friendlier clients and a bit more off-month work; <b>Licensed</b> is the baseline; <b>Combat</b> has more patrols, fines that climb with every citation, dearer fuel, bills and repairs, pickier clients, less off-month work and more bad luck. The same play grades about a step lower on Combat and a step higher on Rookie.</p>';
+const RULES_HTML='<p>Guide two weeks every summer of a 2-, 5- or 10-year career. You lose if you get 3 active citations (permit pulled; citations drop off after the next season), your reputation hits 0, or you fall $2,000 in debt.</p><p>Score: net cash + the estimated rest of your last summer + nine tenths of the value of boats and permits you bought + reputation ×15 + 60 per trip − 400 per citation + 2 per freezer fish, plus 300 a season for a career without a violation. The grade is per season, so careers of any length compare: A at 62,000 a season, B 55,000, C 44,000, D 27,000 (a lost career is always an F). On Licensed Guide a by-the-book career lands mostly on B, a sharp one (phone requests, every upgrade, no violations) on B or A, a skilled one (Fish tab and scouting to pick spots, a well-kept boat, regulars, no overpricing) on A, a passive one on C or B and one that skips meals and lunches on C or D. The same play scores about 5–15% less on Combat Season, about half a grade (A and B careers turn mostly B, some C), and about 17% more on Rookie Season, a full grade (B and C careers turn A and B).</p><p>Difficulty gives no score bonus. It changes the game instead: <b>Rookie</b> has fewer patrols, gentler fines, cheaper fuel and bills, friendlier clients and a bit more off-month work; <b>Licensed</b> is the baseline; <b>Combat</b> has more patrols, fines that climb with every citation, dearer fuel, bills and repairs, pickier clients, less off-month work and more bad luck. The same play grades about half a grade lower on Combat and a full grade higher on Rookie.</p>';
 
 // ---- achievements ----
 const ACH=[
@@ -4375,7 +4375,7 @@ const HELP=[
     <li>The weeks you don’t guide still earn: the off-season settles the rest of the summer, and it follows how happy your clients were, not only how many trips you ran.</li>
     <li>The <b>score</b> adds up net cash, the rest of your last summer, most of what you spent on boats and permits, your reputation and your trips. Citations cost points; a clean record earns a bonus. The end screen shows every line.</li>
     <li><b>Grades per season:</b> A 62,000, B 55,000, C 44,000, D 27,000, F below. A career that ends early is an F.</li>
-    <li>Difficulty never changes the cutoffs. Combat Season is harder and grades about a step lower; Rookie Season about a step higher. Prices here are for Licensed Guide.</li></ul>`,'money'],
+    <li>Difficulty never changes the cutoffs. The same play scores about 5–15% less on Combat Season, about half a grade (A and B careers turn mostly B, some C), and about 17% more on Rookie Season, a full grade (B and C careers turn A and B). Prices here are for Licensed Guide.</li></ul>`,'money'],
   ['⭐','Reputation and the ★ rating',`<p class="help-sum">Your rating is the average of your last 20 reviews. Keep it high and work finds you.</p><ul>
     <li>It sits in the top bar. While you have few reviews, your reputation fills in. The bar under it is your reputation: at 0, nobody books you.</li>
     <li>A review is 5 stars for a great day, 4 for a good one and down from there.</li>
@@ -6447,7 +6447,7 @@ const STAFF_REV_T={
   kids:[['{g} was great with our kids: patient, funny, and every one of them caught fish.','The kids want {g} as their babysitter now.'],['The kids were bored, and {g} didn’t really know what to do with them.','{g} is a good guide, maybe not a kids’ guide.']],
   photo:[['{g} knew every good photo spot on the river.','{g} took better pictures of us than we did.'],['{g} was all business. Not many photo stops.','We hoped {g} would show us more of the scenery.']],
   fly:[['{g} is a real fly angler: every fish on a fly.','{g} tied on flies we’d never seen and they worked.'],['{g} had us on bobbers and beads. Not our kind of fishing.','We came to fly fish; {g} mostly didn’t.']],
-  first:[['We’d never fished before, and {g} coached us like pros.','Total beginners, and {g} never let us feel lost.'],['{g} didn’t really show us what to do.','Hard day for first-timers. {g} could have explained more.']],
+  first:[['Our first time fishing, and {g} had us casting like pros within the hour.','Total beginners, and {g} never let us feel lost.'],['{g} didn’t really show us what to do.','Hard day for first-timers. {g} could have explained more.']],
   seasick:[['Calm water, and {g} knew it would be.','Nobody got sick. {g} picked the day well.'],['Rough water, and {g} took us out anyway.','Half of us were green. {g} kept fishing.']],
 };
 function staffReview(b,g,happy,fish,fit){

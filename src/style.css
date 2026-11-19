@@ -5,7 +5,7 @@
 :root{
   --brand:#1f5d63; --brand-dark:#0f3b3f; --accent:#2f6d5a; --accent-soft:#6f8f5a; --surface:#f3ecdc; --paper:#fbf8f1;
   --cta:#e3642e; --cta-dark:#a9441b; --ink:#1b2326; --mute:#6b7478; --line:#ddd4c0; --good:#2f7d4f; --bad:#b8402a; --warn:#c98a12;
-  /* Fraunces is self-hosted (fonts/, @font-face in src/shell.html); DM Sans comes from Google Fonts and is cached by sw.js after the
+  /* Fraunces is self-hosted (the woff2 next to index.html, @font-face in src/shell.html); DM Sans comes from Google Fonts and is cached by sw.js after the
      first online visit. Every font-family ends in a fallback stack, so an unloaded font never drops to the browser's default serif. */
   --serif:"Fraunces",Georgia,"Times New Roman",serif;
   --sans:"DM Sans",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;

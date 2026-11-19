@@ -48,7 +48,7 @@ const HELP=[
     <li>The weeks you don’t guide still earn: the off-season settles the rest of the summer, and it follows how happy your clients were, not only how many trips you ran.</li>
     <li>The <b>score</b> adds up net cash, the rest of your last summer, most of what you spent on boats and permits, your reputation and your trips. Citations cost points; a clean record earns a bonus. The end screen shows every line.</li>
     <li><b>Grades per season:</b> A 62,000, B 55,000, C 44,000, D 27,000, F below. A career that ends early is an F.</li>
-    <li>Difficulty never changes the cutoffs. Combat Season is harder and grades about a step lower; Rookie Season about a step higher. Prices here are for Licensed Guide.</li></ul>`,'money'],
+    <li>Difficulty never changes the cutoffs. The same play scores about 5–15% less on Combat Season, about half a grade (A and B careers turn mostly B, some C), and about 17% more on Rookie Season, a full grade (B and C careers turn A and B). Prices here are for Licensed Guide.</li></ul>`,'money'],
   ['⭐','Reputation and the ★ rating',`<p class="help-sum">Your rating is the average of your last 20 reviews. Keep it high and work finds you.</p><ul>
     <li>It sits in the top bar. While you have few reviews, your reputation fills in. The bar under it is your reputation: at 0, nobody books you.</li>
     <li>A review is 5 stars for a great day, 4 for a good one and down from there.</li>

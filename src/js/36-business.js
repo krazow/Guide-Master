@@ -271,7 +271,7 @@ const STAFF_REV_T={
   kids:[['{g} was great with our kids: patient, funny, and every one of them caught fish.','The kids want {g} as their babysitter now.'],['The kids were bored, and {g} didn’t really know what to do with them.','{g} is a good guide, maybe not a kids’ guide.']],
   photo:[['{g} knew every good photo spot on the river.','{g} took better pictures of us than we did.'],['{g} was all business. Not many photo stops.','We hoped {g} would show us more of the scenery.']],
   fly:[['{g} is a real fly angler: every fish on a fly.','{g} tied on flies we’d never seen and they worked.'],['{g} had us on bobbers and beads. Not our kind of fishing.','We came to fly fish; {g} mostly didn’t.']],
-  first:[['We’d never fished before, and {g} coached us like pros.','Total beginners, and {g} never let us feel lost.'],['{g} didn’t really show us what to do.','Hard day for first-timers. {g} could have explained more.']],
+  first:[['Our first time fishing, and {g} had us casting like pros within the hour.','Total beginners, and {g} never let us feel lost.'],['{g} didn’t really show us what to do.','Hard day for first-timers. {g} could have explained more.']],
   seasick:[['Calm water, and {g} knew it would be.','Nobody got sick. {g} picked the day well.'],['Rough water, and {g} took us out anyway.','Half of us were green. {g} kept fishing.']],
 };
 function staffReview(b,g,happy,fish,fit){
