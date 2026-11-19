@@ -110,7 +110,7 @@ module.exports = [
     // the outfit
     const rep = has(/reputation (\d+), (\d+) and (\d+) for the first, second and third/, 'guide reputation'); assert.deepStrictEqual(rep.slice(1).map(num), r.biz.rep);
     assert.strictEqual(WORD[has(/up to (\w+) guides/, 'guides')[1]], r.biz.rep.length);
-    assert.strictEqual(WORD[has(/up to (\w+) more boats/, 'boats')[1]], r.biz.boats); assert.match(t, new RegExp(['first', 'second', 'third'][r.biz.unlock] + ' off-season'));
+    assert.strictEqual(WORD[has(/up to (\w+) more boats/, 'boats')[1]], r.biz.boats); assert.match(t, new RegExp(['first', 'second', 'third'][r.biz.unlock - 1] + ' off-season'));   // BIZ_UNLOCK seasons played: the off-season after them
     // the winter budget, the cabin
     assert.deepStrictEqual(has(/(\d+) free days each winter for up to (\d+) camping trips and (\d+) winter jobs/, 'winter budget').slice(1).map(num), [r.camp.days, r.camp.trips, r.camp.jobs]);
     assert.strictEqual(num(has(/same (\d+) free days as winter camping/, 'cabin days')[1]), r.camp.days);

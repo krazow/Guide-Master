@@ -37,6 +37,28 @@ STYLES.ignores=STYLES.hungry;
 // every boat it can buy, no raises). Both play the rest like `food`.
 STYLES.outfit=Object.assign({},STYLES.food,{biz:'outfit'});
 STYLES.tycoon=Object.assign({},STYLES.food,{biz:'tycoon'});
+// commercial gillnetting (42-gillnet.js, src/gillnet): `gillnet` plays like `food` and fishes Cook Inlet openers from the second off-season
+// (crew a drift boat first, then lease; works an opener only when no trip of its own is booked). `gillgreedy` cancels trips for openers and pushes the rules.
+STYLES.gillnet=Object.assign({},STYLES.food,{gill:{policy:'sensible'}});
+STYLES.gillgreedy=Object.assign({},STYLES.food,{gill:{policy:'greedy',cancel:true}});
+// purse seining (src/seine, 43-seine.js): `seine` plays like `food`, crews from the 2nd off-season and runs its own boat (an emergency
+// transfer) once it has crewed enough; `seinecrew` only crews. Both sign on only for openers that cost no booked trip.
+STYLES.seine=Object.assign({},STYLES.food,{seine:'auto'});
+STYLES.seinecrew=Object.assign({},STYLES.food,{seine:'crew'});
+STYLES.seineall=Object.assign({},STYLES.food,{seine:'all'});   // signs on for every opener, cancelling the trips in the way (the cost of overdoing it)
+// crabbing (src/crab, 44-crab.js), from the second off-season: `crab` buys a pot, sets and pulls it on free afternoons in Homer
+// (crab to the freezer), takes a Tanner day when the bay opens and signs on for a crab trip out west each winter it can (careful policy);
+// `crabr` does the same with the reckless job policy (the boat nobody wants, keeps the pace, stays on the stack). Both play the rest like `food`.
+STYLES.crab=Object.assign({},STYLES.food,{crab:'careful'});
+STYLES.crabr=Object.assign({},STYLES.food,{crab:'reckless'});
+// fish buying & processing (46-tender.js, src/tender): `processor` charters a tender, buys one, leases line space and buys a shore plant
+// sensibly, and runs the tender itself on opener days with no party booked; `mogul` borrows for two tenders and a floating processor.
+// Both play the rest like `food`.
+STYLES.processor=Object.assign({},STYLES.food,{tender:'processor',tenderSelf:true,reserve:120000});   // saves for a plant: guiding upgrades only above $120k
+STYLES.mogul=Object.assign({},STYLES.food,{tender:'mogul'});
+// all of it together (41b-fishhub.js): gillnetting (sensible), crabbing (careful) and the fish business (processor, running its own tender
+// on free opener days), one commercial activity a day; its own catch goes to its own tender or plant where it has one (the delivery contract).
+STYLES.fishmix=Object.assign({},STYLES.food,{gill:{policy:'sensible'},crab:'careful',tender:'processor',tenderSelf:true,reserve:120000});
 for(const k of Object.keys(STYLES).slice()){STYLES[k+'_c']=Object.assign({},STYLES[k],{home:'careful'});STYLES[k+'_p']=Object.assign({},STYLES[k],{home:'payall'});STYLES[k+'_n']=Object.assign({},STYLES[k],{home:'neglect'})}
 
 const UPPOL={ // upgrade policies (for A/B)
@@ -142,9 +164,12 @@ function playDay(cfg){
   const d=S.cur;const alive=()=>!S.over&&S.cur===d&&!S.winter;
   resolve(cfg);if(!alive())return;
   answerReqs(cfg);if(!alive())return;
+  if(cfg.seine&&typeof seineBotDay==='function'&&seineBotDay({rand:M.crng,mode:cfg.seine})){M.seineDays=(M.seineDays||0)+1;return}
   if(cfg.look) fishView();
   if(S.boat<=0&&cfg.service){act(cfg,/Major repair/);if(!alive())return}
   M.energySum+=S.energy;M.energyN++;if(S.energy<30)M.lowEnergyDays++;
+  if(cfg.gill&&window.gnBot){gnBot.day(cfg.gill);resolve(cfg);if(!alive())return}
+  if(cfg.tenderSelf&&typeof tenderToday==='function'&&tenderToday()&&!todays(d).length&&S.loc==='shop'){act(cfg,/Run your tender/);if(!alive())return;M.tenderSelf=(M.tenderSelf||0)+1}
   const trips=todays(d).sort((a,b)=>SLOT(a)[0]-SLOT(b)[0]);
   const first=trips[0];
   // first-aid class (Tuesday)
@@ -172,6 +197,7 @@ function playDay(cfg){
     if(b.status==='done'){const k=M.tt[b.type]=M.tt[b.type]||{n:0,pay:0,happy:0,fish:0,towed:0,money:0};k.n++;k.pay+=payOf(b);k.happy+=b.out.happy;k.fish+=b.out.fish;k.money+=S.money-m0;if((S.stats.tows||0)>before)k.towed++}
     if(!alive())return;
   }
+  if(cfg.crab&&typeof crabBotSummer==='function'&&S.loc==='homer'&&alive()){crabBotSummer({rand:M.crng});if(!alive())return}
   // scout the river this afternoon for tomorrow's lower-river trips
   if(cfg.scout&&!needFA&&alive()&&S.loc==='lower'&&S.scout!==d&&tod()<1100&&S.book.some(b=>b.d===d+1&&b.status==='booked'&&TRIPS[b.type].loc==='lower')&&S.fuel>=sledNeeded(d+1)+sledNeeded(d)+bn('scout')+3&&!isSunMon(d)){act(cfg,/Scout the river/);if(!alive())return}
   // FA class
@@ -211,6 +237,7 @@ function playDay(cfg){
   const dn=S.book.filter(b=>b.d===d&&b.status==='done').length;(M.dayHist=M.dayHist||{})[dn]=((M.dayHist||{})[dn]||0)+1;M.minMoney=Math.min(M.minMoney==null?1e9:M.minMoney,S.money);
   if(cfg.stab&&sday(d)>=12&&S.home.gal>0&&!isLastSeason(d)){act(cfg,/stabilizer/)}
   if(cfg.home&&typeof homeBot==='function'&&S.loc==='shop'&&tod()<1180&&!S.trip){homeBot(cfg.home,{rand:M.crng})}
+  if(cfg.seine&&typeof seineBotEvening==='function'){seineBotAnswer(cfg.seine);seineBotEvening()}
   endDay('home');
 }
 
@@ -231,12 +258,16 @@ function winterPlay(cfg){
   }
   if(cfg.gen&&!S.home.gen&&S.money>GENS[cfg.gen].cost+GENS[cfg.gen].install+8000){buyHome('gen'+cfg.gen);M.bought.push({s,id:'gen'+cfg.gen,money:Math.round(S.money)})}
   if(cfg.biz&&typeof bizOn==='function'&&bizOn()) bizBot(cfg.biz,s);
+  if(cfg.seine&&typeof seineBotWinter==='function') seineBotWinter(cfg.seine);
+  if(cfg.tender&&typeof tenderBot==='function'&&typeof tenderOn==='function'&&tenderOn()){const m0=S.money;tenderBot(cfg.tender);(M.tender=M.tender||[]).push({s,spent:Math.round(S.money-m0)})}
   if(S.home.stale>0&&cfg.haul){spend(STALE_FEE);S.home.stale=0}
   if(cfg.home&&typeof homeBotWinter==='function'){const m0=S.money;homeBotWinter(cfg.home,{rand:M.crng});(M.homeWinter=M.homeWinter||[]).push(Math.round(S.money-m0))}
   // note upgrade affordability
   snap.afford=UPGRADES.filter(u=>u.cost&&S.money>=u.cost).map(u=>u.id);
+  if(cfg.crab&&typeof crabBotWinter==='function'){const m0=S.money;const r=crabBotWinter(Object.assign({rand:M.crng,policy:cfg.crab},cfg.crabOpts||{}));if(r)(M.crab=M.crab||[]).push({s,dM:Math.round(S.money-m0),n:r.length})}
   // camp
   if(cfg.camp&&S.winter){const m0=S.money,e0=S.energy,r0=S.rep;const rep=campBot(Object.assign({},cfg.campOpts||{},{rand:M.crng}));if(rep&&(rep.tripsTaken||rep.gigs.length))M.camp.push({s,trips:rep.tripsTaken,gigs:rep.gigs.length,nights:rep.nights,dM:Math.round(S.money-m0),dE:S.energy-e0,dR:S.rep-r0,fish:rep.foodFish,tk:rep.tackleCredit,q:rep.firstTripBoost,bk:rep.bookingBoost})}
+  if(cfg.gill&&window.gnBot) gnBot.winter(cfg.gill);
   if(typeof weeksSet==='function'){const p=WEEKPOL[cfg.weeks||'mix'],w=p&&p(s);if(w)weeksSet(s,w)}
   closeModals();
   finishWinter();
@@ -287,7 +318,11 @@ window.runCareer=async function(o){
   M.wk={};M.wkN={};const wid=d=>(typeof weekIdOf==='function'?weekIdOf(d):(sday(d)<7?'jul1':'jul2'))+'/'+(sday(d)<7?0:1);
   S.book.forEach(b=>{if(b.status!=='done'||b.asst)return;const k=M.wk[wid(b.d)]=M.wk[wid(b.d)]||{n:0,pay:0};k.n++;k.pay+=b.out?b.out.fare-b.out.refund+b.out.tip:0});
   for(let s=0;s<=seasonOf(Math.min(S.cur,GAME.days-1));s++)(typeof weeksOf==='function'?weeksOf(s):['jul1','jul2']).forEach((id,i)=>M.wkN[id+'/'+i]=(M.wkN[id+'/'+i]||0)+1);
+  if(S.fish&&S.fish.tender){const T0=S.fish.tender;M.tenderTot=JSON.parse(JSON.stringify(T0.tot));M.tenderVal=Tender.value(T0);M.tenderDebt=Tender.debt(T0);M.tenderHist=T0.hist.map(h=>Math.round(h.net));M.tenderPlant=T0.plant?T0.plant.kind:null;M.tenderN=T0.tenders.length}
   if(S.biz){M.bizTot=JSON.parse(JSON.stringify(S.biz.tot));M.bizStaff=S.biz.staff.length;M.bizBoats=S.biz.boats.length;M.bizPast=S.biz.past.map(p=>p.why);M.staffTrips=S.stats.staffTrips||0;M.staffNet=S.stats.staffNet||0;M.staffCites=S.stats.staffCites||0}
+  if(S.fish&&S.fish.gillnet){const g=S.fish.gillnet;M.gn={tot:JSON.parse(JSON.stringify(g.tot)),xp:g.xp,did:g.did,own:!!g.own}}
+  if(S.fish&&S.fish.seine){const F=S.fish.seine.st;M.seine={ops:F.openers,crew:F.crewOps,skip:F.skipOps,cash:Math.round((S.stats.seine||{}).cash||0),lbs:F.tot.lbs,inj:F.tot.injuries,torn:F.tot.torn,missed:F.tot.missed}}
+  if(S.fish&&S.fish.crab)M.crabTot=JSON.parse(JSON.stringify(S.fish.crab.tot));
   const out=M;M=null;return out;
 };
 window.simInternals={playDay,resolve,winterPlay,STYLES,initM:(o)=>{window.M={style:o.style,diff:o.diff,years:o.years,seed:o.seed,citeWhy:{},viols:{},tiles:{},steps:{},req:{},tt:{},winters:[],bought:[],camp:[],energySum:0,energyN:0,lowEnergyDays:0,boatSum:0,loss:null,errors:[]}}};window.STYLES=STYLES;window.UPPOL=UPPOL;window.WEEKPOL=WEEKPOL;

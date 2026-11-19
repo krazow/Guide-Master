@@ -2,7 +2,7 @@
 // staff trips that resolve off-screen into the morning report, guide citations on your record, wages and boat costs, quitting, schema 9 (1.16.0).
 const { open, newGame, noErrors, assert } = require('./helpers');
 
-// In the page: helpers that take a fresh game to the third off-season (the outfit unlocks), and a seeded Math.random for a stretch of code.
+// In the page: helpers that take a fresh game to the second off-season (the outfit unlocks), and a seeded Math.random for a stretch of code.
 const install = () => {
   window.toWinter = (s, o = {}) => {   // finish season s-1 and open the off-season before season s (s >= 1)
     closeModals(); clearTiles(); S.years = o.years || 5; S.rep = o.rep ?? 72; S.money = o.money ?? 80000;
@@ -22,7 +22,7 @@ const install = () => {
 const setup = async (ctx, seed) => { const { page, errors } = await open(ctx, { seed }); await newGame(page); await page.evaluate(install); return { page, errors }; };
 
 module.exports = [
-  { name: 'outfit: nothing in seasons 1 and 2; unlocks in the third off-season with a line in the planner, a button and an Outfit page', fn: async ctx => {
+  { name: 'outfit: nothing in seasons 1 and 2; unlocks in the second off-season with a line in the planner, a button and an Outfit page', fn: async ctx => {
     const { page, errors } = await setup(ctx, 11);
     const r = await page.evaluate(() => {
       const out = { on0: S.biz.on, tab0: /Outfit/.test(EXTRA_TABS.find(t => t.k === 'book').view()), btn0: bizWinterBtns().length };

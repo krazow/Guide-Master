@@ -1,6 +1,6 @@
 // ============================================================
 //  GUIDE MASTER, part 9: grow the business (the outfit).
-//  From the third off-season on you can hire up to three guides and buy up to two more boats. Your guides take parties on days
+//  From the second off-season on you can hire up to three guides and buy up to two more boats. Your guides take parties on days
 //  you're booked (or that you hand them), and their trips run off-screen: the morning report says how each one went.
 //
 //  State: S.biz (bizBase()). Staff trips are bookings with b.asst=true and b.g=<guide id>, so the rest of the game treats them the
@@ -19,7 +19,7 @@
 //  (staffReview). Those reviews live in S.biz.reviews, NOT S.reviews: your star rating, its milestones, goals and the trophy wall are about
 //  the trips you guide yourself (the Outfit page shows each guide's stars). Staff stay off magazine, lodge and big-day bookings.
 // ============================================================
-const BIZ_UNLOCK=2;                                     // seasons played before you can grow (the third off-season)
+const BIZ_UNLOCK=2;                                     // seasons played before you can grow (the second off-season: after two summers)
 const BIZ_REP=[55,65,75];                               // reputation needed for the 1st, 2nd and 3rd guide
 const BIZ_MAX_BOATS=2;                                  // boats you can add to your sled and drift boat
 const BIZ_BOATS={

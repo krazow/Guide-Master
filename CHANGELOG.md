@@ -6,6 +6,32 @@ are taken from it. Earlier versions are described in the README and the in-game 
 ## Unreleased
 
 ### Added
+- **⚓ Commercial & crab** in the off-season planner, from your second off-season: one sheet for four optional, risky ways to work the
+  water when you aren't guiding. Each section shows only once it opens.
+- **🪢 Commercial gillnetting on Cook Inlet.** Crew on a family setnet site on the east-side beach or deckhand on a Kenai drift boat for
+  a share, then lease a site or a drift permit and boat, then buy your own. Openers are Mondays and Thursdays (plus extra periods),
+  announced the morning before in the morning report and on 📅 Bookings. A day is a few calls: the tide, the drift line, pick or soak,
+  bleed and ice, the tender or the dock. The setnet beach follows the Kenai kings (a kings-closed year starts it closed). Nets fishing
+  after the close or a drift over the corridor line is a citation on your record. A partner fishes the openers you guide through.
+- **🎣 Purse seining out of Homer.** Crew on a Kachemak Bay seiner (Monday, Wednesday and Friday periods from mid-June; after July only
+  in a fair pink year), then run a chartered boat on an emergency permit transfer or your own permit. Sign on or pass for each period
+  on 📅 Bookings, be at Homer harbor by 6 AM (or sleep aboard the night before), read the jumpers, take your turn at the hook-off, stay
+  outside the closed lines, brail and sell to the tender. Water hauls, a torn net, a line in the wheel or a hurt hand can wipe out a day.
+- **🦀 Crabbing.** A Dungeness pot set across Kachemak Bay on a free afternoon in Homer and pulled on the next (legal males only, for
+  the freezer or a crab feed on the dock, never for sale), a winter Tanner day in the years the bay opens, and a deckhand job on a
+  Bering Sea crab boat out of Dutch Harbor (7 of your 10 free winter days): getting hired, the survival-suit drill, hauling in a storm,
+  the sorting table, ice on the rails and settlement day. A greenhorn earns half a share.
+- **⚓ Fish buying & processing**, from your third off-season: charter a tender or buy a used one (a bank loan for most of it), anchor
+  her off the Kenai or in Kachemak Bay and buy the fleet's fish at your own posted price, run her yourself on an opener day, then lease
+  line space, buy a shore plant or an old floating processor that can winter out west on crab. Markets, runs, king closures, inspections
+  and breakdowns move the money; the business never takes your last $10,000, and boats and plants count in your score at nine tenths.
+- **Your own catch to your own buyer.** When your gillnet or seine catch (or your crab boat's catch out west) lands where your tender or
+  plant buys, it buys it at your posted price instead of an outside buyer, and the business keeps its margin.
+- **One commercial day at a time.** The Here tab lists today's openers together under *⚓ Commercial today*, and 📅 Bookings shows
+  the commercial sections together above the season. Whichever you start takes the day. A party booked that day is the same choice
+  everywhere: hand it to one of your guides, cancel it (reputation −5 a party, deposit refunded), or keep it.
+- Four new Help sections (gillnetting, seining, crabbing, fish buying & processing), just before Feedback. New pictures for the
+  commercial fishing moments.
 - **📲 Install app** on the title screen. On Android and in Chrome or Edge on a computer it opens the browser's own install prompt
   (and hides, with a thank-you note, once the game is installed). Browsers that haven't offered an install yet (Firefox, Samsung
   Internet, Safari on a Mac, …) get a short sheet with their menu steps. Hidden when you're already playing the installed app, and in
@@ -22,8 +48,10 @@ are taken from it. Earlier versions are described in the README and the in-game 
   guides' trips and the Outfit page, and on the end screen (*Your boats*). The buddy's loaner is the *Rust Bucket II*.
 
 ### Changed
+- Help said the outfit opens in your third off-season; it opens in the second (after two summers), as it always has. Help, the planner
+  note and the README now say so.
 - **❓ Help, rewritten** for the game as it is now: a contents list at the top (tap a topic to jump to it, ↑ to come back), then
-  18 short sections in the order you meet things, from getting started and your first trip to the outfit, the trophy wall, settings
+  short sections (22 with the commercial ones) in the order you meet things, from getting started and your first trip to the outfit, the trophy wall, settings
   and installing the app. Fixed: the Sunday/Monday closure and the 6 PM rule only run through July 31, and the cabin's condition is on
   the Home tab (not the top bar).
 - The offline cache now includes the how-to page and its video (the video answers byte-range requests, as Safari needs), and opening

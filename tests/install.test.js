@@ -13,7 +13,7 @@ module.exports = [
     assert.strictEqual(await btn(page).count(), 0);
     assert.ok(/Transfer a save/.test(await page.textContent('.title')), 'title screen drawn');
     assert.strictEqual(await page.locator('#installBar').count(), 0, 'no install bar either');
-    assert.ok(await page.evaluate(() => HELP.some(h => /Install app/.test(h[2])) && CHANGELOG[APP_VERSION].some(l => /Install app/.test(l))), 'Help and the update notice mention it');
+    assert.ok(await page.evaluate(() => HELP.some(h => /Install app/.test(h[2])) && CHANGELOG['1.18.0'].some(l => /Install app/.test(l)) && changelogLines('1.17.0').some(l => /Install app/.test(l[1]))), 'Help and the update notice mention it (1.18.0, shown to players coming from 1.17.0)');
     if (ctx.target.name === 'offline') assert.strictEqual(await page.evaluate(() => SINGLE_FILE), true);
     // even if a browser offered an install, a file has nothing to install
     await firePrompt(page);

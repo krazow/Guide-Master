@@ -23,7 +23,8 @@ python3 tools/build.py so index.html picks up the change.
 validate checks: the files exist with the right sizes and formats, alt text, budgets (150 KB per full WebP, 2 MB per set in all),
 "when" keys (only the set's selection keys; notes and meta go outside "when"), and every value against what the game reports,
 read from its source: upgrades, camp places, and event ids by origin (event entries must say "from"): game = defEvent ids,
-home = CabinUpkeep.EVENTS (src/home), camp = the camp encounters, trip = the trip STEP ids.
+home = CabinUpkeep.EVENTS (src/home), camp = the camp encounters, trip = the trip STEP ids; gillnet, seine, crab and tender = each
+commercial module's EVENTS list (src/gillnet, src/seine, src/crab, src/tender data files).
 """
 import argparse, glob, hashlib, json, os, re, struct, sys
 
@@ -50,11 +51,14 @@ FIXED = {
     'camp.activity': {'icefish', 'ski', 'snowshoe', 'track', 'scout', 'rest', 'fire', 'tie', 'aurora'},
     'camp.time': {'day', 'night'},
     'camp.weather': {'clear', 'snow', 'cold', 'thaw'},
-    'event.from': {'game', 'home', 'camp', 'trip'},
+    'event.from': {'game', 'home', 'camp', 'trip', 'gillnet', 'seine', 'crab', 'tender'},
     'event.time': {'day', 'dusk', 'night'},
 }
 RANGES = {'cabin.cond', 'boat.cond'}
 BUDGET_IMG, BUDGET_SET = 150 * 1024, 2 * 1024 * 1024   # bytes per full WebP; bytes per set, every file counted
+# the event set covers the game, the cabin, camping, trips and (1.19.0) the four commercial modules: twice the room. A player downloads
+# only the pictures shown, one full WebP at a time.
+BUDGET_SETS = {'event': 4 * 1024 * 1024}
 FULL, FALLBACK, THUMB = (1600, 900), (960, 540), (400, 225)
 TOP = {'id', 'set', 'n', 'title', 'file', 'fw', 'thumb', 'webp', 'thumbWebp', 'v', 'w', 'h', 'alt', 'where', 'when', 'notes', 'meta', 'enabled', 'focus', 'bg'}
 FOCUS_RE = re.compile(r'^\d{1,3}% \d{1,3}%$')   # object-position: "50% 70%" keeps a low subject in the banner
@@ -90,7 +94,15 @@ def known_events(root):
         for b in re.finditer(r"(?:const STEP=\{|Object\.assign\(STEP,\{)\n(.*?)\n\}\)?;", t, re.S):
             trip |= set(re.findall(r"^  (\w+):", b.group(1), re.M))
         trip |= set(re.findall(r"^STEP\.(\w+)=", t, re.M))
-    return {'game': game, 'home': home, 'camp': camp, 'trip': trip}
+    # the commercial modules (1.19.0): each lists its event ids in its data file
+    def ids(path, pat):
+        m = re.search(pat, src(path), re.S)
+        return set(re.findall(r"'(\w+)'", m.group(1))) if m else set()
+    gillnet = ids('src/gillnet/gillnet-10-data.js', r"EVENTS:\[(.*?)\]")
+    seine = ids('src/seine/seine-10-data.js', r"D\.EVENTS=\[(.*?)\];")
+    crab = ids('src/crab/crab-10-data.js', r"D\.EVENTS=\[(.*?)\];")
+    tender = ids('src/tender/tender-10-data.js', r"const EVENTS=\[(.*?)\];")
+    return {'game': game, 'home': home, 'camp': camp, 'trip': trip, 'gillnet': gillnet, 'seine': seine, 'crab': crab, 'tender': tender}
 
 
 def png_size(path):
@@ -343,7 +355,8 @@ def validate(root, strict, only=None):
                 miss = [x for x in ev if x != 'any' and frms and not any(x in V['_events'][f] for f in frms)]
                 if miss: errs.append(f'{i}: event {miss!r} is never reported from {"/".join(frms)}')
     for s, b in per_set.items():
-        if b > BUDGET_SET: warns.append(f'set {s}: {b / 1048576:.2f} MB in all (budget {BUDGET_SET // 1048576} MB)')
+        lim = BUDGET_SETS.get(s, BUDGET_SET)
+        if b > lim: warns.append(f'set {s}: {b / 1048576:.2f} MB in all (budget {lim // 1048576} MB)')
     for x in errs: print('ERROR  ' + x)
     for x in warns: print('warn   ' + x)
     n = len([e for e in es if not only or e.get('set') in only])
