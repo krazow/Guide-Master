@@ -22,7 +22,7 @@
   // the winter's paperwork and gear (estimates, except the crewmember license: ADF&G's resident fee)
   D.SEASON={license:60,gear:340,insurance:1500,exam:450,permitFee:300};
   D.PERMIT={price:45000,sell:.9};              // a Cook Inlet seine permit: tens of thousands, few sales a year (an estimate)
-  D.SKILL_TO_SKIP=4;                           // openers worked as crew before you can run a boat
+  D.SKILL_TO_SKIP=3;                           // openers worked as crew before you can run a boat
   D.WAIT=45;D.SET_MIN=80;                      // minutes to wait for a better school; minutes a set takes, start to brailed
   D.WIND_RUFF=18;D.WIND_BAD=25;                // knots: a sloppy day, and a small craft advisory day
   D.FINE={sha:1500,stream:1000};               // fishing inside a hatchery's special harvest area, or too close to a stream mouth (estimates)

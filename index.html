@@ -1882,7 +1882,7 @@ const Seine={
   // the winter's paperwork and gear (estimates, except the crewmember license: ADF&G's resident fee)
   D.SEASON={license:60,gear:340,insurance:1500,exam:450,permitFee:300};
   D.PERMIT={price:45000,sell:.9};              // a Cook Inlet seine permit: tens of thousands, few sales a year (an estimate)
-  D.SKILL_TO_SKIP=4;                           // openers worked as crew before you can run a boat
+  D.SKILL_TO_SKIP=3;                           // openers worked as crew before you can run a boat
   D.WAIT=45;D.SET_MIN=80;                      // minutes to wait for a better school; minutes a set takes, start to brailed
   D.WIND_RUFF=18;D.WIND_BAD=25;                // knots: a sloppy day, and a small craft advisory day
   D.FINE={sha:1500,stream:1000};               // fishing inside a hatchery's special harvest area, or too close to a stream mouth (estimates)
@@ -2022,12 +2022,12 @@ const Seine={
   const signTxt=q=>D.SIGNS.find(s=>q>=s[0])[1];
 
   K.session=function(ticket,o){
-    const T=K.normTicket(ticket),r=(o&&typeof o.rand==='function')?o.rand:Math.random,Y=K.year(T.year),dy=doy(T.md);
+    const T=K.normTicket(ticket),r=(o&&typeof o.rand==='function')?o.rand:U.seeded(Math.floor(hash(T.year,T.md,T.state.openers,T.state.sets)*4294967296)),Y=K.year(T.year),dy=doy(T.md);
     const cap=K.captain(T.year,T.state),skip=T.role==='skip',st=T.state;
     const X={phase:'dock',t:D.OPEN+(skip?T.late:0),i:0,ends:[],spot:null,school:null,pace:'steady',call:false,fish:{sockeye:0,pink:0,chum:0},
       sets:0,water:0,lines:[],events:[],costs:{},fines:[],viol:0,cancels:0,energy:-8,skill:0,respect:0,fleet:0,fished:false,bleed:false,stayed:false,missed:false,
       lost:0,hurried:false,best:0,last:null,injured:false,start:D.OPEN+(skip?T.late:0),wind:T.wind,setsLog:[]};
-    const S={T,X,Y,cap,get done(){return X.phase==='done'},get phase(){return X.phase}};
+    const Q={T,X,Y,cap,get done(){return X.phase==='done'},get phase(){return X.phase}};
     const ev=(id,sev)=>X.events.push({id,sev:sev||0});
     const cost=(k,v)=>{X.costs[k]=(X.costs[k]||0)+Math.round(v)};
     const spot=()=>D.SPOTS[X.spot];
@@ -2138,7 +2138,7 @@ const Seine={
     }
 
     // ---- screens ----
-    S.view=function(){
+    Q.view=function(){
       const b=[],add=(id,l,s,dis)=>b.push({id,l,s:s||'',dis:!!dis});
       let title='',html='';
       const meta={phase:X.phase,role:T.role,spot:X.spot,t:X.t,fish:copy(X.fish),events:X.events.slice(),school:X.school?{q:X.school.q,read:X.school.read,crowd:X.school.crowd,line:X.school.line}:null,i:X.i};
@@ -2214,8 +2214,8 @@ const Seine={
       return {title,html,buttons:b,exit:b.length?b[b.length-1].id:null,meta};
     };
 
-    S.choose=function(id){
-      const v=S.view(),bt=v.buttons.find(x=>x.id===id);if(!bt||bt.dis)return false;
+    Q.choose=function(id){
+      const v=Q.view(),bt=v.buttons.find(x=>x.id===id);if(!bt||bt.dis)return false;
       switch(X.phase){
         case 'dock':
           if(id==='missed'){X.missed=true;st.tot.missed++;X.respect-=2;ev('missed_boat',1);X.lines.push(`You missed the ${cap.boat}.`);return finish()}
@@ -2278,7 +2278,7 @@ const Seine={
       return true;
     }
     // the report: what the host applies (any time; final once done)
-    S.report=function(){
+    Q.report=function(){
       const m=X.money||settle(),s=copy(st),f=X.fish,worked=!X.missed&&!X.stayed;
       if(worked){s.openers++;if(skip)s.skipOps++;else s.crewOps++;s.sets+=X.sets;s.skill=clamp(s.skill+(skip?2:3)+(X.call?1:0),0,100);
         for(const k in f){s.tot.fish[k]+=f[k]}s.tot.lbs+=m.L;s.tot.water+=X.water;s.tot.gross+=m.gross;s.tot.best=Math.max(s.tot.best,m.gross)}
@@ -2294,7 +2294,7 @@ const Seine={
         fines:skip?X.fines.slice():[],viol:skip?X.viol:0,cancels:X.cancels,start,end,minutes:Math.max(0,end-start),
         events:X.events.slice(),lines:X.lines.slice(),respect:X.respect,fleet:X.fleet,captain:skip?null:{name:cap.name,boat:cap.boat},boat};
     };
-    return S;
+    return Q;
   };
 })(Seine);
 // ============================================================
@@ -4997,6 +4997,13 @@ const HELP=[
     <li>On an iPhone or iPad it opens <a href="install/ios.html">a short how-to with a video</a>: in Safari, tap Share, then <b>Add to Home Screen</b>, then <b>Add</b>.</li>
     <li>Open it once from the new icon while online. After that it plays offline.</li>
     <li>On iPhone and iPad the Home Screen app keeps its own saves, so play from the icon. Use <b>🔁 Transfer a saved game</b> to move a game there or to another device.</li></ul>`,'install'],
+  ['⚓','Purse seining out of Homer',`<p class="help-sum">From your second off-season you can work salmon openers on a Homer seiner, if you want to.</p><ul>
+    <li>Pick it in the off-season under <b>🎣 Commercial & crab</b>: crew on a seiner for a share of each opener (8 to 10% of the catch after fuel, ice and groceries), or later run a chartered boat on an emergency permit transfer or your own permit.</li>
+    <li>Kachemak Bay’s seine periods run <b>Monday, Wednesday and Friday, 6 AM to 10 PM</b> from mid-June. After July they open only in a fair pink year. ADF&G can close a period with a few days’ notice.</li>
+    <li>Sign on or pass for each opener in <b>📅 Bookings</b>. It’s a whole day off the river: a trip booked that day is yours to cancel, hand to one of your guides, or keep.</li>
+    <li>Be at Homer harbor by <b>6:00 AM</b>, or drive down the night before and sleep aboard. A crewman who’s late gets left at the dock.</li>
+    <li>On the water: pick the bay, read the jumpers, set now or wait for a better school, take your turn at the hook-off and stay outside the closed lines. Brail the catch and sell it to the tender.</li>
+    <li>It’s risky: water hauls, a net torn on a reef, a line in the wheel, a hurt hand. Sockeye pay well; pinks pay little.</li></ul>`,'seine'],
   ['💬','Feedback',`<p class="help-sum">Ideas, bugs, or a rule or fact we got wrong? Tell the developer.</p><ul>
     <li>Tap <b>Send feedback</b> below, on the title screen or in ⚙️ Settings.</li>
     <li>Add your email if you’d like a reply. If you’re offline, it’s sent the next time you’re online.</li></ul>`,'feedback'],

@@ -100,12 +100,12 @@
   const signTxt=q=>D.SIGNS.find(s=>q>=s[0])[1];
 
   K.session=function(ticket,o){
-    const T=K.normTicket(ticket),r=(o&&typeof o.rand==='function')?o.rand:Math.random,Y=K.year(T.year),dy=doy(T.md);
+    const T=K.normTicket(ticket),r=(o&&typeof o.rand==='function')?o.rand:U.seeded(Math.floor(hash(T.year,T.md,T.state.openers,T.state.sets)*4294967296)),Y=K.year(T.year),dy=doy(T.md);
     const cap=K.captain(T.year,T.state),skip=T.role==='skip',st=T.state;
     const X={phase:'dock',t:D.OPEN+(skip?T.late:0),i:0,ends:[],spot:null,school:null,pace:'steady',call:false,fish:{sockeye:0,pink:0,chum:0},
       sets:0,water:0,lines:[],events:[],costs:{},fines:[],viol:0,cancels:0,energy:-8,skill:0,respect:0,fleet:0,fished:false,bleed:false,stayed:false,missed:false,
       lost:0,hurried:false,best:0,last:null,injured:false,start:D.OPEN+(skip?T.late:0),wind:T.wind,setsLog:[]};
-    const S={T,X,Y,cap,get done(){return X.phase==='done'},get phase(){return X.phase}};
+    const Q={T,X,Y,cap,get done(){return X.phase==='done'},get phase(){return X.phase}};
     const ev=(id,sev)=>X.events.push({id,sev:sev||0});
     const cost=(k,v)=>{X.costs[k]=(X.costs[k]||0)+Math.round(v)};
     const spot=()=>D.SPOTS[X.spot];
@@ -216,7 +216,7 @@
     }
 
     // ---- screens ----
-    S.view=function(){
+    Q.view=function(){
       const b=[],add=(id,l,s,dis)=>b.push({id,l,s:s||'',dis:!!dis});
       let title='',html='';
       const meta={phase:X.phase,role:T.role,spot:X.spot,t:X.t,fish:copy(X.fish),events:X.events.slice(),school:X.school?{q:X.school.q,read:X.school.read,crowd:X.school.crowd,line:X.school.line}:null,i:X.i};
@@ -292,8 +292,8 @@
       return {title,html,buttons:b,exit:b.length?b[b.length-1].id:null,meta};
     };
 
-    S.choose=function(id){
-      const v=S.view(),bt=v.buttons.find(x=>x.id===id);if(!bt||bt.dis)return false;
+    Q.choose=function(id){
+      const v=Q.view(),bt=v.buttons.find(x=>x.id===id);if(!bt||bt.dis)return false;
       switch(X.phase){
         case 'dock':
           if(id==='missed'){X.missed=true;st.tot.missed++;X.respect-=2;ev('missed_boat',1);X.lines.push(`You missed the ${cap.boat}.`);return finish()}
@@ -356,7 +356,7 @@
       return true;
     }
     // the report: what the host applies (any time; final once done)
-    S.report=function(){
+    Q.report=function(){
       const m=X.money||settle(),s=copy(st),f=X.fish,worked=!X.missed&&!X.stayed;
       if(worked){s.openers++;if(skip)s.skipOps++;else s.crewOps++;s.sets+=X.sets;s.skill=clamp(s.skill+(skip?2:3)+(X.call?1:0),0,100);
         for(const k in f){s.tot.fish[k]+=f[k]}s.tot.lbs+=m.L;s.tot.water+=X.water;s.tot.gross+=m.gross;s.tot.best=Math.max(s.tot.best,m.gross)}
@@ -372,6 +372,6 @@
         fines:skip?X.fines.slice():[],viol:skip?X.viol:0,cancels:X.cancels,start,end,minutes:Math.max(0,end-start),
         events:X.events.slice(),lines:X.lines.slice(),respect:X.respect,fleet:X.fleet,captain:skip?null:{name:cap.name,boat:cap.boat},boat};
     };
-    return S;
+    return Q;
   };
 })(Seine);
