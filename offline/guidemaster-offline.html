@@ -2013,7 +2013,7 @@ const Seine={
     t=t||{};
     const st=K.normState(copy(t.state||K.newState()));
     return {role:t.role==='skip'?'skip':'crew',route:t.route==='own'?'own':'transfer',state:st,md:n0(t.md,715),dow:n0(t.dow,0),year:n0(t.year,2027),season:n0(t.season,1),
-      wind:n0(t.wind,8),sky:t.sky||'cloud',cash:n0(t.cash,0),energy:n0(t.energy,80),costMult:n0(t.costMult,1),bad:n0(t.bad,1),late:Math.max(0,n0(t.late,0)),
+      wind:Math.round(n0(t.wind,8)),sky:t.sky||'cloud',cash:n0(t.cash,0),energy:n0(t.energy,80),costMult:n0(t.costMult,1),bad:n0(t.bad,1),late:Math.max(0,n0(t.late,0)),
       diesel:n0(t.diesel,5.6),dayTxt:t.dayTxt||'',first:st.openers===0};
   };
   function normal(r){let u=0,v=0;while(u===0)u=r();while(v===0)v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
