@@ -132,7 +132,7 @@
     const lines=[],events=[];let repair=0,rej=0;
     if(blow)lines.push(`💨 A blow out of the southwest, ${wind} knots: half the fleet stays in. ${self?'You':'The skipper'} double${self?'':'s'} the anchor watch and check${self?'':'s'} that every survival suit aboard fits.`);
     const pRej=(run==='tide'?.12:.03)+(v.cond<45?.12:0)+(care==='fast'?.04:0);
-    if(!exp&&r()<pRej){const f=.3+r()*.3;rej=Math.round(tot*f);const lost=rev*f*.6;rev-=lost;qi=Math.min(qi,.3);
+    if(!exp&&r()<pRej){const f=.3+r()*.3;rej=Math.round(tot*f);const lost=rev*f*.3;rev-=lost;qi=Math.min(qi,.3);
       lines.push(`🌡️ The plant’s quality checker probes a warm hold: ${lb(rej)} are downgraded to number twos (${$(lost)} less).`);events.push({id:'tender_reject',sev:1})}
     const pBrk=v.cond<40?.1:v.cond<60?.02:.008;
     if(!exp&&r()<pBrk){repair=Math.round((3000+r()*5000)*scale(t));const lost=rev*.15;rev-=lost;v.cond=clamp(v.cond-6,0,100);
@@ -278,7 +278,7 @@
     const tNet=playedNet+restNet-tFixed;
     rep.cashDelta+=restNet-tFixed;
     const st1={s:S0.s,openers:S0.led.n,lbs:S0.led.lbs,tender:tNet,plant:0,winter:0,lv:S0.lv};
-    if(st.tenders.length) rep.lines.push(`⚓ <b>Tendering, ${S0.year}:</b> ${S0.led.n} opener${S0.led.n===1?'':'s'} (${played} played), ${lb(S0.led.lbs)} bought. After the fish, fuel, crew, repairs and ${$(tFixed)} of season costs: <b>${$(tNet)}</b> (${$(restNet-tFixed)} of it settled now).`);
+    if(st.tenders.length) rep.lines.push(`⚓ <b>Tendering, ${S0.year}:</b> ${S0.led.n} opener${S0.led.n===1?'':'s'} (${played} played), ${lb(S0.led.lbs)} bought. After the fish, fuel, crew, repairs and ${$(tFixed)} of season costs: <b>${$(tNet)}</b> (${$(playedNet)} came in on the days you played; ${$(restNet-tFixed)} settles now).`);
     rest.res.forEach(x=>rep.lines.push(...x.lines.map(l=>l.replace(/^(\S+) /,`$1 ${mdTxt(x.md)}: `))));
     rest.res.forEach(x=>rep.events.push(...x.events.filter(e=>e.sev>0)));
     if(st.plant){const ps=plantSeason(t,st,r,false);st1.plant=ps.net;rep.cashDelta+=ps.net;
