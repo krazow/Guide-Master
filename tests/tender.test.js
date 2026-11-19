@@ -184,9 +184,9 @@ module.exports = [
     // a shore plant in a weak market with no cash to spare
     const bust = (cash, cover, seed = 4) => {
       let t = open0({ plant: 'shore', t: { cash: 2e6 } });
-      t.state.season.lv = { salmon: 0, pink: 0, crab: 0 };
+      t.state.season.lv = { salmon: 0, pink: 0, crab: 0 }; t.state.plant.cond = 20;   // a weak market, a weak run, a run-down plant
       if (!cover) { t.state.loan = { bal: Math.round(T.value(t.state) * .95), rate: K.RATE, left: 7 } }
-      return T.closeSeason(Object.assign({}, t, { phase: 'winter', s: 5, cash }), { rand: seeded(seed) });
+      return T.closeSeason(Object.assign({}, t, { phase: 'winter', s: 5, cash, run: { sockeye: .4, coho: .5, pinkEven: false, king: 'closed' } }), { rand: seeded(seed) });
     };
     const carried = bust(12000, true);
     assert.ok(carried.carried > 0 && !carried.forced && 12000 + carried.cashDelta === T.FLOOR, `carried ${carried.carried} ${carried.cashDelta}`);

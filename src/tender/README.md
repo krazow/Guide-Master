@@ -97,7 +97,7 @@ All prices are **2026 estimates for play**, rounded, scaled by the host's cost m
 | Tenders | buy for a processor, weigh and grade each delivery, chill in refrigerated seawater, run to the plant; often 30–50 years old; chartered on flat contracts | National Fisherman on Bristol Bay tenders |
 | Tender prices | charter $24,000 a season; a used 58-ft steel tender with RSW $340,000, $15,000 a winter to keep | estimates; used packers on brokers' lists run from a couple of hundred thousand dollars (a 1989 65-ft packer of about 100 tons) to about a million (a 133-ft packer of 470,000 lb) (Pacific Boat Brokers) |
 | Plants | line space $34,000 a season; a small shore plant $520,000; an old floating processor $1.6 million | estimates for small, old, distressed facilities; real plants vary enormously |
-| Plant margins | sockeye 4¢, 12¢ or 20¢ a pound over a tender's delivered price; pinks −4¢, 2¢ or 6¢; canned pinks −8¢, 8¢ or 13¢ | estimates, chosen so a plant is a modest, risky business, as recent closures suggest |
+| Plant margins | sockeye about 4.5¢, 12.5¢ or 20.5¢ a pound over a tender's delivered price; pinks −4¢, 2¢ or 6¢; canned pinks −8¢, 8¢ or 13¢ | estimates, chosen so a plant is a modest, risky business, as recent closures suggest |
 | Inspections and permits | a state food-safety inspection each season; a wastewater discharge permit | Alaska's seafood processors work under a state food-safety permit and a wastewater discharge permit; the details are described only generally |
 
 Sources: [KDLL, Nov 2025](https://www.kdll.org/local-news/2025-11-24/strong-2025-sockeye-run-roughly-doubles-value-of-local-commercial-fisheries); [Peninsula Clarion, ADF&G 2025 summary](https://www.peninsulaclarion.com/news/alaska-department-of-fish-and-game-publishes-2025-commercial-salmon-summary); [ADF&G 2025 preliminary tables](https://www.adfg.alaska.gov/static/fishing/pdfs/commercial/2025_preliminary_season_summary_tables.pdf); [ADF&G 2026 preliminary tables](https://www.adfg.alaska.gov/static/fishing/pdfs/commercial/2026_preliminary_season_summary_tables.pdf); [Peninsula Clarion, Copper River Seafoods](https://www.peninsulaclarion.com/news/copper-river-seafoods-ending-kenai-operations-this-salmon-season); [Alaska Public Media, Trident's plants](https://alaskapublic.org/news/2024-03-14/trident-seafoods-find-buyers-for-ketchikan-petersburg-and-false-pass-processing-plants); [National Fisherman, tenders](https://www.nationalfisherman.com/inside-the-overlooked-world-of-bristol-bay-s-salmon-tenders); [Pacific Boat Brokers, packers](https://pacificboatbrokers.com/used-boats-for-sale/NS6158/steel-herring-salmon-packer.asp).
@@ -114,4 +114,15 @@ Sources: [KDLL, Nov 2025](https://www.kdll.org/local-news/2025-11-24/strong-2025
 
 ## Balance
 
-See `tools/sim/README.md` (styles `processor` and `mogul`) and the numbers in the branch notes.
+Bot careers on normal difficulty (`tools/sim`, same seeds; season score is the career score; `processor` and `mogul` play like `food` otherwise):
+
+| career | style | careers | mean score | vs `food` | sd | min–max | forced sales | careers lost |
+|---|---|---|---|---|---|---|---|---|
+| 10 years | `food` (guiding only) | 30 | 630,412 | — | 32,375 | 554,817–711,326 | — | 0 |
+| 10 years | `processor` | 30 | 674,888 | +7.1% | 175,906 | 198,669–1,086,071 | 1 | 0 |
+| 10 years | `mogul` | 30 | 487,274 | −22.7% | 376,109 | 152,969–1,630,843 | 24 | 0 |
+| 5 years | `food` | 40 | 294,402 | — | 17,719 | 260,645–333,573 | — | 0 |
+| 5 years | `processor` | 40 | 320,823 | +9.0% | 47,790 | 224,163–419,549 | 0 | 0 |
+| 5 years | `mogul` | 40 | 298,421 | +1.4% | 101,080 | 148,234–570,671 | 5 | 0 |
+
+The processor saves for a plant (guiding upgrades only above $120,000 of cash); `food` saving the same way scores 577,159 (10 years) and 277,357 (5 years), so the business itself is worth more than the table's gap. The standard error of a processor cell is about 22,000–32,000 (10 years), so the gap is "modestly ahead", not a sure thing. The mogul borrows for everything, overpays the fleet, skips upkeep and fillets: most of its careers go through a forced sale, and none is lost. Default bots are unchanged (64 of 64 careers identical to main, same seeds). Per season, from runs of the engine alone (an average Upper Cook Inlet season, depreciation in, interest out): a charter about +$13,000 (sd $28,000), an owned tender about +$27,000, line space with your tender about +$12,000 more, a shore plant with fresh fish about +$37,000 more (sd $134,000: −$84,000 in a weak market, +$211,000 in a strong one), a floating processor below zero on average.
