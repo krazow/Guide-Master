@@ -24,12 +24,16 @@
 :root{
   --brand:#1f5d63; --brand-dark:#0f3b3f; --accent:#2f6d5a; --accent-soft:#6f8f5a; --surface:#f3ecdc; --paper:#fbf8f1;
   --cta:#e3642e; --cta-dark:#a9441b; --ink:#1b2326; --mute:#6b7478; --line:#ddd4c0; --good:#2f7d4f; --bad:#b8402a; --warn:#c98a12;
+  /* Fraunces is self-hosted (fonts/, @font-face in src/shell.html); DM Sans comes from Google Fonts and is cached by sw.js after the
+     first online visit. Every font-family ends in a fallback stack, so an unloaded font never drops to the browser's default serif. */
+  --serif:"Fraunces",Georgia,"Times New Roman",serif;
+  --sans:"DM Sans",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{overscroll-behavior:none;margin:0;background:var(--brand-dark);color:var(--ink);font-family:"DM Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:16px}
+html,body{overscroll-behavior:none;margin:0;background:var(--brand-dark);color:var(--ink);font-family:var(--sans);font-size:16px}
 #app{max-width:480px;margin:0 auto;min-height:100vh;background:var(--paper);display:flex;flex-direction:column;
   padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
-h1,h2,h3{font-family:"Fraunces",Georgia,serif;margin:0}
+h1,h2,h3{font-family:var(--serif);margin:0}
 button{font:inherit;cursor:pointer;touch-action:manipulation;-webkit-user-select:none;user-select:none}
 .ghost{background:rgba(255,255,255,.12);color:#fff;border:1.5px solid rgba(255,255,255,.35);border-radius:14px;padding:13px;font-weight:700;font-size:16px}
 .hint{font-size:13px;background:rgba(255,255,255,.1);border-radius:10px;padding:10px 12px;line-height:1.45}
@@ -39,7 +43,7 @@ button{font:inherit;cursor:pointer;touch-action:manipulation;-webkit-user-select
 .title .art{position:relative;flex:none;overflow:hidden}
 .title .body{padding:16px 20px 22px;display:flex;flex-direction:column;gap:12px}
 .title h1{font-size:40px;line-height:1;letter-spacing:-.5px}
-.title h1 span{display:block;font-size:17px;font-family:"DM Sans";font-weight:500;letter-spacing:.3px;opacity:.85;margin-top:8px}
+.title h1 span{display:block;font-size:17px;font-family:var(--sans);font-weight:500;letter-spacing:.3px;opacity:.85;margin-top:8px}
 .title p{margin:0;line-height:1.5;opacity:.92;font-size:15px}
 .title ul{margin:0;padding-left:18px;line-height:1.55;font-size:14.5px;opacity:.92}
 /* "What's the game about?": the intro and bullets, folded */
@@ -68,7 +72,7 @@ button{font:inherit;cursor:pointer;touch-action:manipulation;-webkit-user-select
 .hud{background:var(--brand-dark);color:#fff;padding:10px 14px 10px;position:sticky;top:0;z-index:5}
 .hud-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .hud-right{display:flex;align-items:center;gap:8px;flex:none}
-.hud-day{font-family:"Fraunces";font-size:20px;font-weight:800}
+.hud-day{font-family:var(--serif);font-size:20px;font-weight:800}
 .hud-time{white-space:nowrap;font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
 .hud-sub{font-size:12px;opacity:.75;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .stats{display:grid;grid-template-columns:minmax(0,1.45fr) repeat(6,minmax(0,1fr));gap:4px;margin-top:8px}   /* Cash is the widest */
@@ -172,7 +176,7 @@ html.hc{--mute:#2b3336;--line:#7d7462;--paper:#ffffff;--surface:#efe5cc}
 html.hc .hud-sub,html.hc .stat small{opacity:1}html.hc .act,html.hc .dest{border-width:2px}
 html.rm *,html.rm *::before,html.rm *::after{animation:none!important;transition:none!important}
 .today{background:#eef3f4;border-radius:10px;padding:9px 11px;margin-bottom:10px;font-size:13.5px;line-height:1.55}
-.today b{display:block;font-family:Fraunces;font-size:15px;margin-bottom:2px}
+.today b{display:block;font-family:var(--serif);font-size:15px;margin-bottom:2px}
 /* modal */
 .modal-bg{position:fixed;inset:0;background:rgba(10,25,30,.6);display:flex;align-items:flex-end;justify-content:center;z-index:20}
 .modal{background:var(--paper);width:100%;max-width:480px;border-radius:18px 18px 0 0;padding:20px 18px calc(18px + env(safe-area-inset-bottom));max-height:88vh;overflow:auto;animation:up .22s ease-out}
@@ -186,14 +190,14 @@ html.rm *,html.rm *::before,html.rm *::after{animation:none!important;transition
 /* full-screen transition (travel, sleep…) */
 .cross{position:fixed;inset:0;z-index:30;background:var(--brand-dark);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff}
 .cross svg{width:100%;max-width:480px;height:260px}
-.cross .cap{font-family:"Fraunces";font-size:22px;margin-top:6px;text-align:center;padding:0 20px}
+.cross .cap{font-family:var(--serif);font-size:22px;margin-top:6px;text-align:center;padding:0 20px}
 .cross .cap2{font-size:13px;opacity:.75;margin-top:6px}
 .bob{animation:bob 1.2s ease-in-out infinite alternate}
 @keyframes bob{to{transform:translateY(3px)}}
 /* end */
 .end{padding:22px 18px 40px}
 .end h1{font-size:30px;margin:6px 0 4px}
-.grade{font-family:"Fraunces";font-size:58px;font-weight:800;color:var(--cta);line-height:1}
+.grade{font-family:var(--serif);font-size:58px;font-weight:800;color:var(--cta);line-height:1}
 .kv{display:flex;justify-content:space-between;gap:14px;padding:8px 0;border-bottom:1px solid var(--line);font-size:15px}
 .kv>span{flex:0 0 auto}.kv>b{text-align:right}
 .kv b{font-variant-numeric:tabular-nums}
@@ -273,7 +277,7 @@ button.act,.ghost,.big{min-height:44px}
 .help-toc a{display:flex;align-items:center;min-height:44px;font-size:14px;line-height:1.25;color:var(--brand);text-decoration:none;border-bottom:1px solid var(--line)}
 .help-toc a:hover{text-decoration:underline}
 .help-sec{padding:4px 0 10px;border-bottom:1px solid var(--line);scroll-margin-top:4px}
-.help-sec h3{display:flex;align-items:center;gap:6px;font-family:Fraunces,Georgia,serif;font-size:18px;margin:8px 0 2px}
+.help-sec h3{display:flex;align-items:center;gap:6px;font-family:var(--serif);font-size:18px;margin:8px 0 2px}
 .help-sec h3:focus{outline:none}.help-sec h3:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 .help-up{margin-left:auto;display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;font-size:17px;color:var(--mute);text-decoration:none;border-radius:10px}
 .help-up:hover{background:var(--surface)}
@@ -1689,6 +1693,9 @@ const CabinUpkeep={
 //  CabinUpkeep.ui.open(host, jobId)      the choice pop-up for one job: do it yourself, pay someone, or skip it
 //  CabinUpkeep.ui.shop(host, back)       the things you buy once
 //  CabinUpkeep.ui.scenes(host, rep, done) a winter report followed by each storm prompt in turn, then done()
+//  CabinUpkeep.ui.batch(host, o)         every job that is due on one screen; o: {title, intro, extra (more buttons), events (a picture for the
+//                                        sheet, passed to host.show as meta.events)}
+//  The ticket's optional name ("Krazow’s Cabin") titles the Home tab and the winter report; without one they say "the cabin".
 //
 //  The host adapter: {
 //    show(title, html, buttons, lock, meta), required. Show a pop-up. buttons: [{l, s, dis, fn, stay}]; fn runs after the pop-up has closed.
@@ -1723,7 +1730,7 @@ const CabinUpkeep={
     const t=C.normTicket(t0),s=t.state,jobs=C.jobs(t0),more=C.dueCount(t0)-jobs.length;
     const rows=C.status(t0).map(([a,b])=>`<div class="kv"><span>${a}</span><b style="text-align:right">${esc(b)}</b></div>`).join('');
     const low=s.cond<40;
-    return `<div class="sect">🏠 Cabin condition</div>
+    return `<div class="sect">${t0&&t0.name?`🏠 ${esc(t0.name)} · condition`:'🏠 Cabin condition'}</div>
       <div style="display:flex;align-items:center;gap:10px;margin:4px 0 10px"><div style="flex:1">${meter(s.cond)}</div><b style="min-width:3.2em;text-align:right${low?';color:var(--bad)':''}">${Math.round(s.cond)}/100</b></div>
       <p style="font-size:13px;color:var(--mute);margin:0 0 8px">${low?'The cabin is run down, so bad luck finds it more often.':s.cond>=75?'In good shape. Things go wrong less often.':'It drifts down a little every season. Jobs bring it back up.'} Every job: do it yourself, pay someone, or skip it and take the risk.</p>
       ${rows}
@@ -1762,7 +1769,7 @@ const CabinUpkeep={
       job.opts.forEach(op=>btns.push({l:`${job.ic} ${job.title}: ${op.l}${op.id==='skip'?'':` · ${op.cash?$(op.cash):'free'}`}`,s:op.dis&&op.why?op.why:(op.id==='skip'?job.risk:op.s),dis:op.dis,stay:true,fn:run(op)}));
     });
     (o.extra||[]).forEach(b=>btns.push(b));
-    host.show(o.title||'🏠 The cabin',`<p style="font-size:13px;color:var(--mute)">${o.intro||''}</p>${jobs.length?`<p>${jobs.length} job${jobs.length>1?'s':''} due. Pick a way for each one.</p>`:'<p>Nothing else is due.</p>'}`,btns);
+    host.show(o.title||`🏠 ${t.name?esc(t.name):'The cabin'}`,`<p style="font-size:13px;color:var(--mute)">${o.intro||''}</p>${jobs.length?`<p>${jobs.length} job${jobs.length>1?'s':''} due. Pick a way for each one.</p>`:'<p>Nothing else is due.</p>'}`,btns,false,o.events?{events:o.events}:undefined);
   };
   // what a result shows: the report's events, or a storm prompt's own id when nothing came of it
   const evOf=(rep,job)=>rep.events&&rep.events.length?rep.events:job&&job.ev?[{id:job.ev,sev:0}]:[];
@@ -1779,7 +1786,8 @@ const CabinUpkeep={
   U2.scenes=function(host,rep,done){
     const events=()=>C.jobs(host.ticket(),{all:true}).filter(j=>j.kind==='event');
     const next=()=>{const e=events()[0];if(!e){if(done)done();return}U2.open(host,e.id,next,true)};
-    if(rep&&rep.lines&&rep.lines.length)host.show('🏠 The cabin this winter',rep.lines.map(l=>`<p>${l}</p>`).join('')+condLine(rep),[{l:'Continue',stay:true,fn:next}],true,{events:evOf(rep)});
+    const nm=host.ticket().name;
+    if(rep&&rep.lines&&rep.lines.length)host.show(`🏠 ${nm?esc(nm):'The cabin'} this winter`,rep.lines.map(l=>`<p>${l}</p>`).join('')+condLine(rep),[{l:'Continue',stay:true,fn:next}],true,{events:evOf(rep)});
     else next();
   };
   // a plain report as a pop-up (spring, a failed generator, a summer bear)
@@ -1847,6 +1855,7 @@ const CabinUpkeep={
 //    31-supplies.js  ← YOUR GAME: food, home fuel storage, power outages and the generator
 //    32-home.js      ← YOUR GAME: the cabin (the adapter for src/home/, the CabinUpkeep module)
 //    41-install.js   the title screen's install bar and Install app button (Android/Chrome prompt, other browsers' steps, iPhone page)
+//    45-names.js     ← YOUR GAME: the cabin carries your name, the boats carry the names you give them
 //    99-boot.js      starts the app
 //  Engine files (00–09) shouldn't need much editing; your game lives in 20+.
 // ============================================================
@@ -2275,7 +2284,8 @@ function render(){
   let h=hud();
   const al=typeof alertBar==='function'?alertBar():null;
   if(al) h+=`<div class="alertbar ${al.kind||''}">${al.t}</div>`;
-  h+=`<div class="scene">${sceneSVG()}${artScene()}<div class="place"><h2>${loc.ic} ${loc.name}</h2><div>${loc.desc||''}${loc.hours?' · '+hoursTxt(S.loc):''}</div></div></div>`;
+  const atCabin=tab==='home'&&(S.loc==='shop'||artOn());   // the Home tab names the cabin (45-names.js) when the scene shows it
+  h+=`<div class="scene">${sceneSVG()}${artScene()}<div class="place"><h2>${atCabin?`🏠 ${esc(cabinName())}`:`${loc.ic} ${loc.name}`}</h2><div>${atCabin?L.shop.desc:`${loc.desc||''}${loc.hours?' · '+hoursTxt(S.loc):''}`}</div></div></div>`;
   const xt=(EXTRA_TABS||[]).find(t=>t.k===tab);
   h+=`<div class="content">${tab==='act'?actView():tab==='todo'?todoView():tab==='log'?logView():xt?xt.view():actView()}</div>`;
   const pending=todoItems().filter(x=>x.urgent&&!x.ok).length,tabs=allTabs();
@@ -2455,7 +2465,7 @@ function endScreen(h1,sub,lost){
   let best=null,newBest=false;const ls=store();
   try{const b=ls?Number(ls.getItem(BEST_KEY)||'NaN'):NaN;best=isNaN(b)?null:b;if(!lost&&(best==null||sc>best)){ls&&ls.setItem(BEST_KEY,String(sc));newBest=true}}catch(e){}
   app.innerHTML=withName(`<div class="end"><div style="display:flex;justify-content:space-between;align-items:center"><div class="small-note" style="color:var(--mute)">${lost?'GAME OVER':'COMPLETE'} · {{name}}</div><button class="gear" style="background:var(--surface);color:var(--ink)" onclick="openSettings()" aria-label="Settings">⚙️</button></div><h1>${h1}</h1><p>${sub}</p>
-  <div style="display:flex;gap:16px;align-items:center;margin:16px 0"><div class="grade">${g[0]}</div><div><b style="font-family:Fraunces;font-size:20px">${g[1]}</b><div style="color:var(--mute);font-size:14px">${g[2]}</div></div></div>
+  <div style="display:flex;gap:16px;align-items:center;margin:16px 0"><div class="grade">${g[0]}</div><div><b style="font-family:var(--serif);font-size:20px">${g[1]}</b><div style="color:var(--mute);font-size:14px">${g[2]}</div></div></div>
   <div class="kv"><span>Score</span><b>${grp(sc)}${newBest?' 🏆 new best':''}</b></div>${best!=null?`<div class="kv"><span>Previous best</span><b>${grp(best)}</b></div>`:''}
   ${typeof scoreParts==='function'?`<div class="sect" style="margin-top:14px">How the score adds up</div>${scoreParts().map(([k,v,n])=>`<div class="kv"><span>${k}<small style="display:block;color:var(--mute);font-weight:400">${n}</small></span><b>${v<0?'−':''}${grp(Math.abs(v))}</b></div>`).join('')}<div class="kv"><span><b>Total</b></span><b>${grp(sc)}</b></div><div class="sect" style="margin-top:14px">Your career</div>`:''}
   <div class="kv"><span>🏆 Achievements this game</span><b style="text-align:right">${achNew.length?achNew.map(a=>a.ic+' '+a.n).join(', '):'none new'}</b></div>
@@ -2716,9 +2726,9 @@ const gull=(x,y)=>`<path d="M${x} ${y} q5 -5 10 0 q5 -5 10 0" stroke="#fff" stro
 // ---- places ----
 const L={
   shop:{name:'Shop & Cabin',ic:'🏠',desc:'Soldotna. Your cabin, the gear shop and both boats on trailers',
-    art:({night})=>`${mtns(night)}${forest([18,44,420,452],night)}<rect x="150" y="84" width="120" height="56" fill="#7a5236"/><polygon points="140,86 210,56 280,86" fill="#3f2a1d"/>${[0,1].map(i=>`<rect x="${166+i*64}" y="98" width="22" height="16" fill="${win(night)}"/>`).join('')}<rect x="200" y="110" width="20" height="30" fill="#3f2a1d"/><rect x="290" y="104" width="86" height="36" fill="#596a72"/><text x="333" y="126" text-anchor="middle" font-size="10" font-weight="700" font-family="DM Sans" fill="#e9eef0">GEAR SHOP</text>${sled(300,158)}<circle cx="312" cy="160" r="5" fill="#222"/><circle cx="370" cy="160" r="5" fill="#222"/>`},
+    art:({night})=>`${mtns(night)}${forest([18,44,420,452],night)}<rect x="150" y="84" width="120" height="56" fill="#7a5236"/><polygon points="140,86 210,56 280,86" fill="#3f2a1d"/>${[0,1].map(i=>`<rect x="${166+i*64}" y="98" width="22" height="16" fill="${win(night)}"/>`).join('')}<rect x="200" y="110" width="20" height="30" fill="#3f2a1d"/><rect x="290" y="104" width="86" height="36" fill="#596a72"/><text x="333" y="126" text-anchor="middle" font-size="10" font-weight="700" font-family="DM Sans, system-ui, sans-serif" fill="#e9eef0">GEAR SHOP</text>${sled(300,158)}<circle cx="312" cy="160" r="5" fill="#222"/><circle cx="370" cy="160" r="5" fill="#222"/>`},
   town:{name:'Soldotna',ic:'🏪',desc:'Sterling Highway: tackle shop, the ADF&G office, the diner and the clinic',hours:()=>[300,1320],
-    art:({night})=>`${mtns(night)}${[['TACKLE','#2f5d4a',40],['ADF&G','#285a7a',150],['DINER','#9a3b2a',260],['CLINIC','#6b6f74',370]].map(([t,c,x])=>`<rect x="${x}" y="88" width="96" height="52" fill="#d8ccb2"/><rect x="${x-4}" y="80" width="104" height="12" fill="${c}"/><text x="${x+48}" y="90" text-anchor="middle" font-size="9" font-weight="700" font-family="DM Sans" fill="#fff">${t}</text><rect x="${x+12}" y="100" width="30" height="20" fill="${win(night)}"/><rect x="${x+58}" y="110" width="20" height="30" fill="#4a3a2a"/>`).join('')}`},
+    art:({night})=>`${mtns(night)}${[['TACKLE','#2f5d4a',40],['ADF&G','#285a7a',150],['DINER','#9a3b2a',260],['CLINIC','#6b6f74',370]].map(([t,c,x])=>`<rect x="${x}" y="88" width="96" height="52" fill="#d8ccb2"/><rect x="${x-4}" y="80" width="104" height="12" fill="${c}"/><text x="${x+48}" y="90" text-anchor="middle" font-size="9" font-weight="700" font-family="DM Sans, system-ui, sans-serif" fill="#fff">${t}</text><rect x="${x+12}" y="100" width="30" height="20" fill="${win(night)}"/><rect x="${x+58}" y="110" width="20" height="30" fill="#4a3a2a"/>`).join('')}`},
   lower:{name:'Lower Kenai launch',ic:'🚤',desc:'Centennial Park boat launch, Soldotna. Power boats 50 hp max',
     art:({night})=>`${mtns(night)}${forest([20,46,72,400,430,458],night)}${river(night)}${sled(150,138)}${angler(178,128,'#2c6e9e')}${angler(204,128,'#c0392b')}<rect x="300" y="128" width="90" height="5" fill="#8a6b48"/>${[310,330,350,370].map(x=>`<rect x="${x}" y="133" width="3" height="16" fill="#6b4f33"/>`).join('')}${angler(320,128,'#e6a21a')}${angler(350,128,'#6b8e23')}${angler(380,128,'#8e44ad')}`},
   cooper:{name:'Cooper Landing',ic:'🏔️',desc:'Upper Kenai put-in near the Russian River. Drift boats only on this stretch',
@@ -2776,7 +2786,7 @@ function actionsHere(){
   todays(d).filter(b=>TRIPS[b.type].loc===S.loc).forEach(b=>{
     const T=TRIPS[b.type],late=m-T.start;
     if(m<T.start-60) a.push({ic:T.ic,l:`${T.n}: launch at ${fmt(T.start)}`,s:`${partyLine(b)}. The party shows up an hour before.`,cat:'trip',dis:true,fn:()=>{}});
-    else if(noBoat()&&b.type!=='halibut'&&late<=90) a.push({ic:'🔧',l:`Your ${b.type==='trout'?'drift boat':'jet sled'} is out of service`,s:`Condition 0. The ${b.who} are waiting. Patch it (${$(rp(PATCH_COST))}), rent a loaner (${$(rp(LOANER_COST))}) or get a major repair at the shop (${$(rp(MAJOR_REPAIR))}, 4 hours).`,cat:'trip',dis:true,fn:()=>{}});
+    else if(noBoat()&&b.type!=='halibut'&&late<=90) a.push({ic:'🔧',l:`Your ${b.type==='trout'?`drift boat${bName('drift')?' '+bName('drift'):''}`:`jet sled${bName('sled')?' '+bName('sled'):''}`} is out of service`,s:`Condition 0. The ${b.who} are waiting. Patch it (${$(rp(PATCH_COST))}), rent a loaner (${$(rp(LOANER_COST))}) or get a major repair at the shop (${$(rp(MAJOR_REPAIR))}, 4 hours).`,cat:'trip',dis:true,fn:()=>{}});
     else if(late<=90) a.push({ic:T.ic,l:`Meet the ${b.who} and launch`,s:`${partyLine(b)}. ${late>0?`You’re ${late} min late.`:`On time for ${fmt(T.start)}.`} ${b.type==='halibut'&&!S.up.chp?`Day rate ${$(payOf(b))} + tips`:`${$(payOf(b))} + tips`}.`,cat:'trip',cls:'primary',fn:()=>tripStart(b)});
     else a.push({ic:'😠',l:`The ${b.who} gave up on you`,s:'They waited 90 minutes, then left. Expect a review.',cat:'trip',dis:true,fn:()=>{}});
   });
@@ -2786,9 +2796,9 @@ function actionsHere(){
     const logs=S.unlogged+S.overdue;
     if(logs) a.push({ic:'📓',l:`Fill out your ADF&G logbook (${logs} trip${logs>1?'s':''})`,s:`${logs*10} min. Every guided trip gets an entry: anglers, licenses, hours, fish kept and released.`,cat:'work',cls:'primary',fn:()=>{pass(logs*10);say(`📓 You write up ${logs} trip${logs>1?'s':''}: license numbers, hours fished, sockeye kept, kings released.${S.overdue?' A day late, but done.':''}`);S.unlogged=0;S.overdue=0}});
     if(S.prep!==d+1&&d+1<GAME.days) a.push({ic:'🪝',l:'Rig tomorrow’s gear',s:S.gear?'45 min. Tie leaders, sharpen hooks, stage the coolers. Better trip tomorrow.':'You’re out of tackle. Restock in Soldotna first.',cat:'work',dis:!S.gear,fn:()=>{pass(45);S.prep=d+1;say('🪝 Leaders tied, hooks sharp, coolers iced, life jackets counted. Tomorrow-you says thanks.')}});
-    if(boatDown()) a.push({ic:'🛠️',l:`Major repair — ${$(rp(MAJOR_REPAIR))}`,s:'Out of service at condition 0: rebuild the jet unit and replace the drift-boat floor and oarlocks. 4 hours; boat back to 50. The dealer puts it on your account if you’re short.',cat:'work',cls:'primary',fn:()=>{const c0=S.boat;spend(rp(MAJOR_REPAIR));pass(240);S.boat=50;adj('energy',-8);say(`🛠️ The dealer rebuilds the jet unit and you replace the drift-boat floor: ${$(rp(MAJOR_REPAIR))}. Back in service at 50.`);artShop(c0,null,'shop')}});
-    a.push({ic:'🔧',l:`Service the boats yourself — ${$(rp(165))} in parts`,s:boatDown()?'Out of service: it needs a major repair first.':'3 hours. Boat +20: oil and filter, plugs, water-pump impeller, jet intake, trailer bearings, oarlocks.',cat:'work',dis:boatDown()||S.boat>=95||!canAfford(rp(165)),fn:()=>{const c0=S.boat;spend(rp(165));pass(180);adj('boat',20);adj('energy',-6);say('🔧 Oil, filters, plugs, a new water-pump impeller, a cleaned-out jet intake and greased bearings. Grease to the elbows; she purrs.');artShop(c0,null,'shop')}});
-    a.push({ic:'🏪',l:`Dealer 100-hour service — ${$(rp(525))}`,s:boatDown()?'Out of service: it needs a major repair first.':'1 hour to drop off and pick up. Boat +40. Alaska shop rates.',cat:'work',dis:boatDown()||S.boat>=95||!canAfford(rp(525)),fn:()=>{const c0=S.boat;spend(rp(525));pass(60);adj('boat',40);say('🏪 The Soldotna dealer does the 100-hour service, shims the jet impeller and finds a cracked fuel line. Money well spent.');artShop(c0,null,'shop')}});
+    if(boatDown()) a.push({ic:'🛠️',l:`Major repair — ${$(rp(MAJOR_REPAIR))}`,s:'Out of service at condition 0: rebuild the jet unit and replace the drift-boat floor and oarlocks. 4 hours; boat back to 50. The dealer puts it on your account if you’re short.',cat:'work',cls:'primary',fn:()=>{const c0=S.boat;spend(rp(MAJOR_REPAIR));pass(240);S.boat=50;adj('energy',-8);say(`🛠️ The dealer rebuilds ${ofBoat('sled','jet unit','the jet unit')} and you replace ${ofBoat('drift','floor','the drift-boat floor')}: ${$(rp(MAJOR_REPAIR))}. Back in service at 50.`);artShop(c0,null,'shop')}});
+    a.push({ic:'🔧',l:`Service the boats yourself — ${$(rp(165))} in parts`,s:boatDown()?'Out of service: it needs a major repair first.':'3 hours. Boat +20: oil and filter, plugs, water-pump impeller, jet intake, trailer bearings, oarlocks.',cat:'work',dis:boatDown()||S.boat>=95||!canAfford(rp(165)),fn:()=>{const c0=S.boat;spend(rp(165));pass(180);adj('boat',20);adj('energy',-6);say(`🔧 Oil, filters, plugs, a new water-pump impeller, a cleaned-out jet intake and greased bearings. Grease to the elbows; ${bName('sled')||'she'} purrs.`);artShop(c0,null,'shop')}});
+    a.push({ic:'🏪',l:`Dealer 100-hour service — ${$(rp(525))}`,s:boatDown()?'Out of service: it needs a major repair first.':'1 hour to drop off and pick up. Boat +40. Alaska shop rates.',cat:'work',dis:boatDown()||S.boat>=95||!canAfford(rp(525)),fn:()=>{const c0=S.boat;spend(rp(525));pass(60);adj('boat',40);say(`🏪 The Soldotna dealer does the 100-hour service${bName('sled')?' on '+bName('sled'):''}, shims the jet impeller and finds a cracked fuel line. Money well spent.`);artShop(c0,null,'shop')}});
     boatRescueActions(a);
     if(!S.calls[d]) a.push({ic:'📞',l:'Return calls & emails',s:'30 min. Once a day. Booking requests come in.',cat:'work',fn:()=>{pass(30);S.calls[d]=true;const r=makeRequest();if(r)requestArrives(r);else say('📞 Voicemails: two spam, one dentist, no bookings.')}});
     a.push({ic:'📊',l:'Check the ADF&G sonar count',s:'5 min. How many sockeye passed river mile 19 yesterday.',cat:'work',fn:()=>{pass(5);sonarSay()}});
@@ -2832,9 +2842,9 @@ function actionsHere(){
 function boatRescueActions(a){
   const d=day(),trips=todays(d).some(b=>b.type!=='halibut');
   if(canPatch()) a.push({ic:'🩹',l:`Emergency patch — ${$(rp(PATCH_COST))}`,s:`1 hour of epoxy, hose clamps and a borrowed impeller: boat back to ${PATCH_TO}. It still breaks down a lot. The patch gives out after two days. A service or major repair is the real fix.`,cat:'work',dis:!canAfford(rp(PATCH_COST)),
-    fn:()=>{const c0=S.boat;spend(rp(PATCH_COST));pass(60);S.patch={d,base:S.boat};S.boat=Math.max(S.boat,PATCH_TO);adj('energy',-3);say(`🩹 Epoxy, hose clamps and a borrowed impeller: ${$(rp(PATCH_COST))}. The boat is back at ${S.boat}, for a day or two. It won’t hold long.`);artShop(c0,null)}});
+    fn:()=>{const c0=S.boat;spend(rp(PATCH_COST));pass(60);S.patch={d,base:S.boat};S.boat=Math.max(S.boat,PATCH_TO);adj('energy',-3);say(`🩹 Epoxy, hose clamps and a borrowed impeller: ${$(rp(PATCH_COST))}. ${bName('sled')?`${bName('sled')} and ${bName('drift')||'the drift boat'} are`:'The boat is'} back at ${S.boat}, for a day or two. It won’t hold long.`);artShop(c0,null)}});
   if(boatDown()&&S.loaner!==d&&trips) a.push({ic:'🤝',l:`Rent a loaner sled and drift boat — ${$(rp(LOANER_COST))} for today`,s:'A buddy’s old rig for the day, so today’s booked trips can run. The clients notice it is tired. Your own boat still needs the major repair.',cat:'work',dis:!canAfford(rp(LOANER_COST)),
-    fn:()=>{const c0=S.boat;spend(rp(LOANER_COST));S.loaner=d;say(`🤝 You borrow a buddy’s old jet sled and drift boat for the day: ${$(rp(LOANER_COST))}. Your own boat is still out of service.`);artShop(c0,todays(d).find(b=>b.type!=='halibut')||null)}});
+    fn:()=>{const c0=S.boat;spend(rp(LOANER_COST));S.loaner=d;say(`🤝 You borrow a buddy’s old jet sled and drift boat for the day: ${$(rp(LOANER_COST))}. The sled is the <i>${LOANER_NAME}</i>; nobody asks what happened to the first one. Your own boat is still out of service.`);artShop(c0,todays(d).find(b=>b.type!=='halibut')||null)}});
 }
 // ⏳ Wait until…: choices that make sense right now (a launch you're at, the time to leave for one, today's first-aid class, +30/+60 min).
 function waitChoices(){
@@ -3041,18 +3051,21 @@ function onMorning(d){
   if(t.length) say('🛶 Today: '+t.map(b=>`${TRIPS[b.type].ic} ${TRIPS[b.type].n} at ${fmt(TRIPS[b.type].start)}, ${L[TRIPS[b.type].loc].name} (the ${b.who}, ${b.n})`).join(' · '));
   else say('🛶 No trips booked today. Service the boat, return calls, or go fill the freezer.');
   if(isSunMon(d)) say(`🚫 ${dayName(d)}: no fishing from guide boats on the Kenai below Skilak Lake through July 31.`);
-  const strong=REG().mult.sockeye>=.85;
-  if(!strong&&S.limit===3&&REG().mult.sockeye<.7&&sd>=5){
+  // The late-run sockeye emergency orders belong to the July peak: they follow the July calendar (jd: days since the Monday nearest Jul 13,
+  // so the default weeks keep their old days) and never come in a June, August or September week (34-summer.js).
+  const jd=sockEODay(d),strong=REG().mult.sockeye>=.85;
+  if(jd<0) return;
+  if(!strong&&S.limit===3&&REG().mult.sockeye<.7&&jd>=5){
     S.limit=2;S.eo.push('Kenai River sockeye limit cut to 2 per day, 4 in possession');
     say('📣 <b>Emergency order:</b> the late run is tracking below its goal. ADF&G cuts the Kenai sockeye limit to <b>2 per day</b>.');
     showTile('📣','Sockeye limit cut to 2','ADF&G emergency order','bad');
   }
-  if(strong&&S.limit===3&&(S.cum>1200000*REG().mult.sockeye||sd>=8)){
+  if(strong&&S.limit===3&&(S.cum>1200000*REG().mult.sockeye||jd>=8)){
     S.limit=6;S.eo.push('Kenai River sockeye limit raised to 6 per day, 12 in possession');
     say('📣 <b>Emergency order:</b> with the late run past its escapement goal, ADF&G raises the Kenai sockeye limit to <b>6 per day, 12 in possession</b>.');
     showTile('📣','Sockeye limit raised to 6','ADF&G emergency order','good');
   }
-  if(strong&&sd===10&&!S.eo.some(e=>/Russian/.test(e))){
+  if(strong&&jd>=10&&!S.eo.some(e=>/Russian/.test(e))){
     S.eo.push('Russian River & upper Kenai sockeye limit 6 per day, 12 in possession');
     say('📣 <b>Emergency order:</b> the Russian River and a stretch of the upper Kenai go to 6 sockeye a day, too.');
   }
@@ -3546,12 +3559,12 @@ function tripStart(b){
   if(late){t.happy-=late/3;t.notes.push(`⏰ You rolled in ${late} minutes late. The ${b.who} noticed.`)}
   // tackle and boat condition shape the day before you even leave the dock
   if(S.gear<=0){t.happy-=3;t.notes.push('🪱 You’re out of tackle. The clients fish with whatever is left in the bottom of the box, and they notice.')}
-  if(t.loan){t.happy-=6;t.notes.push('🤝 You run the trip on a borrowed rig. It is tired and the clients can tell.')}
+  if(t.loan){t.happy-=6;t.notes.push(`🤝 You run the trip on a borrowed rig, the <i>${LOANER_NAME}</i>. It is tired and the clients can tell.`)}
   t.happy+=clamp(Math.round((S.boat-65)/7),-3,4);   // a well-kept boat pleases clients; a tired one shows
   hungerTrip(t);                                           // 31-supplies.js: a hungry guide is a grumpy guide
   if(!t.loan&&S.boat<70&&b.type!=='halibut'&&Math.random()<(70-S.boat)/90){
     const m=60+Math.floor(Math.random()*60);lose(t,m);t.happy-=12;fx(t,-Math.round(payOf(b)*.15),'Breakdown credit');fx(t,-rp(80),'Roadside repair');adj('boat',8);
-    t.notes.push(`🔧 Worn-out gear lets you down: ${b.type==='trout'?'an oarlock snaps and the trailer bearing howls':'the jet sled quits on the way out'} and you lose ${m} minutes. You credit the ${b.who} 15% of the fare and pay ${$(rp(80))} for a quick fix. Service the boats at the shop.`);
+    t.notes.push(`🔧 Worn-out gear lets you down: ${b.type==='trout'?`an oarlock snaps on ${bName('drift')||'the drift boat'} and the trailer bearing howls`:`${bName('sled')||'the jet sled'} quits on the way out`} and you lose ${m} minutes. You credit the ${b.who} 15% of the fare and pay ${$(rp(80))} for a quick fix. Service the boats at the shop.`);
   }
   if(fuelShort(b)) t.steps.push('fuel');                 // 25-fuel.js
   const iss=issueOf(b);if(iss) t.steps.push('issue_'+iss);
@@ -3571,7 +3584,7 @@ function tripStart(b){
   if(q.includes('photo')&&b.type==='trout'&&dilOK('photo')) beats.push('photo');
   if(q.includes('kid')&&b.type!=='halibut'&&dilOK('pfd')) beats.push('pfd');
   if(b.type==='halibut'&&halClosed(b.d)) beats.push('tuewed');
-  if(S.boat<25&&!t.loan&&TRIPS[b.type].fuel){beats.push('motor');t.q-=.08;t.notes.push('🔧 The neglected jet sled runs rough all day. Service the boats at the shop.')}
+  if(S.boat<25&&!t.loan&&TRIPS[b.type].fuel){beats.push('motor');t.q-=.08;t.notes.push(`🔧 ${bName('sled')?`${bName('sled')}, neglected,`:'The neglected jet sled'} runs rough all day. Service the boats at the shop.`)}
   if(q.includes('promised')){t.happy-=15;t.notes.push('👑 They were “promised” a shot at a king. There was never going to be one: the fishery is closed.')}
   const pd=partyDils(b).filter(x=>!beats.includes(x)&&dilOK(x));
   while(beats.length<want&&pd.length) beats.push(pd.splice(Math.floor(Math.random()*pd.length),1)[0]);
@@ -3610,7 +3623,7 @@ function tripNext(){
   const hot=v.o.some(o=>o.legal===false)&&heat()>0?`<p class="small-note heat-note">🚔 You’ve broken ${heat()===1?'a rule':`${heat()} rules`} this season. The troopers and the other guides know your boat now: the odds of getting caught go up with every one.</p>`:'';
   const left=t.steps.slice(t.step).filter(x=>x!=='pack').length,done=t.steps.slice(0,t.step).filter(x=>x!=='pack').length;
   const prog=sheet?` · ${done+1} of ${done+left}`:'';
-  const open=sheet&&!t.shown?`<p class="small-note" style="margin:0 0 6px">You load the ${b.who} into the ${b.type==='trout'?'drift boat':b.type==='halibut'?'charter boat':'jet sled'} at ${L[T.loc].name} and push off at ${fmt(S.t)}.</p>`:'';
+  const open=sheet&&!t.shown?`<p class="small-note" style="margin:0 0 6px">You load the ${b.who} into ${tripBoatRef(b)} at ${L[T.loc].name} and push off at ${fmt(S.t)}.</p>`:'';
   const first=!t.shown;t.shown=true;
   // 40-art.js: this step's own picture (a trip event: the STEP id, from 'trip'), else on the first step the boat at the put-in
   const art=artOn()?artSlot('event',()=>artEventCtx(key,'trip'),{deco:true,key:'trip:'+t.id})||(packed?artSlot('event',()=>artEventCtx('spot','trip'),{deco:true,key:'trip:'+t.id}):'')||
@@ -3691,7 +3704,7 @@ function tripEnd(b,t){
   const mood=happy>=82?'😁 They’re already asking about next season. Word of mouth will bring you more bookings.':happy>=65?'🙂 Solid day. Handshakes at the trailer.':happy>=45?'😐 Polite thanks, small tip.':review?'😠 Tight-lipped goodbyes and a one-star review. Word gets around the Kenai.':'😕 They leave a little deflated.';
   const row=(l,v)=>`<br>${l}: <b>${v>=0?'':'−'}${$(Math.abs(v))}</b>`;
   const why=[];if(skunk)why.push('skunked');if(S.gear<=0&&t.notes.some(n=>n.startsWith('🪱')))why.push('no tackle');if(refund&&happy<42)why.push('unhappy clients');
-  modalSwap(`${T.ic} Back at the dock`,`${(t.homeEv&&homeArt(t.homeEv))||artSlot('boat',()=>artBoatCtx(b,['dock',T.loc==='homer'||S.loc==='harbor'?'harbor':'launch']),{rest:true,key:'dock:'+t.id})}${mem.top}${t.notes.map(n=>`<p>${n}</p>`).join('')}
+  modalSwap(`${T.ic} Back at the dock`,`${(t.homeEv&&homeArt(t.homeEv))||artSlot('boat',()=>artBoatCtx(b,['dock',T.loc==='homer'||S.loc==='harbor'?'harbor':'launch']),{rest:true,key:'dock:'+t.id})}${mem.top}${t.notes.map(n=>`<p>${n}</p>`).join('')}${dockBoatLine(b,T)}
     <p><b>Catch:</b> ${line}${t.kept?` (${t.kept} kept on the sly)`:''}${lost?` · ${lost} minutes lost`:''}</p>
     ${towed?'<p>🛟 <b>Towed in.</b> Half the fare refunded.</p>':''}<p><b>The pay:</b>${row(`Booked fare${b.type==='halibut'&&!S.up.chp?' (day rate)':''}`,fare)}${refund?row(`Refund${why.length?` (${why.join(', ')})`:''}`,-refund):''}${row('Tip',tip)}${xs.map(([l,v])=>row(l,v)).join('')}${costs?row('Launch fee',-costs):''}<br><b>Net: ${net<0?'−':''}${$(Math.abs(net))}</b></p>
     <p>${mood} Rep ${dRep>=0?'+':'−'}${Math.abs(dRep)}.</p>${reviewHTML(rv,b)}${mem.html}
@@ -3938,7 +3951,7 @@ function runChart(d){
   return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;background:#fff;border:1px solid var(--line);border-radius:10px" role="img" aria-label="Run timing chart">
     ${weekBoxes(d,X,H)}
     <line x1="${X(doyOf(d))}" x2="${X(doyOf(d))}" y1="8" y2="${H-18}" stroke="#e3642e" stroke-width="2"/>
-    ${months.map(([x,l])=>`<line x1="${X(x)}" x2="${X(x)}" y1="${H-18}" y2="${H-14}" stroke="#999"/><text x="${X(x)}" y="${H-4}" text-anchor="middle" font-size="9" fill="#6b7478" font-family="DM Sans">${l}</text>`).join('')}
+    ${months.map(([x,l])=>`<line x1="${X(x)}" x2="${X(x)}" y1="${H-18}" y2="${H-14}" stroke="#999"/><text x="${X(x)}" y="${H-4}" text-anchor="middle" font-size="9" fill="#6b7478" font-family="DM Sans, system-ui, sans-serif">${l}</text>`).join('')}
     <line x1="20" x2="${W-10}" y1="${H-18}" y2="${H-18}" stroke="#ccc"/>
     ${series.map(([n,c,f])=>`<path d="${path(f)}" fill="none" stroke="${c}" stroke-width="2"${n==='king'?' stroke-dasharray="4 3"':''}/>`).join('')}
   </svg><div style="display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11.5px;color:var(--mute);margin:6px 2px 0">${series.map(([n,c])=>`<span><i style="display:inline-block;width:12px;height:3px;background:${c};vertical-align:middle;margin-right:4px"></i>${SPECIES[n].n}</span>`).join('')}<span><i style="display:inline-block;width:2px;height:10px;background:#e3642e;vertical-align:middle;margin-right:4px"></i>today</span></div>`;
@@ -4139,14 +4152,14 @@ function winterModal(){
     <p style="font-size:13px;color:var(--mute)">Season ${s+1} of ${S.years}. Bookings open when you finish planning.</p>`,[
     {l:'🛠️ Upgrades & business',s:'Boats, marketing, rates, a Homer charter permit.',fn:()=>upgradeModal()},
     weeksWinterOpt(s),   // 34-summer.js: which two weeks of the summer you guide yourself
-    {l:`🏠 The cabin: ${homeWinterLabel()}`,s:cabinWinterBlurb(),fn:()=>homeWinterModal()},
+    {l:`🏠 ${esc(cabinName())}: ${homeWinterLabel()}`,s:cabinWinterBlurb(),fn:()=>homeWinterModal()},
     {l:'🏕️ Winter camping & work',s:campUsed()?'You’ve used your free days this winter. You can still look at your camping log.':`${campDaysLeft()} free days: camping trips within 100 miles (ice fishing, scouting, company), winter work, a camping log.`,fn:()=>campModal()},
     ...(typeof bizWinterBtns==='function'?bizWinterBtns():[]),   // 36-business.js: the outfit (from the third off-season)
     {l:`🛶 Open bookings for ${2026+s}`,s:'Start the season.',fn:()=>homeOpenGate(()=>finishWinter())}]);
 }
 function upgradeModal(){
   modal(`🛠️ Off-season plans · cash ${$(Math.round(S.money))}`,`<p style="font-size:13px;color:var(--mute)">Rates now ×${S.up.rate.toFixed(1)}. Rep ${S.rep}.</p>`,
-    UPGRADES.map(u=>{const why=upOK(u);return {l:`${u.ic} ${u.n}${u.cost?` — ${$(u.cost)}`:''}`,s:why?`${why}. ${u.d}`:u.d,dis:!!why,fn:()=>{buyUp(u);setTimeout(upgradeModal,0)}}})
+    UPGRADES.map(u=>{const why=upOK(u);return {l:`${u.ic} ${u.n}${u.cost?` — ${$(u.cost)}`:''}`,s:why?`${why}. ${u.d}`:u.d,dis:!!why,fn:()=>{buyUp(u);setTimeout(()=>boatAfterBuy(u.id,upgradeModal),0)}}})   // 45-names.js: a new boat gets a name first
       .concat([{l:'🏠 Home: generator, fuel storage, freezer',s:`${genOf()?genOf().short+' generator, ':'No generator, '}${fuelCap()} gal of fuel storage, a ${fishCap()}-fish freezer.`,fn:()=>homeShopModal(()=>upgradeModal())},{l:'Done',s:'Back to the off-season summary.',fn:()=>setTimeout(winterModal,0)}]));
 }
 function finishWinter(){
@@ -4227,7 +4240,7 @@ function fillUp(tank,where,max){
 function towIn(notes){
   S.fuel=0;S.stats.tows=(S.stats.tows||0)+1;
   const lines=['🛟 The motor coughs, catches, and dies. Empty tank. You drop the anchor out of the channel and make the call on VHF 16.',
-    '🚤 The Coast Guard comes up the river, takes your towline and brings you down to Kenai Harbor. Nobody on the Kenai will let you forget it.',
+    `🚤 The Coast Guard comes up the river, takes ${bName(sledKey())?bName(sledKey())+'’s':'your'} towline and brings you down to Kenai Harbor. Nobody on the Kenai will let you forget it.`,
     `⚓ The harbormaster brings you alongside the fuel dock: ${$(HARBOR_TOW)} harbor assist.`];
   money(-HARBOR_TOW);S.stats.spent+=HARBOR_TOW;adj('rep',-4);adj('energy',-8);
   const top=fillUp('fuel','kenai',TOW_FILL);                      // alongside the fuel dock: the harbormaster sells you enough to get going again
@@ -5232,6 +5245,7 @@ function homeTicket(o){
     cash:Math.round(S.money),energy:S.energy,rep:S.rep,daysLeft:w?campDaysLeft():0,atHome:S.loc==='shop'&&!S.trip,
     costMult:DF().cost,bad:DF().bad,
     gen:{owned:!!genOf(),gas:S.home.stale>0?'stale':'ok'},homeFuel:fuelFresh(),outage:w?(S.winOut||null):null,recentFish:homeRecentFish(),
+    name:typeof cabinName==='function'?cabinName():'',   // 45-names.js: "Krazow’s Cabin" on the Home tab and the winter report
   },o||{});
 }
 // lost free days come out of the winter budget; with none left, the winter work that slipped costs money
@@ -5340,17 +5354,20 @@ function homeFinishWinter(){
   if(!S.winter) return;
   homeRollWinterSync();homeAnswerStorms();
   const rep=homeApply(CabinUpkeep.rollSpring(homeTicket()),true);
-  if(rep.lines.length){rep.lines.forEach(l=>say(l));CabinUpkeep.ui.report(homeHost(),'🏠 Spring at the cabin',rep)}
+  if(rep.lines.length){rep.lines.forEach(l=>say(l));CabinUpkeep.ui.report(homeHost(),`🏠 Spring at ${esc(cabinName())}`,rep)}
 }
+// the spring sheets' picture (40-art.js, through homeHost's meta.events): the event each due spring job guards against, breakup first
+const HOME_SPRING_EV={breakup:'breakup_stuck',well:'well_pump',septic:'septic_backup'};
+const homeSpringArt=t=>CabinUpkeep.jobs(t).map(j=>HOME_SPRING_EV[j.id]).filter(Boolean).concat(['breakup_stuck']).filter((id,i,a)=>a.indexOf(id)===i).map(id=>({id,sev:0}));
 // the winter pop-up's own buttons
 function homeWinterModal(){
   const t=homeTicket(),jobs=CabinUpkeep.jobs(t),more=CabinUpkeep.dueCount(t)-jobs.length,ph=t.phase;
   if(ph==='spring'){
-    CabinUpkeep.ui.batch(homeHost(),{title:'🏠 Spring breakup at the cabin',intro:`Condition ${Math.round(cabin().cond)}/100. Cash ${$(t.cash)}. ${t.daysLeft} free day${t.daysLeft===1?'':'s'} left, shared with camping and winter work.`,
+    CabinUpkeep.ui.batch(homeHost(),{title:`🏠 Spring breakup at ${esc(cabinName())}`,events:homeSpringArt(t),intro:`Condition ${Math.round(cabin().cond)}/100. Cash ${$(t.cash)}. ${t.daysLeft} free day${t.daysLeft===1?'':'s'} left, shared with camping and winter work.`,
       extra:[{l:'🏪 Home upgrades',s:'A wood stove, a fish processing station, a bear-resistant bin.',fn:()=>setTimeout(()=>CabinUpkeep.ui.shop(homeHost(),homeWinterModal),0)},{l:'Back to the off-season',fn:()=>setTimeout(winterModal,0)}]});
     return;
   }
-  modal(ph==='fall'?'🏠 Get the cabin ready for winter':'🏠 Spring breakup at the cabin',
+  modal(ph==='fall'?`🏠 Get ${esc(cabinName())} ready for winter`:`🏠 Spring breakup at ${esc(cabinName())}`,
     `${artSlot('cabin',artCabinCtx,{key:'cabin-sheet'})}<p style="font-size:13px;color:var(--mute)">Condition ${Math.round(cabin().cond)}/100. Cash ${$(t.cash)}. ${t.daysLeft} free day${t.daysLeft===1?'':'s'} left this winter, shared with camping and winter work. ${ph==='fall'?'The first cold snap and the first big snow come when you leave for camping or open bookings.':'Last winter’s storms are behind you; breakup comes next.'}</p>${jobs.length?'':'<p>Nothing is due right now.</p>'}${more>0?`<p style="font-size:12.5px;color:var(--mute)">${more} more job${more>1?'s':''} after these.</p>`:''}`,
     jobs.map(j=>({l:`${j.ic} ${j.title}`,s:`${j.why} ${j.risk}`,fn:()=>setTimeout(()=>CabinUpkeep.ui.open(homeHost(),j.id,()=>homeWinterModal()),0)}))
       .concat([{l:'🏪 Home upgrades',s:'A wood stove, a fish processing station, a bear-resistant bin.',fn:()=>setTimeout(()=>CabinUpkeep.ui.shop(homeHost(),homeWinterModal),0)},{l:'Back to the off-season',fn:()=>setTimeout(winterModal,0)}]));
@@ -5363,7 +5380,7 @@ function homeOpenGate(go){
   if(cabin().rolled!==w.s){homeRollWinter(()=>setTimeout(winterModal,0));return}
   const n=CabinUpkeep.dueCount(homeTicket());
   if(n&&S.homeAsk!==w.s){S.homeAsk=w.s;
-    CabinUpkeep.ui.batch(homeHost(),{title:'🏠 Spring jobs are due',intro:'Breakup is coming. Do them yourself, pay someone, or skip them and take your chances.',extra:[{l:'Open bookings',fn:go}]});return}
+    CabinUpkeep.ui.batch(homeHost(),{title:'🏠 Spring jobs are due',events:homeSpringArt(homeTicket()),intro:'Breakup is coming. Do them yourself, pay someone, or skip them and take your chances.',extra:[{l:'Open bookings',fn:go}]});return}
   go();
 }
 // camping starts: the first storm has to land before the free days are spent
@@ -5855,6 +5872,8 @@ const guideDaysRule=d=>{const m=mdOf(d);return m>=501&&m<=731};        // Sun/Mo
 const baitRule=d=>{const m=mdOf(d);return m>=620&&m<=815};             // one unbaited single hook below Skilak (with kings restricted)
 const halDaysRule=d=>mdOf(d)<=831;                                    // closed charter-halibut days: early June to late August
 const dipOpen=d=>{const m=mdOf(d);return m>=710&&m<=731};             // the Kenai personal-use dipnet fishery
+// the late-run sockeye emergency orders (21-story.js onMorning): the day of the two July peak weeks (0 = the Monday nearest Jul 13), or −1 in any other week
+const sockEODay=d=>{const id=weekIdOf(d);return id==='jul1'||id==='jul2'?Math.round((dateOf(d)-seasonStartUTC(yearOf(d)))/864e5):-1};
 const lateSummer=()=>{try{return !!(S&&!S.winter&&mdOf(day())>=801)}catch(e){return false}};
 const MON3=i=>MONTH[i].slice(0,3);
 function weekRange(y,id){const t=weekStartUTC(y,id),a=new Date(t),b=new Date(t+6*864e5);return `${MON3(a.getUTCMonth())} ${a.getUTCDate()}–${a.getUTCMonth()===b.getUTCMonth()?'':MON3(b.getUTCMonth())+' '}${b.getUTCDate()}`}
@@ -5973,7 +5992,7 @@ function weekCatchEnd(b,t,qw,fishers){
 function weekHead(d){if(sday(d)%7)return '';const W=weekOf(d);return `<div class="sect" style="margin-top:6px">${W.ic} ${W.n} · ${dlabel(d)}–${dlabel(d+6)}</div>`}
 function weekTripsTxt(){const s=seasonOf(day());if(!weeksOf(s).includes('june')||kingRule()==='closed')return '';return `· 👑 kings ${$(Math.round(TRIPS.king.price*S.up.rate))}/angler (6 AM, lower river, 4 max, June) `}
 function weekBoxes(d,X,H){
-  const s=seasonOf(d),y=yearOf(d),box=(a,n,t)=>`<rect x="${X(a)}" y="8" width="${X(a+n)-X(a)}" height="${H-26}" fill="#1f5d63" opacity=".08"/><text x="${X(a+n/2)}" y="18" text-anchor="middle" font-size="9" fill="#1f5d63" font-family="DM Sans">${t}</text>`;
+  const s=seasonOf(d),y=yearOf(d),box=(a,n,t)=>`<rect x="${X(a)}" y="8" width="${X(a+n)-X(a)}" height="${H-26}" fill="#1f5d63" opacity=".08"/><text x="${X(a+n/2)}" y="18" text-anchor="middle" font-size="9" fill="#1f5d63" font-family="DM Sans, system-ui, sans-serif">${t}</text>`;
   if(!weekGap(s)) return box(doyOf(s*SEASON),13,`your 2 weeks · ${y}`);
   return [0,7].map((k,i)=>box(doyOf(s*SEASON+k),6,`week ${i+1}`)).join('');
 }
@@ -6301,7 +6320,7 @@ function bizBuyBoat(k){
 function bizSellBoat(id){
   const Z=BZ(),b=Z.boats.find(x=>x.id===id);if(!b||!S.winter)return false;
   const p=Math.round(b.val*BIZ_SELL);money(p);S.up.value=Math.max(0,S.up.value-b.val);Z.boats=Z.boats.filter(x=>x!==b);
-  say(`${BIZ_BOATS[b.kind].ic} You sell the ${b.kind==='sled'?'second jet sled':'extra drift boat'} for ${$(p)}.`);return true}
+  say(`${BIZ_BOATS[b.kind].ic} You sell the ${b.kind==='sled'?'second jet sled':'extra drift boat'}${b.name?` <i>${esc(b.name)}</i>`:''} for ${$(p)}.`);return true}
 // ---- handing a party to a guide (and taking it back) ----
 const canHand=b=>b&&b.status==='booked'&&!b.asst&&!b.arc&&!b.big&&!b.feat&&!b.lodge&&b.type!=='halibut'&&(b.d>day()||(b.d===day()&&tod()<TRIPS[b.type].start-60))&&!(S.trip&&S.trip.id===b.id);
 function bizAssign(id,gid){
@@ -6370,7 +6389,7 @@ asstSettle=function(b,notes){
   bizSettle(b,g,notes);
 };
 function bizSettle(b,g,notes){
-  const T=TRIPS[b.type],r=Math.random,fare=payOf(b),first=g.name.split(' ')[0],sn=g.sn;
+  const T=TRIPS[b.type],r=Math.random,fare=payOf(b),first=g.name.split(' ')[0],sn=g.sn,bkey=typeof tripBoatKey==='function'?tripBoatKey(b):null,bnm=bkey?bName(bkey):'';   // 45-names.js: the boat it ran on
   const busy=S.book.some(x=>x.d===b.d&&!x.asst&&x.status==='done'),tired=g.streak>=3;
   let happy=50+g.skill*.35+(r()-.5)*24+DF().mood+(b.quirk.includes('promised')?-15:0)-(tired?6:0),refund=0,repair=0,line='';
   // a careless guide cuts corners far more often than a reliable one ((1−rel)², so 0.77 → 12% of trips, 0.93 → 1%); lateness and mishaps go with (1−rel)
@@ -6385,7 +6404,7 @@ function bizSettle(b,g,notes){
         else line=` ${first} got a warning, on your boat’s record.`;
       }else if(r()<.3){S.wom=(S.wom||0)-2;line=` Another guide saw ${first} cutting a corner (${v.what}) and it’s all over the river.`}
     }else if(k<.75){happy-=18;refund=Math.round(fare*.25);line=` ${first} was late to the launch: the clients waited an hour and you refunded ${$(refund)}.`}
-    else{happy-=12;repair=Math.round((250+r()*350)*DF().cost);line=` A rock in the riffle took a bite out of the ${boatKind(b.type)==='drift'?'drift boat':'jet unit'}: ${$(repair)} to fix.`}
+    else{happy-=12;repair=Math.round((250+r()*350)*DF().cost);line=` A rock in the riffle took a bite out of ${bnm?bnm+'’s '+(boatKind(b.type)==='drift'?'hull':'jet unit'):boatKind(b.type)==='drift'?'the drift boat':'the jet unit'}: ${$(repair)} to fix.`}
   }
   const lim=b.type==='reds'?S.limit:b.type==='silver'?2:b.type==='king'?1:0,catchF=clamp(.35+g.skill/220+(r()-.5)*.3,.1,1);
   const fish=b.type==='trout'?Math.round(b.n*(3+catchF*8)):b.type==='king'?Math.round(b.n*catchF*.45):Math.round(b.n*lim*catchF);
@@ -6400,9 +6419,9 @@ function bizSettle(b,g,notes){
   sn.trips++;sn.fares+=fare-refund;sn.wages+=g.wage;sn.costs+=costs+repair;sn.net+=net;sn.hap+=happy;S.biz.tot.trips++;S.biz.tot.net+=net;
   g.streak=g.last===b.d-1||g.last===b.d?g.streak+(g.last===b.d?0:1):1;g.last=b.d;if(tired)g.mood-=3;
   const rv=staffReview(b,g,happy,fish,fit);
-  b.status='done';b.out={happy,fish,line:`run by ${first}`,fare,refund,net,g:g.id,stars:rv.stars};
+  b.status='done';b.out={happy,fish,line:`run by ${first}${bnm?' on '+bnm:''}`,fare,refund,net,g:g.id,stars:rv.stars};
   const mood=happy>=80?'thrilled':happy>=65?'happy':happy>=45?'so-so':'unhappy';
-  notes.push(`🧑‍🤝‍🧑 <b>${first}</b>’s ${T.ic} ${T.n.toLowerCase()} with the ${b.who}: ${fish} ${b.type==='trout'?'fish to the net':b.type==='king'?(kingRule()==='open'?`king${fish===1?'':'s'} kept`:`king${fish===1?'':'s'} released`):'fish in the box'}, clients ${mood}.${line} After ${first}’s ${$(g.wage)}, fuel, fees and wear: <b>${net<0?'−':''}${$(Math.abs(net))}</b>. <span aria-label="${rv.stars} of 5 stars">${'★'.repeat(rv.stars)}${'☆'.repeat(5-rv.stars)}</span> <i>“${rv.text}”</i>`);
+  notes.push(`🧑‍🤝‍🧑 <b>${first}</b>’s ${T.ic} ${T.n.toLowerCase()}${bnm?` on ${bnm}`:''} with the ${b.who}: ${fish} ${b.type==='trout'?'fish to the net':b.type==='king'?(kingRule()==='open'?`king${fish===1?'':'s'} kept`:`king${fish===1?'':'s'} released`):'fish in the box'}, clients ${mood}.${line} After ${first}’s ${$(g.wage)}, fuel, fees and wear: <b>${net<0?'−':''}${$(Math.abs(net))}</b>. <span aria-label="${rv.stars} of 5 stars">${'★'.repeat(rv.stars)}${'☆'.repeat(5-rv.stars)}</span> <i>“${rv.text}”</i>`);
 }
 // 1.16.0: a staff trip uses the 1.13 party model where it is cheap. Each trait the party came for is met (or not) by the guide's skill,
 // reliability and the day's catch, without beats: v in −1..1 per trait, worth GOAL_H happiness like a trip of your own.
@@ -6421,13 +6440,23 @@ function staffFit(b,g,catchF,fish){
 }
 // The party's review names your guide, not you ("Ask for Jenna"). Kept in S.biz.reviews, NOT in S.reviews: your star rating (39-stars.js),
 // its milestones, the lodge, goals and the trophy wall are about the trips you guide yourself. The Outfit page shows each guide's stars.
+// Their own lines (not your trips' REV_T: no gravel-bar lunch, no weather call you didn't make): what the party saw their guide do. {g} is the guide.
+const STAFF_REV_T={
+  meat:[['{g} put us on fish all morning. The cooler was full by noon.','We flew home with fillets, and {g} cleaned every one of them.'],['{g} tried, but the cooler came home light.','We came for fish to take home and {g} couldn’t find many.']],
+  trophy:[['{g} got us our trophy, and knew exactly where it would be.','One real trophy fish. {g} called the spot before we got there.'],['No big fish, and {g} didn’t seem to have a plan for one.','Lots of small ones. We told {g} we wanted one monster.']],
+  kids:[['{g} was great with our kids: patient, funny, and every one of them caught fish.','The kids want {g} as their babysitter now.'],['The kids were bored, and {g} didn’t really know what to do with them.','{g} is a good guide, maybe not a kids’ guide.']],
+  photo:[['{g} knew every good photo spot on the river.','{g} took better pictures of us than we did.'],['{g} was all business. Not many photo stops.','We hoped {g} would show us more of the scenery.']],
+  fly:[['{g} is a real fly angler: every fish on a fly.','{g} tied on flies we’d never seen and they worked.'],['{g} had us on bobbers and beads. Not our kind of fishing.','We came to fly fish; {g} mostly didn’t.']],
+  first:[['We’d never fished before, and {g} coached us like pros.','Total beginners, and {g} never let us feel lost.'],['{g} didn’t really show us what to do.','Hard day for first-timers. {g} could have explained more.']],
+  seasick:[['Calm water, and {g} knew it would be.','Nobody got sick. {g} picked the day well.'],['Rough water, and {g} took us out anyway.','Half of us were green. {g} kept fishing.']],
+};
 function staffReview(b,g,happy,fish,fit){
   const first=g.name.split(' ')[0],st=starsOf(happy),parts=[pick(REV_OPEN[st])];
-  fit.good.slice(0,1).forEach(k=>REV_T[k]&&parts.push(pick(REV_T[k][0])));
-  fit.bad.slice(0,1).forEach(k=>REV_T[k]&&parts.push(pick(REV_T[k][1])));
+  fit.good.slice(0,1).forEach(k=>STAFF_REV_T[k]&&parts.push(pick(STAFF_REV_T[k][0])));
+  fit.bad.slice(0,1).forEach(k=>STAFF_REV_T[k]&&parts.push(pick(STAFF_REV_T[k][1])));
   if(parts.length<3) parts.push(b.type==='trout'?(fish?`We caught and released ${fish} trout.`:'Not a single trout.'):b.type==='king'?(fish?`${numW(fish)} king${fish>1?'s':''} to the boat.`:'Not a king all morning.'):fish?`We took home ${fish} fish.`:'We didn’t catch a thing.');
   if(st>=4) parts.push(`Ask for ${first}.`);
-  const text=parts.join(' ').replace(/Captain \{\{name\}\}|\{\{name\}\}/g,first),rec={day:b.d,who:b.who,type:b.type,stars:st,text,g:g.id,guide:first};
+  const text=parts.join(' ').replace(/Captain \{\{name\}\}|\{\{name\}\}|\{g\}/g,first),rec={day:b.d,who:b.who,type:b.type,stars:st,text,g:g.id,guide:first};
   const Z=BZ();(Z.reviews=Z.reviews||[]).push(rec);if(Z.reviews.length>60)Z.reviews.splice(0,Z.reviews.length-60);
   g.sn.stars=(g.sn.stars||0)+st;
   return rec;
@@ -6504,14 +6533,14 @@ function bizWinterModal(){
     o.push({l:`Give ${g.name.split(' ')[0]} a raise — +${$(BIZ_RAISE)}/trip`,s:`Now ${$(g.wage)} a trip; a guide of skill ${g.skill} expects about ${$(want)}. ${g.name.split(' ')[0]} is ${moodWord(g.mood)}.`,fn:again(()=>bizRaise(g.id))});
     o.push({l:`Let ${g.name.split(' ')[0]} go`,s:`Severance ${$(BIZ_SEVER*g.wage)}.`,fn:again(()=>bizFire(g.id))})});
   Object.keys(BIZ_BOATS).forEach(k=>{const B=BIZ_BOATS[k],why=boatWhy(k);o.push({l:`${B.ic} Buy: ${B.n} — ${$(B.cost)}`,s:`${why?why+'. ':''}${B.d} About ${$(B.win)} a winter and ${$(BIZ_BOAT_NIGHT)} a guiding night to keep; loses about 12% of its value a year.`,dis:!!why,fn:again(()=>bizBuyBoat(k))})});
-  S.biz.boats.forEach(b=>o.push({l:`Sell the ${b.kind==='sled'?'second jet sled':'extra drift boat'} — ${$(Math.round(b.val*BIZ_SELL))}`,s:'Back to the boats you started with.',fn:again(()=>bizSellBoat(b.id))}));
+  S.biz.boats.forEach(b=>o.push({l:`Sell the ${b.kind==='sled'?'second jet sled':'extra drift boat'}${b.name?` <i>${esc(b.name)}</i>`:''} — ${$(Math.round(b.val*BIZ_SELL))}`,s:'Back to the boats you started with.',fn:again(()=>bizSellBoat(b.id))}));
   o.push(back);
   modal(`🧑‍🤝‍🧑 Your outfit · cash ${$(Math.round(S.money))}`,`<p style="font-size:13px">${bizStaffSummary()}</p><p style="font-size:13px;color:var(--mute)">${BIZ_HOW}</p>`,o);
 }
 const BIZ_HOW='Each guide you hire needs their own ADF&G guide license, the Kenai River Guide Academy and a State Parks guide permit, a first-aid/CPR card, drug testing and a Coast Guard six-pack license to run a powerboat: onboarding is paid when you hire, renewals every winter. Guides take parties on days you’re booked and are paid by the trip (tips are theirs). They get better every season and expect raises; overworked or underpaid, they quit. Their citations go on <b>your</b> record.';
 function bizStaffSummary(){
   const Z=BZ(),n=Z.staff.length;
-  return `Rep ${S.rep}: up to ${guideCap()} guide${guideCap()===1?'':'s'} (Rep ${BIZ_REP.join(' / ')}). Staff: ${n?Z.staff.map(g=>`<b>${g.name}</b> (skill ${g.skill}, ${relWord(g.rel)}, ${$(g.wage)}/trip, ${moodWord(g.mood)})`).join(', '):'none yet'}. Boats: your jet sled and drift boat${S.up.asst?', your assistant’s sled':''}${Z.boats.length?', '+Z.boats.map(b=>b.kind==='sled'?'a second jet sled':'a second drift boat').join(', '):''}.`;
+  return `Rep ${S.rep}: up to ${guideCap()} guide${guideCap()===1?'':'s'} (Rep ${BIZ_REP.join(' / ')}). Staff: ${n?Z.staff.map(g=>`<b>${g.name}</b> (skill ${g.skill}, ${relWord(g.rel)}, ${$(g.wage)}/trip, ${moodWord(g.mood)})`).join(', '):'none yet'}. Boats: your ${boatRef('sled','jet sled')} and ${boatRef('drift','drift boat')}${S.up.asst?`, your assistant’s ${boatRef('asst','sled')}`:''}${Z.boats.length?', '+Z.boats.map(b=>(b.kind==='sled'?'a second jet sled':'a second drift boat')+(b.name?` <i>${esc(b.name)}</i>`:'')).join(', '):''}.`;
 }
 
 // ---- the Outfit view: a second page of the 📅 Bookings tab ----
@@ -6533,8 +6562,9 @@ function outfitView(){
   Z.staff.forEach(g=>{const f=g.name.split(' ')[0],want=marketWage(g.skill),s=g.sn;
     h+=row('🧑',`${g.name} · ${$(g.wage)}/trip`,`<i>${g.line}</i><br>Skill ${g.skill} (${skillWord(g.skill)}), ${relWord(g.rel)}, ${moodWord(g.mood)}. ${g.wage<want?`Expects about ${$(want)} a trip. `:''}${g.seasons?`${g.seasons} season${g.seasons>1?'s':''} with you. `:'New this year. '}${staffStarsTxt(g)}<br>This season: ${s.trips} trip${s.trips===1?'':'s'}, fares ${$(s.fares)}, wages ${$(s.wages)}, costs ${$(s.costs)}, net ${s.net<0?'−':''}${$(Math.abs(s.net))}${s.cites?`, ${s.cites} citation${s.cites>1?'s':''}`:''}.`,
       btn(`Raise +${$(BIZ_RAISE)}`,'raise',g.id,null,`Give ${g.name} a raise of ${$(BIZ_RAISE)} a trip`)+btn(`Let ${f} go (${$(BIZ_SEVER*g.wage)})`,'fire',g.id))});
-  h+=`<div class="sect">🚤 Boats</div>`+row('🚤','Your jet sled & drift boat',`Condition ${S.boat}.${S.up.asst?' Plus your assistant guide’s sled.':''} A guide can use whichever boat you’re not using.`);
-  Z.boats.forEach(b=>h+=row(BIZ_BOATS[b.kind].ic,b.kind==='sled'?'Second jet sled':'Second drift boat',`Worth about ${$(b.val)}. ${$(BIZ_BOAT_NIGHT)} a guiding night and ${$(BIZ_BOATS[b.kind].win)} a winter to keep.`,S.winter?btn(`Sell (${$(Math.round(b.val*BIZ_SELL))})`,'sell',b.id):''));
+  const ren=(key,what)=>`<button class="chip" aria-label="${esc('Name or rename '+what)}" onclick="boatNameModal('${key}',render)">✏️ ${boatNm(key)?'Rename':'Name'}</button>`;   // 45-names.js
+  h+=`<div class="sect">🚤 Boats</div>`+row('🚤',`Your jet sled${bName('sled')?' '+bName('sled'):''} & drift boat${bName('drift')?' '+bName('drift'):''}`,`Condition ${S.boat}.${S.up.asst?` Plus your assistant guide’s sled${bName('asst')?' '+bName('asst'):''}.`:''} A guide can use whichever boat you’re not using.`,ren('sled','your jet sled')+ren('drift','your drift boat')+(S.up.asst?ren('asst','your assistant’s sled'):''));
+  Z.boats.forEach(b=>h+=row(BIZ_BOATS[b.kind].ic,`${b.kind==='sled'?'Second jet sled':'Second drift boat'}${b.name?` · <i>${esc(b.name)}</i>`:''}`,`Worth about ${$(b.val)}. ${$(BIZ_BOAT_NIGHT)} a guiding night and ${$(BIZ_BOATS[b.kind].win)} a winter to keep.`,ren('b'+b.id,b.kind==='sled'?'the second jet sled':'the second drift boat')+(S.winter?btn(`Sell (${$(Math.round(b.val*BIZ_SELL))})`,'sell',b.id):'')));
   if(!S.winter){
     h+=`<p class="small-note" style="font-size:12.5px;color:var(--mute);margin:2px 2px 0">A guide’s parties review the guide (“Ask for Jenna”): those stars show here and don’t count toward your own ★ rating.</p>`;
     h+=`<div class="sect">📋 Assignments · ${dlabel(d0)}–${dlabel(end-1)}</div>`;let any=false;
@@ -7266,6 +7296,183 @@ window.doInstall=async()=>{
   if(isIOS()){if(typeof saveGame==='function'&&S&&!S.over)saveGame();location.href='install/ios.html';return}
   installSheet();
 };
+// ============================================================
+//  GUIDE MASTER, part 19: names for your cabin and your boats.
+//  The cabin carries the player's name ("Krazow’s Cabin": always ’s, so "James’s Cabin"; "Your Cabin" with no name picked). It is
+//  worked out when shown, so renaming yourself in Settings renames the cabin everywhere.
+//  The boats carry the names the player gives them: your jet sled and drift boat (S.names.sled, .drift), the assistant guide's sled
+//  (S.names.asst) and the outfit's extra boats (S.biz.boats[].name, 36-business.js). The buddy's loaner has a fixed name. A boat
+//  without a name reads as before ("the jet sled"). Names are given in sheets the player opens: "✏️ Name your boats" at the
+//  Shop & Cabin, after buying a new sled or drift boat (24-career.js upgradeModal), and the ✏️ chips on the Outfit page. An extra
+//  outfit boat comes with a suggested name. No pop-up at the start of a game.
+//
+//  Save state: S.names {sled, drift, asst} ('' until named; old saves get the empty names from fillDefaults, no schema bump) and
+//  S.biz.boats[].name. Suggestions come from a hash of the save, never Math.random(), so naming a boat doesn't change anyone's luck.
+// ============================================================
+const BOAT_NAME_MAX=24;
+const LOANER_NAME='Rust Bucket II';   // the buddy's loaner: nobody asks what happened to the first one
+const BOAT_IDEAS={
+  sled:['Reel Therapy','Sockeye Express','Kenai Rocket','Silver Bullet','Jet Lag','Tight Lines','Midnight Sun','Skilak Stinger','Red Rover','Knot Working','Sterling Silver','Cook Inlet Comet','Bear Necessity','Fish Tales','Funny Riffle','Northern Exposure'],
+  drift:['Lazy Oar','Rainbow Chaser','Easy Eddy','Driftwood','Riffle Rose','Slow Water','Bead Bandit','Fly By','Upper Kenai Queen','Willow','Oarsome','Spruce Goose','Cooper Kettle','Dolly Varden'],
+};
+const BOAT_KINDS={sled:{n:'jet sled',ic:'🚤'},drift:{n:'drift boat',ic:'🛶'}};
+
+// ---- the cabin ----
+function cabinName(){
+  const n=String(typeof currentName==='function'?currentName():'').replace(/\s+/g,' ').trim().slice(0,20);
+  return !n||n===GAME.defaultName?'Your Cabin':`${n}’s Cabin`;
+}
+
+// ---- state ----
+const _newStateNames=newState;
+newState=function(){return Object.assign(_newStateNames(),{names:{sled:'',drift:'',asst:''}})};
+const NAMES=()=>{if(!S.names||typeof S.names!=='object')S.names={};return fillDefaults(S.names,{sled:'',drift:'',asst:''})};
+
+// ---- cleaning a name: no HTML, no braces, 24 characters, letters first ----
+function cleanBoatName(raw){
+  const n=String(raw==null?'':raw).replace(/<[^>]*>/g,'').replace(/[\u0000-\u001f\u007f]/g,'').replace(/\s+/g,' ').trim();
+  if(!n) return {err:'Give her a name (or keep the one she has).'};
+  if([...n].length>BOAT_NAME_MAX) return {err:`Keep it to ${BOAT_NAME_MAX} characters or fewer.`};
+  if(!/^[\p{L}\p{N}][\p{L}\p{N} '’.,!?#&\-]*$/u.test(n)) return {err:'Letters, numbers, spaces and simple punctuation only.'};
+  return {name:n};
+}
+
+// ---- your boats, by key: 'sled', 'drift', 'asst' (the assistant guide's sled), 'b<id>' (an outfit boat) ----
+function boatEntries(){
+  if(!S) return [];
+  const N=NAMES(),out=[{key:'sled',kind:'sled',label:'Your jet sled',name:N.sled},{key:'drift',kind:'drift',label:'Your drift boat',name:N.drift}];
+  if(S.up&&S.up.asst) out.push({key:'asst',kind:'sled',label:'Your assistant’s sled',name:N.asst});
+  (S.biz&&Array.isArray(S.biz.boats)?S.biz.boats:[]).forEach(b=>out.push({key:'b'+b.id,kind:b.kind==='drift'?'drift':'sled',label:b.kind==='drift'?'Your second drift boat':'Your second jet sled',name:b.name||'',boat:b}));
+  return out;
+}
+const boatEntry=key=>boatEntries().find(e=>e.key===key)||null;
+function boatNm(key){
+  if(!S||!key) return '';
+  if(key==='loaner') return LOANER_NAME;
+  const e=boatEntry(key);return e&&e.name?e.name:'';
+}
+// the name in italics, or '' (HTML-safe)
+const bName=key=>{const n=boatNm(key);return n?`<i>${esc(n)}</i>`:''};
+// "the jet sled <i>Reel Therapy</i>", or just "the jet sled"
+const boatRef=(key,generic)=>{const n=bName(key);return n?`${generic} ${n}`:generic};
+// "<i>Reel Therapy</i>’s jet unit", or the fallback ("the jet unit")
+const ofBoat=(key,part,fallback)=>{const n=bName(key);return n?`${n}’s ${part}`:fallback};
+// your two boats together: "<i>A</i> and <i>B</i>", or '' when neither has a name
+function boatsBoth(){const a=bName('sled'),b=bName('drift');return a&&b?`${a} and ${b}`:a?`${a} and the drift boat`:b?`The jet sled and ${b}`:''}
+function setBoatName(key,name){
+  const e=boatEntry(key);if(!e) return false;
+  const n=uniqueBoatName(name,key);
+  if(e.boat) e.boat.name=n;else NAMES()[key]=n;
+  return n;
+}
+// unique-ish: a name another of your boats (or the loaner) already has gets a II, III…
+function uniqueBoatName(name,key){
+  const taken=new Set(boatEntries().filter(e=>e.key!==key&&e.name).map(e=>e.name.toLowerCase()).concat([LOANER_NAME.toLowerCase()]));
+  if(!taken.has(name.toLowerCase())) return name;
+  const R=['II','III','IV','V','VI','VII','VIII','IX','X'];
+  for(const r of R){const base=name.slice(0,BOAT_NAME_MAX-r.length-1).trim(),n=`${base} ${r}`;if(!taken.has(n.toLowerCase()))return n}
+  return name;
+}
+// a suggestion for this boat (the k-th one): from the save, not Math.random()
+function nameHash(str){let h=0x811c9dc5;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,0x01000193)>>>0}return h>>>0}
+function boatIdea(kind,k,key){
+  const used=new Set(boatEntries().filter(e=>e.key!==key&&e.name).map(e=>e.name.toLowerCase()));
+  const list=BOAT_IDEAS[kind==='drift'?'drift':'sled'],free=list.filter(n=>!used.has(n.toLowerCase())),L2=free.length?free:list;
+  return L2[(nameHash(`${S&&S.name||''}|${key||kind}|${S&&S.years||0}`)+(k||0))%L2.length];
+}
+
+// ---- which boat a trip runs on ----
+// yours: the sled (sockeye, silvers, June kings) or the drift boat (trout floats); the loaner on a day you rented it; none for halibut
+// (the charter boat). A staff trip takes the extra boats in order (the outfit's, then the assistant's sled), then whichever of yours is free.
+function tripBoatKey(b){
+  if(!b||!S) return null;
+  const k=b.type==='trout'?'drift':b.type==='halibut'?null:'sled';
+  if(!k) return null;
+  if(b.asst) return staffBoatKey(b,k);
+  return typeof loanerToday==='function'&&loanerToday()&&b.d===S.cur?'loaner':k;
+}
+function staffBoatKey(b,k){
+  const extra=(S.biz&&Array.isArray(S.biz.boats)?S.biz.boats:[]).filter(x=>(x.kind==='drift'?'drift':'sled')===k).map(x=>'b'+x.id);
+  if(k==='sled'&&S.up&&S.up.asst){if(b.g==null)extra.unshift('asst');else extra.push('asst')}
+  const same=S.book.filter(x=>x.d===b.d&&x.asst&&x.status!=='cancelled'&&(x.type==='trout'?'drift':x.type==='halibut'?null:'sled')===k).sort((x,y)=>x.id-y.id);
+  const i=same.indexOf(b);
+  return i>=0&&i<extra.length?extra[i]:k;
+}
+const tripBoatGeneric=b=>b.type==='trout'?'drift boat':b.type==='halibut'?'charter boat':'jet sled';
+// the sled you're running today: yours, or the loaner
+const sledKey=()=>S&&typeof loanerToday==='function'&&loanerToday()?'loaner':'sled';
+// "Back at the dock" (22-trips.js): the named boat goes back on the trailer
+function dockBoatLine(b){const key=tripBoatKey(b);return key&&boatNm(key)?`<p class="small-note" style="color:var(--mute)">⚓ ${bName(key)} goes back on the trailer.</p>`:''}
+// "the jet sled <i>Reel Therapy</i>" for this trip (the loaner: "the loaner <i>Rust Bucket II</i>")
+function tripBoatRef(b){const key=tripBoatKey(b);return key==='loaner'?`the loaner ${bName('loaner')}`:boatRef(key,'the '+tripBoatGeneric(b))}
+
+// ---- the naming sheets ----
+let BNV='';
+window.boatNameInput=v=>{BNV=v};
+// o: {value, err, k (which suggestion), intro}
+function boatNameModal(key,then,o){
+  o=o||{};const e=boatEntry(key),back=()=>{if(then)setTimeout(then,0)};
+  if(!e){back();return}
+  BNV=o.value!=null?o.value:(e.name&&!o.k?e.name:boatIdea(e.kind,o.k||0,key));
+  const what=e.label.replace(/^Your /,'your ');
+  modal(`${BOAT_KINDS[e.kind].ic} ${e.name?'Rename':'Name'} ${what}`,`<p>${o.intro||(e.name?`She’s <i>${esc(e.name)}</i> now. Every guide on the river knows a boat by her name.`:'Every guide on the river knows a boat by her name. Type one, or take the idea below.')}</p>
+    <input class="nm-in" id="bnIn" maxlength="${BOAT_NAME_MAX}" autocomplete="off" aria-label="A name for ${esc(what)}" value="${esc(BNV)}" oninput="boatNameInput(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();MBTN(0)}">
+    ${o.err?`<div style="color:var(--bad);font-size:13px;margin-top:6px">${esc(o.err)}</div>`:`<div style="color:var(--mute);font-size:12px;margin-top:6px">Up to ${BOAT_NAME_MAX} characters. You can rename her later.</div>`}`,
+    [{l:'Save the name',fn:()=>{const r=cleanBoatName(BNV);if(r.err)return setTimeout(()=>boatNameModal(key,then,Object.assign({},o,{value:BNV,err:r.err})),0);
+        const old=e.name,n=setBoatName(key,r.name);
+        if(n&&n!==old)say(old?`✏️ ${e.label} <i>${esc(old)}</i> is <i>${esc(n)}</i> now. New decals on the bow.`:`✏️ ${e.label} is <i>${esc(n)}</i> now. Fresh letters on the bow.`);
+        back()}},
+     {l:'🎲 Another idea',s:'A different suggestion.',fn:()=>setTimeout(()=>boatNameModal(key,then,Object.assign({},o,{k:(o.k||0)+1,value:null,err:null})),0)},
+     {l:e.name?'Keep the name':'Not now',fn:back}]);
+  setTimeout(()=>{const i=document.getElementById('bnIn');if(i){i.focus();i.select()}},60);
+}
+window.boatNameModal=boatNameModal;
+// every boat you have, one button each
+function boatNamesModal(back){
+  const again=()=>boatNamesModal(back);
+  modal('✏️ Your boats’ names',`<p style="font-size:13px;color:var(--mute)">Name or rename any of them. The names show on your trips, at the dock, in the shop and on the end screen.</p>`,
+    boatEntries().map(e=>({l:`${BOAT_KINDS[e.kind].ic} ${e.label}: ${e.name?`<i>${esc(e.name)}</i>`:'no name yet'}`,s:e.name?'Rename her.':'Give her a name.',fn:()=>setTimeout(()=>boatNameModal(e.key,again),0)}))
+      .concat([{l:'Done',fn:()=>{if(back)setTimeout(back,0)}}]));
+}
+window.boatNamesModal=boatNamesModal;
+// after buying a new sled, drift boat or the assistant's sled in the off-season planner (24-career.js): name it, then back to the planner
+function boatAfterBuy(id,then){
+  const key=id==='sled'||id==='drift'||id==='asst'?id:null;
+  if(!key||!S||!S.up||!S.up[id]){if(then)then();return}
+  const e=boatEntry(key);
+  boatNameModal(key,then,{intro:e&&e.name?`A new boat. Keep the name <i>${esc(e.name)}</i>, or give her a new one.`:'A new boat deserves a name. Type one, or take the idea below.'});
+}
+// the Shop & Cabin's button (no time, no money)
+function boatNameAction(){
+  const un=['sled','drift'].filter(k=>!boatNm(k));
+  return {ic:'✏️',l:un.length===2?'Name your boats':un.length?`Name your ${BOAT_KINDS[un[0]].n}`:'Boat names',
+    s:un.length?`Free, a minute. ${un.length===2?'Your jet sled and drift boat have':`Your ${BOAT_KINDS[un[0]].n} has`} no name yet.`:`${boatsBoth()}. Rename one any time.`,
+    cat:'work',fn:()=>boatNamesModal()};
+}
+{const _actionsHere=actionsHere;
+  actionsHere=function(){const a=_actionsHere();if(S&&!S.winter&&!S.trip&&S.loc==='shop')a.push(boatNameAction());return a};}
+
+// ---- an outfit boat comes with a suggested name ----
+{const _bizBuyBoat=bizBuyBoat;
+  bizBuyBoat=function(k){
+    const ok=_bizBuyBoat(k);
+    if(ok){const b=S.biz.boats[S.biz.boats.length-1];if(b&&!b.name){b.name=uniqueBoatName(boatIdea(k,0,'b'+b.id),'b'+b.id);say(`✏️ You letter <i>${esc(b.name)}</i> on her bow. Rename her on the Outfit page if you like.`)}}
+    return ok};}
+
+// ---- the end screen ----
+function boatsEndText(){
+  const named=boatEntries().filter(e=>e.name);
+  return named.length?named.map(e=>`<i>${esc(e.name)}</i> (${e.label.replace(/^Your /,'')})`).join(', '):'';
+}
+{const _endRows=endRows;
+  endRows=function(){
+    const rows=_endRows(),c=rows.find(r=>r[0]==='The cabin');
+    if(c) c[0]=`🏠 ${esc(cabinName())}`;
+    const bt=boatsEndText();if(bt) rows.push(['🚤 Your boats',bt]);
+    return rows};}
+
+// ---- Help: the cabin's section carries its name ----
+{const h=typeof HELP!=='undefined'&&HELP.find(x=>x[3]==='cabin');if(h)Object.defineProperty(h,1,{get:()=>cabinName(),enumerable:true,configurable:true})}
 // ---------------- boot ----------------
 applyPrefs();
 titleScreen();

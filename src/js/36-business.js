@@ -144,7 +144,7 @@ function bizBuyBoat(k){
 function bizSellBoat(id){
   const Z=BZ(),b=Z.boats.find(x=>x.id===id);if(!b||!S.winter)return false;
   const p=Math.round(b.val*BIZ_SELL);money(p);S.up.value=Math.max(0,S.up.value-b.val);Z.boats=Z.boats.filter(x=>x!==b);
-  say(`${BIZ_BOATS[b.kind].ic} You sell the ${b.kind==='sled'?'second jet sled':'extra drift boat'} for ${$(p)}.`);return true}
+  say(`${BIZ_BOATS[b.kind].ic} You sell the ${b.kind==='sled'?'second jet sled':'extra drift boat'}${b.name?` <i>${esc(b.name)}</i>`:''} for ${$(p)}.`);return true}
 // ---- handing a party to a guide (and taking it back) ----
 const canHand=b=>b&&b.status==='booked'&&!b.asst&&!b.arc&&!b.big&&!b.feat&&!b.lodge&&b.type!=='halibut'&&(b.d>day()||(b.d===day()&&tod()<TRIPS[b.type].start-60))&&!(S.trip&&S.trip.id===b.id);
 function bizAssign(id,gid){
@@ -213,7 +213,7 @@ asstSettle=function(b,notes){
   bizSettle(b,g,notes);
 };
 function bizSettle(b,g,notes){
-  const T=TRIPS[b.type],r=Math.random,fare=payOf(b),first=g.name.split(' ')[0],sn=g.sn;
+  const T=TRIPS[b.type],r=Math.random,fare=payOf(b),first=g.name.split(' ')[0],sn=g.sn,bkey=typeof tripBoatKey==='function'?tripBoatKey(b):null,bnm=bkey?bName(bkey):'';   // 45-names.js: the boat it ran on
   const busy=S.book.some(x=>x.d===b.d&&!x.asst&&x.status==='done'),tired=g.streak>=3;
   let happy=50+g.skill*.35+(r()-.5)*24+DF().mood+(b.quirk.includes('promised')?-15:0)-(tired?6:0),refund=0,repair=0,line='';
   // a careless guide cuts corners far more often than a reliable one ((1−rel)², so 0.77 → 12% of trips, 0.93 → 1%); lateness and mishaps go with (1−rel)
@@ -228,7 +228,7 @@ function bizSettle(b,g,notes){
         else line=` ${first} got a warning, on your boat’s record.`;
       }else if(r()<.3){S.wom=(S.wom||0)-2;line=` Another guide saw ${first} cutting a corner (${v.what}) and it’s all over the river.`}
     }else if(k<.75){happy-=18;refund=Math.round(fare*.25);line=` ${first} was late to the launch: the clients waited an hour and you refunded ${$(refund)}.`}
-    else{happy-=12;repair=Math.round((250+r()*350)*DF().cost);line=` A rock in the riffle took a bite out of the ${boatKind(b.type)==='drift'?'drift boat':'jet unit'}: ${$(repair)} to fix.`}
+    else{happy-=12;repair=Math.round((250+r()*350)*DF().cost);line=` A rock in the riffle took a bite out of ${bnm?bnm+'’s '+(boatKind(b.type)==='drift'?'hull':'jet unit'):boatKind(b.type)==='drift'?'the drift boat':'the jet unit'}: ${$(repair)} to fix.`}
   }
   const lim=b.type==='reds'?S.limit:b.type==='silver'?2:b.type==='king'?1:0,catchF=clamp(.35+g.skill/220+(r()-.5)*.3,.1,1);
   const fish=b.type==='trout'?Math.round(b.n*(3+catchF*8)):b.type==='king'?Math.round(b.n*catchF*.45):Math.round(b.n*lim*catchF);
@@ -243,9 +243,9 @@ function bizSettle(b,g,notes){
   sn.trips++;sn.fares+=fare-refund;sn.wages+=g.wage;sn.costs+=costs+repair;sn.net+=net;sn.hap+=happy;S.biz.tot.trips++;S.biz.tot.net+=net;
   g.streak=g.last===b.d-1||g.last===b.d?g.streak+(g.last===b.d?0:1):1;g.last=b.d;if(tired)g.mood-=3;
   const rv=staffReview(b,g,happy,fish,fit);
-  b.status='done';b.out={happy,fish,line:`run by ${first}`,fare,refund,net,g:g.id,stars:rv.stars};
+  b.status='done';b.out={happy,fish,line:`run by ${first}${bnm?' on '+bnm:''}`,fare,refund,net,g:g.id,stars:rv.stars};
   const mood=happy>=80?'thrilled':happy>=65?'happy':happy>=45?'so-so':'unhappy';
-  notes.push(`🧑‍🤝‍🧑 <b>${first}</b>’s ${T.ic} ${T.n.toLowerCase()} with the ${b.who}: ${fish} ${b.type==='trout'?'fish to the net':b.type==='king'?(kingRule()==='open'?`king${fish===1?'':'s'} kept`:`king${fish===1?'':'s'} released`):'fish in the box'}, clients ${mood}.${line} After ${first}’s ${$(g.wage)}, fuel, fees and wear: <b>${net<0?'−':''}${$(Math.abs(net))}</b>. <span aria-label="${rv.stars} of 5 stars">${'★'.repeat(rv.stars)}${'☆'.repeat(5-rv.stars)}</span> <i>“${rv.text}”</i>`);
+  notes.push(`🧑‍🤝‍🧑 <b>${first}</b>’s ${T.ic} ${T.n.toLowerCase()}${bnm?` on ${bnm}`:''} with the ${b.who}: ${fish} ${b.type==='trout'?'fish to the net':b.type==='king'?(kingRule()==='open'?`king${fish===1?'':'s'} kept`:`king${fish===1?'':'s'} released`):'fish in the box'}, clients ${mood}.${line} After ${first}’s ${$(g.wage)}, fuel, fees and wear: <b>${net<0?'−':''}${$(Math.abs(net))}</b>. <span aria-label="${rv.stars} of 5 stars">${'★'.repeat(rv.stars)}${'☆'.repeat(5-rv.stars)}</span> <i>“${rv.text}”</i>`);
 }
 // 1.16.0: a staff trip uses the 1.13 party model where it is cheap. Each trait the party came for is met (or not) by the guide's skill,
 // reliability and the day's catch, without beats: v in −1..1 per trait, worth GOAL_H happiness like a trip of your own.
@@ -264,13 +264,23 @@ function staffFit(b,g,catchF,fish){
 }
 // The party's review names your guide, not you ("Ask for Jenna"). Kept in S.biz.reviews, NOT in S.reviews: your star rating (39-stars.js),
 // its milestones, the lodge, goals and the trophy wall are about the trips you guide yourself. The Outfit page shows each guide's stars.
+// Their own lines (not your trips' REV_T: no gravel-bar lunch, no weather call you didn't make): what the party saw their guide do. {g} is the guide.
+const STAFF_REV_T={
+  meat:[['{g} put us on fish all morning. The cooler was full by noon.','We flew home with fillets, and {g} cleaned every one of them.'],['{g} tried, but the cooler came home light.','We came for fish to take home and {g} couldn’t find many.']],
+  trophy:[['{g} got us our trophy, and knew exactly where it would be.','One real trophy fish. {g} called the spot before we got there.'],['No big fish, and {g} didn’t seem to have a plan for one.','Lots of small ones. We told {g} we wanted one monster.']],
+  kids:[['{g} was great with our kids: patient, funny, and every one of them caught fish.','The kids want {g} as their babysitter now.'],['The kids were bored, and {g} didn’t really know what to do with them.','{g} is a good guide, maybe not a kids’ guide.']],
+  photo:[['{g} knew every good photo spot on the river.','{g} took better pictures of us than we did.'],['{g} was all business. Not many photo stops.','We hoped {g} would show us more of the scenery.']],
+  fly:[['{g} is a real fly angler: every fish on a fly.','{g} tied on flies we’d never seen and they worked.'],['{g} had us on bobbers and beads. Not our kind of fishing.','We came to fly fish; {g} mostly didn’t.']],
+  first:[['We’d never fished before, and {g} coached us like pros.','Total beginners, and {g} never let us feel lost.'],['{g} didn’t really show us what to do.','Hard day for first-timers. {g} could have explained more.']],
+  seasick:[['Calm water, and {g} knew it would be.','Nobody got sick. {g} picked the day well.'],['Rough water, and {g} took us out anyway.','Half of us were green. {g} kept fishing.']],
+};
 function staffReview(b,g,happy,fish,fit){
   const first=g.name.split(' ')[0],st=starsOf(happy),parts=[pick(REV_OPEN[st])];
-  fit.good.slice(0,1).forEach(k=>REV_T[k]&&parts.push(pick(REV_T[k][0])));
-  fit.bad.slice(0,1).forEach(k=>REV_T[k]&&parts.push(pick(REV_T[k][1])));
+  fit.good.slice(0,1).forEach(k=>STAFF_REV_T[k]&&parts.push(pick(STAFF_REV_T[k][0])));
+  fit.bad.slice(0,1).forEach(k=>STAFF_REV_T[k]&&parts.push(pick(STAFF_REV_T[k][1])));
   if(parts.length<3) parts.push(b.type==='trout'?(fish?`We caught and released ${fish} trout.`:'Not a single trout.'):b.type==='king'?(fish?`${numW(fish)} king${fish>1?'s':''} to the boat.`:'Not a king all morning.'):fish?`We took home ${fish} fish.`:'We didn’t catch a thing.');
   if(st>=4) parts.push(`Ask for ${first}.`);
-  const text=parts.join(' ').replace(/Captain \{\{name\}\}|\{\{name\}\}/g,first),rec={day:b.d,who:b.who,type:b.type,stars:st,text,g:g.id,guide:first};
+  const text=parts.join(' ').replace(/Captain \{\{name\}\}|\{\{name\}\}|\{g\}/g,first),rec={day:b.d,who:b.who,type:b.type,stars:st,text,g:g.id,guide:first};
   const Z=BZ();(Z.reviews=Z.reviews||[]).push(rec);if(Z.reviews.length>60)Z.reviews.splice(0,Z.reviews.length-60);
   g.sn.stars=(g.sn.stars||0)+st;
   return rec;
@@ -347,14 +357,14 @@ function bizWinterModal(){
     o.push({l:`Give ${g.name.split(' ')[0]} a raise — +${$(BIZ_RAISE)}/trip`,s:`Now ${$(g.wage)} a trip; a guide of skill ${g.skill} expects about ${$(want)}. ${g.name.split(' ')[0]} is ${moodWord(g.mood)}.`,fn:again(()=>bizRaise(g.id))});
     o.push({l:`Let ${g.name.split(' ')[0]} go`,s:`Severance ${$(BIZ_SEVER*g.wage)}.`,fn:again(()=>bizFire(g.id))})});
   Object.keys(BIZ_BOATS).forEach(k=>{const B=BIZ_BOATS[k],why=boatWhy(k);o.push({l:`${B.ic} Buy: ${B.n} — ${$(B.cost)}`,s:`${why?why+'. ':''}${B.d} About ${$(B.win)} a winter and ${$(BIZ_BOAT_NIGHT)} a guiding night to keep; loses about 12% of its value a year.`,dis:!!why,fn:again(()=>bizBuyBoat(k))})});
-  S.biz.boats.forEach(b=>o.push({l:`Sell the ${b.kind==='sled'?'second jet sled':'extra drift boat'} — ${$(Math.round(b.val*BIZ_SELL))}`,s:'Back to the boats you started with.',fn:again(()=>bizSellBoat(b.id))}));
+  S.biz.boats.forEach(b=>o.push({l:`Sell the ${b.kind==='sled'?'second jet sled':'extra drift boat'}${b.name?` <i>${esc(b.name)}</i>`:''} — ${$(Math.round(b.val*BIZ_SELL))}`,s:'Back to the boats you started with.',fn:again(()=>bizSellBoat(b.id))}));
   o.push(back);
   modal(`🧑‍🤝‍🧑 Your outfit · cash ${$(Math.round(S.money))}`,`<p style="font-size:13px">${bizStaffSummary()}</p><p style="font-size:13px;color:var(--mute)">${BIZ_HOW}</p>`,o);
 }
 const BIZ_HOW='Each guide you hire needs their own ADF&G guide license, the Kenai River Guide Academy and a State Parks guide permit, a first-aid/CPR card, drug testing and a Coast Guard six-pack license to run a powerboat: onboarding is paid when you hire, renewals every winter. Guides take parties on days you’re booked and are paid by the trip (tips are theirs). They get better every season and expect raises; overworked or underpaid, they quit. Their citations go on <b>your</b> record.';
 function bizStaffSummary(){
   const Z=BZ(),n=Z.staff.length;
-  return `Rep ${S.rep}: up to ${guideCap()} guide${guideCap()===1?'':'s'} (Rep ${BIZ_REP.join(' / ')}). Staff: ${n?Z.staff.map(g=>`<b>${g.name}</b> (skill ${g.skill}, ${relWord(g.rel)}, ${$(g.wage)}/trip, ${moodWord(g.mood)})`).join(', '):'none yet'}. Boats: your jet sled and drift boat${S.up.asst?', your assistant’s sled':''}${Z.boats.length?', '+Z.boats.map(b=>b.kind==='sled'?'a second jet sled':'a second drift boat').join(', '):''}.`;
+  return `Rep ${S.rep}: up to ${guideCap()} guide${guideCap()===1?'':'s'} (Rep ${BIZ_REP.join(' / ')}). Staff: ${n?Z.staff.map(g=>`<b>${g.name}</b> (skill ${g.skill}, ${relWord(g.rel)}, ${$(g.wage)}/trip, ${moodWord(g.mood)})`).join(', '):'none yet'}. Boats: your ${boatRef('sled','jet sled')} and ${boatRef('drift','drift boat')}${S.up.asst?`, your assistant’s ${boatRef('asst','sled')}`:''}${Z.boats.length?', '+Z.boats.map(b=>(b.kind==='sled'?'a second jet sled':'a second drift boat')+(b.name?` <i>${esc(b.name)}</i>`:'')).join(', '):''}.`;
 }
 
 // ---- the Outfit view: a second page of the 📅 Bookings tab ----
@@ -376,8 +386,9 @@ function outfitView(){
   Z.staff.forEach(g=>{const f=g.name.split(' ')[0],want=marketWage(g.skill),s=g.sn;
     h+=row('🧑',`${g.name} · ${$(g.wage)}/trip`,`<i>${g.line}</i><br>Skill ${g.skill} (${skillWord(g.skill)}), ${relWord(g.rel)}, ${moodWord(g.mood)}. ${g.wage<want?`Expects about ${$(want)} a trip. `:''}${g.seasons?`${g.seasons} season${g.seasons>1?'s':''} with you. `:'New this year. '}${staffStarsTxt(g)}<br>This season: ${s.trips} trip${s.trips===1?'':'s'}, fares ${$(s.fares)}, wages ${$(s.wages)}, costs ${$(s.costs)}, net ${s.net<0?'−':''}${$(Math.abs(s.net))}${s.cites?`, ${s.cites} citation${s.cites>1?'s':''}`:''}.`,
       btn(`Raise +${$(BIZ_RAISE)}`,'raise',g.id,null,`Give ${g.name} a raise of ${$(BIZ_RAISE)} a trip`)+btn(`Let ${f} go (${$(BIZ_SEVER*g.wage)})`,'fire',g.id))});
-  h+=`<div class="sect">🚤 Boats</div>`+row('🚤','Your jet sled & drift boat',`Condition ${S.boat}.${S.up.asst?' Plus your assistant guide’s sled.':''} A guide can use whichever boat you’re not using.`);
-  Z.boats.forEach(b=>h+=row(BIZ_BOATS[b.kind].ic,b.kind==='sled'?'Second jet sled':'Second drift boat',`Worth about ${$(b.val)}. ${$(BIZ_BOAT_NIGHT)} a guiding night and ${$(BIZ_BOATS[b.kind].win)} a winter to keep.`,S.winter?btn(`Sell (${$(Math.round(b.val*BIZ_SELL))})`,'sell',b.id):''));
+  const ren=(key,what)=>`<button class="chip" aria-label="${esc('Name or rename '+what)}" onclick="boatNameModal('${key}',render)">✏️ ${boatNm(key)?'Rename':'Name'}</button>`;   // 45-names.js
+  h+=`<div class="sect">🚤 Boats</div>`+row('🚤',`Your jet sled${bName('sled')?' '+bName('sled'):''} & drift boat${bName('drift')?' '+bName('drift'):''}`,`Condition ${S.boat}.${S.up.asst?` Plus your assistant guide’s sled${bName('asst')?' '+bName('asst'):''}.`:''} A guide can use whichever boat you’re not using.`,ren('sled','your jet sled')+ren('drift','your drift boat')+(S.up.asst?ren('asst','your assistant’s sled'):''));
+  Z.boats.forEach(b=>h+=row(BIZ_BOATS[b.kind].ic,`${b.kind==='sled'?'Second jet sled':'Second drift boat'}${b.name?` · <i>${esc(b.name)}</i>`:''}`,`Worth about ${$(b.val)}. ${$(BIZ_BOAT_NIGHT)} a guiding night and ${$(BIZ_BOATS[b.kind].win)} a winter to keep.`,ren('b'+b.id,b.kind==='sled'?'the second jet sled':'the second drift boat')+(S.winter?btn(`Sell (${$(Math.round(b.val*BIZ_SELL))})`,'sell',b.id):'')));
   if(!S.winter){
     h+=`<p class="small-note" style="font-size:12.5px;color:var(--mute);margin:2px 2px 0">A guide’s parties review the guide (“Ask for Jenna”): those stars show here and don’t count toward your own ★ rating.</p>`;
     h+=`<div class="sect">📋 Assignments · ${dlabel(d0)}–${dlabel(end-1)}</div>`;let any=false;

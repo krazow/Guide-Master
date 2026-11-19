@@ -28,7 +28,8 @@ function render(){
   let h=hud();
   const al=typeof alertBar==='function'?alertBar():null;
   if(al) h+=`<div class="alertbar ${al.kind||''}">${al.t}</div>`;
-  h+=`<div class="scene">${sceneSVG()}${artScene()}<div class="place"><h2>${loc.ic} ${loc.name}</h2><div>${loc.desc||''}${loc.hours?' · '+hoursTxt(S.loc):''}</div></div></div>`;
+  const atCabin=tab==='home'&&(S.loc==='shop'||artOn());   // the Home tab names the cabin (45-names.js) when the scene shows it
+  h+=`<div class="scene">${sceneSVG()}${artScene()}<div class="place"><h2>${atCabin?`🏠 ${esc(cabinName())}`:`${loc.ic} ${loc.name}`}</h2><div>${atCabin?L.shop.desc:`${loc.desc||''}${loc.hours?' · '+hoursTxt(S.loc):''}`}</div></div></div>`;
   const xt=(EXTRA_TABS||[]).find(t=>t.k===tab);
   h+=`<div class="content">${tab==='act'?actView():tab==='todo'?todoView():tab==='log'?logView():xt?xt.view():actView()}</div>`;
   const pending=todoItems().filter(x=>x.urgent&&!x.ok).length,tabs=allTabs();

@@ -95,18 +95,21 @@ function onMorning(d){
   if(t.length) say('🛶 Today: '+t.map(b=>`${TRIPS[b.type].ic} ${TRIPS[b.type].n} at ${fmt(TRIPS[b.type].start)}, ${L[TRIPS[b.type].loc].name} (the ${b.who}, ${b.n})`).join(' · '));
   else say('🛶 No trips booked today. Service the boat, return calls, or go fill the freezer.');
   if(isSunMon(d)) say(`🚫 ${dayName(d)}: no fishing from guide boats on the Kenai below Skilak Lake through July 31.`);
-  const strong=REG().mult.sockeye>=.85;
-  if(!strong&&S.limit===3&&REG().mult.sockeye<.7&&sd>=5){
+  // The late-run sockeye emergency orders belong to the July peak: they follow the July calendar (jd: days since the Monday nearest Jul 13,
+  // so the default weeks keep their old days) and never come in a June, August or September week (34-summer.js).
+  const jd=sockEODay(d),strong=REG().mult.sockeye>=.85;
+  if(jd<0) return;
+  if(!strong&&S.limit===3&&REG().mult.sockeye<.7&&jd>=5){
     S.limit=2;S.eo.push('Kenai River sockeye limit cut to 2 per day, 4 in possession');
     say('📣 <b>Emergency order:</b> the late run is tracking below its goal. ADF&G cuts the Kenai sockeye limit to <b>2 per day</b>.');
     showTile('📣','Sockeye limit cut to 2','ADF&G emergency order','bad');
   }
-  if(strong&&S.limit===3&&(S.cum>1200000*REG().mult.sockeye||sd>=8)){
+  if(strong&&S.limit===3&&(S.cum>1200000*REG().mult.sockeye||jd>=8)){
     S.limit=6;S.eo.push('Kenai River sockeye limit raised to 6 per day, 12 in possession');
     say('📣 <b>Emergency order:</b> with the late run past its escapement goal, ADF&G raises the Kenai sockeye limit to <b>6 per day, 12 in possession</b>.');
     showTile('📣','Sockeye limit raised to 6','ADF&G emergency order','good');
   }
-  if(strong&&sd===10&&!S.eo.some(e=>/Russian/.test(e))){
+  if(strong&&jd>=10&&!S.eo.some(e=>/Russian/.test(e))){
     S.eo.push('Russian River & upper Kenai sockeye limit 6 per day, 12 in possession');
     say('📣 <b>Emergency order:</b> the Russian River and a stretch of the upper Kenai go to 6 sockeye a day, too.');
   }
