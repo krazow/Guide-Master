@@ -7837,7 +7837,8 @@ var FISH_HUB=typeof FISH_HUB!=='undefined'&&Array.isArray(FISH_HUB)?FISH_HUB:[];
 function fishHubOn(){return !!(S&&S.winter&&S.seasons&&S.seasons.length>=CRAB_UNLOCK)}
 function fishWinterBtns(){
   if(!fishHubOn()||!FISH_HUB.length) return [];
-  return [{l:'⚓ Commercial & crab',s:FISH_HUB.slice().sort((a,b)=>a.order-b.order).map(x=>x.short).join(' · ')+'. Optional, and risky.',fn:()=>fishHubModal()}];
+  const t=FISH_HUB.slice().sort((a,b)=>a.order-b.order).map(x=>x.short).join(' · ');
+  return [{l:'⚓ Commercial & crab',s:t.charAt(0).toUpperCase()+t.slice(1)+'. Optional, and risky.',fn:()=>fishHubModal()}];
 }
 function fishHubModal(){
   const back=()=>setTimeout(winterModal,0),again=()=>setTimeout(fishHubModal,0),H=FISH_HUB.slice().sort((a,b)=>a.order-b.order);
