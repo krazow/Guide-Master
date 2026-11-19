@@ -37,6 +37,10 @@ STYLES.ignores=STYLES.hungry;
 // every boat it can buy, no raises). Both play the rest like `food`.
 STYLES.outfit=Object.assign({},STYLES.food,{biz:'outfit'});
 STYLES.tycoon=Object.assign({},STYLES.food,{biz:'tycoon'});
+// commercial gillnetting (42-gillnet.js, src/gillnet): `gillnet` plays like `food` and fishes Cook Inlet openers from the second off-season
+// (crew a drift boat first, then lease; works an opener only when no trip of its own is booked). `gillgreedy` cancels trips for openers and pushes the rules.
+STYLES.gillnet=Object.assign({},STYLES.food,{gill:{policy:'sensible'}});
+STYLES.gillgreedy=Object.assign({},STYLES.food,{gill:{policy:'greedy',cancel:true}});
 for(const k of Object.keys(STYLES).slice()){STYLES[k+'_c']=Object.assign({},STYLES[k],{home:'careful'});STYLES[k+'_p']=Object.assign({},STYLES[k],{home:'payall'});STYLES[k+'_n']=Object.assign({},STYLES[k],{home:'neglect'})}
 
 const UPPOL={ // upgrade policies (for A/B)
@@ -145,6 +149,7 @@ function playDay(cfg){
   if(cfg.look) fishView();
   if(S.boat<=0&&cfg.service){act(cfg,/Major repair/);if(!alive())return}
   M.energySum+=S.energy;M.energyN++;if(S.energy<30)M.lowEnergyDays++;
+  if(cfg.gill&&window.gnBot){gnBot.day(cfg.gill);resolve(cfg);if(!alive())return}
   const trips=todays(d).sort((a,b)=>SLOT(a)[0]-SLOT(b)[0]);
   const first=trips[0];
   // first-aid class (Tuesday)
@@ -237,6 +242,7 @@ function winterPlay(cfg){
   snap.afford=UPGRADES.filter(u=>u.cost&&S.money>=u.cost).map(u=>u.id);
   // camp
   if(cfg.camp&&S.winter){const m0=S.money,e0=S.energy,r0=S.rep;const rep=campBot(Object.assign({},cfg.campOpts||{},{rand:M.crng}));if(rep&&(rep.tripsTaken||rep.gigs.length))M.camp.push({s,trips:rep.tripsTaken,gigs:rep.gigs.length,nights:rep.nights,dM:Math.round(S.money-m0),dE:S.energy-e0,dR:S.rep-r0,fish:rep.foodFish,tk:rep.tackleCredit,q:rep.firstTripBoost,bk:rep.bookingBoost})}
+  if(cfg.gill&&window.gnBot) gnBot.winter(cfg.gill);
   if(typeof weeksSet==='function'){const p=WEEKPOL[cfg.weeks||'mix'],w=p&&p(s);if(w)weeksSet(s,w)}
   closeModals();
   finishWinter();
@@ -288,6 +294,7 @@ window.runCareer=async function(o){
   S.book.forEach(b=>{if(b.status!=='done'||b.asst)return;const k=M.wk[wid(b.d)]=M.wk[wid(b.d)]||{n:0,pay:0};k.n++;k.pay+=b.out?b.out.fare-b.out.refund+b.out.tip:0});
   for(let s=0;s<=seasonOf(Math.min(S.cur,GAME.days-1));s++)(typeof weeksOf==='function'?weeksOf(s):['jul1','jul2']).forEach((id,i)=>M.wkN[id+'/'+i]=(M.wkN[id+'/'+i]||0)+1);
   if(S.biz){M.bizTot=JSON.parse(JSON.stringify(S.biz.tot));M.bizStaff=S.biz.staff.length;M.bizBoats=S.biz.boats.length;M.bizPast=S.biz.past.map(p=>p.why);M.staffTrips=S.stats.staffTrips||0;M.staffNet=S.stats.staffNet||0;M.staffCites=S.stats.staffCites||0}
+  if(S.fish&&S.fish.gillnet){const g=S.fish.gillnet;M.gn={tot:JSON.parse(JSON.stringify(g.tot)),xp:g.xp,did:g.did,own:!!g.own}}
   const out=M;M=null;return out;
 };
 window.simInternals={playDay,resolve,winterPlay,STYLES,initM:(o)=>{window.M={style:o.style,diff:o.diff,years:o.years,seed:o.seed,citeWhy:{},viols:{},tiles:{},steps:{},req:{},tt:{},winters:[],bought:[],camp:[],energySum:0,energyN:0,lowEnergyDays:0,boatSum:0,loss:null,errors:[]}}};window.STYLES=STYLES;window.UPPOL=UPPOL;window.WEEKPOL=WEEKPOL;

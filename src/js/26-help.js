@@ -118,6 +118,14 @@ const HELP=[
     <li>On an iPhone or iPad it opens <a href="install/ios.html">a short how-to with a video</a>: in Safari, tap Share, then <b>Add to Home Screen</b>, then <b>Add</b>.</li>
     <li>Open it once from the new icon while online. After that it plays offline.</li>
     <li>On iPhone and iPad the Home Screen app keeps its own saves, so play from the icon. Use <b>🔁 Transfer a saved game</b> to move a game there or to another device.</li></ul>`,'install'],
+  ['🪢','Commercial gillnetting',`<p class="help-sum">From your second off-season you can fish Cook Inlet sockeye for the fish ticket, on a setnet beach or a drift boat.</p><ul>
+    <li>Plan it in the off-season under <b>🎣 Commercial & crab</b>: crew for a share first, then lease a setnet site or a drift permit and boat. Later you can buy your own drift permit and boat.</li>
+    <li>Openers are regular periods on <b>Mondays and Thursdays</b>, plus extra periods by emergency order. ADF&amp;G announces each one the morning before; see <b>📅 Bookings</b> and the morning report.</li>
+    <li>An opener is a whole day. Start it from <b>🧭 Here</b> in the early morning. On a day with trips booked you hand them to a guide, cancel them, or guide instead.</li>
+    <li>The day runs in a few calls: when to set on the tide, pick now or let them soak, bleed and ice the fish, and the tender or the dock. A drift boat also picks its drift line and fights the tide.</li>
+    <li>The setnet beach is tied to the Kenai kings. In a year kings are closed it starts the summer closed, and only a huge sockeye run might reopen it. Money paid up front is gone if it never opens.</li>
+    <li>Rules have teeth: nets fishing after the close, or a drift across the corridor line into closed water, can mean a citation on your record. Seals, torn nets and wind cost fish.</li>
+    <li>With a lease or your own boat, a partner fishes the openers you guide through, for a share. A survival suit is cheap insurance on the water.</li></ul>`,'gillnet'],
   ['💬','Feedback',`<p class="help-sum">Ideas, bugs, or a rule or fact we got wrong? Tell the developer.</p><ul>
     <li>Tap <b>Send feedback</b> below, on the title screen or in ⚙️ Settings.</li>
     <li>Add your email if you’d like a reply. If you’re offline, it’s sent the next time you’re online.</li></ul>`,'feedback'],

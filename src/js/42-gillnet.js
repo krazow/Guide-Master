@@ -19,7 +19,8 @@ function gnBase(){return {v:1,on:false,plan:null,xp:{set:0,drift:0},did:{},suit:
 {const _newState=newState;newState=function(){const o=_newState();o.fish=Object.assign({},o.fish&&typeof o.fish==='object'?o.fish:{},{gillnet:gnBase()});return o}}
 const GNS=()=>{if(!S.fish||typeof S.fish!=='object'||Array.isArray(S.fish))S.fish={};const g=S.fish.gillnet;
   if(!g||typeof g!=='object'||Array.isArray(g))S.fish.gillnet=gnBase();else fillDefaults(g,gnBase());return S.fish.gillnet};
-const gnOn=()=>!!(S&&S.fish&&S.fish.gillnet&&S.fish.gillnet.on);
+// unlocked from the second off-season (an older save already that far along unlocks the first time it is asked)
+const gnOn=()=>{const g=S&&S.fish&&S.fish.gillnet;if(!g)return false;if(!g.on&&Array.isArray(S.seasons)&&S.seasons.length>=GN.UNLOCK)g.on=true;return !!g.on};
 const gnSeason=()=>S.winter?S.winter.s:seasonOf(day());
 // this season's plan (null when there is none)
 const gnPlan=(s=gnSeason())=>{const g=S&&S.fish&&S.fish.gillnet,p=g&&g.plan;return p&&p.s===s?p:null};
@@ -39,16 +40,20 @@ startSeason=function(s){
   if(!g.on&&S.seasons.length>=GN.UNLOCK){g.on=true;lines.push('🎣 <b>New: commercial fishing.</b> You can crew or lease on a Cook Inlet setnet site or drift boat this summer, if you want to. Look in <b>Commercial & crab</b> below.')}
   // last summer: what your own openers and the rest of the summer brought (settled in restOfSeason, at the season's end)
   const sn=g.sn;
-  if(sn&&sn.s===s-1&&(sn.openers||sn.partner||sn.rest)) lines.push(`🎣 Gillnetting, ${2025+s}: ${sn.openers} opener${sn.openers===1?'':'s'} fished, ${$(Math.round(sn.net))} net${sn.partner?`; ${sn.partner} fished for you while you guided`:''}${sn.rest?`; the rest of the summer ${$(Math.round(sn.rest))}`:''}.`);
+  if(sn&&sn.s===s-1&&(sn.openers||sn.partner||sn.rest||sn.up||sn.seine)){
+    g.tot.rest+=sn.rest;g.tot.net+=sn.rest;const all=sn.net+sn.pnet+sn.snet+sn.rest-sn.up,m=v=>`${v<0?'−':''}${$(Math.abs(Math.round(v)))}`;
+    lines.push(`🎣 Gillnetting, ${2025+s}: ${sn.openers} opener${sn.openers===1?'':'s'} fished (${m(sn.net)})${sn.partner?`, ${sn.partner} fished for you while you guided (${m(sn.pnet)})`:''}${sn.seine?`, ${sn.seine} beach seine day${sn.seine>1?'s':''} (${m(sn.snet)})`:''}${sn.rest?`, the rest of the summer ${m(sn.rest)}`:''}${sn.up?`, ${m(-sn.up)} up front`:''}: <b>${m(all)}</b> in all.`)}
   // an owned permit and boat: storage, insurance, haul-out and permit fees, and a year of wear on its value
   if(g.own){const bill=Math.round(GN.OWN.winter*DF().cost),drop=Math.round(g.own.val*GN.OWN.deprec);
-    money(-bill);S.stats.spent+=bill;g.own.val-=drop;S.up.value=Math.max(0,S.up.value-drop);
+    money(-bill);S.stats.spent+=bill;g.tot.net-=bill;g.own.val-=drop;S.up.value=Math.max(0,S.up.value-drop);
     lines.push(`🚤 Your drift permit and boat: ${$(bill)} for haul-out, storage, insurance and the permit card. It’s worth about ${$(g.own.val)} now.`)}
-  g.done={};g.sn={s,openers:0,net:0,gross:0,fish:0,partner:0,rest:0,cites:0};
+  g.done={};g.sn=gnLedger(s);
   if(g.own) g.plan={s,id:'drift:own',kind:'drift',role:'own',paid:0};
   if(lines.length&&S.winter) S.winter.sup=(S.winter.sup||[]).concat(lines);
 };
 // the season's openers come when the bookings open
+const gnLedger=s=>({s,openers:0,net:0,gross:0,fish:0,partner:0,pnet:0,seine:0,snet:0,rest:0,up:0,cites:0});
+const gnSn=(s=gnSeason())=>{const g=GNS();if(!g.sn||g.sn.s!==s)g.sn=gnLedger(s);else fillDefaults(g.sn,gnLedger(s));return g.sn};
 const _gnFinishWinter=finishWinter;
 finishWinter=function(){
   const s=S.winter?S.winter.s:null;
@@ -125,7 +130,7 @@ function gnStart(d,seine){if(!gnPlan()||!gnDay(d))return;Gillnet.start({ticket:g
 // the report goes back into the save
 function gnApply(rep,d){
   if(!rep) return rep;
-  const g=GNS(),p=gnPlan(),K=p?p.kind:rep.kind,sn=g.sn||(g.sn={s:seasonOf(d),openers:0,net:0,gross:0,fish:0,partner:0,rest:0,cites:0});
+  const g=GNS(),p=gnPlan(),K=p?p.kind:rep.kind,sn=gnSn(seasonOf(d));
   g.done[d]={skipped:!!rep.skipped,seine:!!rep.seine,fish:rep.fish,net:rep.cashDelta,gross:rep.gross};
   if(rep.lines) rep.lines.forEach(l=>say(l));
   if(rep.skipped){if(p&&p.role==='crew')g.mood[K]=clamp(g.mood[K]+(rep.mood||-8),0,100);return rep}
@@ -135,7 +140,7 @@ function gnApply(rep,d){
   const room=Math.max(0,(d+1)*1440-2-S.t);if(rep.minutes>0)pass(Math.min(rep.minutes,room));
   S.loc='shop';
   (rep.cites||[]).forEach(c=>{const c0=S.stats.citesTotal||0;cite(c.what,c.fine,!!c.minor,null,c.who);if((S.stats.citesTotal||0)>c0){g.tot.cites++;sn.cites++}});
-  if(rep.seine){g.tot.seine++;sn.net+=rep.cashDelta;g.tot.net+=rep.cashDelta}
+  if(rep.seine){g.tot.seine++;sn.seine++;sn.snet+=rep.cashDelta;g.tot.net+=rep.cashDelta}
   else{g.xp[K]=(g.xp[K]||0)+(rep.xp||0);sn.openers++;sn.net+=rep.cashDelta;sn.gross+=rep.gross;sn.fish+=rep.fish;
     g.tot.openers++;g.tot.fish+=rep.fish;g.tot.gross+=rep.gross;g.tot.net+=rep.cashDelta;
     if(p&&p.role==='crew')g.mood[K]=clamp(g.mood[K]+(rep.mood||0)-(rep.cites&&rep.cites.length?10:0),0,100)}
@@ -155,7 +160,7 @@ onNight=function(where,notes,d){
   const t=gnTicket(d);t.now=o.hours[0];
   const rep=Gillnet.partner(t,{rand:Math.random});
   money(rep.cashDelta);g.done[d]={skipped:true,partner:true,fish:rep.fish,net:rep.cashDelta,gross:rep.gross};
-  g.sn.partner++;g.sn.net+=rep.cashDelta;g.tot.partner++;g.tot.net+=rep.cashDelta;S.stats.gnNet=(S.stats.gnNet||0)+rep.cashDelta;
+  const sn=gnSn(seasonOf(d));sn.partner++;sn.pnet+=rep.cashDelta;g.tot.partner++;g.tot.net+=rep.cashDelta;S.stats.gnNet=(S.stats.gnNet||0)+rep.cashDelta;
   rep.lines.forEach(l=>notes.push(l));
 };
 
@@ -200,10 +205,10 @@ function gnPlanSum(){const p=gnPlan(),g=GNS();if(!p) return g.own?'Your drift bo
 function gnTk(){const g=GNS();return {cash:Math.round(S.money),costMult:DF().cost,xp:g.xp,did:g.did,own:g.own?{boat:true}:null,suit:g.suit,plan:gnPlan()?gnPlan().id:null}}
 function gnSetPlan(id){
   const g=GNS(),s=gnSeason(),cur=gnPlan(s),R=GN.ROLES[id];
-  if(cur){if(cur.paid){money(cur.paid);S.stats.spent-=cur.paid}if(g.did[cur.id])g.did[cur.id]--;g.plan=null}
+  if(cur){if(cur.paid){money(cur.paid);S.stats.spent-=cur.paid;gnSn(s).up-=cur.paid;g.tot.net+=cur.paid}if(g.did[cur.id])g.did[cur.id]--;g.plan=null}
   if(!id||!R) return true;
   const o=Gillnet.offers(gnTk()).find(x=>x.id===id);if(!o||o.dis){if(cur)gnSetPlan(cur.id);return false}
-  money(-o.cost);S.stats.spent+=o.cost;g.plan={s,id,kind:R.kind,role:R.role,paid:o.cost};g.did[id]=(g.did[id]||0)+1;
+  money(-o.cost);S.stats.spent+=o.cost;gnSn(s).up+=o.cost;g.tot.net-=o.cost;g.plan={s,id,kind:R.kind,role:R.role,paid:o.cost};g.did[id]=(g.did[id]||0)+1;
   say(`${R.ic} ${R.l} this summer${o.cost?` (${$(o.cost)} up front)`:''}.`);sfx('good');return true;
 }
 function gnBuy(){const g=GNS(),c=Gillnet.buyCost(DF().cost);if(Gillnet.buyWhy(Object.assign(gnTk(),{cash:Math.round(S.money)})))return false;
@@ -243,8 +248,8 @@ function gnBookView(){
     const res=r?(r.skipped?(r.partner?` · fished for you: ${$(r.net)}`:' · missed'):` · ✅ ${r.fish} sockeye, ${r.net<0?'−':''}${$(Math.abs(r.net))}`):'';
     const clash=k&&Gillnet.fishable(o)&&!r&&d>=day()&&todays(d).length?` · <span style="color:var(--warn)">you have ${todays(d).length} trip${todays(d).length>1?'s':''} booked</span>`:'';
     return `<div class="todo"><span class="ck" aria-hidden="true">${d<day()?'✔️':d===day()?'👉':!k?'·':Gillnet.fishable(o)?gnIc(p.kind):'🚫'}</span><div><b>${dlong(d)}</b><span>${st}${res}${clash}</span></div></div>`}).join('');
-  const sn=g.sn&&g.sn.s===seasonOf(day())?g.sn:null;
-  return `<div class="sect">🎣 ${p.kind==='set'?'Setnet':'Drift'} openers · ${GN.ROLES[p.id].l}${sn&&(sn.openers||sn.partner)?` · ${sn.net<0?'−':''}${$(Math.abs(Math.round(sn.net)))} so far`:''}</div>${rows||'<div class="todo"><span class="ck">·</span><div><b>No periods in your weeks</b><span>The fishery runs from late June to mid-August.</span></div></div>'}`;
+  const sn=g.sn&&g.sn.s===seasonOf(day())?g.sn:null,so=sn?sn.net+sn.pnet+sn.snet:0;
+  return `<div class="sect">🎣 ${p.kind==='set'?'Setnet':'Drift'} openers · ${GN.ROLES[p.id].l}${sn&&(sn.openers||sn.partner||sn.seine)?` · ${so<0?'−':''}${$(Math.abs(Math.round(so)))} so far`:''}</div>${rows||'<div class="todo"><span class="ck">·</span><div><b>No periods in your weeks</b><span>The fishery runs from late June to mid-August.</span></div></div>'}`;
 }
 
 // ---- bots (tools/sim) and tests: a sensible gillnetter ----

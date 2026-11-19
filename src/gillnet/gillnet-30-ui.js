@@ -14,6 +14,7 @@
     if(typeof host.show!=='function') throw new Error('Gillnet.start needs host.show');
     const sess=G.session(opts.ticket,{rand:typeof host.rand==='function'?host.rand:undefined});
     let stopped=false,finished=false;
+    const later=f=>typeof setTimeout==='function'?setTimeout(f,0):Promise.resolve().then(f);   // the host's event loop (a bare sandbox has no timers)
     function finish(){if(finished)return;finished=true;const rep=sess.report();if(typeof host.onFinish==='function')host.onFinish(rep)}
     function show(){
       if(stopped) return;
@@ -21,7 +22,7 @@
       const v=sess.view();
       // the summary closes the session: the report is applied before the last sheet shows, so walking away there loses nothing
       if(v.meta.phase==='done'&&!finished){finished=true;const rep=sess.report();if(typeof host.onFinish==='function')host.onFinish(rep)}
-      host.show(v.title,v.html,v.buttons.map(b=>({l:b.l,s:b.s,dis:b.dis,fn:()=>{sess.choose(b.id);setTimeout(show,0)}})),v.meta.phase!=='brief'&&v.meta.phase!=='done',v.meta);
+      host.show(v.title,v.html,v.buttons.map(b=>({l:b.l,s:b.s,dis:b.dis,fn:()=>{sess.choose(b.id);later(show)}})),v.meta.phase!=='brief'&&v.meta.phase!=='done',v.meta);
     }
     show();
     return {session:sess,stop(){stopped=true}};
