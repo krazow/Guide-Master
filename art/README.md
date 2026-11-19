@@ -113,7 +113,7 @@ subject sits low (people at the bottom of `boat-07`, `boat-10`, `boat-12`/`event
   the day each drawing was last shown and on which screen; every picture shown counts, the Home tab's and the events' too, and two
   entries sharing a drawing (`boat-11`/`event-16`) count as one.
 - *A trip:* the opening step shows the boat at the put-in; then at most **one** stretch of the day (a `beat` step, `artBeat()`) shows
-  the river at that hour, never the opening drawing; the dock shows a third only if one fits and isn't resting. A drawing a coming
+  the river at that hour (the launch time plus the stretch's `BEATS` offset: the trip's clock stands still until the dock), never the opening drawing; the dock shows a third only if one fits and isn't resting. A drawing a coming
   incident of this trip will show (the combat fishing, the sow and cubs) is left to the incident (`artTripAhead()`). The other beats
   and decisions show none: no picture on every screen of a trip.
 - *The morning report:* one picture. An event (the cabin's mishaps first, then the morning's events, the cabin's news, the night's
@@ -124,7 +124,7 @@ subject sits low (people at the bottom of `boat-07`, `boat-10`, `boat-12`/`event
   redraw; equally good pictures take turns by day.
 
 Numbers from 24 bot careers of 4 years (`tools/sim` bots, the off-season played through the real screens; half with Event pop-ups on):
-a typical first week shows **about 8 different drawings (250 KB of WebP; 130 to 420 KB)**, each downloaded once (the browser and the
+a typical first week shows **about 7 different drawings (230 KB of WebP; 107 to 448 KB)**, each downloaded once (the browser and the
 service worker keep it). A trip day: two or three pictures, 60 to 120 KB the first time. `index.html` carries the manifest (32 KB, no
 image), so the first load is unchanged apart from that; the title screen loads no picture, and the first Home tab or launch loads one.
 
@@ -249,25 +249,25 @@ real hook with that purchase in the save (`tests/art.test.js` covers the hooks).
 
 | Entry | Shown | How |
 |---|---|---|
-| boat-01 dawn run | 41 | opening step of a sockeye trip (6 AM is the dawn window) |
-| boat-02 seam crowd | 5 | a sockeye trip's mid-day stretch (`beat`) |
-| boat-03 drift boat | 11 | opening step of a trout float |
+| boat-01 dawn run | 33 | opening step of a sockeye trip (6 AM is the dawn window) |
+| boat-02 seam crowd | 33 | a sockeye trip's mid-day stretch (`beat`) |
+| boat-03 drift boat | 21 | opening step or a stretch of a trout float |
 | boat-04 Homer charter | 4 | opening step of a halibut charter; arriving at the harbor |
-| boat-05 slack tide | 17 | a halibut charter's stretch |
-| boat-06 trailer at the launch | 60 | arriving at the launch, opening step |
-| boat-07 worn sled in the shop | 5 | a repair at the shop with the boat at 20 or less |
-| boat-08 new sled | 21 | the launch, opening step or dock once the new sled is bought (`when` widened to dawn and condition 60+) |
+| boat-05 slack tide | 16 | a halibut charter's stretch |
+| boat-06 trailer at the launch | 47 | arriving at the launch, opening step |
+| boat-07 worn sled in the shop | 3 | a repair at the shop with the boat at 20 or less |
+| boat-08 new sled | 15 | the launch, opening step or dock once the new sled is bought (`when` widened to dawn and condition 60+) |
 | boat-09 Coast Guard tow | 6 | the dock after a tow |
 | boat-10 outfit launch | buy | your assistant's or guides' trip in the morning report, on a morning with no event picture |
-| boat-11 combat fishing | 2 | a sockeye stretch (and as `event-16`) |
-| boat-12 sow and cubs | 24 | a trout float's opening or stretch (and as `event-17`; left to the incident when one is coming) |
+| boat-11 combat fishing | 92 | a sockeye stretch (and as `event-16`) |
+| boat-12 sow and cubs | 62 | a trout float's opening or stretch (and as `event-17`; left to the incident when one is coming) |
 | boat-13 loaner | buy | renting a loaner at the shop or a launch (`where` widened to the shop), arriving with it |
 | boat-14 private dock | buy | the dock once the riverfront lot is bought |
-| boat-15 June king | 17 | a king trip (June week) |
-| boat-16 evening silvers | 47 | a silver trip (1–6 PM: `time` widened to day) |
+| boat-15 June king | 16 | a king trip (June week) |
+| boat-16 evening silvers | 34 | a silver trip (1–6 PM: `time` widened to day) |
 | cabin-01 / -08 wood stove | buy | the Home tab or the fall sheet in winter with a wood stove (condition 40+ / 75+) |
-| cabin-02 summer morning | 1377 | the Home tab by day |
-| cabin-03 fly-tying bench | 16 | the off-season Home tab with the vise from camping |
+| cabin-02 summer morning | 1382 | the Home tab by day |
+| cabin-03 fly-tying bench | 14 | the off-season Home tab with the vise from camping |
 | cabin-04 pantry and freezer | buy | the Home tab by day with the chest freezer (takes turns with -02 and -09) |
 | cabin-05 arctic entry | 8 | the off-season Home tab, condition 30–74 |
 | cabin-06 outage, generator | 16 | the off-season Home tab with a generator and detectors |
@@ -275,26 +275,26 @@ real hook with that purchase in the save (`tests/art.test.js` covers the hooks).
 | cabin-09 fish station | buy | the Home tab by day with the fish station and the freezer |
 | cabin-10 loft, midnight sun | 1603 | the summer Home tab at night |
 | cabin-11 outage, no generator | 16 | the off-season Home tab under condition 30 (`when` moved from any season, where it never won) |
-| cabin-12 oil heat | 64 | the off-season Home tab, condition 75+ |
+| cabin-12 oil heat | 66 | the off-season Home tab, condition 75+ |
 | camp-01 aurora | 4 | an aurora evening in a tent, clear sky (`place` widened to any) |
-| camp-02 ice fishing | 37 | ice fishing at Johnson or Stormy Lake (`place` and `weather` widened) |
-| camp-03 wall tent | 4 | a wall-tent evening (`place` widened) |
-| camp-04 truck camper | 15 | a day in the truck camper (`place` and `weather` widened) |
+| camp-02 ice fishing | 35 | ice fishing at Johnson or Stormy Lake (`place` and `weather` widened) |
+| camp-03 wall tent | 5 | a wall-tent evening (`place` widened) |
+| camp-04 truck camper | 17 | a day in the truck camper (`place` and `weather` widened) |
 | camp-05 public-use cabin | 2 | snowshoeing from the Skilak cabin (`weather` widened) |
-| camp-06 moose tracks | 1 | tracking at Anchor River |
+| camp-06 moose tracks | 2 | tracking at Anchor River |
 | camp-07 scouting | 1 | scouting at Quartz Creek on a clear day |
-| camp-08 fly tying by the fire | 56 | an evening tying flies |
+| camp-08 fly tying by the fire | 55 | an evening tying flies |
 | camp-09 Homer Spit | 5 | a day on the Spit |
 | camp-10 snowstorm | 3 | a night in a tent in a snowstorm |
-| event-01 to -04 (moose, flat, trooper, gossip) | 226, 40, 225, 307 | the pop-up, or over the narration with pop-ups off (new hook) |
-| event-05 midnight sun, -06 bear in the bin | 136, 18 | the morning report (night events) |
-| event-07 cold snap | 64 | the storm prompt |
-| event-08 burst pipe, -10 breakup, -11 frozen pipes, -14 ice dam | 3, 7, 3, 5 | storm outcomes, the spring report |
+| event-01 to -04 (moose, flat, trooper, gossip) | 223, 40, 226, 311 | the pop-up, or over the narration with pop-ups off (new hook) |
+| event-05 midnight sun, -06 bear in the bin | 139, 18 | the morning report (night events) |
+| event-07 cold snap | 62 | the storm prompt |
+| event-08 burst pipe, -10 breakup, -11 frozen pipes, -14 ice dam | 3, 7, 3, 4 | storm outcomes, the spring report |
 | event-09 chimney fire | buy | the winter report with a wood stove |
 | event-12 garden moose | buy | the morning report on the garden's harvest day (`time` widened: it comes at dawn) |
-| event-13 earthquake | rare | the spring report (1 in the first 24-career run, 0 in the second) |
+| event-13 earthquake | rare | the spring report (1 in one 24-career run, 0 in two others) |
 | event-15 CO alarm | rare | the winter report with detectors: about 1.5% of winters, and it shows unless a chimney fire beats it |
-| event-16 combat, -17 sow and cubs | 89, 48 | the trip incidents, above the dilemma |
+| event-16 combat, -17 sow and cubs | 87, 55 | the trip incidents, above the dilemma |
 
 ## Checklist for a set
 

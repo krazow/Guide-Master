@@ -58,12 +58,12 @@ const STY = (process.env.STYLES || 'skilled,careless,opport,foodgen1,guide,noser
         await pg.evaluate(() => { HITS = {}; });
         await pg.evaluate(async o => { const pop = o.popups; const _c = localStorage.clear.bind(localStorage); localStorage.clear = () => { _c(); if (pop) localStorage.setItem(KEY('popups'), 'on'); }; const r = await runCareer(o); localStorage.clear = _c; return r.errors; }, j).then(e => e && e.length && errs.push(...e));
       } catch (e) { errs.push('job ' + JSON.stringify(j) + ' ' + String(e).slice(0, 300)); }
-      const wk = await pg.evaluate(() => Object.keys(HITS).filter(id => Object.keys(HITS[id].days).some(d => d !== 'w' && +d < 7)));
+      const h1 = await pg.evaluate(() => HITS);
+      for (const [id, r] of Object.entries(h1)) { const x = hits[id] = hits[id] || { n: 0, at: {} }; x.n += r.n; for (const k in r.at) x.at[k] = (x.at[k] || 0) + r.at[k]; }
+      const wk = Object.keys(h1).filter(id => Object.keys(h1[id].days).some(d => d !== 'w' && +d < 7));
       WEEKS.push({ style: j.style, popups: j.popups, ids: wk });
       process.stdout.write('.');
     }
-    const h = await pg.evaluate(() => HITS);
-    for (const [id, r] of Object.entries(h)) { const x = hits[id] = hits[id] || { n: 0, at: {}, wk: 0 }; x.n += r.n; x.wk += Object.keys(r.days).some(d => d !== 'w' && +d < 7) ? 1 : 0; for (const k in r.at) x.at[k] = (x.at[k] || 0) + r.at[k]; }
   }
   await Promise.all(Array.from({ length: W }, worker));
   const man = JSON.parse(fs.readFileSync(path.join(ROOT, 'art/manifest.json'), 'utf8'));

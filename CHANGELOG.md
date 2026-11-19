@@ -22,7 +22,7 @@ are taken from it. Earlier versions are described in the README and the in-game 
   - **Loading:** the box is reserved (no layout shift) and painted the drawing's average color (new `bg`, from `tools/art.py colors`);
     the image fades in once (none with reduced motion, none on a redraw); a picture that can't load gives the drawn scene back.
   - **Alt text:** event pictures are decorative (`alt=""`, `aria-hidden`: the text says the same); scenes keep their description.
-  - **Data:** a first week downloads about 8 drawings, 250 KB of WebP (130 to 420 KB); `index.html` carries the 32 KB manifest. The
+  - **Data:** a first week downloads about 7 drawings, 230 KB of WebP (107 to 448 KB); `index.html` carries the 32 KB manifest. The
     PWA keeps each picture after its first showing (`sw.js`, up to 60); the single-file offline build stays without art.
 - **Coverage:** `tools/sim/art-coverage.js` plays bot careers and lists which entries ever show; 44 of 55 came up in 24 careers, the
   other 11 need a purchase the bots never make (each checked through its hook). `when` fixes so every entry can show: the garden moose
