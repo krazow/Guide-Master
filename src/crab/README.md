@@ -125,3 +125,19 @@ hauling in a storm), `sorting`, `heavy_seas_ice` (a crab boat in heavy seas with
 
 **Estimates, not checked:** the pot ($240), bait, the skiff, airfare to Dutch Harbor ($1,100), a night in Unalaska ($150), crab gear
 ($420), every share and probability, the injury bills (after the boat's insurance) and the soak curve.
+
+## Balance
+
+Bot harness (`tools/sim`, styles `crab` and `crabr` = `food` plus crabbing with the careful / reckless job policy; 5-year careers,
+40 per cell, the same seeds as `food`; season score):
+
+| difficulty | food | crab (careful) | crabr (reckless) |
+|---|---|---|---|
+| normal | 58,880 (sd 3,544) | 59,898, +1.7% (sd 3,665) | 59,195, +0.5% (sd 3,467) |
+| hard | 56,415 (sd 2,680) | 56,477, +0.1% (sd 3,951) | 56,330, −0.2% (sd 3,770) |
+
+Per career (three eligible winters): about 2.4 crab trips out west, $5,500 net to the careful hand and $3,400 to $4,000 to the
+reckless one (who is hurt in a quarter to half of careers and short-paid about half the time); a failed hire in about one career in
+four. Standard error of a cell is about 600 points (1%), so these are within noise of a guiding-only career, with more spread on hard.
+No career was lost. The default bots never open the sheet and draw no random numbers from it: their scores are identical to the
+build without crabbing.
