@@ -3,38 +3,21 @@
 Release notes for Guide Master. `/release now` adds a section here for every release, and the GitHub release notes
 are taken from it. Earlier versions are described in the README and the in-game update notice.
 
-## Unreleased
+## 1.17.0 (2026-11-18)
 
 ### Added
-- **🖼️ Illustrations, switched on** (1.17.0): all 55 entries of `art/` (cabin 12, boat 16, camp 10, event 17; 53 drawings) are enabled,
-  with ⚙️ Settings → Illustrations on by default (off: every screen is byte-for-byte what it was). The display rules, measured at
-  390×844 and checked at 360×740, 768×1024 and landscape, light and dark, are in `art/README.md` ("How pictures are shown"):
-  - **Where:** a full-bleed banner across the top of a sheet, above its title (`sheetHTML()` lifts it there); on the Home and Here tabs
-    the picture takes the drawn scene's place (`artScene()`), with the place's name as a one-line label in the sky. No new pop-up.
-  - **How big:** half the column's width (2:1), at most 30% of the screen's height; 16:9 on tablets. 195 px on a 390×844 phone (23%),
-    180 on 360×740, 270 on a tablet, 117 in landscape. Optional per-entry `focus` (object-position) for 11 drawings with a low subject.
-  - **How often:** one picture per screen. Events always show; routine scenes (the launch, the boat on the river, the dock, the shop,
-    your guides' trips) rest for 3 game days once shown and the next best shows instead. A trip shows the boat at the put-in, at most
-    one stretch of the river later in the day (new: `artBeat()`) and the dock, never the same drawing twice, and leaves a coming
-    incident's drawing to the incident. The morning report shows one picture (an event first, else your guides' trip). A camp scene
-    shows once per camping trip. Equally good pictures take turns by day.
-  - **New hook:** a road or arrival event with no pop-up (pop-ups are off by default) shows its picture over the narration.
-  - **Loading:** the box is reserved (no layout shift) and painted the drawing's average color (new `bg`, from `tools/art.py colors`);
-    the image fades in once (none with reduced motion, none on a redraw); a picture that can't load gives the drawn scene back.
-  - **Alt text:** event pictures are decorative (`alt=""`, `aria-hidden`: the text says the same); scenes keep their description.
-  - **Data:** a first week downloads about 7 drawings, 230 KB of WebP (107 to 448 KB); `index.html` carries the 32 KB manifest. The
-    PWA keeps each picture after its first showing (`sw.js`, up to 60); the single-file offline build stays without art.
-- **Coverage:** `tools/sim/art-coverage.js` plays bot careers and lists which entries ever show; 44 of 55 came up in 24 careers, the
-  other 11 need a purchase the bots never make (each checked through its hook). `when` fixes so every entry can show: the garden moose
-  (dawn), the evening silvers (silver trips run 1–6 PM), the new sled (dawn launch, condition 60+), the loaner (rented at the shop),
-  the run-down cabin's outage picture (winter, condition under 30), five camp scenes (more places and any weather).
+- **Illustrations.** 53 hand-drawn pictures of the cabin, the boats, winter camping and the game's events now appear as you play:
+  a banner across the top of a screen (about a quarter of a phone's height), or in place of the drawn scene on the Home and Here tabs.
+  Events always show their picture; everyday scenes rest for a few days so they don't repeat, and a trip shows at most three.
+  Turn them off in ⚙️ Settings → Illustrations.
+- New pictures for the moments that had none: arriving at the launch, the repair shop, a loaner-boat day, June kings, evening silvers,
+  your own dock, your guides' trips in the morning report, and cabin trouble such as a chimney fire, a burst pipe, breakup, an ice dam,
+  an earthquake and a CO alarm.
 
-### Earlier, in this cycle
-- **Illustrations framework**: `src/js/40-art.js`, `art/`, `tools/art.py`, a runtime image cache in `sw.js` and a ⚙️ Settings →
-  Illustrations switch that appears once an image is enabled. Hooks: the Home tab and the fall cabin sheet; arriving at a launch; each
-  trip step (its STEP id) and the boat at the put-in; the dock; repairs, the patch and a loaner at the shop; your guides' trips in the
-  morning report; the cabin's events (CabinUpkeep now reports `events` by id: a storm prompt, then its outcome); camping; event pop-ups
-  and the morning report.
+### Changed
+- Pictures load quietly: the space is held so nothing jumps, they fade in once (not with reduced motion), and a picture that can't load
+  leaves the game's own drawing in place. A first week downloads about 230 KB of pictures; the installed app keeps them for later.
+- The bear sow and cubs picture appears only with the bear encounter, not as everyday scenery.
 
 ## 1.16.0 (2026-11-18)
 
