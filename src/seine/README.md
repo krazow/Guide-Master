@@ -133,9 +133,24 @@ host = {
 
 ## Balance
 
-Measured with `Seine.sim` (300 openers a cell, careful policy, years 2027–2038): a July opener pays a crewman about $300 (a June one
-about $100, an August pink day about $100), and a skipper about $1,100 with a standard deviation near $1,200 and one day in eight at a
-loss; a greedy skipper (cutting in, setting inside lines, tight to reefs, hurrying) earns less and gets cited. In Guide Master careers
-(`tools/sim`, style `seine`: crews from the 2nd off-season and signs on only for openers that cost no booked trip) the season score is
-within noise of guiding only; style `seineall` (every opener, cancelling the trips in the way) loses about a fifth of it, because a
-cancelled trip also shrinks the estimated rest of the summer.
+Per opener, `Seine.sim` (400 openers a cell, years 2027–2066, mixed wind; a skipper with 30 skill):
+
+| role | policy | date | mean to you | sd | days at a loss | injured |
+|---|---|---|---|---|---|---|
+| crew | careful | Jun 17 | $118 | $186 | 4% | 4% |
+| crew | careful | Jul 15 | $336 | $236 | 1% | 4% |
+| crew | careful | Aug 5 (fair pink years only) | $223 | $245 | 3% | 5% |
+| crew | greedy | Jul 15 | $298 | $444 | 8% | 23% |
+| skipper | careful | Jun 17 | $103 | $875 | 24% | 6% |
+| skipper | careful | Jul 15 | $1,037 | $1,131 | 14% | 6% |
+| skipper | careful | Aug 5 | $812 | $1,086 | 16% | 7% |
+| skipper | greedy | Jul 15 | $739 | $1,723 | 33% | 7% |
+
+A guided sockeye trip grosses about $1,100 plus tips, so crewing pays a fraction of a guiding day and running your own boat about
+matches one, with far more variance and the season's insurance and Coast Guard exam ($2,350 the first year) up front.
+
+Careers (`tools/sim`, 5 years, 40 a cell, season score): `food` normal 58,880 ± 560, hard 56,415 ± 424; `seine` (crews from the 2nd
+off-season, signs on only for openers that cost no booked trip) normal 58,656 ± 600 (−0.4%), hard 55,876 ± 441 (−1.0%), within noise,
+with about one opener a career because the guiding calendar is mostly full; `seineall` (every opener, cancelling the trips in the
+way; it crews 5 and skippers 5) normal 46,091 (−22%), hard 43,878 (−22%): a cancelled trip costs its fare, reputation, and a share of
+the estimated rest of the summer. Default bots never touch the module, and their scores are unchanged.
