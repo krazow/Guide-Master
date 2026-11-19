@@ -2038,6 +2038,7 @@ const Crab={
   C.useCrab=function(t0,how){
     const t=C.normTicket(t0),r=rep0(t),s=r.state,h=s.hold;
     if(!h){r.lines.push('Your cooler is empty.');return r}
+    if(how!=='feed'&&how!=='freezer'){r.lines.push('Crab from a sport, personal-use or subsistence permit can’t be sold or traded for money. Freeze it or share it.');return r}
     s.hold=null;s.tot.crab+=h.n;
     if(how==='feed'){
       const F=D.FEED,big=h.n>=F.minCrab;r.repDelta=big?F.rep:0;r.womDelta=big?F.wom:1;r.energyDelta=F.energy;s.tot.feeds++;ev(r,'crab_feed');
@@ -2098,7 +2099,7 @@ const Crab={
       if(how==='docks'){
         if(rand()<J.hire.docks[out]+t.rep*.002){const x=rand();j.skipper=x<.55?'solid':x<.9?'rough':'shady';return true}return false;
       }
-      j.skipper=rand()<.5?'shady':'rough';return true;   // the boat nobody wants
+      j.skipper=rand()<.5?'shady':'rough';j.catchX*=.85;return true;   // the boat nobody wants: always hiring, a tired boat that fishes less
     }
     function fly(nights){if(!j.flew){pay(r,t,J.air);j.flew=true}if(nights)pay(r,t,J.lodging*nights)}
     function finish(){
@@ -2154,6 +2155,7 @@ const Crab={
       get phase(){return j.phase},get done(){return j.done},state:j,
       view(){const v=S0[j.phase]();v.meta={phase:j.phase,events:EVT[j.phase]?[{id:j.phase==='hired'&&j.hand<.75?'job_greenhorn':EVT[j.phase],sev:0}]:[]};if(j.phase==='pay')v.meta.events=r.events.slice();return v},
       choose(id){
+        if(j.done)return false;
         const v=S0[j.phase]();if(!v.buttons.some(b=>b.id===id&&!b.dis))return false;
         switch(j.phase){
           case 'intro': case 'nohire':
@@ -7850,7 +7852,7 @@ FISH_HUB.push({id:'crab',order:3,ic:'🦀',l:'Crabbing',short:'crab pots and a c
 // the winter: buy a pot, a Tanner day when the bay is open, the deckhand job when the days and cash allow (policy: Crab.policies)
 function crabBotWinter(o){
   o=o||{};if(!S.winter||!crabUnlocked()) return null;
-  const rand=o.rand||(()=>Math.random()),out=[];crabPrep();
+  const rand=o.rand||(()=>Math.random()),out=[];homeRollWinterSync();homeAnswerStorms();crabPrep();
   const run=(r,q)=>{crabApply(r,true);out.push(r);return r};
   if(!crabS().gear&&S.money>(o.kitCash||3000)) run(Crab.buyKit(crabTicket()));
   if(o.job!==false&&campDaysLeft()>=Crab.data.JOB.days&&S.money>(o.jobCash||1500)&&(!o.jobIf||o.jobIf())) run(Crab.autoJob(crabTicket(),{rand,policy:o.policy||'careful'}).report);

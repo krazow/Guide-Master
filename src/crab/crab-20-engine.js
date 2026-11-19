@@ -105,6 +105,7 @@
   C.useCrab=function(t0,how){
     const t=C.normTicket(t0),r=rep0(t),s=r.state,h=s.hold;
     if(!h){r.lines.push('Your cooler is empty.');return r}
+    if(how!=='feed'&&how!=='freezer'){r.lines.push('Crab from a sport, personal-use or subsistence permit can’t be sold or traded for money. Freeze it or share it.');return r}
     s.hold=null;s.tot.crab+=h.n;
     if(how==='feed'){
       const F=D.FEED,big=h.n>=F.minCrab;r.repDelta=big?F.rep:0;r.womDelta=big?F.wom:1;r.energyDelta=F.energy;s.tot.feeds++;ev(r,'crab_feed');
@@ -165,7 +166,7 @@
       if(how==='docks'){
         if(rand()<J.hire.docks[out]+t.rep*.002){const x=rand();j.skipper=x<.55?'solid':x<.9?'rough':'shady';return true}return false;
       }
-      j.skipper=rand()<.5?'shady':'rough';return true;   // the boat nobody wants
+      j.skipper=rand()<.5?'shady':'rough';j.catchX*=.85;return true;   // the boat nobody wants: always hiring, a tired boat that fishes less
     }
     function fly(nights){if(!j.flew){pay(r,t,J.air);j.flew=true}if(nights)pay(r,t,J.lodging*nights)}
     function finish(){
@@ -221,6 +222,7 @@
       get phase(){return j.phase},get done(){return j.done},state:j,
       view(){const v=S0[j.phase]();v.meta={phase:j.phase,events:EVT[j.phase]?[{id:j.phase==='hired'&&j.hand<.75?'job_greenhorn':EVT[j.phase],sev:0}]:[]};if(j.phase==='pay')v.meta.events=r.events.slice();return v},
       choose(id){
+        if(j.done)return false;
         const v=S0[j.phase]();if(!v.buttons.some(b=>b.id===id&&!b.dis))return false;
         switch(j.phase){
           case 'intro': case 'nohire':

@@ -107,7 +107,7 @@ FISH_HUB.push({id:'crab',order:3,ic:'🦀',l:'Crabbing',short:'crab pots and a c
 // the winter: buy a pot, a Tanner day when the bay is open, the deckhand job when the days and cash allow (policy: Crab.policies)
 function crabBotWinter(o){
   o=o||{};if(!S.winter||!crabUnlocked()) return null;
-  const rand=o.rand||(()=>Math.random()),out=[];crabPrep();
+  const rand=o.rand||(()=>Math.random()),out=[];homeRollWinterSync();homeAnswerStorms();crabPrep();
   const run=(r,q)=>{crabApply(r,true);out.push(r);return r};
   if(!crabS().gear&&S.money>(o.kitCash||3000)) run(Crab.buyKit(crabTicket()));
   if(o.job!==false&&campDaysLeft()>=Crab.data.JOB.days&&S.money>(o.jobCash||1500)&&(!o.jobIf||o.jobIf())) run(Crab.autoJob(crabTicket(),{rand,policy:o.policy||'careful'}).report);
