@@ -11,6 +11,8 @@
                    See src/gillnet/README.md.
   src/seine/*.js   the Seine purse-seining module (one global namespace, no access to the game), also before the game files.
                    See src/seine/README.md.
+  src/crab/*.js    the Crab crabbing module (one global namespace, no access to the game), also before the game files.
+                   See src/crab/README.md.
   src/js/*.js      the game code, concatenated in file-name order
   art/manifest.json  the illustrations' manifest (tools/art.py writes it): its ENABLED entries are embedded in src/js/40-art.js
                    between /*@ART@*/ and /*@/ART@*/. The images themselves stay separate files under art/ (never inlined here).
@@ -52,7 +54,7 @@ def build():
     css = read('src/style.css').rstrip('\n')
     # the camping engine goes first: it is self-contained, and the game adapter (src/js/28-camping.js) calls it
     # the home-upkeep module goes second for the same reason (src/js/32-home.js is its adapter)
-    files = [f for d in ('camp', 'home', 'gillnet', 'seine', 'js') for f in sorted(glob.glob(os.path.join(ROOT, 'src', d, '*.js')))]
+    files = [f for d in ('camp', 'home', 'gillnet', 'seine', 'crab', 'js') for f in sorted(glob.glob(os.path.join(ROOT, 'src', d, '*.js')))]
     js = '\n'.join(read(os.path.relpath(f, ROOT)).rstrip('\n') for f in files)
     assert len(ART_RE.findall(js)) == 1, 'the /*@ART@*/ manifest markers are missing in src/js/40-art.js'
     js = ART_RE.sub(lambda m: art_js(art_entries()), js)
