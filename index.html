@@ -9812,7 +9812,7 @@ onMorning=function(d){
   _gnOnMorning(d);
   if(S.winter) return;const p=gnPlan(seasonOf(d)),x=gnSched(seasonOf(d));if(!p||!x) return;
   const o=x.days[d],t=x.days[d+1],K=gnKind(p.kind);
-  if(o&&Gillnet.fishable(o)) gnNote(`${gnIc(p.kind)} <b>Today: ${K} opener</b>, ${gnHours(o)}, ${GN.ST[o.st]}. ${o.why} Start it from 🧭 Here before ${fmt(o.hours[0]+60)}.`,'gn_low_tide_site');
+  if(o&&Gillnet.fishable(o)) gnNote(`${gnIc(p.kind)} <b>Today: ${K} opener</b>, ${gnHours(o)}, ${GN.ST[o.st]}. ${o.why} ${fishTaken(d,'gillnet')==='seine'?`You’re signed on for the seine opener, so ${p.role==='crew'?'the boat goes without you':'your partner fishes it'}.`:`Start it from 🧭 Here before ${fmt(o.hours[0]+60)}.`}`,'gn_low_tide_site');
   else if(o&&o.seine&&p.kind==='set') gnNote(`🏖️ <b>The beach is closed for kings today.</b> A neighbor’s experimental beach seine could use a hand (🧭 Here).`,'gn_closed_morning');
   else if(o) gnNote(`🚫 <b>No ${K} opener today.</b> ${o.why}`,'gn_closed_morning');
   if(t&&seasonOf(d+1)===seasonOf(d)) gnNote(Gillnet.fishable(t)?`📣 ADF&G: tomorrow (${dayName(d+1)}) the ${K} fleet fishes ${GN.AREA[t.area]}, ${gnHours(t)}${t.st==='extra'?': an extra period':t.st==='reopen'?': reopened':t.st==='restricted'?', restricted':''}.`:`📣 ADF&G: no ${K} fishing tomorrow (${dayName(d+1)}). ${t.why}`);
