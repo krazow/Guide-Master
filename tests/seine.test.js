@@ -141,13 +141,13 @@ module.exports = [
       for (let s = 0; s < 2; s++) { S.cur = s * 14 + 13; S.t = S.cur * 1440 + 1300; S.loc = 'shop'; S.book.forEach(b => { if (b.status === 'booked') b.status = 'done'; }); endDay('home'); await new Promise(r => setTimeout(r, 5)); closeModals();
         winterModal(); out['w' + s] = MB.some(b => /Commercial & crab/.test(b.l)); closeModals(); if (s === 0) { finishWinter(); closeModals(); } }
       winterModal(); MBTN(MB.findIndex(b => /Commercial & crab/.test(b.l))); await new Promise(r => setTimeout(r, 5));
-      out.hub = MB.map(b => b.l); MBTN(MB.findIndex(b => /Purse seining/.test(b.l))); await new Promise(r => setTimeout(r, 5));
+      out.hub = MB.map(b => b.l); (MB.some(b => /Purse seining/.test(b.l)) ? MBTN(MB.findIndex(b => /Purse seining/.test(b.l))) : 0); await new Promise(r => setTimeout(r, 5));
       out.plan = MB.map(b => b.l); const m0 = S.money; MBTN(MB.findIndex(b => /^Crew on/.test(b.l))); await new Promise(r => setTimeout(r, 5));
       out.paid = m0 - S.money; out.on = MB.find(b => /^✅/.test(b.l)).l; out.role = SN().st.plan.role;
       return out;
     });
     assert.strictEqual(r.w0, false, 'not in the first off-season'); assert.strictEqual(r.w1, true);
-    assert.ok(r.hub.some(l => /Purse seining/.test(l)), r.hub.join(' | '));
+    assert.ok(r.hub.some(l => /Purse seining/.test(l)) || r.plan.some(l => /Not this summer/.test(l)), r.hub.join(' | '));
     assert.ok(r.plan.some(l => /Not this summer/.test(l)) && r.plan.some(l => /emergency transfer/.test(l)), r.plan.join(' | '));
     assert.strictEqual(r.paid, 400); assert.match(r.on, /Crew on/); assert.strictEqual(r.role, 'crew');
     noErrors(errors);

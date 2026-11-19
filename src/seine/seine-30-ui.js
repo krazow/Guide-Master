@@ -28,7 +28,7 @@
   K.ui={
     plan(host,back){
       const t=host.ticket(),o=K.planOptions(t),cur=o.find(x=>x.on);
-      host.show(`⚓ Purse seining · ${t.year}`,`<p>Seine for salmon out of Homer on the Southern District’s openers: Monday, Wednesday and Friday, 6 AM to 10 PM, from mid-June. ${K.year(t.year).txt}</p><p style="font-size:13px;color:var(--mute)">Openers show in 📅 Bookings a few days ahead. Each one you sign on for is a day off the river: you choose, opener by opener. Now: <b>${cur?cur.l:'Not this summer'}</b>.</p>`,
+      host.show(`⚓ Purse seining · ${t.year}`,`<p>Seine for salmon out of Homer on the Southern District’s openers: Monday, Wednesday and Friday, 6 AM to 10 PM, from mid-June. ${K.year(t.year).txt}</p><p style="font-size:13px;color:var(--mute)">The summer’s periods show in 📅 Bookings when the bookings open, and ADF&G can close one with a few days’ notice. Each one you sign on for is a day off the river: you choose, opener by opener. Now: <b>${cur?cur.l:'Not this summer'}</b>.</p>`,
         o.map(x=>({l:`${x.on?'✅ ':''}${x.l}`,s:x.dis&&x.why?`${x.why}. ${x.s}`:x.s,dis:x.dis||x.on,fn:()=>{const r=K.plan(host.ticket(),x.id);if(r)host.apply(r);setTimeout(()=>K.ui.plan(host,back),0)}}))
           .concat([{l:'Done',s:'Back to the off-season.',fn:()=>{if(back)setTimeout(back,0)}}]),false,{id:'seine',phase:'plan',events:[]});
     },

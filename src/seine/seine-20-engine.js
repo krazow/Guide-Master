@@ -225,7 +225,7 @@
           title=`⚓ Homer harbor · ${T.dayTxt||'opener day'}`;
           if(!skip&&T.late>30){html=`<p>You pull into the harbor at ${timeTxt(D.OPEN+T.late)}. The <b>${cap.boat}</b>’s slip is empty: ${cap.name.split(' ')[0]} left at 6:30 with somebody’s cousin on deck.</p><p>No opener, no share, and a skipper who won’t forget it.</p>`;add('missed','Walk back up the dock');break}
           html=`<p>${skip?`You run the <b>${D.OWN_BOAT}</b>, a 50-ft limit seiner, with her skiff and ${D.SKIP.crew} crew.`:`You crew on the <b>${cap.boat}</b> for <b>${cap.name}</b>. ${cap.line}`}</p>
-            <p>📣 Southern District purse seine period, 6 AM to 10 PM. ${esc(K.runTxt(T.year,T.md))}.</p>
+            <p>📣 Southern District purse seine period, 6 AM to 10 PM. Running: ${esc(K.runTxt(T.year,T.md))}.</p>
             <p>💨 Wind ${windTxt(X.wind)}.${skip&&T.late>0?` You’re ${T.late} minutes late and the crew is waiting.`:''}</p>
             ${T.first?`<p class="small-note" style="font-size:13px">How a set works: the skiff holds one end of the net while the seiner runs a circle around a school, then a winch draws the purse line and closes the bottom. The crew stacks the net back aboard and brails the fish into the hold. At the end of the day a tender at anchor buys the catch.</p>`:''}`;
           if(skip){
@@ -239,7 +239,7 @@
           break}
         case 'grounds':{
           title=`🗺️ Where to set · ${timeTxt(X.t)}`;
-          if(skip){html=`<p>Which bay do you start in? ${esc(K.runTxt(T.year,T.md))}. Kachemak Bay’s seine water is small: the boats you see at dawn are the boats you’ll see all day.</p>`;
+          if(skip){html=`<p>Which bay do you start in? Running: ${esc(K.runTxt(T.year,T.md))}. Kachemak Bay’s seine water is small: the boats you see at dawn are the boats you’ll see all day.</p>`;
             D.SPOT_IDS.forEach(id=>{const sp=D.SPOTS[id];add('spot:'+id,`${sp.ic} ${sp.n}`,`${sp.d} ${sp.run} min run.`)})}
           else{const sp=spot();html=`<p>${cap.name.split(' ')[0]} heads for <b>${sp.ic} ${sp.n}</b>. ${sp.d}</p><p>You’re on deck: stacking the net as it comes over the block, then brailing. How do you work it?</p>`;
             add('pace:steady','Work steady and keep clear of the lines','Safer. Nobody notices you.');add('pace:hustle','Hustle','The skipper notices. So does the power block.')}

@@ -3,7 +3,7 @@
 //  The seining itself lives in src/seine/ (the Seine module, which knows nothing about this game). This file is the thin bridge:
 //  it builds the module's tickets from the save (S), gives it a host made of our own pop-ups, and applies each report back to S.
 //
-//  How it fits: from the 2nd off-season on, the planner's "🎣 Commercial & crab" sheet has "⚓ Purse seining out of Homer": crew on a
+//  How it fits: from the 2nd off-season on, the planner's "⚓ Commercial & crab" sheet has "⚓ Purse seining out of Homer": crew on a
 //  seiner for a share, or (after a few openers) run a chartered boat on an emergency transfer or your own permit. ADF&G's openers
 //  (Monday, Wednesday and Friday from mid-June; after July only in a fair pink year) show a few days ahead in the morning report and
 //  at the top of 📅 Bookings, where you sign on or pass, one by one. An opener is a whole day: a booked trip that day is your real
@@ -33,17 +33,26 @@ const seineSigned=d=>{const o=seineOp(d);return !!(o&&o.ans==='yes'&&!o.done)};
 const seineDiesel=()=>Math.round(Math.max(4,((S.fuelBase&&S.fuelBase.homer)||6.45)-.75)*100)/100;   // marine diesel at the Homer fuel dock (an estimate off the gas price)
 const seineYear=d=>dateOf(d).getUTCFullYear();
 
-// ---- the winter: the shared "Commercial & crab" sheet (gillnet and crab add their own rows to FISH_HUB) ----
-var FISH_HUB=(typeof FISH_HUB!=='undefined'&&Array.isArray(FISH_HUB))?FISH_HUB:[];
-FISH_HUB.push({id:'seine',btn:()=>{const P=seinePlan(S.winter.s);return {l:'⚓ Purse seining out of Homer',s:P?(P.role==='crew'?`You’ll crew on the ${Seine.captain(2026+S.winter.s,SN().st).boat} this summer.`:`You’ll run the ${Seine.data.OWN_BOAT} this summer.`):'Crew on a salmon seiner for a share, or later run your own boat.',fn:()=>seineWinterModal(()=>fishHubModal())}}});
-function fishHubModal(){
-  if(!S.winter) return;
-  modal('🎣 Commercial & crab',`<p>Summer openers and winter crab work, if you want them. Each opener you work is a day off the river. Cash now <b>${$(Math.round(S.money))}</b>.</p>`,
-    FISH_HUB.map(h=>h.btn()).filter(Boolean).concat([{l:'Back to the off-season',fn:()=>setTimeout(winterModal,0)}]));
-}
-if(typeof window!=='undefined'&&!window.__fishHubBtn){window.__fishHubBtn=true;
-  const _bw=typeof bizWinterBtns==='function'?bizWinterBtns:()=>[];
-  bizWinterBtns=function(){const a=_bw();if(S&&S.winter&&seineUnlocked()&&FISH_HUB.length)a.push({l:'🎣 Commercial & crab',s:'Optional summer openers and winter crab work: crew for a share or run your own.',fn:()=>fishHubModal()});return a};}
+// ---- the winter: the shared "Commercial & crab" sheet ----
+// Shared with the gillnet and crab branches (same names and shapes; defined only if not already, so a merge keeps one copy):
+// FISH_HUB (sections {id, order, ic, l, short, s(), open(back)}), fishHubOn(), fishWinterBtns() (one line in winterModal, 24-career.js),
+// fishHubModal(). Order: gillnet 1, seine 2, crab 3, tender 4.
+var FISH_HUB=typeof FISH_HUB!=='undefined'&&Array.isArray(FISH_HUB)?FISH_HUB:[];
+var fishHubOn=typeof fishHubOn==='function'?fishHubOn:function(){return !!(S&&S.winter&&S.seasons&&S.seasons.length>=SEINE_UNLOCK)};
+var fishWinterBtns=typeof fishWinterBtns==='function'?fishWinterBtns:function(){
+  if(!fishHubOn()||!FISH_HUB.length) return [];
+  const t=FISH_HUB.slice().sort((a,b)=>a.order-b.order).map(x=>x.short).join(' · ');
+  return [{l:'⚓ Commercial & crab',s:t.charAt(0).toUpperCase()+t.slice(1)+'. Optional, and risky.',fn:()=>fishHubModal()}];
+};
+var fishHubModal=typeof fishHubModal==='function'?fishHubModal:function(){
+  const back=()=>setTimeout(winterModal,0),again=()=>setTimeout(fishHubModal,0),H=FISH_HUB.slice().sort((a,b)=>a.order-b.order);
+  if(H.length===1) return H[0].open(back);
+  modal('⚓ Commercial & crab',`<p style="font-size:13px;color:var(--mute)">Work the water when you are not guiding. Cash ${$(Math.round(S.money))}. ${campDaysLeft()} free day${campDaysLeft()===1?'':'s'} left this winter.</p>`,
+    H.map(x=>({l:`${x.ic} ${x.l}`,s:x.s(),fn:()=>x.open(again)})).concat([{l:'Back to the off-season',fn:back}]));
+};
+FISH_HUB.push({id:'seine',order:2,ic:'🎣',l:'Purse seining out of Homer',short:'salmon seining out of Homer',
+  s:()=>{const P=seinePlan(S.winter.s);return P?(P.role==='crew'?`You’ll crew on the ${Seine.captain(2026+S.winter.s,SN().st).boat} this summer.`:`You’ll run the ${Seine.data.OWN_BOAT} this summer.`):'Crew on a salmon seiner for a share of each opener, or later run your own boat.'},
+  open:back=>seineWinterModal(back)});
 function seineWinterTicket(){const s=S.winter.s;return {state:SN().st,season:s,year:2026+s,cash:Math.round(S.money),costMult:DF().cost,rep:S.rep}}
 function seinePlanApply(r){
   const F=SN();F.st=r.state;
