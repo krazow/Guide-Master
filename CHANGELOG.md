@@ -23,6 +23,11 @@ are taken from it. Earlier versions are described in the README and the in-game 
 - The offline cache now includes the how-to page and its video (the video answers byte-range requests, as Safari needs), and opening
   another page of the site no longer replaces the game's cached page.
 - The old iPhone hint line on the title screen is replaced by the button.
+- **A compact title screen** that fits a phone without scrolling: a slim *📲 Play offline: install the app* bar at the very top
+  (phones and tablets in a browser, or any browser that has offered an install; never in the installed app or the offline copy;
+  ✕ hides it for 30 days), then the picture, the title and one big button (Start, or Continue), the intro and its five points folded
+  under **What's the game about?**, and the other buttons (New game, Save slots, Install app, Help!, Send feedback, Transfer) in a
+  two-column grid. On short screens the picture gives up height first.
 
 ## 1.17.0 (2026-11-18)
 

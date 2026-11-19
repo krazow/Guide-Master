@@ -1,5 +1,7 @@
-// ---------------- "📲 Install app" on the title screen ----------------
-// 08-settings.js puts installButton() on the title screen. What the button does depends on the device:
+// ---------------- "📲 Install app" on the title screen, and the install bar above it ----------------
+// 08-settings.js puts installButton() in the title screen's button grid, and installBar() at the very top: a slim
+// "📲 Play offline: install the app [Install] [✕]" line for phones and tablets in a browser (and any browser that has offered an
+// install). ✕ hides the bar for 30 days; the Install app button stays in the grid. What the button does depends on the device:
 //   Chrome / Edge / Samsung Internet (Android and computers): when the browser has offered an install (beforeinstallprompt),
 //     the button opens the browser's own install prompt; after appinstalled it hides and says thanks.
 //   No offer yet (Firefox, a browser that hasn't decided the page is installable, …): a short sheet with the menu steps.
@@ -17,9 +19,20 @@ function installShown(){
   try{return localStorage.getItem(INSTALLED_KEY)!=='1'}catch(e){return true}
 }
 function installButton(){return installShown()?'<button id="installBtn" class="ghost" onclick="doInstall()">📲 Install app</button>':''}
-function syncInstallBtn(){const b=document.getElementById('installBtn');
+const isPhoneOrTablet=()=>isIOS()||/android|mobi|silk|kindle|tablet/i.test(navigator.userAgent)||!!(navigator.userAgentData&&navigator.userAgentData.mobile);
+const BAR_KEY=KEY('installBarHidden'),BAR_DAYS=30;   // when ✕ was tapped (ms)
+function installBarDismissed(){try{const t=+localStorage.getItem(BAR_KEY);return t>0&&Date.now()-t<BAR_DAYS*864e5}catch(e){return false}}
+function installBarShown(){return installShown()&&(isPhoneOrTablet()||!!deferredInstall)&&!installBarDismissed()}
+function installBar(){return installBarShown()?`<div class="inst-bar" id="installBar" role="region" aria-label="Install the app"><span class="ib-t">📲 Play offline: install the app</span>
+  <button id="installBarBtn" class="ib-go" onclick="doInstall()">Install</button><button class="ib-x" onclick="dismissInstallBar()" aria-label="Dismiss">✕</button></div>`:''}
+window.dismissInstallBar=()=>{try{localStorage.setItem(BAR_KEY,String(Date.now()))}catch(e){}
+  const b=document.getElementById('installBar');if(b)b.remove();
+  const f=document.querySelector('.title .big');if(f)f.focus();
+  if(typeof fitTitle==='function')fitTitle()};
+function syncInstallBtn(){const b=document.getElementById('installBtn'),bar=document.getElementById('installBar');
   if(b&&!installShown())b.remove();
-  else if(!b&&installShown()&&document.querySelector('.title'))titleScreen()}
+  if(bar&&!installBarShown())bar.remove();
+  if(document.querySelector('.title')&&((!b&&installShown())||(!bar&&installBarShown())||(b&&!installShown())))titleScreen()}
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstall=e;try{localStorage.removeItem(INSTALLED_KEY)}catch(x){}syncInstallBtn()});
 window.addEventListener('appinstalled',()=>{deferredInstall=null;try{localStorage.setItem(INSTALLED_KEY,'1')}catch(e){}syncInstallBtn();
   installToast('✅ Thanks for installing Guide Master! Find it on your home screen. It plays offline, too.')});

@@ -360,7 +360,7 @@ This is a simplified model of typical run timing, not a forecast.
 
 ## Play
 
-Open `index.html`, or deploy the folder to any static https host (GitHub Pages works: `.nojekyll` is included) and install it from the browser: the title screen's **📲 Install app** button opens the browser's install prompt (Chrome, Edge, Android), shows the menu steps in other browsers, and on iPhone/iPad opens `install/ios.html`, a how-to page with a short video (`install/ios-add-to-home.mp4`, precached by `sw.js` so it works offline). `offline/guidemaster-offline.html` (from `python3 tools/build-offline.py`) runs by double-clicking.
+Open `index.html`, or deploy the folder to any static https host (GitHub Pages works: `.nojekyll` is included) and install it from the browser: on phones and tablets a slim **📲 Play offline: install the app** bar sits at the top of the title screen (✕ hides it for 30 days), and the **📲 Install app** button in the title screen's grid is always there. Both open the browser's install prompt (Chrome, Edge, Android), shows the menu steps in other browsers, and on iPhone/iPad opens `install/ios.html`, a how-to page with a short video (`install/ios-add-to-home.mp4`, precached by `sw.js` so it works offline). `offline/guidemaster-offline.html` (from `python3 tools/build-offline.py`) runs by double-clicking.
 
 ## Build & test
 

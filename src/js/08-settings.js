@@ -19,23 +19,48 @@ function diffModal(then){
 window.startNewGame=()=>{const go=k=>{newGame(k);render()};const pickDiff=()=>diffModal(go);if(!profileName())nameModal({first:true,then:pickDiff});else pickDiff()};
 
 // ---------------- title screen ----------------
+// Phone-first: an install bar (41-install.js, when installing makes sense), the art with the ⚙️ gear, the title, ONE big button
+// (Start, or Continue when there's a save), "What's the game about?" (intro + bullets, folded), then the other buttons in a
+// two-column grid (an odd one out spans both columns) and the version note. fitTitle() shrinks the art when the screen is short.
 function titleScreen(){clearTiles();
+  const prev=document.querySelector('.title details.about'),wasOpen=prev?prev.open:null;
   const d=loadSave(),multi=[2,3].some(k=>k<=GAME.slots&&k!==curSlot()&&rawSave(k));
-  app.innerHTML=withName(`<div class="title"><button class="tgear" onclick="openSettings()" aria-label="Settings">⚙️</button><div class="art">${TITLE.art()}</div>
+  const cells=[
+    ...(d?['<button class="ghost" onclick="startNewGame()">🆕 New game</button>']:[]),
+    ...(GAME.slots>1?['<button class="ghost" onclick="slotsModal()">💾 Save slots</button>']:[]),
+    ...(installButton()?[installButton()]:[]),
+    ...(typeof helpModal==='function'?['<button class="ghost" onclick="helpModal()">❓ Help!</button>']:[]),
+    ...(typeof feedbackModal==='function'?['<button class="ghost" onclick="feedbackModal()">💬 Send feedback</button>']:[]),
+    '<button class="ghost" onclick="openTransfer()" title="Transfer a saved game to another device or browser">🔁 Transfer a save</button>'];
+  if(cells.length%2)cells[cells.length-1]=cells[cells.length-1].replace('class="ghost"','class="ghost wide"').replace('🔁 Transfer a save<','🔁 Transfer a saved game<');
+  const about=TITLE.intro||TITLE.bullets.length;
+  app.innerHTML=withName(`<div class="title">${typeof installBar==='function'?installBar():''}<div class="art"><button class="tgear" onclick="openSettings()" aria-label="Settings">⚙️</button>${TITLE.art()}</div>
   <div class="body"><h1>${esc(GAME.title)}<span>${esc(GAME.tagline)}</span></h1>
-  <p>${TITLE.intro}</p>
-  ${TITLE.bullets.length?`<ul>${TITLE.bullets.map(b=>`<li>${b}</li>`).join('')}</ul>`:''}
-  ${d?`<button class="big" onclick="resumeGame()">Continue as ${esc(d.S.name||currentName())}: ${dayName(d.S.cur)} ${fmt(d.S.t)}${multi||curSlot()>1?` (slot ${curSlot()})`:''}</button><button class="ghost" onclick="startNewGame()">Start a new game</button>`:`<button class="big" onclick="startNewGame()">${TITLE.start}</button>`}
-  ${GAME.slots>1?'<button class="ghost" onclick="slotsModal()">💾 Save slots</button>':''}
-  ${installButton()}
-  ${typeof helpModal==='function'?'<button class="ghost" onclick="helpModal()">❓ Help!</button>':''}
-  ${typeof feedbackModal==='function'?'<button class="ghost" onclick="feedbackModal()">💬 Send feedback</button>':''}
-  <button class="ghost" onclick="openTransfer()">🔁 Transfer a saved game</button>
+  ${d?`<button class="big" onclick="resumeGame()">Continue as ${esc(d.S.name||currentName())}: ${dayName(d.S.cur)} ${fmt(d.S.t)}${multi||curSlot()>1?` (slot ${curSlot()})`:''}</button>`:`<button class="big" onclick="startNewGame()">${TITLE.start}</button>`}
+  ${about?`<details class="about"><summary>What’s the game about?</summary>${TITLE.intro?`<p>${TITLE.intro}</p>`:''}
+  ${TITLE.bullets.length?`<ul>${TITLE.bullets.map(b=>`<li>${b}</li>`).join('')}</ul>`:''}</details>`:''}
+  <div class="tgrid">${cells.join('')}</div>
   ${saveNotice?`<div class="hint">⚠️ ${saveNotice}</div>`:''}${exitNotice?`<div class="hint">${exitNotice}</div>`:''}
   <div class="small-note">Version ${APP_VERSION}. ${TITLE.note||''}</div></div></div>`);
   exitNotice='';saveNotice='';
+  const det=document.querySelector('.title details.about');
+  // folded for returning players; a brand-new player sees it open only when everything still fits with the full picture
+  if(det){if(wasOpen!=null)det.open=wasOpen;else if(!d&&!anySave()){det.open=true;if(!titleFits(250))det.open=false}}
+  fitTitle();
   if(typeof maybeUpdateNotice==='function')maybeUpdateNotice();
 }
+function anySave(){for(let k=1;k<=GAME.slots;k++)if(rawSave(k))return true;return false}
+const TITLE_ART_MIN=120,TITLE_ART_MAX=250;
+// Does the title screen fit the window with the art at this height?
+function titleFits(h){const t=document.querySelector('.title'),a=t&&t.querySelector('.art');if(!a)return true;
+  a.style.height=h+'px';const r=document.scrollingElement.scrollHeight<=innerHeight+1;a.style.height='';return r}
+// The art gives up height (down to TITLE_ART_MIN) so the buttons stay on screen.
+function fitTitle(){const t=document.querySelector('.title'),a=t&&t.querySelector('.art');if(!a)return;
+  a.style.height='';const det=t.querySelector('details.about');if(det&&det.open)return;   // reading the intro: scroll instead
+  const over=document.scrollingElement.scrollHeight-innerHeight;
+  if(over>0)a.style.height=Math.max(TITLE_ART_MIN,TITLE_ART_MAX-over)+'px'}
+window.addEventListener('resize',()=>{if(document.querySelector('.title'))fitTitle()});
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{if(document.querySelector('.title'))fitTitle()});
 
 // ---------------- save slots ----------------
 function slotLabel(n){const d=loadSave(n);return d?`${esc(d.S.name||currentName())} · ${DIFFS[d.S.diff].ic} ${dayName(d.S.cur)} ${fmt(d.S.t)}`:'<span class="slot-empty">Empty</span>'}

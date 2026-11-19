@@ -1,67 +1,18 @@
 // The title screen's "📲 Install app" button (src/js/41-install.js) and the iPhone/iPad how-to page (install/ios.html).
 // Most of these need the game served over http (the button never shows from a file), so they start a tiny static server.
-const fs = require('fs'), path = require('path'), http = require('http');
-const { ID, open, noErrors, assert } = require('./helpers');
+const fs = require('fs'), path = require('path');
+const { ID, open, noErrors, assert, UA, phone, firePrompt } = require('./helpers');
+const btn = page => page.locator('#installBtn');
 
 const ROOT = path.resolve(__dirname, '..');
-const UA = {
-  android: 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36',
-  iphone: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1',
-  ipad: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15',
-};
 const VIDEO_MAX = 1.6 * 1024 * 1024;   // the how-to video's size budget
-
-const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json', '.webmanifest': 'application/manifest+json',
-  '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.woff2': 'font/woff2', '.mp4': 'video/mp4' };
-let server = null;
-function serve() {
-  if (server) return server;
-  server = new Promise(res => {
-    const s = http.createServer((req, rsp) => {
-      let p = decodeURIComponent(new URL(req.url, 'http://x').pathname);
-      if (p.endsWith('/')) p += 'index.html';
-      const f = path.join(ROOT, path.normalize(p));
-      if (!f.startsWith(ROOT) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { rsp.writeHead(404); rsp.end(); return; }
-      rsp.writeHead(200, { 'Content-Type': TYPES[path.extname(f)] || 'application/octet-stream', 'Cache-Control': 'no-store' });
-      fs.createReadStream(f).pipe(rsp);
-    });
-    s.listen(0, '127.0.0.1', () => { s.unref(); res(`http://127.0.0.1:${s.address().port}/`); });
-  });
-  return server;
-}
-// A browser context dressed as a phone, with the game served over http and quiet prefs.
-async function phone(ctx, ua, { standalone = false, ipad = false } = {}) {
-  const base = await serve();
-  const context = await ctx.context.browser().newContext({ viewport: { width: 390, height: 844 }, userAgent: UA[ua], isMobile: ua !== 'ipad', hasTouch: true });
-  await context.addInitScript(({ id, standalone, ipad }) => {
-    if (!localStorage.getItem(id + '.name')) { localStorage.setItem(id + '.name', 'T'); localStorage.setItem(id + '.popups', 'off');
-      localStorage.setItem(id + '.prefs', JSON.stringify({ tips: false, sound: false })); }
-    if (standalone) { const mm = window.matchMedia.bind(window); window.matchMedia = q => /display-mode:\s*standalone/.test(q) ? { matches: true, media: q, addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {} } : mm(q); }
-    if (ipad) { Object.defineProperty(Navigator.prototype, 'platform', { get: () => 'MacIntel' }); Object.defineProperty(Navigator.prototype, 'maxTouchPoints', { get: () => 5 }); }
-  }, { id: ID, standalone, ipad });
-  context.setDefaultTimeout(5000);
-  const page = await context.newPage();
-  const errors = [];
-  page.on('pageerror', e => errors.push(String(e && e.stack || e)));
-  await page.goto(base + 'index.html');
-  await page.waitForSelector('.title');
-  return { base, context, page, errors };
-}
-const btn = page => page.locator('#installBtn');
-// A stand-in for Chrome's beforeinstallprompt event.
-const firePrompt = page => page.evaluate(() => {
-  const e = new Event('beforeinstallprompt', { cancelable: true });
-  e.prompt = () => { window.__prompted = (window.__prompted || 0) + 1; };
-  e.userChoice = Promise.resolve({ outcome: 'accepted', platform: 'web' });
-  window.dispatchEvent(e);
-  return e.defaultPrevented;
-});
 
 module.exports = [
   { name: 'no button from a file or in the one-file offline build', fn: async ctx => {
     const { page, errors } = await open(ctx);
     assert.strictEqual(await btn(page).count(), 0);
-    assert.ok(/Transfer a saved game/.test(await page.textContent('.title')), 'title screen drawn');
+    assert.ok(/Transfer a save/.test(await page.textContent('.title')), 'title screen drawn');
+    assert.strictEqual(await page.locator('#installBar').count(), 0, 'no install bar either');
     assert.ok(await page.evaluate(() => HELP.some(h => /Install app/.test(h[2])) && CHANGELOG[APP_VERSION].some(l => /Install app/.test(l))), 'Help and the update notice mention it');
     if (ctx.target.name === 'offline') assert.strictEqual(await page.evaluate(() => SINGLE_FILE), true);
     // even if a browser offered an install, a file has nothing to install
