@@ -44,7 +44,7 @@ function tenderApply(rep,quiet){
   return rep;
 }
 // ---- illustrations (40-art.js): the module reports events [{id, sev}] (Tender.EVENTS); the worst one with a picture wins ----
-function tenderArt(evs){if(typeof artOn!=='function'||!artOn()||!evs||!evs.length)return '';return artFirst(evs.slice().sort((a,b)=>(b.sev||0)-(a.sev||0)).map(e=>()=>artSlot('event',()=>artEventCtx(e.id,'tender'),{deco:true})))}
+function tenderArt(evs){if(typeof artOn!=='function'||!artOn()||!evs||!evs.length)return '';return artFirst(evs.slice().sort((a,b)=>(b.sev||0)-(a.sev||0)).map(e=>()=>artSlot('event',()=>fishArtCtx(e.id,'tender'),{deco:true})))}
 const tenderHost=()=>({show:(t,h,b,lock,meta)=>modalSwap(t,tenderArt(meta&&meta.events)+h,b,lock),ticket:()=>tenderTicket(),apply:r=>tenderApply(r),rand:()=>Math.random()});
 const tenderBotHost=()=>({ticket:()=>tenderTicket(),apply:r=>tenderApply(r,true)});
 

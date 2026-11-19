@@ -138,7 +138,7 @@
         const st=T.day,hard=wind>=D.SCA;
         const role=crew?`You’re crew for <b>${who}</b>: a ${Math.round(K.crew*100)}% share of the fish ticket.`:T.role==='own'?'Your boat, your permit.':T.kind==='set'?'Your leased site and nets.':'Your leased permit and boat.';
         const where=T.kind==='set'?'the site below the Kalifornsky bluffs':D.AREA[st.area];
-        const body=`<p>${T.kind==='set'?'🪢':'🚤'} <b>${D.ST[st.st].charAt(0).toUpperCase()+D.ST[st.st].slice(1)}</b> · ${where}. ${st.why||''}</p><p>${role}${late>0?` You’re ${late} minutes late for the opening.`:''}</p>${hard?`<p style="color:var(--warn,#b60)">💨 A small-craft advisory: ${wind} knots on the inlet.${T.kind==='drift'&&!T.suit?' You have no survival suit aboard.':''}</p>`:''}${facts()}`;
+        const body=`<p>${T.kind==='set'?'🪢':'🚤'} <b>${D.ST[st.st].charAt(0).toUpperCase()+D.ST[st.st].slice(1)}</b> · ${where}. ${st.why&&st.why.indexOf(String(where).replace(/^the /,''))<0?st.why:''}</p><p>${role}${late>0?` You’re ${late} minutes late for the opening.`:''}</p>${hard?`<p style="color:var(--warn,#b60)">💨 A small-craft advisory: ${wind} knots on the inlet.${T.kind==='drift'&&!T.suit?' You have no survival suit aboard.':''}</p>`:''}${facts()}`;
         sev(T.kind==='set'?'gn_low_tide_site':'gn_tide_rip',1);
         return {title:T.kind==='set'?'🪢 Setnet opener':'🚤 Drift opener',html:body,buttons:[
           {id:'go',l:T.kind==='set'?'Head to the beach':'Run out of the Kenai River',s:T.kind==='set'?'Fifteen minutes to the site. A long day: back around 8:30 PM.':'Out over the bar at the mouth. Back around 9 PM.'},

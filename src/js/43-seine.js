@@ -45,7 +45,7 @@ function seinePlanApply(r){
 }
 function seineWinterModal(back){
   if(!S.winter) return;
-  Seine.ui.plan({show:(t,h,b,lock)=>modal(t,(typeof artOn==='function'&&artOn()?artSlot('event',()=>artEventCtx('dawn_set','seine'),{deco:true,key:'seine-plan'}):'')+h,b,lock),ticket:seineWinterTicket,apply:seinePlanApply},back||(()=>winterModal()));
+  Seine.ui.plan({show:(t,h,b,lock)=>modal(t,(typeof artOn==='function'&&artOn()?artSlot('event',()=>fishArtCtx('dawn_set','seine'),{deco:true,key:'seine-plan'}):'')+h,b,lock),ticket:seineWinterTicket,apply:seinePlanApply},back||(()=>winterModal()));
 }
 // a permit you own counts like a boat on the end screen: nine tenths of what you paid
 {const _sp=scoreParts;scoreParts=function(){const P=_sp();const F=S&&S.fish&&S.fish.seine;if(F&&F.st&&F.st.permit&&F.st.permitPaid)P.splice(3,0,['Seine permit',Math.round(F.st.permitPaid*.9),'nine tenths of what you paid']);return P}}
@@ -139,7 +139,7 @@ function seineApply(rep,o){
   return rep;
 }
 // illustrations: the module reports what happened as events (Seine.data.EVENTS); the worst one that has a picture shows
-function seineArt(evs){if(typeof artOn!=='function'||!artOn()||!evs||!evs.length)return '';return artFirst(evs.map((e,i)=>({e,i})).sort((a,b)=>(b.e.sev||0)-(a.e.sev||0)||a.i-b.i).map(x=>()=>artSlot('event',()=>artEventCtx(x.e.id,'seine'),{deco:true})))}
+function seineArt(evs){if(typeof artOn!=='function'||!artOn()||!evs||!evs.length)return '';return artFirst(evs.map((e,i)=>({e,i})).sort((a,b)=>(b.e.sev||0)-(a.e.sev||0)||a.i-b.i).map(x=>()=>artSlot('event',()=>fishArtCtx(x.e.id,'seine'),{deco:true})))}
 let SEINE_RUN=null;
 function seineStart(o){
   const late=Math.max(0,tod()-SEINE_MEET);

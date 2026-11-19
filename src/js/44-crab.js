@@ -54,7 +54,7 @@ function crabApply(rep,quiet){
   return rep;
 }
 // illustrations (40-art.js): the module reports what happened as events [{id, sev}] (Crab.data.EVENTS); the worst one with a picture wins
-function crabArt(evs){if(!artOn()||!evs||!evs.length)return '';return artFirst(evs.map((e,i)=>({e,i})).sort((a,b)=>(b.e.sev||0)-(a.e.sev||0)||b.i-a.i).map(x=>()=>artSlot('event',()=>artEventCtx(x.e.id,'crab'),{deco:true})))}
+function crabArt(evs){if(!artOn()||!evs||!evs.length)return '';return artFirst(evs.map((e,i)=>({e,i})).sort((a,b)=>(b.e.sev||0)-(a.e.sev||0)||b.i-a.i).map(x=>()=>artSlot('event',()=>fishArtCtx(x.e.id,'crab'),{deco:true})))}
 const crabHost=()=>({show:(t,h,b,lock,meta)=>modal(t,crabArt(meta&&meta.events)+h,b,lock),ticket:()=>crabTicket(),apply:r=>crabApply(r),rand:()=>Math.random()});
 
 // ---- summer: the Homer actions ----

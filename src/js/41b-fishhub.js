@@ -30,6 +30,10 @@ function fishHubModal(){
     H.map(x=>({l:`${x.ic} ${x.l}`,s:x.s(),fn:()=>x.open(again)})).concat([{l:'Back to the off-season',fn:back}]));
 }
 
+// ---- pictures: a module's sheets run on the module's own clock (a seine opener plays out from 6 AM to 10 PM on one game minute), so
+// its event pictures match any time of day (40-art.js, artEventCtx) ----
+function fishArtCtx(id,from){return Object.assign(artEventCtx(id,from),{time:['day','dusk','night']})}
+
 // ---- the day: one commercial activity at a time ----
 const FISH_CANCEL_REP=5;          // reputation each party costs you when you cancel on them to go fishing (or to run your tender)
 const FISH_WHAT={gillnet:'You’re fishing the gillnet opener today.',seine:'You’re on the seiner today.',tender:'You’re running your tender today.'};

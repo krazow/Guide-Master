@@ -119,7 +119,7 @@ function gnTicket(d,seine){
     skipper:p.role==='crew'?gnSkipper(p.kind):'',d};
 }
 // the sheets: an illustration from the beat's events (the worst first), from 'gillnet'
-function gnArt(evs){if(!artOn()||!evs||!evs.length)return '';return artFirst(evs.map((e,i)=>({e,i})).sort((a,b)=>(b.e.sev||0)-(a.e.sev||0)||a.i-b.i).map(x=>()=>artSlot('event',()=>artEventCtx(x.e.id,'gillnet'),{deco:true,key:'gillnet'})))}
+function gnArt(evs){if(!artOn()||!evs||!evs.length)return '';return artFirst(evs.map((e,i)=>({e,i})).sort((a,b)=>(b.e.sev||0)-(a.e.sev||0)||a.i-b.i).map(x=>()=>artSlot('event',()=>fishArtCtx(x.e.id,'gillnet'),{deco:true,key:'gillnet'})))}
 // the summary sheet also says where the fish went when your own tender or plant bought them (fishDeliver, applied in gnApply first)
 let GN_ROUTED=null;
 const gnHost=d=>({show:(t,h,b,lock,meta)=>modal(t,gnArt(meta&&meta.events)+h+(meta&&meta.phase==='done'&&GN_ROUTED?GN_ROUTED.lines.map(l=>`<p>${l}</p>`).join(''):''),b,lock),rand:()=>Math.random(),onFinish:rep=>gnApply(rep,d)});
@@ -226,7 +226,7 @@ function gnWinterModal(back){
   if(!g.suit) o.push({l:`🦺 Buy a survival suit — ${$(Math.round(GN.SUIT*cm))}`,s:'An immersion suit for the cold inlet. Worth it on a drift boat in a blow.',dis:S.money<Math.round(GN.SUIT*cm),fn:again(gnSuit)});
   o.push({l:'Done',s:'Back to the off-season.',fn:()=>{const b=GN_BACK||(()=>setTimeout(winterModal,0));GN_BACK=null;b()}});
   const xp=`Openers worked: ${g.xp.set} setnet, ${g.xp.drift} drift.`;
-  modal(`🎣 Gillnetting · cash ${$(Math.round(S.money))}`,`${artSlot('event',()=>artEventCtx('gn_low_tide_site','gillnet'),{deco:true,key:'gn-plan'})}<p style="font-size:13px"><b>This summer:</b> ${p?GN.ROLES[p.id].l:'guiding only'}. ${xp}</p>
+  modal(`🎣 Gillnetting · cash ${$(Math.round(S.money))}`,`${artSlot('event',()=>fishArtCtx('gn_low_tide_site','gillnet'),{deco:true,key:'gn-plan'})}<p style="font-size:13px"><b>This summer:</b> ${p?GN.ROLES[p.id].l:'guiding only'}. ${xp}</p>
     <p style="font-size:13px">🪢 <b>Setnets:</b> ${Gillnet.outlook('set',kingRule(),sock)}</p><p style="font-size:13px">🚤 <b>Drift boats:</b> ${Gillnet.outlook('drift',kingRule(),sock)}</p>
     <p style="font-size:13px;color:var(--mute)">${GN_HOW}</p>`,o);
 }

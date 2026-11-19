@@ -2048,7 +2048,7 @@ const Gillnet={
         const st=T.day,hard=wind>=D.SCA;
         const role=crew?`You’re crew for <b>${who}</b>: a ${Math.round(K.crew*100)}% share of the fish ticket.`:T.role==='own'?'Your boat, your permit.':T.kind==='set'?'Your leased site and nets.':'Your leased permit and boat.';
         const where=T.kind==='set'?'the site below the Kalifornsky bluffs':D.AREA[st.area];
-        const body=`<p>${T.kind==='set'?'🪢':'🚤'} <b>${D.ST[st.st].charAt(0).toUpperCase()+D.ST[st.st].slice(1)}</b> · ${where}. ${st.why||''}</p><p>${role}${late>0?` You’re ${late} minutes late for the opening.`:''}</p>${hard?`<p style="color:var(--warn,#b60)">💨 A small-craft advisory: ${wind} knots on the inlet.${T.kind==='drift'&&!T.suit?' You have no survival suit aboard.':''}</p>`:''}${facts()}`;
+        const body=`<p>${T.kind==='set'?'🪢':'🚤'} <b>${D.ST[st.st].charAt(0).toUpperCase()+D.ST[st.st].slice(1)}</b> · ${where}. ${st.why&&st.why.indexOf(String(where).replace(/^the /,''))<0?st.why:''}</p><p>${role}${late>0?` You’re ${late} minutes late for the opening.`:''}</p>${hard?`<p style="color:var(--warn,#b60)">💨 A small-craft advisory: ${wind} knots on the inlet.${T.kind==='drift'&&!T.suit?' You have no survival suit aboard.':''}</p>`:''}${facts()}`;
         sev(T.kind==='set'?'gn_low_tide_site':'gn_tide_rip',1);
         return {title:T.kind==='set'?'🪢 Setnet opener':'🚤 Drift opener',html:body,buttons:[
           {id:'go',l:T.kind==='set'?'Head to the beach':'Run out of the Kenai River',s:T.kind==='set'?'Fifteen minutes to the site. A long day: back around 8:30 PM.':'Out over the bar at the mouth. Back around 9 PM.'},
@@ -9661,6 +9661,10 @@ function fishHubModal(){
     H.map(x=>({l:`${x.ic} ${x.l}`,s:x.s(),fn:()=>x.open(again)})).concat([{l:'Back to the off-season',fn:back}]));
 }
 
+// ---- pictures: a module's sheets run on the module's own clock (a seine opener plays out from 6 AM to 10 PM on one game minute), so
+// its event pictures match any time of day (40-art.js, artEventCtx) ----
+function fishArtCtx(id,from){return Object.assign(artEventCtx(id,from),{time:['day','dusk','night']})}
+
 // ---- the day: one commercial activity at a time ----
 const FISH_CANCEL_REP=5;          // reputation each party costs you when you cancel on them to go fishing (or to run your tender)
 const FISH_WHAT={gillnet:'You’re fishing the gillnet opener today.',seine:'You’re on the seiner today.',tender:'You’re running your tender today.'};
@@ -9846,7 +9850,7 @@ function gnTicket(d,seine){
     skipper:p.role==='crew'?gnSkipper(p.kind):'',d};
 }
 // the sheets: an illustration from the beat's events (the worst first), from 'gillnet'
-function gnArt(evs){if(!artOn()||!evs||!evs.length)return '';return artFirst(evs.map((e,i)=>({e,i})).sort((a,b)=>(b.e.sev||0)-(a.e.sev||0)||a.i-b.i).map(x=>()=>artSlot('event',()=>artEventCtx(x.e.id,'gillnet'),{deco:true,key:'gillnet'})))}
+function gnArt(evs){if(!artOn()||!evs||!evs.length)return '';return artFirst(evs.map((e,i)=>({e,i})).sort((a,b)=>(b.e.sev||0)-(a.e.sev||0)||a.i-b.i).map(x=>()=>artSlot('event',()=>fishArtCtx(x.e.id,'gillnet'),{deco:true,key:'gillnet'})))}
 // the summary sheet also says where the fish went when your own tender or plant bought them (fishDeliver, applied in gnApply first)
 let GN_ROUTED=null;
 const gnHost=d=>({show:(t,h,b,lock,meta)=>modal(t,gnArt(meta&&meta.events)+h+(meta&&meta.phase==='done'&&GN_ROUTED?GN_ROUTED.lines.map(l=>`<p>${l}</p>`).join(''):''),b,lock),rand:()=>Math.random(),onFinish:rep=>gnApply(rep,d)});
@@ -9953,7 +9957,7 @@ function gnWinterModal(back){
   if(!g.suit) o.push({l:`🦺 Buy a survival suit — ${$(Math.round(GN.SUIT*cm))}`,s:'An immersion suit for the cold inlet. Worth it on a drift boat in a blow.',dis:S.money<Math.round(GN.SUIT*cm),fn:again(gnSuit)});
   o.push({l:'Done',s:'Back to the off-season.',fn:()=>{const b=GN_BACK||(()=>setTimeout(winterModal,0));GN_BACK=null;b()}});
   const xp=`Openers worked: ${g.xp.set} setnet, ${g.xp.drift} drift.`;
-  modal(`🎣 Gillnetting · cash ${$(Math.round(S.money))}`,`${artSlot('event',()=>artEventCtx('gn_low_tide_site','gillnet'),{deco:true,key:'gn-plan'})}<p style="font-size:13px"><b>This summer:</b> ${p?GN.ROLES[p.id].l:'guiding only'}. ${xp}</p>
+  modal(`🎣 Gillnetting · cash ${$(Math.round(S.money))}`,`${artSlot('event',()=>fishArtCtx('gn_low_tide_site','gillnet'),{deco:true,key:'gn-plan'})}<p style="font-size:13px"><b>This summer:</b> ${p?GN.ROLES[p.id].l:'guiding only'}. ${xp}</p>
     <p style="font-size:13px">🪢 <b>Setnets:</b> ${Gillnet.outlook('set',kingRule(),sock)}</p><p style="font-size:13px">🚤 <b>Drift boats:</b> ${Gillnet.outlook('drift',kingRule(),sock)}</p>
     <p style="font-size:13px;color:var(--mute)">${GN_HOW}</p>`,o);
 }
@@ -10049,7 +10053,7 @@ function seinePlanApply(r){
 }
 function seineWinterModal(back){
   if(!S.winter) return;
-  Seine.ui.plan({show:(t,h,b,lock)=>modal(t,(typeof artOn==='function'&&artOn()?artSlot('event',()=>artEventCtx('dawn_set','seine'),{deco:true,key:'seine-plan'}):'')+h,b,lock),ticket:seineWinterTicket,apply:seinePlanApply},back||(()=>winterModal()));
+  Seine.ui.plan({show:(t,h,b,lock)=>modal(t,(typeof artOn==='function'&&artOn()?artSlot('event',()=>fishArtCtx('dawn_set','seine'),{deco:true,key:'seine-plan'}):'')+h,b,lock),ticket:seineWinterTicket,apply:seinePlanApply},back||(()=>winterModal()));
 }
 // a permit you own counts like a boat on the end screen: nine tenths of what you paid
 {const _sp=scoreParts;scoreParts=function(){const P=_sp();const F=S&&S.fish&&S.fish.seine;if(F&&F.st&&F.st.permit&&F.st.permitPaid)P.splice(3,0,['Seine permit',Math.round(F.st.permitPaid*.9),'nine tenths of what you paid']);return P}}
@@ -10143,7 +10147,7 @@ function seineApply(rep,o){
   return rep;
 }
 // illustrations: the module reports what happened as events (Seine.data.EVENTS); the worst one that has a picture shows
-function seineArt(evs){if(typeof artOn!=='function'||!artOn()||!evs||!evs.length)return '';return artFirst(evs.map((e,i)=>({e,i})).sort((a,b)=>(b.e.sev||0)-(a.e.sev||0)||a.i-b.i).map(x=>()=>artSlot('event',()=>artEventCtx(x.e.id,'seine'),{deco:true})))}
+function seineArt(evs){if(typeof artOn!=='function'||!artOn()||!evs||!evs.length)return '';return artFirst(evs.map((e,i)=>({e,i})).sort((a,b)=>(b.e.sev||0)-(a.e.sev||0)||a.i-b.i).map(x=>()=>artSlot('event',()=>fishArtCtx(x.e.id,'seine'),{deco:true})))}
 let SEINE_RUN=null;
 function seineStart(o){
   const late=Math.max(0,tod()-SEINE_MEET);
@@ -10285,7 +10289,7 @@ function crabApply(rep,quiet){
   return rep;
 }
 // illustrations (40-art.js): the module reports what happened as events [{id, sev}] (Crab.data.EVENTS); the worst one with a picture wins
-function crabArt(evs){if(!artOn()||!evs||!evs.length)return '';return artFirst(evs.map((e,i)=>({e,i})).sort((a,b)=>(b.e.sev||0)-(a.e.sev||0)||b.i-a.i).map(x=>()=>artSlot('event',()=>artEventCtx(x.e.id,'crab'),{deco:true})))}
+function crabArt(evs){if(!artOn()||!evs||!evs.length)return '';return artFirst(evs.map((e,i)=>({e,i})).sort((a,b)=>(b.e.sev||0)-(a.e.sev||0)||b.i-a.i).map(x=>()=>artSlot('event',()=>fishArtCtx(x.e.id,'crab'),{deco:true})))}
 const crabHost=()=>({show:(t,h,b,lock,meta)=>modal(t,crabArt(meta&&meta.events)+h,b,lock),ticket:()=>crabTicket(),apply:r=>crabApply(r),rand:()=>Math.random()});
 
 // ---- summer: the Homer actions ----
@@ -10573,7 +10577,7 @@ function tenderApply(rep,quiet){
   return rep;
 }
 // ---- illustrations (40-art.js): the module reports events [{id, sev}] (Tender.EVENTS); the worst one with a picture wins ----
-function tenderArt(evs){if(typeof artOn!=='function'||!artOn()||!evs||!evs.length)return '';return artFirst(evs.slice().sort((a,b)=>(b.sev||0)-(a.sev||0)).map(e=>()=>artSlot('event',()=>artEventCtx(e.id,'tender'),{deco:true})))}
+function tenderArt(evs){if(typeof artOn!=='function'||!artOn()||!evs||!evs.length)return '';return artFirst(evs.slice().sort((a,b)=>(b.sev||0)-(a.sev||0)).map(e=>()=>artSlot('event',()=>fishArtCtx(e.id,'tender'),{deco:true})))}
 const tenderHost=()=>({show:(t,h,b,lock,meta)=>modalSwap(t,tenderArt(meta&&meta.events)+h,b,lock),ticket:()=>tenderTicket(),apply:r=>tenderApply(r),rand:()=>Math.random()});
 const tenderBotHost=()=>({ticket:()=>tenderTicket(),apply:r=>tenderApply(r,true)});
 
