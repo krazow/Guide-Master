@@ -330,32 +330,6 @@
   "bg": "#7da7a7"
  },
  {
-  "id": "boat-12-sow-and-cubs-eddy",
-  "set": "boat",
-  "n": 12,
-  "title": "Sow and two cubs on the gravel bar",
-  "webp": "boat/12-sow-and-cubs-eddy.webp",
-  "file": "boat/12-sow-and-cubs-eddy.jpg",
-  "fw": 960,
-  "thumbWebp": "boat/12-sow-and-cubs-eddy.thumb.webp",
-  "thumb": "boat/12-sow-and-cubs-eddy.thumb.jpg",
-  "w": 1600,
-  "h": 900,
-  "alt": "A drift boat holds in an eddy behind a boulder on the turquoise upper Kenai while a brown bear sow and two cubs stand on a gravel bar, one client pointing and another taking a photo.",
-  "where": "The 'bear' trip dilemma on a drift-boat (trout) float on the upper Kenai.",
-  "when": {
-   "boat": "drift",
-   "where": "river",
-   "trip": "trout",
-   "time": "day"
-  },
-  "notes": "Also usable for event {event:'bear', from:'trip'} (dilemma 'bear' is in the trout POOL). Bear spray on the rower's seat; the rower faces upstream pulling to hold the eddy.",
-  "v": "6e58c5b2de",
-  "enabled": true,
-  "bg": "#71a7a3",
-  "focus": "50% 70%"
- },
- {
   "id": "boat-13-loaner-sled-launch",
   "set": "boat",
   "n": 13,
@@ -1608,7 +1582,7 @@
    "from": "trip",
    "time": "any"
   },
-  "notes": "Same picture as boat-12-sow-and-cubs-eddy, shown with the trip incident.",
+  "notes": "Same picture as boat-12-sow-and-cubs-eddy, shown with the trip incident. Shown only with the bear incident, never as plain trout-float scenery.",
   "v": "6e58c5b2de",
   "enabled": true,
   "bg": "#71a7a3",
