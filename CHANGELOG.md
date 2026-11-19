@@ -3,6 +3,23 @@
 Release notes for Guide Master. `/release now` adds a section here for every release, and the GitHub release notes
 are taken from it. Earlier versions are described in the README and the in-game update notice.
 
+## Unreleased
+
+### Added
+- **📲 Install app** on the title screen. On Android and in Chrome or Edge on a computer it opens the browser's own install prompt
+  (and hides, with a thank-you note, once the game is installed). Browsers that haven't offered an install yet (Firefox, Samsung
+  Internet, Safari on a Mac, …) get a short sheet with their menu steps. Hidden when you're already playing the installed app, and in
+  the one-file offline copy.
+- **iPhone and iPad how-to page** (`install/ios.html`): a 24-second looping video of Safari's Share → Add to Home Screen → Add, the
+  icon on the Home Screen, the game opening full screen and still playing in airplane mode, followed by the same steps in text, a note
+  on Chrome/Edge/Firefox (iOS 16.4+) and how to move a career into the Home Screen app with 🔁 Transfer a saved game (it keeps its own
+  saves on iOS).
+
+### Changed
+- The offline cache now includes the how-to page and its video (the video answers byte-range requests, as Safari needs), and opening
+  another page of the site no longer replaces the game's cached page.
+- The old iPhone hint line on the title screen is replaced by the button.
+
 ## 1.17.0 (2026-11-18)
 
 ### Added
