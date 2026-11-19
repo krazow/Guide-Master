@@ -2044,7 +2044,7 @@ const Crab={
       r.lines.push(`🍽️ A pot of boiling water, melted butter and newspaper on the table: ${h.n} ${h.kind==='tanner'?'Tanner crab':'Dungeness'} for the dock crowd and a party you guided. Word gets around${big?', and people remember who fed them':''}.`);
     }else{
       const meals=h.n*D.MEALS_PER_CRAB,put=Math.min(meals,Math.max(0,t.freezerRoom));r.meals=put;s.tot.meals+=put;
-      r.lines.push(`🧊 You cook, crack and pick ${plural(h.n,'crab')}, then vacuum-seal the meat: ${plural(put,'meal')} in the freezer${put<meals?`; the freezer is full, so ${plural(meals-put,'meal')} go to the neighbors`:''}.`);
+      r.lines.push(`🧊 You cook, crack and pick ${plural(h.n,'crab')}, then vacuum-seal the meat: ${plural(put,'meal')} put up for the winter${put<meals?`; the freezer is full, so ${plural(meals-put,'meal')} go to the neighbors`:''}.`);
     }
     return r;
   };
@@ -4894,6 +4894,14 @@ const HELP=[
     <li>Answer requests, and hand happy parties your card.</li>
     <li>Pay the legal price in a dilemma. It’s cheaper than the fine.</li>
     <li>Raise your rates carefully: the third step costs more bookings than it’s worth.</li></ul>`,'tips'],
+  ['🦀','Crabbing',`<p class="help-sum">From the second off-season: a crab pot for free afternoons in Homer, and a winter job on a crab boat out west.</p><ul>
+    <li>Buy a pot in the off-season planner, under <b>⚓ Commercial &amp; crab</b>. On a free afternoon at the Homer Spit, set it across Kachemak Bay, then pull it on your next free afternoon there.</li>
+    <li>A long soak loses the bait, and sometimes the pot. Your buoy carries your name and address, and nobody else may pull it.</li>
+    <li>Keep only legal males: Dungeness at least six and a half inches across the shell, Tanner crab four and a half with the spines. Females and small crab go back.</li>
+    <li>Crab goes into the freezer, or into a crab feed for the dock crowd and your clients. Crab from a sport or subsistence permit is never for sale.</li>
+    <li>Some years a fishery stays closed: the Dungeness pots in summer, or the winter Tanner season, which opens only when the survey finds enough legal males. The action tells you.</li>
+    <li>A deckhand job on a Bering Sea crab boat takes most of your winter’s free days. A greenhorn earns half a share; it gets better if you go back.</li>
+    <li>It is cold, hard and dangerous. Learn the survival suit, watch the swinging pots and beat the ice off the rails. A short season, an injury or a skipper who won’t pay can wipe out the trip.</li></ul>`,'crab'],
   ['📲','Install the app and play offline',`<p class="help-sum">Install Guide Master on your phone or computer and it plays like an app, even with no signal.</p><ul>
     <li>Tap <b>Install</b> in the bar at the top of the title screen, or <b>📲 Install app</b> under the big button. On Android, Chrome and Edge your browser asks to install; other browsers show their menu steps.</li>
     <li>On an iPhone or iPad it opens <a>a short how-to with a video</a>: in Safari, tap Share, then <b>Add to Home Screen</b>, then <b>Add</b>.</li>

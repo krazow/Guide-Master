@@ -111,7 +111,7 @@
       r.lines.push(`🍽️ A pot of boiling water, melted butter and newspaper on the table: ${h.n} ${h.kind==='tanner'?'Tanner crab':'Dungeness'} for the dock crowd and a party you guided. Word gets around${big?', and people remember who fed them':''}.`);
     }else{
       const meals=h.n*D.MEALS_PER_CRAB,put=Math.min(meals,Math.max(0,t.freezerRoom));r.meals=put;s.tot.meals+=put;
-      r.lines.push(`🧊 You cook, crack and pick ${plural(h.n,'crab')}, then vacuum-seal the meat: ${plural(put,'meal')} in the freezer${put<meals?`; the freezer is full, so ${plural(meals-put,'meal')} go to the neighbors`:''}.`);
+      r.lines.push(`🧊 You cook, crack and pick ${plural(h.n,'crab')}, then vacuum-seal the meat: ${plural(put,'meal')} put up for the winter${put<meals?`; the freezer is full, so ${plural(meals-put,'meal')} go to the neighbors`:''}.`);
     }
     return r;
   };
