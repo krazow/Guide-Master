@@ -60,7 +60,7 @@ module.exports = [
       out.none = fishDeliver({ species: 'sockeye', lbs: 800, area: 'Kachemak Bay (Lower Cook Inlet)', day: day(), value: 1300, share: .1 });
       const own0 = (S.fish.tender.season.own.uci || {}).sockeye || 0;
       const x = fishDeliver({ species: 'sockeye', lbs: 1000, area: 'Upper Cook Inlet', day: day(), value: 1500, share: .12 });
-      out.x = x; out.own = S.fish.tender.season.own.uci.sockeye - own0; out.want = Math.round((x.value - 1500) * .12);
+      out.x = x; out.own = S.fish.tender.season.own.uci.sockeye - own0; out.want = Math.round(Math.max(0, x.value - 1500) * .12);
       out.price = S.fish.tender.season.going.sockeye;
       // the gillnet adapter applies it: a crew share on a drift boat, through gnApply
       const d = day(); GNS().plan = { s: seasonOf(d), id: 'drift:crew', kind: 'drift', role: 'crew', paid: 0 };
@@ -107,7 +107,7 @@ module.exports = [
     assert.ok(r.sn && /Kachemak/.test(r.sn.area) && r.sn.lbs > 0 && r.sn.parts.length >= 1 && r.sn.share > 0 && r.sn.share <= 1, JSON.stringify(r.sn));
     assert.ok(typeof r.snRouted === 'number', 'your own tender in Kachemak Bay buys the seiner’s fish'); assert.strictEqual(r.snPaid, r.snCash + r.snRouted, 'the share at your own price');
     assert.ok(r.cb && r.cb.species === 'crab' && /Dutch Harbor/.test(r.cb.area) && r.cb.lbs > 0 && r.cb.share > 0 && r.cb.share <= 1, JSON.stringify(r.cb));
-    assert.strictEqual(r.cbDiff, Math.round((r.cb.lbs * 5 - r.cb.value) * r.cb.share)); assert.strictEqual(r.cbPaid, r.cbCash);
+    assert.strictEqual(r.cbDiff, Math.round(Math.max(0, r.cb.lbs * 5 - r.cb.value) * r.cb.share)); assert.strictEqual(r.cbPaid, r.cbCash);
     noErrors(errors);
   } },
   { name: 'fishhub: one commercial activity a day; today’s openers together under “⚓ Commercial today”; the same booked-party choice (hand off, cancel −5, keep)', fn: async ctx => {

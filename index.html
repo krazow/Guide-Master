@@ -9725,10 +9725,10 @@ function fishDeliver(dl){
   if(!dl||!(dl.lbs>0)||typeof tenderRoute!=='function'||typeof tenderBuyerIn!=='function'||!tenderBuyerIn(dl.area)) return null;
   const parts=Array.isArray(dl.parts)&&dl.parts.length?dl.parts:[{species:dl.species,lbs:dl.lbs,value:dl.value}],sh=Math.max(0,Math.min(1,+dl.share||0)),lines=[];
   let diff=0,value=0;
-  parts.forEach(p=>{if(!(p.lbs>0))return;const r=tenderRoute({species:p.species,lbs:p.lbs,area:dl.area,day:dl.day});if(!r)return;value+=r.value;diff+=(r.value-(+p.value||0))*sh;lines.push(r.line)});
+  parts.forEach(p=>{if(!(p.lbs>0))return;const r=tenderRoute({species:p.species,lbs:p.lbs,area:dl.area,day:dl.day});if(!r)return;value+=r.value;diff+=Math.max(0,r.value-(+p.value||0))*sh;lines.push(r.line)});
   if(!lines.length) return null;
   diff=Math.round(diff);
-  lines.push(diff?`💵 At your own price instead of the outside buyer’s: <b>${diff<0?'−':'+'}${$(Math.abs(diff))}</b> to you${sh<1?' (your part of the ticket)':''}. Your business keeps its margin.`:'💵 Your own price matches the outside buyer’s. Your business keeps its margin.');
+  lines.push(diff?`💵 Your own buyer pays more than the outside buyer: <b>+${$(diff)}</b> to you${sh<1?' (your part of the ticket)':''}. Your business keeps its margin.`:'💵 You pay your own catch at least the outside buyer’s price, so your share is no less. Your business keeps its margin.');
   return {diff,value,lines};
 }
 // ============================================================
