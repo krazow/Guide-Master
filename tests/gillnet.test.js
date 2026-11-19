@@ -215,7 +215,7 @@ module.exports = [
       toWinter(1); out.on1 = gnOn(); out.btn1 = fishWinterBtns().length; out.sup1 = (S.winter.sup || []).join(' ');
       finishWinter(); toWinter(2); out.on2 = gnOn(); out.sup2 = (S.winter.sup || []).join(' ');
       winterModal(); out.btns = MB.map(b => b.l); closeModals();
-      fishHubModal(); out.hub = MB.map(b => b.l); MBTN(0); out.sheet = document.querySelector('#mbg').textContent; out.gn = MB.map(b => b.l); closeModals();
+      out.hub = FISH_HUB.map(x => x.l); fishHubModal(); out.sheet = document.querySelector('#mbg').textContent; out.gn = MB.map(b => b.l); closeModals();
       return out;
     });
     assert.strictEqual(r.on0, false); assert.strictEqual(r.btn0, 0); assert.strictEqual(r.act0, false);
@@ -223,7 +223,7 @@ module.exports = [
     assert.strictEqual(r.on2, true); assert.match(r.sup2, /New: commercial fishing/);
     const i = r.btns.findIndex(l => /Commercial & crab/.test(l)); assert.ok(i > 0 && i === r.btns.length - 2, r.btns.join(' | '));
     assert.strictEqual(r.btns.filter(l => /Commercial & crab/.test(l)).length, 1);
-    assert.match(r.hub[0], /Gillnetting/); assert.match(r.hub[r.hub.length - 1], /Back to the off-season/);
+    assert.match(r.hub[0], /Gillnetting/); assert.strictEqual(r.hub.length, 1);
     assert.match(r.sheet, /Setnets:/); assert.match(r.sheet, /Drift boats:/);
     for (const re of [/Crew on a family setnet site/, /Lease a setnet site/, /Deckhand on a drift boat/, /Lease a drift permit/, /Buy a drift permit and boat/, /survival suit/]) assert.ok(r.gn.some(l => re.test(l)), String(re));
     noErrors(errors);

@@ -191,16 +191,25 @@ endRows=function(){const rows=_gnEndRows(),g=S.fish&&S.fish.gillnet;
 {const _todo=todoItems;todoItems=function(){const it=_todo();try{const o=gnDay(),p=gnPlan();if(p&&o&&!S.winter&&(Gillnet.fishable(o)||o.seine&&p.kind==='set')){const r=GNS().done[day()];
   it.splice(0,0,{l:Gillnet.fishable(o)?`${gnIc(p.kind)} ${p.kind==='set'?'Setnet':'Drift'} opener, ${gnHours(o)}`:'🏖️ Beach seine day (optional)',s:Gillnet.fishable(o)?(p.role==='crew'?`Crew for ${gnSkipper(p.kind)}.`:'Fish it, or your partner fishes it for a share.'):'A neighbor’s test seine.',ok:!!(r&&!r.skipped),fail:!!(r&&r.skipped),urgent:!r&&Gillnet.fishable(o)&&tod()<=o.hours[0]+60})}}catch(e){}return it}}
 
-// ---- the off-season planner: one shared "Commercial & crab" sheet (each module adds its own line) ----
-window.FISH_HUB=window.FISH_HUB||[];
-window.FISH_HUB.push({k:'gillnet',on:()=>gnOn(),sum:()=>gnPlanSum(),btn:()=>({l:'🎣 Gillnetting: setnet or drift',s:gnPlanSum(),fn:()=>gnWinterModal()})});
-if(typeof window.fishWinterBtns!=='function') window.fishWinterBtns=function(){
-  const on=(window.FISH_HUB||[]).filter(m=>{try{return m.on()}catch(e){return false}});if(!on.length) return [];
-  return [{l:'🎣 Commercial & crab',s:on.map(m=>m.sum()).join(' · '),fn:()=>window.fishHubModal()}]};
-if(typeof window.fishHubModal!=='function') window.fishHubModal=function(){
-  const on=(window.FISH_HUB||[]).filter(m=>{try{return m.on()}catch(e){return false}});
-  modal(`🎣 Commercial & crab · cash ${$(Math.round(S.money))}`,'<p style="font-size:13px;color:var(--mute)">Optional work on the water beyond guiding. Each choice is for the coming summer.</p>',
-    on.map(m=>m.btn()).concat([{l:'Back to the off-season',s:'Back to the off-season summary.',fn:()=>setTimeout(winterModal,0)}]))};
+// ---- the off-season planner: one shared "Commercial & crab" sheet ----
+// Shared with the seine and crab adapters (same names and shapes in each branch, so a merge keeps one copy): FISH_HUB (the sheet's
+// sections {id, order, ic, l, short, s(), open(back)}: gillnet 1, seine 2, crab 3, tender 4), fishHubOn(), fishWinterBtns() (the planner's
+// button, called from winterModal in 24-career.js) and fishHubModal(). Each is defined only if no other adapter defined it first.
+var FISH_HUB=typeof FISH_HUB!=='undefined'&&Array.isArray(FISH_HUB)?FISH_HUB:[];
+if(typeof fishHubOn!=='function') var fishHubOn=function(){return !!(S&&S.winter&&S.seasons&&S.seasons.length>=GN.UNLOCK)};
+if(typeof fishWinterBtns!=='function') var fishWinterBtns=function(){
+  if(!fishHubOn()||!FISH_HUB.length) return [];
+  const t=FISH_HUB.slice().sort((a,b)=>a.order-b.order).map(x=>x.short).join(' · ');
+  return [{l:'⚓ Commercial & crab',s:t.charAt(0).toUpperCase()+t.slice(1)+'. Optional, and risky.',fn:()=>fishHubModal()}];
+};
+if(typeof fishHubModal!=='function') var fishHubModal=function(){
+  const back=()=>setTimeout(winterModal,0),again=()=>setTimeout(fishHubModal,0),H=FISH_HUB.slice().sort((a,b)=>a.order-b.order);
+  if(H.length===1) return H[0].open(back);
+  modal('⚓ Commercial & crab',`<p style="font-size:13px;color:var(--mute)">Work the water when you are not guiding. Cash ${$(Math.round(S.money))}. ${campDaysLeft()} free day${campDaysLeft()===1?'':'s'} left this winter.</p>`,
+    H.map(x=>({l:`${x.ic} ${x.l}`,s:x.s(),fn:()=>x.open(again)})).concat([{l:'Back to the off-season',fn:back}]));
+};
+FISH_HUB.push({id:'gillnet',order:1,ic:'🪢',l:'Gillnetting: setnet or drift',short:'a setnet site or a drift boat',s:()=>gnPlanSum(),
+  open:back=>{gnOn();gnWinterModal(back)}});
 function gnPlanSum(){const p=gnPlan(),g=GNS();if(!p) return g.own?'Your drift boat waits on the hard.':'Gillnetting: not this summer.';return `Gillnetting: ${GN.ROLES[p.id].l.toLowerCase()}.`}
 function gnTk(){const g=GNS();return {cash:Math.round(S.money),costMult:DF().cost,xp:g.xp,did:g.did,own:g.own?{boat:true}:null,suit:g.suit,plan:gnPlan()?gnPlan().id:null}}
 function gnSetPlan(id){
@@ -221,7 +230,9 @@ function gnSuit(){const g=GNS(),c=Math.round(GN.SUIT*DF().cost);if(g.suit||S.mon
 function gnExam(){const g=GNS();if(!g.own||!S.winter||g.own.exam===gnSeason()||campDaysLeft()<1)return false;campW();S.camp.days+=1;g.own.exam=gnSeason();
   say('⚓ A Coast Guard examiner walks your boat at the harbor: life raft, EPIRB, flares, survival suits, fire extinguishers. A free exam and a new decal. It took a free day.');return true}
 window.gnAct=(k,a)=>{const f={plan:()=>gnSetPlan(a),buy:gnBuy,sell:gnSell,suit:gnSuit,exam:gnExam}[k];return f?f():false};
-function gnWinterModal(){
+let GN_BACK=null;
+function gnWinterModal(back){
+  if(back)GN_BACK=back;
   const g=GNS(),s=gnSeason(),p=gnPlan(s),again=f=>()=>{f();setTimeout(gnWinterModal,0)},cm=DF().cost,sock=REG().mult.sockeye;
   const o=Gillnet.offers(gnTk()).filter(x=>!p||x.id!==p.id).map(x=>({l:`${x.ic} ${x.l}${x.cost?` — ${$(x.cost)}`:''}`,s:`${x.dis?x.why+'. ':''}${x.s} ${x.note||''}`,dis:x.dis,fn:again(()=>gnSetPlan(x.id))}));
   if(p) o.unshift({l:'No gillnetting this summer',s:p.paid?`Gets back the ${$(p.paid)} you paid.`:'Guiding only.',fn:again(()=>gnSetPlan(null))});
@@ -229,7 +240,7 @@ function gnWinterModal(){
   else{o.push({l:`⚓ Sell the permit and boat — ${$(Math.round(g.own.val*GN.OWN.sell))}`,s:'Back to guiding only, or leasing.',fn:again(gnSell)});
     o.push({l:'⚓ Coast Guard dockside exam',s:g.own.exam===s?'Done this winter: the decal is on the cabin.':campDaysLeft()<1?'No free days left this winter.':'Free, and it takes one of your free days. Without a current decal a boarding can mean a ticket.',dis:g.own.exam===s||campDaysLeft()<1,fn:again(gnExam)})}
   if(!g.suit) o.push({l:`🦺 Buy a survival suit — ${$(Math.round(GN.SUIT*cm))}`,s:'An immersion suit for the cold inlet. Worth it on a drift boat in a blow.',dis:S.money<Math.round(GN.SUIT*cm),fn:again(gnSuit)});
-  o.push({l:'Done',s:'Back to Commercial & crab.',fn:()=>setTimeout(()=>window.fishHubModal(),0)});
+  o.push({l:'Done',s:'Back to the off-season.',fn:()=>{const b=GN_BACK||(()=>setTimeout(winterModal,0));GN_BACK=null;b()}});
   const xp=`Openers worked: ${g.xp.set} setnet, ${g.xp.drift} drift.`;
   modal(`🎣 Gillnetting · cash ${$(Math.round(S.money))}`,`${artSlot('event',()=>artEventCtx('gn_low_tide_site','gillnet'),{deco:true,key:'gn-plan'})}<p style="font-size:13px"><b>This summer:</b> ${p?GN.ROLES[p.id].l:'guiding only'}. ${xp}</p>
     <p style="font-size:13px">🪢 <b>Setnets:</b> ${Gillnet.outlook('set',kingRule(),sock)}</p><p style="font-size:13px">🚤 <b>Drift boats:</b> ${Gillnet.outlook('drift',kingRule(),sock)}</p>
