@@ -1,0 +1,37 @@
+# Merges a pull request automatically once CI passes on its latest commit.
+# Opt out by marking the pull request as a draft or adding the label "no-automerge".
+name: Auto-merge
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  merge:
+    if: >-
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Merge the pull request if CI passed on its latest commit
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          set -euo pipefail
+          pr=$(gh pr list -R "$REPO" --state open --head "$HEAD_BRANCH" --json number,headRefOid,isDraft,baseRefName,labels \
+            --jq "[.[] | select(.headRefOid == \"$HEAD_SHA\")][0]")
+          if [ -z "$pr" ] || [ "$pr" = "null" ]; then echo "No open pull request at $HEAD_SHA (newer commits or already merged)."; exit 0; fi
+          num=$(jq -r .number <<<"$pr")
+          if [ "$(jq -r .isDraft <<<"$pr")" = "true" ]; then echo "#$num is a draft: not merging."; exit 0; fi
+          if jq -e '.labels[] | select(.name == "no-automerge")' <<<"$pr" >/dev/null; then echo "#$num has no-automerge: not merging."; exit 0; fi
+          echo "Merging #$num into $(jq -r .baseRefName <<<"$pr")"
+          gh pr merge "$num" -R "$REPO" --merge --match-head-commit "$HEAD_SHA"
