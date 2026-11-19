@@ -1914,7 +1914,7 @@ const Seine={
   // what the session reports for a host that shows it (Guide Master picks an illustration): [{ id, sev }]
   D.EVENTS=['dawn_set','full_bag','tender','water_haul','torn_net','skiff_wheel','injury','injury_bad','stay_in','weather_wait','cut_in','corked','line_cite','jackpot','missed_boat'];
   // run timing (day of the year): stocked-lake and hatchery sockeye peak around mid-July, pinks around the end of July
-  D.sockAvail=dy=>dy<160||dy>235?0:.12+.88*K.util.gauss(dy,192,18);
+  D.sockAvail=dy=>dy<160||dy>235?0:.12*(dy<=205?1:Math.max(0,(235-dy)/30))+.88*K.util.gauss(dy,192,dy<=192?18:11);
   D.pinkAvail=dy=>dy<185||dy>245?0:K.util.gauss(dy,214,13);
   D.chumAvail=dy=>dy<170||dy>240?0:.6*K.util.gauss(dy,205,15);
 })(Seine);
