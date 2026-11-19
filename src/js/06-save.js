@@ -88,13 +88,7 @@ function importCode(){
   }catch(e){setTimeout(()=>{openTransfer();const el=document.getElementById('imperr');if(el)el.textContent=/already over/.test(e.message)?'That game is already finished.':`That code didn’t work. Make sure you copied all of it, starting with ${GAME.codePrefix}:`;const i=document.getElementById('imp');if(i)i.value=raw},0)}
 }
 
-// ---- install as an app (PWA) + offline service worker ----
-let deferredInstall=null;
-window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstall=e;const b=document.getElementById('installBtn');if(b)b.style.display='block'});
-window.addEventListener('appinstalled',()=>{deferredInstall=null;const b=document.getElementById('installBtn');if(b)b.style.display='none'});
-const isStandalone=()=>{try{return matchMedia('(display-mode: standalone)').matches||navigator.standalone===true}catch(e){return false}};
-const isIOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-window.doInstall=async()=>{if(!deferredInstall)return;deferredInstall.prompt();try{await deferredInstall.userChoice}catch(e){}deferredInstall=null;const b=document.getElementById('installBtn');if(b)b.style.display='none'};
+// ---- offline service worker (installing as an app: 41-install.js) ----
 // Skipped on localhost so you never debug a stale cached copy; add ?sw=1 to the URL to test offline mode locally.
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)&&(!/^(localhost|127\.0\.0\.1)$/.test(location.hostname)||/[?&]sw=1\b/.test(location.search))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})})}
 document.addEventListener('visibilitychange',()=>{if(document.hidden)saveGame()});

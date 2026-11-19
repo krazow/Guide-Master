@@ -114,9 +114,10 @@ const HELP=[
     <li>Pay the legal price in a dilemma. It’s cheaper than the fine.</li>
     <li>Raise your rates carefully: the third step costs more bookings than it’s worth.</li></ul>`,'tips'],
   ['📲','Install the app and play offline',`<p class="help-sum">Install Guide Master on your phone or computer and it plays like an app, even with no signal.</p><ul>
-    <li>When your browser offers it, tap <b>📲 Install as an app</b> on the title screen.</li>
-    <li>On an iPhone or iPad, use Safari’s Share button, then <b>Add to Home Screen</b>. The title screen shows you how.</li>
-    <li>Your games are saved on this device. Use <b>🔁 Transfer a saved game</b> to move one to another device.</li></ul>`,'install'],
+    <li>Tap <b>📲 Install app</b> on the title screen. On Android, Chrome and Edge your browser asks to install; other browsers show their menu steps.</li>
+    <li>On an iPhone or iPad it opens <a href="install/ios.html">a short how-to with a video</a>: in Safari, tap Share, then <b>Add to Home Screen</b>, then <b>Add</b>.</li>
+    <li>Open it once from the new icon while online. After that it plays offline.</li>
+    <li>On iPhone and iPad the Home Screen app keeps its own saves, so play from the icon. Use <b>🔁 Transfer a saved game</b> to move a game there or to another device.</li></ul>`,'install'],
   ['💬','Feedback',`<p class="help-sum">Ideas, bugs, or a rule or fact we got wrong? Tell the developer.</p><ul>
     <li>Tap <b>Send feedback</b> below, on the title screen or in ⚙️ Settings.</li>
     <li>Add your email if you’d like a reply. If you’re offline, it’s sent the next time you’re online.</li></ul>`,'feedback'],

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Install Guide Master on iPhone and iPad</title>
+<meta name="description" content="How to add Guide Master to your iPhone or iPad Home Screen, so it opens full screen and plays offline.">
+<meta name="theme-color" content="#0f3b3f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Guide Master">
+<link rel="icon" type="image/png" sizes="32x32" href="../icons/favicon-32.png">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<style>
+@font-face{font-family:"Fraunces";src:url("../fonts/fraunces-latin-600-normal.woff2") format("woff2");font-weight:600 800;font-style:normal;font-display:swap}
+:root{--brand:#1f5d63;--brand-dark:#0f3b3f;--paper:#fbf8f1;--cta:#e3642e;--cta-dark:#a9441b;--ink:#1b2326;--mute:#5d676b;--line:#ddd4c0;--soft:#f3ecdc}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--brand-dark);color:var(--ink);font-family:"DM Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:16px;-webkit-text-size-adjust:100%}
+main{max-width:520px;margin:0 auto;min-height:100vh;background:var(--paper);padding-bottom:calc(env(safe-area-inset-bottom) + 28px)}
+header{background:linear-gradient(var(--brand),var(--brand-dark));color:#fff;padding:calc(env(safe-area-inset-top) + 14px) 20px 22px}
+.back{display:inline-flex;align-items:center;gap:6px;min-height:44px;color:#fff;font-weight:700;text-decoration:none;border:1.5px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);border-radius:12px;padding:0 14px}
+.head{display:flex;gap:14px;align-items:center;margin-top:16px}
+.head img{width:64px;height:64px;border-radius:15px;flex:none;box-shadow:0 3px 10px rgba(0,0,0,.3)}
+h1,h2{font-family:"Fraunces",Georgia,serif;font-weight:600;margin:0}
+h1{font-size:25px;line-height:1.12}
+header p{margin:6px 0 0;opacity:.9;line-height:1.45}
+.vid{display:block;width:100%;max-width:260px;height:auto;aspect-ratio:540/1170;margin:18px auto 6px;border-radius:22px;background:var(--brand-dark);box-shadow:0 8px 24px rgba(15,59,63,.3)}
+.vcap{text-align:center;font-size:13px;color:var(--mute);margin:0 20px}
+section{padding:6px 20px}
+h2{font-size:21px;margin:22px 0 10px;color:var(--brand-dark)}
+ol.steps{list-style:none;counter-reset:s;margin:0;padding:0}
+ol.steps li{counter-increment:s;position:relative;padding:4px 0 12px 46px;line-height:1.5}
+ol.steps li:before{content:counter(s);position:absolute;left:0;top:0;width:32px;height:32px;border-radius:50%;background:var(--cta);color:#fff;font:600 17px/32px "Fraunces",Georgia,serif;text-align:center;box-shadow:0 2px 0 var(--cta-dark)}
+.share{display:inline-block;vertical-align:-4px}
+.box{background:var(--soft);border-left:4px solid var(--brand);border-radius:10px;padding:12px 14px;line-height:1.5;margin:10px 0}
+.box.imp{border-left-color:var(--cta);background:#fbe9df}
+.box p{margin:0 0 8px}.box p:last-child{margin:0}
+.box ol{margin:6px 0 0;padding-left:20px}.box li{margin:3px 0}
+.note{display:none}
+.big{display:block;text-align:center;margin:22px 0 4px;background:var(--cta);color:#fff;text-decoration:none;border-radius:14px;padding:15px;font-weight:700;font-size:18px;box-shadow:0 4px 0 var(--cta-dark);min-height:44px}
+a{color:var(--brand)}
+a:focus-visible,video:focus-visible{outline:3px solid var(--cta);outline-offset:3px}
+small{color:var(--mute)}
+@media (prefers-reduced-motion:reduce){.vid{box-shadow:none}}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <a class="back" href="../">← Back to the game</a>
+  <div class="head"><img src="../icons/apple-touch-icon.png" alt="" width="64" height="64">
+    <div><h1>Put Guide Master on your Home Screen</h1></div></div>
+  <p>On iPhone and iPad it takes four taps. Then the game opens full screen, like an app, and plays offline.</p>
+</header>
+
+<video class="vid" id="howto" autoplay muted loop playsinline preload="auto" poster="ios-poster.jpg" width="540" height="1170"
+  aria-label="Video: the game open in Safari, tap Share, scroll down, tap Add to Home Screen, tap Add, then tap the new icon on the Home Screen. The game opens full screen and still plays in airplane mode. The same steps are written below.">
+  <source src="ios-add-to-home.mp4" type="video/mp4">
+</video>
+<p class="vcap">The steps in a 24-second loop. Tap the video to pause it.</p>
+
+<section>
+  <p class="box note" id="standalone"><b>You’re already playing from your Home Screen.</b> Nothing else to do: tap <a href="../">Back to the game</a>.</p>
+  <h2>Step by step</h2>
+  <ol class="steps">
+    <li>Open the game in <b>Safari</b> (tap <a href="../">Back to the game</a>).</li>
+    <li>Tap the <b>Share</b> button <svg class="share" width="20" height="22" viewBox="0 0 36 38" aria-hidden="true"><path d="M11 15 H7 V35 H29 V15 H25" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/><path d="M18 24 V3 M11 10 L18 3 L25 10" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg> (a square with an arrow pointing up). On iPhone it’s in the toolbar at the bottom; on iPad, at the top right. If you don’t see the toolbar, tap the address bar or the <b>⋯</b> button first.</li>
+    <li>Scroll down the list and tap <b>Add to Home Screen</b>. Not there? Tap <b>View More</b> or <b>Edit Actions…</b> at the end of the list to find it.</li>
+    <li>Leave <b>Open as Web App</b> on, if you see it, and tap <b>Add</b> at the top right.</li>
+    <li>Find the <b>Guide Master</b> icon on your Home Screen and tap it. The game opens full screen.</li>
+  </ol>
+  <p class="box note" id="otherbrowser"><b>Using Chrome, Edge or Firefox?</b> On iOS 16.4 and later you can add it from their Share menu too (Chrome and Edge: the Share button in the address bar or menu, then <b>Add to Home Screen</b>). If it isn’t there, open this page in Safari.</p>
+  <p>It works the same on <b>iPhone and iPad</b>. On iOS 16.4 and later you can also do it from the Share menu in Chrome, Edge or Firefox.</p>
+
+  <h2>Playing offline</h2>
+  <p>Open the game once from the new icon <b>while you have a connection</b>. It saves itself on your phone, and from then on it plays anywhere: in airplane mode, on the river, with no signal. When there’s an update, it picks it up the next time you’re online.</p>
+
+  <h2>Your saved games</h2>
+  <div class="box imp">
+    <p><b>Important:</b> on iPhone and iPad, the Home Screen app keeps <b>its own saves</b>, separate from Safari. A career started in Safari doesn’t show up in the app, and the other way round.</p>
+    <p>So start (or continue) your career <b>from the Home Screen icon</b>.</p>
+  </div>
+  <div class="box">
+    <p><b>Already playing in Safari? Move your career over:</b></p>
+    <ol>
+      <li>In Safari, on the game’s title screen, tap <b>🔁 Transfer a saved game</b>, then <b>📋 Copy code</b>.</li>
+      <li>Open Guide Master from the Home Screen icon and tap <b>🔁 Transfer a saved game</b>.</li>
+      <li>Paste the code into the box and tap <b>Load pasted code</b>. Your career carries on in the app.</li>
+    </ol>
+    <p><small>The code holds the save in the current slot; repeat for each slot you want to bring along.</small></p>
+  </div>
+
+  <a class="big" href="../">Back to the game</a>
+  <p style="text-align:center"><small>On Android, a computer or another browser? Use <b>📲 Install app</b> on the game’s title screen.</small></p>
+</section>
+</main>
+<script>
+(function(){
+  var ua=navigator.userAgent;
+  var standalone=navigator.standalone===true||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches);
+  if(standalone)document.getElementById('standalone').style.display='block';
+  if(/CriOS|FxiOS|EdgiOS/.test(ua))document.getElementById('otherbrowser').style.display='block';
+  var v=document.getElementById('howto');
+  // Reduced motion: no autoplay, the player's own controls instead.
+  if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches){v.removeAttribute('autoplay');v.pause();v.controls=true}
+  else{v.tabIndex=0;var t=function(){if(v.paused)v.play();else v.pause()};v.addEventListener('click',t);
+    v.addEventListener('keydown',function(e){if(e.key===' '||e.key==='Enter'){e.preventDefault();t()}})}
+})();
+</script>
+</body>
+</html>

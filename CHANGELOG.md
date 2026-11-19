@@ -5,11 +5,24 @@ are taken from it. Earlier versions are described in the README and the in-game 
 
 ## Unreleased
 
+### Added
+- **📲 Install app** on the title screen. On Android and in Chrome or Edge on a computer it opens the browser's own install prompt
+  (and hides, with a thank-you note, once the game is installed). Browsers that haven't offered an install yet (Firefox, Samsung
+  Internet, Safari on a Mac, …) get a short sheet with their menu steps. Hidden when you're already playing the installed app, and in
+  the one-file offline copy.
+- **iPhone and iPad how-to page** (`install/ios.html`): a 24-second looping video of Safari's Share → Add to Home Screen → Add, the
+  icon on the Home Screen, the game opening full screen and still playing in airplane mode, followed by the same steps in text, a note
+  on Chrome/Edge/Firefox (iOS 16.4+) and how to move a career into the Home Screen app with 🔁 Transfer a saved game (it keeps its own
+  saves on iOS).
+
 ### Changed
 - **❓ Help, rewritten** for the game as it is now: a contents list at the top (tap a topic to jump to it, ↑ to come back), then
   18 short sections in the order you meet things, from getting started and your first trip to the outfit, the trophy wall, settings
   and installing the app. Fixed: the Sunday/Monday closure and the 6 PM rule only run through July 31, and the cabin's condition is on
   the Home tab (not the top bar).
+- The offline cache now includes the how-to page and its video (the video answers byte-range requests, as Safari needs), and opening
+  another page of the site no longer replaces the game's cached page.
+- The old iPhone hint line on the title screen is replaced by the button.
 
 ## 1.17.0 (2026-11-18)
 
