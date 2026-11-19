@@ -56,6 +56,9 @@ STYLES.crabr=Object.assign({},STYLES.food,{crab:'reckless'});
 // Both play the rest like `food`.
 STYLES.processor=Object.assign({},STYLES.food,{tender:'processor',tenderSelf:true,reserve:120000});   // saves for a plant: guiding upgrades only above $120k
 STYLES.mogul=Object.assign({},STYLES.food,{tender:'mogul'});
+// all of it together (41b-fishhub.js): gillnetting (sensible), crabbing (careful) and the fish business (processor, running its own tender
+// on free opener days), one commercial activity a day; its own catch goes to its own tender or plant where it has one (the delivery contract).
+STYLES.fishmix=Object.assign({},STYLES.food,{gill:{policy:'sensible'},crab:'careful',tender:'processor',tenderSelf:true,reserve:120000});
 for(const k of Object.keys(STYLES).slice()){STYLES[k+'_c']=Object.assign({},STYLES[k],{home:'careful'});STYLES[k+'_p']=Object.assign({},STYLES[k],{home:'payall'});STYLES[k+'_n']=Object.assign({},STYLES[k],{home:'neglect'})}
 
 const UPPOL={ // upgrade policies (for A/B)

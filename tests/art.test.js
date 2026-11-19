@@ -515,13 +515,14 @@ for n in (1,2):
       assert.ok(fs.statSync(B(e1.webp)).size <= 150 * 1024 && fs.statSync(B(e1.file)).size < fs.statSync(path.join(set, '01-test.png')).size);
     } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
   } },
-  { only: 'index.html', name: 'tools/art.py events: the ids it reads from the source are the ids the running game reports (defEvent, CabinUpkeep.EVENTS, camp encounters, trip steps)', fn: async ctx => {
+  { only: 'index.html', name: 'tools/art.py events: the ids it reads from the source are the ids the running game reports (defEvent, CabinUpkeep.EVENTS, camp encounters, trip steps, the commercial modules’ EVENTS)', fn: async ctx => {
     const py = JSON.parse(execFileSync('python3', [path.join(ROOT, 'tools', 'art.py'), 'events'], { encoding: 'utf8' }));
     const { page, errors } = await open(ctx);
     await newGame(page);
-    const r = await page.evaluate(() => ({ game: EV.map(e => e.id), home: CabinUpkeep.EVENTS.slice(), trip: Object.keys(STEP) }));
+    const r = await page.evaluate(() => ({ game: EV.map(e => e.id), home: CabinUpkeep.EVENTS.slice(), trip: Object.keys(STEP), gillnet: Gillnet.data.EVENTS.slice(), seine: Seine.data.EVENTS.slice(), crab: Crab.data.EVENTS.slice(), tender: Tender.EVENTS.slice() }));
     const S = a => [...new Set(a)].sort();
     assert.deepStrictEqual(py.game, S(r.game)); assert.deepStrictEqual(py.home, S(r.home)); assert.deepStrictEqual(py.trip, S(r.trip));
+    for (const k of ['gillnet', 'seine', 'crab', 'tender']) { assert.deepStrictEqual(py[k], S(r[k]), k); assert.ok(py[k].length >= 12, k); }
     assert.ok(py.camp.includes('wolves') && py.camp.includes('chinook') && py.camp.length >= 19, py.camp.join());
     for (const k of ['combat', 'bear', 'fog', 'whale', 'king', 'hookhand']) assert.ok(py.trip.includes(k), k);
     noErrors(errors);

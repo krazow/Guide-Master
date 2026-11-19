@@ -1103,6 +1103,33 @@
   "bg": "#768e89"
  },
  {
+  "id": "fish-01-setnet-site-low-tide",
+  "set": "event",
+  "n": 1,
+  "title": "The setnet site at low tide",
+  "webp": "event/fish-01-setnet-site-low-tide.webp",
+  "file": "event/fish-01-setnet-site-low-tide.jpg",
+  "fw": 960,
+  "thumbWebp": "event/fish-01-setnet-site-low-tide.thumb.webp",
+  "thumb": "event/fish-01-setnet-site-low-tide.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "At low tide below the spruce-topped Kalifornsky bluffs, a set net with yellow corks lies on the wet sand, a skiff rests on the mud and a picker in orange rain gear walks out past the gulls while Redoubt steams across Cook Inlet.",
+  "where": "Setnet brief, the planner sheet, and the morning report on a setnet opener day (gn_low_tide_site).",
+  "when": {
+   "event": "gn_low_tide_site",
+   "from": "gillnet",
+   "time": [
+    "day",
+    "dusk"
+   ]
+  },
+  "notes": "Bluff recedes on the right to lead the eye to the water and the volcanoes; the net and running line are strong diagonals from the foreground. Sun upper left, a setnet cabin and old tractor at the bluff foot.",
+  "bg": "#9fa59e",
+  "v": "0ba8f3b291",
+  "enabled": true
+ },
+ {
   "id": "event-02-flat-trailer-tire",
   "set": "event",
   "n": 2,
@@ -1130,6 +1157,33 @@
   "v": "db429c207f",
   "enabled": true,
   "bg": "#716c76"
+ },
+ {
+  "id": "fish-02-picking-a-full-net",
+  "set": "event",
+  "n": 2,
+  "title": "Picking a full set net",
+  "webp": "event/fish-02-picking-a-full-net.webp",
+  "file": "event/fish-02-picking-a-full-net.jpg",
+  "fw": 960,
+  "thumbWebp": "event/fish-02-picking-a-full-net.thumb.webp",
+  "thumb": "event/fish-02-picking-a-full-net.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "Three crew in rain gear in an aluminum setnet skiff pull a set net over the bow roller and along the gunwale, the web hanging down the side full of gilled silver sockeye, corks dipping where more fish hit the net beyond the bow.",
+  "where": "When a school hits the nets (setnet soak or drift tide) or on a big haul (gn_full_net).",
+  "when": {
+   "event": "gn_full_net",
+   "from": "gillnet",
+   "time": [
+    "day",
+    "dusk"
+   ]
+  },
+  "notes": "Close side view so the curtain of gilled fish is the focal point; the boat is clipped at the waterline so the web shows faintly below the silty water.",
+  "bg": "#a0b2b1",
+  "v": "6b13677f15",
+  "enabled": true
  },
  {
   "id": "event-03-trooper-boat-check",
@@ -1166,6 +1220,33 @@
   "bg": "#6d989c"
  },
  {
+  "id": "fish-03-drift-boat-tide-rip",
+  "set": "event",
+  "n": 3,
+  "title": "Drift boat in a tide rip",
+  "webp": "event/fish-03-drift-boat-tide-rip.webp",
+  "file": "event/fish-03-drift-boat-tide-rip.jpg",
+  "fw": 960,
+  "thumbWebp": "event/fish-03-drift-boat-tide-rip.thumb.webp",
+  "thumb": "event/fish-03-drift-boat-tide-rip.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "A Cook Inlet drift gillnetter lays its net off the stern reel across a tide rip, the corks running past a foam line of drift logs, kelp and gulls, under two snowy volcanoes.",
+  "where": "Drift-boat brief (gn_tide_rip).",
+  "when": {
+   "event": "gn_tide_rip",
+   "from": "gillnet",
+   "time": [
+    "day",
+    "dusk"
+   ]
+  },
+  "notes": "The rip runs diagonally to separate chop from slick; the corkline crosses it. Sun upper right with glitter on the slick.",
+  "bg": "#9db1b2",
+  "v": "a640d1b8cc",
+  "enabled": true
+ },
+ {
   "id": "event-04-guide-gossip",
   "set": "event",
   "n": 4,
@@ -1199,6 +1280,33 @@
   "bg": "#8b9190"
  },
  {
+  "id": "fish-04-delivering-to-the-tender",
+  "set": "event",
+  "n": 4,
+  "title": "Delivering to the tender",
+  "webp": "event/fish-04-delivering-to-the-tender.webp",
+  "file": "event/fish-04-delivering-to-the-tender.jpg",
+  "fw": 960,
+  "thumbWebp": "event/fish-04-delivering-to-the-tender.thumb.webp",
+  "thumb": "event/fish-04-delivering-to-the-tender.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "A drift gillnetter is rafted alongside a big red tender in Cook Inlet while the tender's yellow boom swings a brailer bag full of sockeye over, water dripping, a deckhand with arms up guiding it and other drifters waiting their turn.",
+  "where": "The summary when you deliver to the tender (gn_tender).",
+  "when": {
+   "event": "gn_tender",
+   "from": "gillnet",
+   "time": [
+    "day",
+    "dusk"
+   ]
+  },
+  "notes": "The dripping brailer bag sits at the center between the two boats; the gillnetter is nearer and lower so the raft reads in depth.",
+  "bg": "#a4afae",
+  "v": "83f5d019a2",
+  "enabled": true
+ },
+ {
   "id": "event-05-midnight-sun",
   "set": "event",
   "n": 5,
@@ -1227,6 +1335,33 @@
   "v": "5655c03866",
   "enabled": true,
   "bg": "#574746"
+ },
+ {
+  "id": "fish-05-closed-fishery-morning",
+  "set": "event",
+  "n": 5,
+  "title": "A closed-fishery morning",
+  "webp": "event/fish-05-closed-fishery-morning.webp",
+  "file": "event/fish-05-closed-fishery-morning.jpg",
+  "fw": 960,
+  "thumbWebp": "event/fish-05-closed-fishery-morning.thumb.webp",
+  "thumb": "event/fish-05-closed-fishery-morning.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "On a still morning on the east-side beach a setnet family and their dog look out at the empty inlet, the closure on a phone, skiffs on trailers and nets wound on their reels below the bluff.",
+  "where": "Morning report on a closed setnet day (gn_closed_morning).",
+  "when": {
+   "event": "gn_closed_morning",
+   "from": "gillnet",
+   "time": [
+    "day",
+    "dusk"
+   ]
+  },
+  "notes": "Everything that should be on the water is parked on the sand; the empty inlet takes the whole right side. Morning sun behind the bluff, long shadows toward the water.",
+  "bg": "#a3a59e",
+  "v": "a339177991",
+  "enabled": true
  },
  {
   "id": "event-06-bear-in-the-bin",
@@ -1261,6 +1396,36 @@
   "bg": "#2a363e"
  },
  {
+  "id": "fish-06-closing-the-purse-at-dawn",
+  "set": "event",
+  "n": 6,
+  "title": "Closing the purse at dawn",
+  "webp": "event/fish-06-closing-the-purse-at-dawn.webp",
+  "file": "event/fish-06-closing-the-purse-at-dawn.jpg",
+  "fw": 960,
+  "thumbWebp": "event/fish-06-closing-the-purse-at-dawn.thumb.webp",
+  "thumb": "event/fish-06-closing-the-purse-at-dawn.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "At sunrise in a steep spruce-walled Kachemak Bay cove under snowy peaks and a small glacier, a limit seiner and her skiff close a ring of corks around jumping sockeye, the crew on the aft deck by the net pile and the skiff man holding the far end.",
+  "where": "Seine opener: the first set of the day (dawn_set).",
+  "when": {
+   "event": "dawn_set",
+   "from": "seine",
+   "time": [
+    "day",
+    "dusk"
+   ]
+  },
+  "notes": "Golden low sun in the notch of the cove behind the ring; the corkline ellipse is drawn in two halves so it passes behind and in front. Marked day because openers start at 6 AM, after sunrise; the palette is early-morning gold.",
+  "meta": {
+   "palette": "dawn"
+  },
+  "bg": "#7c8686",
+  "v": "2f76a18f78",
+  "enabled": true
+ },
+ {
   "id": "event-07-cold-snap-ice-fog",
   "set": "event",
   "n": 7,
@@ -1290,6 +1455,33 @@
   "v": "15fc03c1c4",
   "enabled": true,
   "bg": "#65707a"
+ },
+ {
+  "id": "fish-07-brailing-a-full-bag",
+  "set": "event",
+  "n": 7,
+  "title": "Brailing a full bag",
+  "webp": "event/fish-07-brailing-a-full-bag.webp",
+  "file": "event/fish-07-brailing-a-full-bag.jpg",
+  "fw": 960,
+  "thumbWebp": "event/fish-07-brailing-a-full-bag.thumb.webp",
+  "thumb": "event/fish-07-brailing-a-full-bag.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "On a bright day in Kachemak Bay a green seiner has a bag of silver sockeye and pinks alongside, the web over the power block and a full brailer swinging over the hold to two crew in rain gear.",
+  "where": "When the bag comes alongside full and is brailed aboard (full_bag).",
+  "when": {
+   "event": "full_bag",
+   "from": "seine",
+   "time": [
+    "day",
+    "dusk"
+   ]
+  },
+  "notes": "Boat faces left so the power block over the stern and the bag are in the center-right; the brailer is the focal point against the sky.",
+  "bg": "#7a9ba2",
+  "v": "90aec291b6",
+  "enabled": true
  },
  {
   "id": "event-08-burst-pipe",
@@ -1325,6 +1517,35 @@
   "focus": "50% 75%"
  },
  {
+  "id": "fish-08-tender-at-anchor-dusk",
+  "set": "event",
+  "n": 8,
+  "title": "Tender at anchor at dusk",
+  "webp": "event/fish-08-tender-at-anchor-dusk.webp",
+  "file": "event/fish-08-tender-at-anchor-dusk.jpg",
+  "fw": 960,
+  "thumbWebp": "event/fish-08-tender-at-anchor-dusk.thumb.webp",
+  "thumb": "event/fish-08-tender-at-anchor-dusk.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "At dusk in Kachemak Bay a big blue tender lies at anchor with its windows and deck lights glowing, one seiner tied alongside and another on its far side, a brailer of fish swinging aboard while the Homer Spit lights twinkle in the distance.",
+  "where": "The summary when you sell to the tender after a seine opener (tender).",
+  "when": {
+   "event": "tender",
+   "from": "seine",
+   "time": "any"
+  },
+  "notes": "Warm window and flood light against the cool dusk; reflections of the lights streak the water. Also suits the tender module (from:\"tender\", event \"tender_anchor\").",
+  "meta": {
+   "also_fits": [
+    "tender:tender_anchor"
+   ]
+  },
+  "bg": "#777482",
+  "v": "86142a4119",
+  "enabled": true
+ },
+ {
   "id": "event-09-chimney-fire",
   "set": "event",
   "n": 9,
@@ -1355,6 +1576,33 @@
   "enabled": true,
   "bg": "#545054",
   "focus": "50% 70%"
+ },
+ {
+  "id": "fish-09-water-haul",
+  "set": "event",
+  "n": 9,
+  "title": "A water haul",
+  "webp": "event/fish-09-water-haul.webp",
+  "file": "event/fish-09-water-haul.jpg",
+  "fw": 960,
+  "thumbWebp": "event/fish-09-water-haul.thumb.webp",
+  "thumb": "event/fish-09-water-haul.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "Under a grey sky in a spruce-walled cove, three crew lean on a red seiner’s rail and stare at the closed purse alongside: nothing in it but a few moon jellies.",
+  "where": "When a set comes up empty (water_haul).",
+  "when": {
+   "event": "water_haul",
+   "from": "seine",
+   "time": [
+    "day",
+    "dusk"
+   ]
+  },
+  "notes": "Overcast, desaturated light for the letdown; the empty ring and the jellies sit where the full bag is in image 7, so the pair reads as a contrast.",
+  "bg": "#768689",
+  "v": "f61971213b",
+  "enabled": true
  },
  {
   "id": "event-10-breakup-mud",
@@ -1392,6 +1640,35 @@
   "bg": "#8e928b"
  },
  {
+  "id": "fish2-10-pot-pull-kachemak",
+  "set": "event",
+  "n": 10,
+  "title": "Pulling a Dungeness pot in Kachemak Bay",
+  "webp": "event/fish2-10-pot-pull-kachemak.webp",
+  "file": "event/fish2-10-pot-pull-kachemak.jpg",
+  "fw": 960,
+  "thumbWebp": "event/fish2-10-pot-pull-kachemak.thumb.webp",
+  "thumb": "event/fish2-10-pot-pull-kachemak.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "Two people in an aluminum skiff on a sunny Kachemak Bay haul a round Dungeness crab pot up over the bow on a davit, water and kelp streaming off it and crabs inside, with a broad glacier spilling between the Kenai Mountains across the bay.",
+  "where": "Crab pull result / cooler sheet at the Homer Spit after pulling the subsistence pot off Seldovia.",
+  "when": {
+   "event": "pot_pull",
+   "from": "crab",
+   "time": "any"
+  },
+  "notes": "Morning sun from the upper left; the pot and white water are the brightest spot right of centre. The orange buoy aboard has a blank band where the owner's name would go (no text).",
+  "meta": {
+   "season": "summer",
+   "place": "Kachemak Bay (Seldovia subsistence waters)",
+   "light": "day"
+  },
+  "bg": "#80a0ac",
+  "v": "56c1f69108",
+  "enabled": true
+ },
+ {
   "id": "event-11-frozen-pipe-crawlspace",
   "set": "event",
   "n": 11,
@@ -1418,6 +1695,35 @@
   "enabled": true,
   "bg": "#897861",
   "focus": "50% 70%"
+ },
+ {
+  "id": "fish2-11-tanner-measure",
+  "set": "event",
+  "n": 11,
+  "title": "Measuring a Tanner crab",
+  "webp": "event/fish2-11-tanner-measure.webp",
+  "file": "event/fish2-11-tanner-measure.jpg",
+  "fw": 960,
+  "thumbWebp": "event/fish2-11-tanner-measure.thumb.webp",
+  "thumb": "event/fish2-11-tanner-measure.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "Close-up over an ice-crusted skiff rail in low winter light: orange-gloved hands hold a spiny Tanner crab while a steel caliper gauge spans the widest spines of its shell.",
+  "where": "Tanner day result (Kachemak Bay winter Tanner opening, males 4.5 in. with the spines).",
+  "when": {
+   "event": "tanner_measure",
+   "from": "crab",
+   "time": "any"
+  },
+  "notes": "Low December sun at right behind snowy mountains; the gauge jaws touch the outermost lateral spines, which is how the legal width is measured. Gauge has tick marks only, no numbers.",
+  "meta": {
+   "season": "winter",
+   "place": "Kachemak Bay",
+   "light": "low winter sun"
+  },
+  "bg": "#a8a0a5",
+  "v": "06f2b5d6a7",
+  "enabled": true
  },
  {
   "id": "event-12-garden-moose-dawn",
@@ -1450,6 +1756,37 @@
   "bg": "#6e6b60"
  },
  {
+  "id": "fish2-12-heavy-seas-ice",
+  "set": "event",
+  "n": 12,
+  "title": "Ice on the rails",
+  "webp": "event/fish2-12-heavy-seas-ice.webp",
+  "file": "event/fish2-12-heavy-seas-ice.jpg",
+  "fw": 960,
+  "thumbWebp": "event/fish2-12-heavy-seas-ice.thumb.webp",
+  "thumb": "event/fish2-12-heavy-seas-ice.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "A Bering Sea crab boat climbs a heavy grey sea in freezing spray, its rails, wheelhouse, crane and stacked pots caked with ice and icicles while two deckhands on top of the stack beat the ice off with bats.",
+  "where": "Crab job \"Ice on the rails\" screen and a severity-1 settlement.",
+  "when": {
+   "event": "heavy_seas_ice",
+   "from": "crab",
+   "time": "any"
+  },
+  "notes": "Storm light from a pale break at upper left; ice is near-white against dark seas so it reads at thumbnail size. Also fits the optional \"hauling\" moment.",
+  "meta": {
+   "place": "Bering Sea, out of Dutch Harbor",
+   "light": "storm",
+   "also_fits": [
+    "crab:hauling"
+   ]
+  },
+  "bg": "#4c5b64",
+  "v": "4d0c40f651",
+  "enabled": true
+ },
+ {
   "id": "event-13-earthquake-shake",
   "set": "event",
   "n": 13,
@@ -1478,6 +1815,37 @@
   "enabled": true,
   "bg": "#87674b",
   "focus": "50% 70%"
+ },
+ {
+  "id": "fish2-13-survival-suit-drill",
+  "set": "event",
+  "n": 13,
+  "title": "Survival-suit drill",
+  "webp": "event/fish2-13-survival-suit-drill.webp",
+  "file": "event/fish2-13-survival-suit-drill.jpg",
+  "fw": 960,
+  "thumbWebp": "event/fish2-13-survival-suit-drill.thumb.webp",
+  "thumb": "event/fish2-13-survival-suit-drill.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "On a crab boat's deck at the dock under green Aleutian hills, three deckhands race into red immersion suits, one fully suited, one zipping up and one still hauling the legs on, while the skipper times them with a stopwatch.",
+  "where": "Crab job survival-suit drill screen.",
+  "when": {
+   "event": "suit_drill",
+   "from": "crab",
+   "time": "any"
+  },
+  "notes": "Overcast Dutch Harbor light; the red suits are the colour story against grey-green. Stopwatch and life ring carry no text.",
+  "meta": {
+   "place": "Dutch Harbor",
+   "light": "overcast day",
+   "also_fits": [
+    "crab:job_greenhorn"
+   ]
+  },
+  "bg": "#7e8885",
+  "v": "013f99bc90",
+  "enabled": true
  },
  {
   "id": "event-14-ice-dam-eave",
@@ -1510,6 +1878,34 @@
   "bg": "#9d9a8d"
  },
  {
+  "id": "fish2-14-tender-at-anchor-dusk",
+  "set": "event",
+  "n": 14,
+  "title": "Tender at anchor",
+  "webp": "event/fish2-14-tender-at-anchor-dusk.webp",
+  "file": "event/fish2-14-tender-at-anchor-dusk.jpg",
+  "fw": 960,
+  "thumbWebp": "event/fish2-14-tender-at-anchor-dusk.thumb.webp",
+  "thumb": "event/fish2-14-tender-at-anchor-dusk.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "At dusk on Cook Inlet a rust-streaked steel tender rides at anchor with its deck lights on, drift gillnetters with net reels rafted alongside, a volcano and the low west shore across the water.",
+  "where": "Tender planner sheets, the start of a day on the tender, a quiet opener.",
+  "when": {
+   "event": "tender_anchor",
+   "from": "tender",
+   "time": "any"
+  },
+  "notes": "Setting sun at left, warm window and deck light vs the cool inlet; the tender is the dark central mass with the bright gillnetters in front.",
+  "meta": {
+   "place": "Cook Inlet off the Kenai River mouth",
+   "light": "dusk"
+  },
+  "bg": "#94838c",
+  "v": "d7f92998be",
+  "enabled": true
+ },
+ {
   "id": "event-15-co-alarm-night",
   "set": "event",
   "n": 15,
@@ -1540,6 +1936,34 @@
   "bg": "#543931"
  },
  {
+  "id": "fish2-15-tender-brailing-fish",
+  "set": "event",
+  "n": 15,
+  "title": "Brailing fish into the hold",
+  "webp": "event/fish2-15-tender-brailing-fish.webp",
+  "file": "event/fish2-15-tender-brailing-fish.jpg",
+  "fw": 960,
+  "thumbWebp": "event/fish2-15-tender-brailing-fish.thumb.webp",
+  "thumb": "event/fish2-15-tender-brailing-fish.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "On a tender’s deck two deckhands in orange rain gear guide a brailer bag of sockeye, hung under a crane scale, into the open refrigerated hold, a gillnetter tied alongside.",
+  "where": "Boats-alongside and run-to-the-plant steps, a big opener.",
+  "when": {
+   "event": "tender_pump",
+   "from": "tender",
+   "time": "any"
+  },
+  "notes": "Flat grey Cook Inlet morning; the brailer and scale sit dead centre on the boom line. Scale and tally board use ticks and fish pictograms only, no numbers or words.",
+  "meta": {
+   "place": "Cook Inlet",
+   "light": "overcast day"
+  },
+  "bg": "#99a6ab",
+  "v": "5c9743f3f2",
+  "enabled": true
+ },
+ {
   "id": "event-16-trip-combat",
   "set": "event",
   "n": 16,
@@ -1562,6 +1986,34 @@
   "v": "79f60e811d",
   "enabled": true,
   "bg": "#7da7a7"
+ },
+ {
+  "id": "fish2-16-plant-heading-line",
+  "set": "event",
+  "n": 16,
+  "title": "Shore plant heading line",
+  "webp": "event/fish2-16-plant-heading-line.webp",
+  "file": "event/fish2-16-plant-heading-line.jpg",
+  "fw": 960,
+  "thumbWebp": "event/fish2-16-plant-heading-line.thumb.webp",
+  "thumb": "event/fish2-16-plant-heading-line.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "Inside a shore plant, workers in hairnets, aprons and blue gloves head and gut sockeye on a stainless line, steam drifting from an open blast freezer, rain falling outside the roll-up door.",
+  "where": "Processing sheet, a plant's season.",
+  "when": {
+   "event": "plant_line",
+   "from": "tender",
+   "time": "any"
+  },
+  "notes": "Warm overhead light inside vs cool rainy daylight in the door and clerestory windows; workers are generic side-view figures with no facial detail.",
+  "meta": {
+   "place": "Kenai or Homer shore plant",
+   "light": "interior"
+  },
+  "bg": "#a1a7a5",
+  "v": "e5e6a0c1c6",
+  "enabled": true
  },
  {
   "id": "event-17-trip-bear",
@@ -1587,5 +2039,61 @@
   "enabled": true,
   "bg": "#71a7a3",
   "focus": "50% 70%"
+ },
+ {
+  "id": "fish2-17-floating-processor-bay",
+  "set": "event",
+  "n": 17,
+  "title": "Floating processor in the bay",
+  "webp": "event/fish2-17-floating-processor-bay.webp",
+  "file": "event/fish2-17-floating-processor-bay.jpg",
+  "fw": 960,
+  "thumbWebp": "event/fish2-17-floating-processor-bay.thumb.webp",
+  "thumb": "event/fish2-17-floating-processor-bay.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "A long old floating processor with cranes and rows of lit portholes lies at anchor in Kachemak Bay on a long summer evening, two tenders tied alongside delivering and a third coming in with a wake, glacier and Kenai Mountains behind.",
+  "where": "A floater's season, buying a floater.",
+  "when": {
+   "event": "floater_bay",
+   "from": "tender",
+   "time": "any"
+  },
+  "notes": "Late-evening sun low at left with a glitter path; lit windows show the ship working into the night. The ship fills the central band and crops well to 2:1.",
+  "meta": {
+   "place": "Kachemak Bay",
+   "light": "long summer evening"
+  },
+  "bg": "#8e8c96",
+  "v": "891646bae1",
+  "enabled": true
+ },
+ {
+  "id": "fish2-18-weak-market-morning",
+  "set": "event",
+  "n": 18,
+  "title": "Weak-market morning",
+  "webp": "event/fish2-18-weak-market-morning.webp",
+  "file": "event/fish2-18-weak-market-morning.jpg",
+  "fw": 960,
+  "thumbWebp": "event/fish2-18-weak-market-morning.thumb.webp",
+  "thumb": "event/fish2-18-weak-market-morning.thumb.jpg",
+  "w": 1600,
+  "h": 900,
+  "alt": "On a drizzly morning at the harbor dock, stacks of empty fish totes wait while three worried fishermen and a dog stand by a buyer's shack whose price board shows only a fish, a red down arrow and shrinking bars.",
+  "where": "A weak salmon or pink-market season.",
+  "when": {
+   "event": "weak_market",
+   "from": "tender",
+   "time": "any"
+  },
+  "notes": "Grey rain light; the chalkboard is the focal point and carries pictograms only (fish, down arrow, falling bars). The tender module's brief suggested a cold-storage warehouse of unsold canned pinks; this dock version was chosen per the art request and reads as a weak market for any species.",
+  "meta": {
+   "place": "Kenai/Homer harbor dock",
+   "light": "overcast morning"
+  },
+  "bg": "#838481",
+  "v": "b43bff3004",
+  "enabled": true
  }
 ]

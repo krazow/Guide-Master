@@ -29,6 +29,11 @@ Environment variables: `STYLES` (comma list), `DIFFS` (space list for run.sh), `
 | `tycoon` | like `food`, and over-expands: every guide its reputation allows at the lowest wage, every boat it can afford, no raises |
 | `processor` | like `food`, and, once three seasons are behind it, runs a fish-buying business (46-tender.js, src/tender): charters a tender, buys a used one (a bank loan for most of it), leases line space, buys a shore plant once cash allows in a year the market doesn't look weak; full crew, fresh fish, +2¢ over the going price; runs the tender itself on opener days with no party booked |
 | `mogul` | like `food`, and over-invests in the fish business: borrows for two tenders and a plant (a floating processor when it can), overpays the fleet by 8¢, skips upkeep, fillets everything |
+| `gillnet` | like `food`, and gillnets Cook Inlet from the second off-season (42-gillnet.js, src/gillnet): crews a drift boat first, then leases; works an opener only when no trip of its own is booked |
+| `gillgreedy` | like `gillnet`, but cancels trips for openers and pushes the rules |
+| `seine` / `seinecrew` / `seineall` | like `food`, and seines out of Homer from the second off-season (43-seine.js, src/seine): crews, then runs a boat on an emergency transfer (`seinecrew` only crews; `seineall` signs on for every opener, cancelling the trips in the way) |
+| `crab` / `crabr` | like `food`, and crabs from the second off-season (44-crab.js, src/crab): a pot on free Homer afternoons, Tanner days, a deckhand job out west each winter it can (careful / reckless job policy) |
+| `fishmix` | `gillnet` + `crab` + `processor` together (41b-fishhub.js): one commercial activity a day, its own catch sold to its own tender or plant |
 | others | `bytb`, `ruler`, `careless`, `nofuel`, `nolog` ... single-habit variants, see `STYLES` in `sim-lib.js` |
 
 Weeks (1.14.0): from the second season the bots pick which two weeks of the summer they guide. The default policy, `mix`, keeps one July week and tries June kings, August silvers and September rainbows in turn (seasons 2–5: Jul 13 + Aug, Jun + Jul 20, Jul 20 + Sep, both July weeks). `OVER='{"weeks":"july"}'` plays the two July weeks every year as before; `junaug`, `augsep`, `junsep`, `julaug` are fixed pairs (see `WEEKPOL` in `sim-lib.js`).

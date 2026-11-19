@@ -6,7 +6,7 @@ const FONTS = CACHE_PREFIX + 'fonts';
 // Illustrations (art/, see art/README.md) are never precached: each image is cached the first time it is shown, in its own cache
 // that outlives releases (the URLs carry ?v=<content hash>) and keeps only the ART_MAX most recently added images.
 const ART = CACHE_PREFIX + 'art';
-const ART_MAX = 60;
+const ART_MAX = 80;
 const isArt = url => /\/art\/[^?]+\.(png|webp|jpe?g)$/i.test(url.pathname);
 async function trimArt(c) {
   const keys = await c.keys();

@@ -1,7 +1,7 @@
 # Illustrations
 
 Pictures for Guide Master. The game draws its own scenes in SVG; an illustration sits at the top of a screen as a banner cropped from
-16:9 (see **How pictures are shown**). Since 1.17.0 **all 55 entries are enabled** and ⚙️ Settings → Illustrations is on by default.
+16:9 (see **How pictures are shown**). Since 1.17.0 every entry is enabled (**72** since 1.19.0) and ⚙️ Settings → Illustrations is on by default.
 An entry is imported switched off and enabled after review; with no entry enabled, or Illustrations off, every screen is byte-for-byte
 what it is without art (`tests/art.test.js` checks each hook), so a set can be added, reviewed and enabled with no game-logic changes.
 
@@ -13,6 +13,11 @@ Imported and **enabled** (1.17.0): cabin 12, boat 16, camp 10, event 17 (55 entr
 combat-fishing and sow-and-cubs drawings of `boat-11` and `boat-12` for those trip incidents). About 6 MB of files in all; what a player
 downloads is one full WebP per drawing shown (2.1 MB for all 53, 40 KB on average, 88 KB at most).
 
+Added and **enabled** (1.19.0): 18 event pictures for the commercial modules (`fish-01`…`fish-09`, gillnetting and seining;
+`fish2-10`…`fish2-18`, crabbing and fish buying & processing), `from: "gillnet" | "seine" | "crab" | "tender"`: 72 entries, 71 drawings,
+2.9 MB of full WebP in all (0.87 MB for the 18 new ones, 48 KB on average, 64 KB at most). The event set now has a 4 MB budget
+(`BUDGET_SETS` in `tools/art.py`): it serves the game, the cabin, camping, trips and the four modules.
+
 ## How it fits together
 
 | Piece | What it does |
@@ -22,7 +27,7 @@ downloads is one full WebP per drawing shown (2.1 MB for all 53, 40 KB on averag
 | `tools/build.py` | Embeds the **enabled** entries (trimmed to `id set file fw thumb webp thumbWebp v w h alt when enabled focus bg`, about 32 KB for the 55) into `src/js/40-art.js` between `/*@ART@*/` and `/*@/ART@*/`. Images are never inlined in `index.html`. |
 | `tools/build-offline.py` | Empties the manifest in the single-file build (the files can't travel with it). `--with-art` inlines the enabled images (the WebP) as `data:` URIs instead. |
 | `src/js/40-art.js` | `ART.register(entry)`, `artFor(set, ctx, o)`, `artImg(entry, o)`, `artSlot(set, ctx, o)`, `artScene`, `artNarr`, `artNarrEvent`, `artBeat`, `artMorning`, the display rules (`ART_REST`, `ART_SEEN`) and the context builders. |
-| `sw.js` | Caches an image the first time it is shown, in `guidemaster-art` (kept across releases, at most `ART_MAX` = 60 images: room for every drawing, about 2.1 MB). Nothing under `art/` is precached. URLs carry `?v=<content hash>`, so a redrawn image is fetched again. |
+| `sw.js` | Caches an image the first time it is shown, in `guidemaster-art` (kept across releases, at most `ART_MAX` = 80 images: room for every drawing, about 2.9 MB). Nothing under `art/` is precached. URLs carry `?v=<content hash>`, so a redrawn image is fetched again. |
 | ⚙️ Settings → **Illustrations** | On by default; the switch only appears once at least one image is enabled. Off: the drawn scenes only. |
 | Release kit | `art/` is copied with the site (`release.json` excludes only `.kit`; the kit's default excludes are `tools`, `src`, `tests`). |
 
@@ -60,7 +65,7 @@ downloads is one full WebP per drawing shown (2.1 MB for all 53, 40 KB on averag
 - Ids are `<set>-NN` (or anything unique); keep them stable once a set is enabled (tied candidates take turns by day, in an order set
   by a hash of the set and their sorted ids).
 - `file`, `thumb`, `webp` and `thumbWebp` are relative to `art/`. `data:`, `blob:` and `http(s):` addresses are used as they are.
-- **Budget:** at most **150 KB per full WebP** and **2 MB per set** (every file of the set counted). The validator warns past
+- **Budget:** at most **150 KB per full WebP** and **2 MB per set** (every file of the set counted; 4 MB for the event set, which serves every part of the game). The validator warns past
   either (`--strict` fails). Flat vector art lands at 20 to 90 KB as a WebP; the drawn PNGs (1 to 1.7 MB each) never ship.
 
 ## What the player sees
@@ -140,7 +145,7 @@ shipped manifest), so the layout is identical to 1.16.
 
 **Offline.** The single-file offline build (`offline/*.html`) carries no pictures (`build-offline.py` empties the manifest;
 `--with-art` would add about 2.8 MB of `data:` URIs). The installed PWA caches each drawing the first time it is shown (`sw.js`,
-`ART_MAX` = 60, enough for all 53 at about 2.1 MB), so once seen a picture works offline.
+`ART_MAX` = 80, enough for all 71 at about 2.9 MB), so once seen a picture works offline.
 
 **Alt text.** One picture per screen, so a description is read once. Where the text right below says what the picture shows (every
 event: the pop-up's lines, the dilemma, the morning report's item, the storm prompt, the camp encounter), the figure is decorative:
@@ -167,6 +172,7 @@ your guides' launch, camp scenes) keep their `alt`: the text around them doesn't
 | event | a day-time event with no pop-up (pop-ups off, or today's one used): the Here tab, in the scene, until the next tap | `artNarrEvent()` from `fireHook()` in `03-events.js` | `artEventCtx(id, 'game')` |
 | event | the ☀️ morning report, on top | `artMorning()` (morning items carry the event `id`, `endDay()` notes the night's event ids, and the cabin's events of the night and morning are collected by `homeArtNote()` in `32-home.js`: `CabinUpkeep.daily`, a summer outage, a generator that won't start) | first picture among: the cabin's mishaps (`sev` ≥ 1, worst first), the morning's events (`'game'`), the cabin's news (`garden_harvest`, `outage_gen`…), the night's events (`time: "night"`) |
 | event | the cabin's storm prompts and their results, the winter and spring reports, a cabin mishap's pop-up | `homeHost().show` in `32-home.js`, given `meta.events` by `src/home/home-30-ui.js` | `artEventCtx(id, 'home')`, the worst event first. A prompt shows its own id (`cold_snap`, `heavy_snow`) before the choice and its outcome (`pipe_burst`, `ice_dam`…) after it, never before; nothing happened: the prompt's id again |
+| event | the commercial modules' sheets (1.19.0): a gillnet opener's screens and summary, the gillnet planner (`gn_low_tide_site`) and the morning report on an opener or closed day; a seine opener's screens and the seining plan (`dawn_set`); the crab pot, Tanner day and deckhand job screens; the tender planner, a day on the tender and the plant | `gnArt()`/`gnHost` and the wrapped `artMorning` (`42-gillnet.js`), `seineArt()` (`43-seine.js`), `crabArt()` (`44-crab.js`), `tenderArt()` (`46-tender.js`), each given `meta.events` by its module | `artEventCtx(id, 'gillnet' \| 'seine' \| 'crab' \| 'tender')`, the worst event with a picture first; ids from each module's `EVENTS` list (`tools/art.py events`) |
 
 Every hook is `artSlot(set, ctxFunction, o)` (or `artScene`, `artNarr`, `artBeat`, `artMorning`, `homeArt`, built on it): it returns `''`
 without building the context when no image is enabled or the player turned illustrations off, and it never throws. `o`: `{rest, key}`
@@ -224,7 +230,7 @@ game, but `tools/art.py validate` reports it as an error, so a typo such as `"se
 | key | values | from the game |
 |---|---|---|
 | `event` | **game** (`defEvent` in `src/js`): `call_request`, `trooper_check`, `moose`, `traffic`, `flat`, `midnight_sun`, `mosquitoes`, `cancel`, `gossip`, `bear_bin`, `good_review`, `power_out`, `hungry_morning`, `arc_rival`, `arc_board`; **home** (`CabinUpkeep.EVENTS` in `src/home`): `chimney_fire`, `pipes_frozen`, `pipe_burst`, `cold_snap` and `heavy_snow` (the storm prompts), `ice_dam`, `shed_collapse`, `breakup_stuck`, `frost_heave`, `well_pump`, `septic_backup`, `quake`, `quake_ok`, `co_alarm`, `co_night`, `bear_yard`, `bear_raid`, `garden_moose`, `garden_harvest`, `gen_fail`, `outage_gen`, `outage_dark`, `roof_leak`, `furnace_fail`, `pump_fail`, `spoiled_batch`; **camp** (`src/camp`): `moose`, `wolves`, `lynx`, `fox`, `ravens`, `porcupine`, `swans`, `eagles`, `sheep`, `bear`, `otters`, `wolverine`, `hares`, `ptarmigan`, `seaotters`, `chickadees`, `coldsnap`, `snowstorm`, `chinook`; **trip** (the `STEP` ids in `22-trips.js`, `25-fuel.js`, `30-stories.js`, `31-supplies.js`, `33-day.js`): `combat`, `bear` (a sow and two cubs), `fog`, `whale`, `king`, `hookhand`, `rescue`, `seasick`, `motor`, `beat` (a stretch of the day), `spot`, `pack`, `fuel`, `golook` … (`python3 tools/art.py events` prints them all) | the event's id |
-| `from` | `"game"`, `"home"`, `"camp"`, `"trip"` | **required** on every event entry (the validator errors without it): where the id comes from. The same word can mean different things (`moose` on the road or at camp, `bear` at camp or on the river), and the id must be one that origin reports |
+| `from` | `"game"`, `"home"`, `"camp"`, `"trip"`, and (1.19.0) `"gillnet"`, `"seine"`, `"crab"`, `"tender"` (each module's `EVENTS` list) | **required** on every event entry (the validator errors without it): where the id comes from. The same word can mean different things (`moose` on the road or at camp, `bear` at camp or on the river), and the id must be one that origin reports |
 | `time` | `"day"`, `"dusk"`, `"night"` | as for the cabin (dusk also counts as night; in the off-season day and night both match); a night event in the morning report is `night`. Most events want `"any"` |
 
 `tools/art.py validate` reads the upgrade ids, camp places and event ids by origin from the source (`tests/art.test.js` checks
@@ -301,7 +307,7 @@ real hook with that purchase in the save (`tests/art.test.js` covers the hooks).
 - [ ] PNGs at 1600×900, thumbs at 400×225, subject in the central 70% of the width, no text, matches the game's palette
 - [ ] Looked at the 2:1 crop (and 30vh in landscape): a low subject gets a `focus` (`"50% 70%"`)
 - [ ] `manifest.json`: unique ids, one-sentence `alt` for each, only the set's `when` keys (notes in `notes`/`meta`), `from` on events
-- [ ] `python3 tools/art.py import <folder>` then `python3 tools/art.py validate --strict` is clean (≤ 150 KB per image, ≤ 2 MB per set)
+- [ ] `python3 tools/art.py import <folder>` then `python3 tools/art.py validate --strict` is clean (≤ 150 KB per image, ≤ 2 MB per set, 4 MB for events)
 - [ ] Looked at each picture in the game at 390×844, light and dark, and with Settings → Illustrations off
 - [ ] Enabled only the reviewed entries; `python3 tools/build.py`; `python3 tools/build.py --check` clean
 - [ ] `node tests/run.js` green (the art tests check that disabled entries change nothing)
