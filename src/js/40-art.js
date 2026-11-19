@@ -12,8 +12,8 @@
 //                             (enabled is false unless it is exactly true). Returns the stored entry, or null if it is unusable.
 //  artFor(set, ctx, o)        the best ENABLED entry of a set whose `when` matches ctx, or null (the caller keeps its SVG art).
 //                             Every key in `when` must match; the score is the number of keys that matched something specific
-//                             ("any" matches but scores 0). Ties are broken by a stable hash of the day and the set, so a scene
-//                             doesn't flicker between renders of the same day.
+//                             ("any" matches but scores 0). Ties take turns by game day (in an order fixed by the set and the
+//                             tied ids; the off-season hashes its seed), so a scene doesn't flicker between renders of the same day.
 //  artImg(entry, o)           the <figure><picture><source webp><img jpeg></picture></figure> HTML (alt, width/height, lazy, async decode,
 //                             srcset thumb 400w + full; the WebP source first, the small JPEG as the fallback)
 //  artSlot(set, ctx, o)       artImg(artFor(set, ctx, o), o) or '' (never throws); o: {rest, key, deco} (the display rules below)
@@ -74,6 +74,8 @@ const ART=(()=>{
     if(!top.length) return null;
     top.sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0);
     const seed=ctx&&ctx.seed!=null?ctx.seed:'';
+    // a game day takes the tied pictures in turn (each gets its share, in an order fixed by the set and the tied ids); another seed hashes
+    if(typeof seed==='number'&&Number.isFinite(seed)) return top[(Math.abs(Math.floor(seed))+hash(`${set}|${top.map(e=>e.id).join(',')}`))%top.length];
     return top[hash(`${seed}|${set}`)%top.length];
   }
   const enabled=()=>ALL.filter(e=>e.enabled);
@@ -164,6 +166,8 @@ function artLaunch(dest){
   const b=todays().find(x=>TRIPS[x.type].loc===dest&&tod()<=TRIPS[x.type].start+90);
   if(b) artNarr('boat',()=>artBoatCtx(b,dest==='homer'?'harbor':['launch','trailer']),{rest:true});
 }
+// a trip's one mid-day picture (22-trips.js tripNext, on a 'beat' step): the river at that hour, never the drawing the trip opened with
+function artBeat(b,t){const h=artSlot('boat',()=>artBoatCtx(b,'river'),{rest:true,key:'beat:'+t.id});if(h)t.artBeat=1;return h}
 // the morning report: one picture. The cabin's mishaps first, then the morning's events, the cabin's news, the night's events (on top);
 // with none of those, your guides' trips (above the first line about them, in the night section; a routine scene, so it rests)
 function artMorning(D){

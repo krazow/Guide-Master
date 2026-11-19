@@ -229,13 +229,16 @@
    "boat": "sled",
    "where": "launch",
    "cond": [
-    80,
+    60,
     100
    ],
    "up": [
     "sled"
    ],
-   "time": "day"
+   "time": [
+    "day",
+    "dusk"
+   ]
   },
   "notes": "No canopy/heater in UPGRADES, so the upgrade shows as the new hull, white outboard and a five-rod rack.",
   "v": "e59791849c",
@@ -368,7 +371,10 @@
   "where": "Trip sheet / launch on a day you rented a loaner because your boat is out of service.",
   "when": {
    "boat": "loaner",
-   "where": "launch",
+   "where": [
+    "launch",
+    "shop"
+   ],
    "time": [
     "day",
     "dusk"
@@ -448,7 +454,10 @@
    "boat": "sled",
    "where": "river",
    "trip": "silver",
-   "time": "dusk"
+   "time": [
+    "day",
+    "dusk"
+   ]
   },
   "notes": "Boat mirrored (bow upstream to the left) so the lines run into the sun path. Fireweed gone to seed and dry grass in the foreground mark late summer.",
   "v": "4e2c38859c",
@@ -776,15 +785,15 @@
   "where": "The power-outage report when there is no generator (pairs with the home event outage_dark), or the power_out event at home.",
   "when": {
    "heat": "any",
-   "season": "any",
+   "season": "winter",
    "time": "night",
    "cond": [
     0,
-    100
+    29
    ],
    "has": []
   },
-  "notes": "Pairs with event outage_dark. Candle light on the left and the headlamp beam on the freezer are the only warm sources; a dead fridge, a dark clock and jugs of water show the outage. Snow outside, but the room works in any season.",
+  "notes": "Pairs with event outage_dark. Candle light on the left and the headlamp beam on the freezer are the only warm sources; a dead fridge, a dark clock and jugs of water show the outage. Snow outside, but the room works in any season. 1.17.0: the winter picture of a run-down cabin (condition under 30): a dark night with the power out, no generator.",
   "meta": {
    "pairs_with_event": "outage_dark",
    "counterpart": "cabin-06-power-outage-generator-night"
@@ -840,13 +849,13 @@
   "alt": "A glowing orange four-season tent with a stovepipe sits in deep snow under green and violet northern lights, with snow-loaded spruce, the Kenai Mountains and a lone camper looking up.",
   "where": "Evening at camp on a clear night when the player picks \"Photograph the northern lights\"; also a good winter-hub or camping-menu header.",
   "when": {
-   "place": "hidden",
+   "place": "any",
    "shelter": "tent",
    "activity": "aurora",
    "time": "night",
    "weather": "clear"
   },
-  "notes": "Aurora built from blurred vertical strips over a starfield; warm tent glow pooled on cool snow. Hidden Lake (forest habitat, Kenai Mtns behind) fits; any clear-night tent camp works.",
+  "notes": "Aurora built from blurred vertical strips over a starfield; warm tent glow pooled on cool snow. Hidden Lake (forest habitat, Kenai Mtns behind) fits; any clear-night tent camp works. 1.17.0: any place: the northern lights come out wherever you camp.",
   "v": "0c247087ff",
   "enabled": true,
   "bg": "#355356"
@@ -866,13 +875,16 @@
   "alt": "An angler in a brown parka sits on a bucket jigging a short rod over an auger hole on a frozen lake, with a char on the ice, a hand auger, a gear sled, a pressure ridge and a low winter sun.",
   "where": "Day activity \"Ice fishing\" at a lake with ice (Johnson Lake; Stormy Lake at Captain Cook SRA also fits), especially the catch screen.",
   "when": {
-   "place": "johnson",
+   "place": [
+    "johnson",
+    "cook"
+   ],
    "shelter": "any",
    "activity": "icefish",
    "time": "day",
-   "weather": "clear"
+   "weather": "any"
   },
-  "notes": "Foreground scaled up for the header crop; the engine says the catch is stocked rainbow trout and char, so the fish is an olive-backed, pale-spotted char with white-edged fins. Reuse for place \"cook\" (Stormy Lake).",
+  "notes": "Foreground scaled up for the header crop; the engine says the catch is stocked rainbow trout and char, so the fish is an olive-backed, pale-spotted char with white-edged fins. Reuse for place \"cook\" (Stormy Lake). 1.17.0: both ice-fishing lakes (Johnson, Stormy at Captain Cook), any weather, so it can show on an ice-fishing day.",
   "v": "a921d23f4c",
   "enabled": true,
   "bg": "#c5cac6"
@@ -892,13 +904,13 @@
   "alt": "A canvas wall tent glows warm from its open door and window at dusk, woodstove smoke curling from the pipe, with stacked firewood, a chopping block and axe, skis stuck in the snow and a lantern.",
   "where": "Arriving at camp or the evening screen when the shelter is the wall tent; the skis tie it to Swanson River Road ski country.",
   "when": {
-   "place": "swanson",
+   "place": "any",
    "shelter": "wall",
    "activity": "any",
    "time": "night",
    "weather": "any"
   },
-  "notes": "Dusk palette from the game (#5f6f96 to #f0b98a); warm canvas against blue snow. Works at any place where the player owns the wall tent.",
+  "notes": "Dusk palette from the game (#5f6f96 to #f0b98a); warm canvas against blue snow. Works at any place where the player owns the wall tent. 1.17.0: any place: a wall tent at dusk.",
   "v": "68a51f0655",
   "enabled": true,
   "bg": "#877d96"
@@ -918,13 +930,13 @@
   "alt": "A red pickup with a white cabover camper is parked at a plowed pull-out on a snowy road below pink-lit Kenai Mountains on a cold blue morning, its furnace venting steam while the owner stands with a mug.",
   "where": "Morning at camp, or the confirm/packing screen, when the shelter is the truck camper.",
   "when": {
-   "place": "hidden",
+   "place": "any",
    "shelter": "camper",
    "activity": "any",
    "time": "day",
-   "weather": "clear"
+   "weather": "any"
   },
-  "notes": "Alpenglow on the summits while the valley floor stays in shade; road and delineator posts have no text. Skilak Lake Road pull-out (Hidden Lake); fine for any roadside place.",
+  "notes": "Alpenglow on the summits while the valley floor stays in shade; road and delineator posts have no text. Skilak Lake Road pull-out (Hidden Lake); fine for any roadside place. 1.17.0: any place and weather: the truck camper is the shelter, the road is generic.",
   "v": "7bbef37d6e",
   "enabled": true,
   "bg": "#b0bdca"
@@ -948,9 +960,9 @@
    "shelter": "cabin",
    "activity": "snowshoe",
    "time": "day",
-   "weather": "cold"
+   "weather": "any"
   },
-  "notes": "Cold-snap cues: vertical smoke flattening under an inversion, 22-degree halo, sun dogs and diamond dust. Cabins exist only at swanson, skilak and quartz in the data.",
+  "notes": "Cold-snap cues: vertical smoke flattening under an inversion, 22-degree halo, sun dogs and diamond dust. Cabins exist only at swanson, skilak and quartz in the data. 1.17.0: any weather (the cold snap was too narrow to come up).",
   "v": "429daa9271",
   "enabled": true,
   "bg": "#bcc5ca"
@@ -1450,9 +1462,9 @@
   "when": {
    "event": "garden_moose",
    "from": "home",
-   "time": "day"
+   "time": "any"
   },
-  "notes": "Dawn palette with a warm rim on the moose; the flattened fence panel and stripped stalks tell the story. The guide in the doorway is small and secondary.",
+  "notes": "Dawn palette with a warm rim on the moose; the flattened fence panel and stripped stalks tell the story. The guide in the doorway is small and secondary. 1.17.0: time any: the garden harvest (and the moose) come in the morning report, at dawn.",
   "meta": {
    "season": "summer",
    "has": [

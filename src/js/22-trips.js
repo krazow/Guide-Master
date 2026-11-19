@@ -251,7 +251,8 @@ function tripNext(){
   const first=!t.shown;t.shown=true;
   // 40-art.js: this step's own picture (a trip event: the STEP id, from 'trip'), else on the first step the boat at the put-in
   const art=artOn()?artSlot('event',()=>artEventCtx(key,'trip'),{deco:true,key:'trip:'+t.id})||(packed?artSlot('event',()=>artEventCtx('spot','trip'),{deco:true,key:'trip:'+t.id}):'')||
-    (first?artSlot('boat',()=>artBoatCtx(b,T.loc==='homer'?['harbor','river']:['launch','trailer','river']),{rest:true,key:'trip:'+t.id}):''):'';
+    (first?artSlot('boat',()=>artBoatCtx(b,T.loc==='homer'?['harbor','river']:['launch','trailer','river']),{rest:true,key:'trip:'+t.id}):'')||
+    (key==='beat'&&!t.artBeat?artBeat(b,t):''):'';   // and once, on a stretch of the day, the river at that hour (a different picture)
   const mm=memSheet(b,t,key);                              // 37-memories.js: a catch moment on top, the mentor's line below
   modalSwap(v.t,`${art}<p class="small-note" style="color:var(--mute);margin:0 0 6px">${T.ic} ${T.n} · ${b.who}${prog}</p>${open}${mm.top}${v.b}${packed?packHTML(pv):''}${hot}${mm.foot}`,opts.map(({o,k})=>({l:o.l,s:o.s,legal:o.legal!==false,dis:!!o.dis,np:true,k,stay:sheet,fn:()=>{
     const tt=S.trip;if(!tt) return;const bb=bk(tt.id);if(!bb) {S.trip=null;return}
