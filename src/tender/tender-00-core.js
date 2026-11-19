@@ -8,7 +8,8 @@
 const Tender={
   VERSION:'1.0.0',
   SCHEMA:1,                 // version of the ticket, report and state shapes; bump when any of them change
-  FLOOR:-1500,              // the guardrail: business bills never take the player's cash below this (a forced sale covers the rest)
+  FLOOR:10000,              // the guardrail: business bills never take the player's cash below this (a forced sale covers the rest);
+                            // it's the guide's working money, so a failed business can't starve the guiding (the host may pass ticket.floor)
 };
 (function(T){
   'use strict';

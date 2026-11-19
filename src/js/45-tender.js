@@ -17,7 +17,7 @@
 //  For the other commercial modules (gillnet, seine, crab): tenderRoute({species, lbs, area, day}) sells your own catch to your own
 //  buyer when you have one in that water (it returns null otherwise, and the delivery goes to an outside buyer as before).
 // ============================================================
-const TENDER_UNLOCK=3;                                   // seasons played before the business opens: the off-season after commercial fishing does
+const TENDER_UNLOCK=Tender.data.K.UNLOCK;                // seasons played before the business opens: the off-season after commercial fishing does
 const TENDER_SELF_BY=480;                                // run the tender yourself only if you start by 8:00 AM (the openers run 7 AM to 7 PM)
 const TENDER_CANCEL_REP=5;                               // reputation a party costs you when you cancel on them for an opener
 function tenderSeed(){return Tender.util.hash(S.name||'',S.nextId||0,S.years||0,(S.seasons||[]).length)}
@@ -26,7 +26,7 @@ const tenderHas=()=>!!(S&&S.fish&&S.fish.tender&&(Tender.active(S.fish.tender)||
 const tenderOn=()=>!!(S&&S.seasons&&S.seasons.length>=TENDER_UNLOCK)||tenderHas();
 function tenderTicket(o){
   const w=!!S.winter,d=day(),s=w?S.winter.s:seasonOf(d),R=REG();
-  return Object.assign({state:TND(),phase:w?'winter':'summer',s,year:2026+s,cash:Math.round(S.money),rep:S.rep,energy:S.energy,costMult:DF().cost,
+  return Object.assign({state:TND(),phase:w?'winter':'summer',s,year:2026+s,cash:Math.round(S.money),floor:Tender.FLOOR,rep:S.rep,energy:S.energy,costMult:DF().cost,
     diesel:Math.max(3,Math.round(((S.fuelBase&&S.fuelBase.kenai)||6.19)*.85*100)/100),daysLeft:w?campDaysLeft():0,seasonsLeft:S.years-s,md:w?0:mdOf(d),
     run:{sockeye:R.mult.sockeye,coho:R.mult.coho,pinkEven:(2026+s)%2===0,king:R.king}},o||{});
 }

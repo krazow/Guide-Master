@@ -31,7 +31,7 @@
   };
   // a ticket from the host: anything missing gets a default
   T.normTicket=function(t){
-    t=Object.assign({phase:'winter',s:0,year:2026,cash:0,rep:50,energy:80,costMult:1,diesel:5,daysLeft:10,seasonsLeft:5,md:0,
+    t=Object.assign({phase:'winter',s:0,year:2026,cash:0,floor:T.FLOOR,rep:50,energy:80,costMult:1,diesel:5,daysLeft:10,seasonsLeft:5,md:0,
       run:{sockeye:1,coho:1,pinkEven:true,king:'closed'}},t||{});
     t.state=T.normState(t.state);t.run=Object.assign({sockeye:1,coho:1,pinkEven:true,king:'closed'},t.run||{});
     return t;
@@ -313,9 +313,13 @@
   }
   // ---- the guardrail: the business can fail and be sold off, but it never takes cash below the floor ----
   function guard(t,st,rep){
-    const cash=n0(t.cash,0),room=Math.max(0,cash-T.FLOOR);
+    const cash=n0(t.cash,0),room=Math.max(0,cash-n0(t.floor,T.FLOOR));
     if(rep.cashDelta>=-room) return;
     if(!active(st)&&!st.loan){rep.lines.push('🏦 The bank lets you carry the rest.');rep.cashDelta=-room;return}
+    // first the bank carries the loss on the loan, as long as the boats and the plant cover it (and your credit is good)
+    const short=-room-rep.cashDelta,cover=Math.round(T.value(st)*K.CARRY)-(st.loan?st.loan.bal:0);
+    if(st.credit<=n0(t.s,0)&&cover>=short){borrow(t,st,short,rep,true);rep.cashDelta=-room;rep.carried=short;
+      rep.lines.push(`🏦 The season’s bills are more than you can pay, so the bank adds ${$(short)} to your loan, against the boats and the plant.`);return}
     const sale=forcedSale(t,st);
     rep.cashDelta+=sale.net;rep.forced=true;rep.lines.push(...sale.lines);rep.events.push({id:'forced_sale',sev:2});
     if(rep.cashDelta<-room){const w=-room-rep.cashDelta;rep.cashDelta=-room;rep.lines.push(`🏦 The bank writes off the last ${$(w)}. Your credit is shot for a few years.`)}
@@ -346,19 +350,21 @@
     const t=T.normTicket(t0),st=t.state,a=arg||{};
     if(t.phase!=='winter') return 'Only in the off-season';
     const loanOK=()=>st.credit>t.s?'The bank won’t lend after the forced sale':t.rep<K.BUY_REP?`A loan needs reputation ${K.BUY_REP}`:null;
-    const buy=(price)=>{const c=Math.round(price*scale(t));if(a.loan){const w=loanOK();if(w)return w;if(t.cash<c*K.DOWN)return `Needs ${$(Math.round(c*K.DOWN))} down`;return null}return t.cash<c?'Can’t afford it':null};
+    // a purchase must leave the guide's working money (the floor) and the first season's crew and upkeep in the bank
+    const keep=k=>n0(t.floor,T.FLOOR)+Math.round(reserve(k)*scale(t)),short=(pay,k)=>t.cash-pay<keep(k)?`Keep ${$(keep(k))} for your guiding${reserve(k)?' and the first season’s crew and upkeep':''}`:null;
+    const buy=(price,k)=>{const c=Math.round(price*scale(t));if(a.loan){const w=loanOK();if(w)return w;if(t.cash<c*K.DOWN)return `Needs ${$(Math.round(c*K.DOWN))} down`;return short(Math.round(c*K.DOWN),k)}return t.cash<c?'Can’t afford it':short(c,k)};
     switch(id){
-      case 'lease':if(st.tenders.length>=K.MAX_TENDERS)return `${K.MAX_TENDERS} tenders is all you can crew`;if(t.rep<K.LEASE_REP)return `Needs reputation ${K.LEASE_REP}`;if(t.cash<D.VESSELS.lease.cost*scale(t))return 'Can’t afford the charter';return null;
-      case 'buyT':if(st.tenders.length>=K.MAX_TENDERS)return `${K.MAX_TENDERS} tenders is all you can crew`;if(t.rep<K.BUY_REP)return `Needs reputation ${K.BUY_REP}`;return buy(D.VESSELS.used.price);
+      case 'lease':if(st.tenders.length>=K.MAX_TENDERS)return `${K.MAX_TENDERS} tenders is all you can crew`;if(t.rep<K.LEASE_REP)return `Needs reputation ${K.LEASE_REP}`;if(t.cash<D.VESSELS.lease.cost*scale(t))return 'Can’t afford the charter';return short(Math.round(D.VESSELS.lease.cost*scale(t)),'lease');
+      case 'buyT':if(st.tenders.length>=K.MAX_TENDERS)return `${K.MAX_TENDERS} tenders is all you can crew`;if(t.rep<K.BUY_REP)return `Needs reputation ${K.BUY_REP}`;return buy(D.VESSELS.used.price,'buyT');
       case 'sellT':{const v=st.tenders.find(x=>x.id===a.id);return !v?'No such tender':v.kind==='lease'?'A charter can’t be sold':null}
       case 'space':case 'shore':case 'floater':{
         if(st.plant)return `Sell your ${st.plant.name} first`;
-        if(id==='space'){if(st.yrs<1)return 'Tender a season first';return t.cash<D.PLANTS.space.lease*scale(t)?'Can’t afford the lease':null}
+        if(id==='space'){if(st.yrs<1)return 'Tender a season first';return t.cash<D.PLANTS.space.lease*scale(t)?'Can’t afford the lease':short(Math.round(D.PLANTS.space.lease*scale(t)),'space')}
         if(t.rep<K.BUY_REP)return `Needs reputation ${K.BUY_REP}`;
         if(id==='shore'&&st.yrs<2)return 'Needs two seasons in the business';
         if(id==='floater'&&st.yrs<3)return 'Needs three seasons in the business';
         if(id==='floater'&&t.rep<65)return 'Needs reputation 65';
-        return buy(D.PLANTS[id].price)}
+        return buy(D.PLANTS[id].price,id)}
       case 'sellP':return !st.plant?'No plant':st.plant.kind==='space'?'A lease can’t be sold':null;
       case 'crew':return !st.plant?'No plant to crew':st.crew.s===t.s+0?'Already hired':t.daysLeft<K.CREW_DAY?'No free days left this winter':t.cash<crewCost(t,st,a.lvl||'full')?'Can’t afford the crew':null;
       case 'payLoan':return !st.loan?'No loan':t.cash<Math.min(st.loan.bal,n0(a.amt,st.loan.bal))?'Not enough cash':null;
@@ -366,6 +372,8 @@
       default:return null;
     }
   };
+  // what a new venture needs in the bank for its first season: a tender's crew and fuel, a plant's crew and upkeep
+  const reserve=k=>k==='buyT'?15000:D.PLANTS[k]?D.PLANTS[k].crew*D.FIX_CREW+(k==='space'?0:D.PLANTS[k].fixed*.25):0;
   const crewCost=(t,st,lvl)=>st.plant?Math.round(D.PLANTS[st.plant.kind].crew*(lvl==='lean'?.7:1)*D.FIX_CREW*(st.plant.mix==='fillet'?D.MIX_ADD.fillet.crew:1)*scale(t)):0;
   T.crewCost=(t0,lvl)=>{const t=T.normTicket(t0);return crewCost(t,t.state,lvl)};
   T.price=(t0,id)=>{const t=T.normTicket(t0);return Math.round((id==='lease'?D.VESSELS.lease.cost:id==='space'?D.PLANTS.space.lease:id==='buyT'?D.VESSELS.used.price:D.PLANTS[id]?D.PLANTS[id].price:0)*scale(t))};
@@ -374,9 +382,9 @@
     if(what==='plant'){if(!st.plant||st.plant.kind==='space')return 0;const weak=T.forecast(t).lv.salmon===0;return Math.round(st.plant.val*(weak?K.SELL_WEAK:K.SELL_PLANT))}
     const v=st.tenders.find(x=>x.id===what);return v&&v.kind==='used'?Math.round(v.val*K.SELL_TENDER):0;
   };
-  function borrow(t,st,amt,rep){
+  function borrow(t,st,amt,rep,quiet){
     if(amt<=0)return;const L=st.loan||{bal:0,rate:K.RATE,left:K.TERM};L.bal=Math.round(L.bal+amt);L.left=K.TERM;L.rate=K.RATE;st.loan=L;
-    rep.lines.push(`🏦 The bank lends you ${$(amt)} at ${Math.round(K.RATE*100)}% a year over ${K.TERM} years (about ${$(Math.round(payment(L.bal,L.rate,L.left)))} a year).`);
+    if(!quiet)rep.lines.push(`🏦 The bank lends you ${$(amt)} at ${Math.round(K.RATE*100)}% a year over ${K.TERM} years (about ${$(Math.round(payment(L.bal,L.rate,L.left)))} a year).`);
   }
   T.act=function(t0,id,arg){
     const t=T.normTicket(t0),st=copy(t.state),rep=report(st),a=arg||{},w=T.why(Object.assign({},t,{state:st}),id,a);

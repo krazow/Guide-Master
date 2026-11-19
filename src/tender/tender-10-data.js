@@ -7,6 +7,7 @@
 (function(T){
   'use strict';
   const K={
+    UNLOCK:3,               // seasons a host lets pass before it offers the business (Guide Master: the off-season after commercial fishing opens)
     LEASE_REP:50,           // reputation needed to charter a tender
     BUY_REP:55,             // reputation needed for a bank loan, or to buy a tender or plant
     DOWN:.3,                // the least you put down when you borrow (the bank lends the rest)
@@ -17,6 +18,7 @@
     SELL_PLANT:.75,         // what a plant fetches (less in a weak market year)
     SELL_WEAK:.65,
     FIRE:.55,               // a forced sale at the dock auction
+    CARRY:.8,               // the bank carries a bad season on your loan up to this share of what the boats and plant are worth
     SCORE:.9,               // assets count in the score at nine tenths of their value
     NO_CREDIT:3,            // seasons a forced sale keeps the bank from lending again
     CREW_DAY:1,             // free winter days it takes to hire next season's plant crew yourself
@@ -47,7 +49,7 @@
   const PLANTS={
     space:{ic:'🏚️',n:'Lease line space at a custom processor',short:'leased line space',lease:34000,cap:22000,crew:12,fixed:14000,can:false,areas:['uci','lci'],
       d:'A corner of someone else’s plant: a heading line, a blast freezer and cold-storage pallets for the season. Your own small crew, their rules.'},
-    shore:{ic:'🏭',n:'Buy a small shore plant',short:'shore plant',price:700000,cap:72000,crew:40,fixed:110000,dep:.04,can:true,areas:['uci','lci'],
+    shore:{ic:'🏭',n:'Buy a small shore plant',short:'shore plant',price:520000,cap:72000,crew:40,fixed:110000,dep:.04,can:true,areas:['uci','lci'],
       d:'An older plant on the water with a bunkhouse, a heading and filleting line, blast freezers, a small canning line and its discharge permit. Bought from a company getting out of Cook Inlet.'},
     floater:{ic:'🛳️',n:'Buy an old floating processor',short:'floating processor',price:1600000,cap:140000,crew:90,fixed:220000,dep:.05,can:true,areas:['uci','lci'],move:25000,
       d:'A converted ship with freezers, a canning line and berths for ninety. It goes where the fish are, and it can winter out west processing crab.'},
