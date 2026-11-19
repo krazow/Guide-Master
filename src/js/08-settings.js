@@ -27,12 +27,11 @@ function titleScreen(){clearTiles();
   ${TITLE.bullets.length?`<ul>${TITLE.bullets.map(b=>`<li>${b}</li>`).join('')}</ul>`:''}
   ${d?`<button class="big" onclick="resumeGame()">Continue as ${esc(d.S.name||currentName())}: ${dayName(d.S.cur)} ${fmt(d.S.t)}${multi||curSlot()>1?` (slot ${curSlot()})`:''}</button><button class="ghost" onclick="startNewGame()">Start a new game</button>`:`<button class="big" onclick="startNewGame()">${TITLE.start}</button>`}
   ${GAME.slots>1?'<button class="ghost" onclick="slotsModal()">💾 Save slots</button>':''}
+  ${installButton()}
   ${typeof helpModal==='function'?'<button class="ghost" onclick="helpModal()">❓ Help!</button>':''}
   ${typeof feedbackModal==='function'?'<button class="ghost" onclick="feedbackModal()">💬 Send feedback</button>':''}
   <button class="ghost" onclick="openTransfer()">🔁 Transfer a saved game</button>
   ${saveNotice?`<div class="hint">⚠️ ${saveNotice}</div>`:''}${exitNotice?`<div class="hint">${exitNotice}</div>`:''}
-  <button id="installBtn" class="ghost" style="display:${deferredInstall&&!isStandalone()?'block':'none'}" onclick="doInstall()">📲 Install as an app</button>
-  ${!isStandalone()&&isIOS()?'<div class="hint">📲 <b>Play it like an app:</b> tap the Share button in Safari, then <b>Add to Home Screen</b>. It works offline, too.</div>':''}
   <div class="small-note">Version ${APP_VERSION}. ${TITLE.note||''}</div></div></div>`);
   exitNotice='';saveNotice='';
   if(typeof maybeUpdateNotice==='function')maybeUpdateNotice();

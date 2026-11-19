@@ -10,7 +10,7 @@
 //    03-events.js    random-event engine (hooks, chances, cooldowns, chains)
 //    04-loop.js      new game, days, nights, travel, the passing of time
 //    05-ui.js        HUD, scene, tabs, action list, to-do + priorities, log, tips
-//    06-save.js      autosave, 3 slots, migrations, transfer codes, install, service worker
+//    06-save.js      autosave, 3 slots, migrations, transfer codes, service worker
 //    07-endings.js   end screen, score, best score, achievements
 //    08-settings.js  title screen, name/difficulty pickers, settings, accessibility, slots
 //    09-keys.js      keyboard shortcuts for desktop
@@ -18,6 +18,7 @@
 //    21-story.js     ← YOUR GAME: events, tips, to-do, achievements, scoring, migrations
 //    31-supplies.js  ← YOUR GAME: food, home fuel storage, power outages and the generator
 //    32-home.js      ← YOUR GAME: the cabin (the adapter for src/home/, the CabinUpkeep module)
+//    41-install.js   the title screen's Install app button (Android/Chrome prompt, other browsers' steps, iPhone page)
 //    99-boot.js      starts the app
 //  Engine files (00–09) shouldn't need much editing; your game lives in 20+.
 // ============================================================
@@ -26,7 +27,7 @@ const GAME={
   title:'Guide Master',
   tagline:'A guide’s career on the Kenai',
   codePrefix:'GUIDEMASTER',   // transfer codes start with this, e.g. POCKETWEEK:eyJ…
-  version:'1.17.0',           // bump on every release: shown in Settings, stamped into saves and sw.js
+  version:'1.18.0',           // bump on every release: shown in Settings, stamped into saves and sw.js
   schema:9,                  // bump when the shape of S changes, and add a MIGRATIONS entry (21-story.js)
   days:14,                   // days in ONE season (the July peak, Mon–Sun twice; season 1 is Jul 13–26, 2026). A career is 14 × years: see the getter below
   wake:300,                  // default alarm for new games, in minutes after midnight (300 = 5:00 AM: guides start early; saves keep their own S.alarm)

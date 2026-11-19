@@ -24,6 +24,9 @@ html = re.sub(r'\s*<link rel="apple-touch-icon"[^>]*>', '', html)
 html = html.replace('href="icons/favicon-32.png"', 'href="' + data_uri("icons/favicon-32.png", "image/png") + '"')
 # No service worker in the single-file build.
 html = html.replace("if('serviceWorker' in navigator&&", "if(false&&")
+# Nothing to install from a file: the title screen's Install app button stays hidden (src/js/41-install.js).
+assert html.count("const SINGLE_FILE=false;") == 1, 'SINGLE_FILE marker missing in src/js/41-install.js'
+html = html.replace("const SINGLE_FILE=false;", "const SINGLE_FILE=true;")
 
 # Illustrations (src/js/40-art.js): the images live in art/ next to index.html, which a single file can't reach. By default the
 # embedded manifest is emptied, so the offline game shows its drawn scenes exactly as with art off; --with-art inlines them instead.

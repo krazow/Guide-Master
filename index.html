@@ -246,6 +246,9 @@ button.act,.ghost,.big{min-height:44px}
 .scene:has(>.art-fig:not([data-err])) .place h2{font-size:16px}.scene:has(>.art-fig:not([data-err])) .place div{display:none}
 @media (prefers-reduced-motion:reduce){.art-fig img{transition:none}}
 @media (prefers-color-scheme:dark){.art-fig{background:#22313a;filter:brightness(.86) saturate(.95)}}
+/* Install app (41-install.js): the steps sheet and the thank-you note */
+.inst-steps{margin:8px 0 10px;padding-left:22px;line-height:1.5;font-size:15px}.inst-steps li{margin:4px 0}
+.inst-toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 18px);transform:translateX(-50%);max-width:min(440px,calc(100% - 28px));background:var(--ink);color:#fff;border-radius:12px;padding:12px 16px;font-size:14.5px;line-height:1.4;box-shadow:0 6px 20px rgba(0,0,0,.3);z-index:60}
 </style>
 </head>
 <body>
@@ -1799,7 +1802,7 @@ const CabinUpkeep={
 //    03-events.js    random-event engine (hooks, chances, cooldowns, chains)
 //    04-loop.js      new game, days, nights, travel, the passing of time
 //    05-ui.js        HUD, scene, tabs, action list, to-do + priorities, log, tips
-//    06-save.js      autosave, 3 slots, migrations, transfer codes, install, service worker
+//    06-save.js      autosave, 3 slots, migrations, transfer codes, service worker
 //    07-endings.js   end screen, score, best score, achievements
 //    08-settings.js  title screen, name/difficulty pickers, settings, accessibility, slots
 //    09-keys.js      keyboard shortcuts for desktop
@@ -1807,6 +1810,7 @@ const CabinUpkeep={
 //    21-story.js     ← YOUR GAME: events, tips, to-do, achievements, scoring, migrations
 //    31-supplies.js  ← YOUR GAME: food, home fuel storage, power outages and the generator
 //    32-home.js      ← YOUR GAME: the cabin (the adapter for src/home/, the CabinUpkeep module)
+//    41-install.js   the title screen's Install app button (Android/Chrome prompt, other browsers' steps, iPhone page)
 //    99-boot.js      starts the app
 //  Engine files (00–09) shouldn't need much editing; your game lives in 20+.
 // ============================================================
@@ -1815,7 +1819,7 @@ const GAME={
   title:'Guide Master',
   tagline:'A guide’s career on the Kenai',
   codePrefix:'GUIDEMASTER',   // transfer codes start with this, e.g. POCKETWEEK:eyJ…
-  version:'1.17.0',           // bump on every release: shown in Settings, stamped into saves and sw.js
+  version:'1.18.0',           // bump on every release: shown in Settings, stamped into saves and sw.js
   schema:9,                  // bump when the shape of S changes, and add a MIGRATIONS entry (21-story.js)
   days:14,                   // days in ONE season (the July peak, Mon–Sun twice; season 1 is Jul 13–26, 2026). A career is 14 × years: see the getter below
   wake:300,                  // default alarm for new games, in minutes after midnight (300 = 5:00 AM: guides start early; saves keep their own S.alarm)
@@ -2397,13 +2401,7 @@ function importCode(){
   }catch(e){setTimeout(()=>{openTransfer();const el=document.getElementById('imperr');if(el)el.textContent=/already over/.test(e.message)?'That game is already finished.':`That code didn’t work. Make sure you copied all of it, starting with ${GAME.codePrefix}:`;const i=document.getElementById('imp');if(i)i.value=raw},0)}
 }
 
-// ---- install as an app (PWA) + offline service worker ----
-let deferredInstall=null;
-window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstall=e;const b=document.getElementById('installBtn');if(b)b.style.display='block'});
-window.addEventListener('appinstalled',()=>{deferredInstall=null;const b=document.getElementById('installBtn');if(b)b.style.display='none'});
-const isStandalone=()=>{try{return matchMedia('(display-mode: standalone)').matches||navigator.standalone===true}catch(e){return false}};
-const isIOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-window.doInstall=async()=>{if(!deferredInstall)return;deferredInstall.prompt();try{await deferredInstall.userChoice}catch(e){}deferredInstall=null;const b=document.getElementById('installBtn');if(b)b.style.display='none'};
+// ---- offline service worker (installing as an app: 41-install.js) ----
 // Skipped on localhost so you never debug a stale cached copy; add ?sw=1 to the URL to test offline mode locally.
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)&&(!/^(localhost|127\.0\.0\.1)$/.test(location.hostname)||/[?&]sw=1\b/.test(location.search))){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})})}
 document.addEventListener('visibilitychange',()=>{if(document.hidden)saveGame()});
@@ -2474,12 +2472,11 @@ function titleScreen(){clearTiles();
   ${TITLE.bullets.length?`<ul>${TITLE.bullets.map(b=>`<li>${b}</li>`).join('')}</ul>`:''}
   ${d?`<button class="big" onclick="resumeGame()">Continue as ${esc(d.S.name||currentName())}: ${dayName(d.S.cur)} ${fmt(d.S.t)}${multi||curSlot()>1?` (slot ${curSlot()})`:''}</button><button class="ghost" onclick="startNewGame()">Start a new game</button>`:`<button class="big" onclick="startNewGame()">${TITLE.start}</button>`}
   ${GAME.slots>1?'<button class="ghost" onclick="slotsModal()">💾 Save slots</button>':''}
+  ${installButton()}
   ${typeof helpModal==='function'?'<button class="ghost" onclick="helpModal()">❓ Help!</button>':''}
   ${typeof feedbackModal==='function'?'<button class="ghost" onclick="feedbackModal()">💬 Send feedback</button>':''}
   <button class="ghost" onclick="openTransfer()">🔁 Transfer a saved game</button>
   ${saveNotice?`<div class="hint">⚠️ ${saveNotice}</div>`:''}${exitNotice?`<div class="hint">${exitNotice}</div>`:''}
-  <button id="installBtn" class="ghost" style="display:${deferredInstall&&!isStandalone()?'block':'none'}" onclick="doInstall()">📲 Install as an app</button>
-  ${!isStandalone()&&isIOS()?'<div class="hint">📲 <b>Play it like an app:</b> tap the Share button in Safari, then <b>Add to Home Screen</b>. It works offline, too.</div>':''}
   <div class="small-note">Version ${APP_VERSION}. ${TITLE.note||''}</div></div></div>`);
   exitNotice='';saveNotice='';
   if(typeof maybeUpdateNotice==='function')maybeUpdateNotice();
@@ -7034,6 +7031,61 @@ function artCampCtx(sess,extra){
 }
 // event: event (an id from defEvent, CabinUpkeep.EVENTS, src/camp's encounters or a trip STEP), from ('game' | 'home' | 'camp' | 'trip'), time
 function artEventCtx(id,from){const t=S&&!S.winter?artTime():null;return {event:id,from:from||'game',time:!t?['day','night']:t==='dusk'?['dusk','night']:t}}   // the off-season has no clock
+// ---------------- "📲 Install app" on the title screen ----------------
+// 08-settings.js puts installButton() on the title screen. What the button does depends on the device:
+//   Chrome / Edge / Samsung Internet (Android and computers): when the browser has offered an install (beforeinstallprompt),
+//     the button opens the browser's own install prompt; after appinstalled it hides and says thanks.
+//   No offer yet (Firefox, a browser that hasn't decided the page is installable, …): a short sheet with the menu steps.
+//   iPhone / iPad (incl. iPadOS that reports as a Mac with touch): the step-by-step page install/ios.html, with a video.
+// The button is hidden while running as the installed app, and in the single-file offline build (no server, nothing to install).
+let deferredInstall=null;
+const INSTALLED_KEY=KEY('installed');   // set after appinstalled: a browser tab of an installed app shows no button
+const isStandalone=()=>{try{return matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches||navigator.standalone===true}catch(e){return false}};
+const isIOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const SINGLE_FILE=false;   // tools/build-offline.py turns this on in the one-file offline copy
+const canInstallHere=()=>!SINGLE_FILE&&/^https?:$/.test(location.protocol)&&!isStandalone();
+function installShown(){
+  if(!canInstallHere())return false;
+  if(deferredInstall||isIOS())return true;
+  try{return localStorage.getItem(INSTALLED_KEY)!=='1'}catch(e){return true}
+}
+function installButton(){return installShown()?'<button id="installBtn" class="ghost" onclick="doInstall()">📲 Install app</button>':''}
+function syncInstallBtn(){const b=document.getElementById('installBtn');
+  if(b&&!installShown())b.remove();
+  else if(!b&&installShown()&&document.querySelector('.title'))titleScreen()}
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstall=e;try{localStorage.removeItem(INSTALLED_KEY)}catch(x){}syncInstallBtn()});
+window.addEventListener('appinstalled',()=>{deferredInstall=null;try{localStorage.setItem(INSTALLED_KEY,'1')}catch(e){}syncInstallBtn();
+  installToast('✅ Thanks for installing Guide Master! Find it on your home screen. It plays offline, too.')});
+// A short note at the bottom of the screen (the title screen has no event tiles).
+function installToast(msg){
+  document.querySelectorAll('.inst-toast').forEach(e=>e.remove());
+  const el=document.createElement('div');el.className='inst-toast';el.setAttribute('role','status');el.setAttribute('aria-live','polite');el.textContent=msg;
+  document.body.appendChild(el);setTimeout(()=>el.remove(),6000);
+}
+// The other browsers' menu steps, by what this browser looks like.
+function installSteps(){
+  const ua=navigator.userAgent,mobile=/android|mobile/i.test(ua);
+  if(/SamsungBrowser/i.test(ua))return ['Tap the menu button (☰) at the bottom of the screen.','Tap <b>Add page to</b>, then <b>Home screen</b>.','Tap <b>Add</b>. Guide Master is now on your home screen.'];
+  if(/Firefox|FxiOS/i.test(ua)&&mobile)return ['Tap the browser menu (⋮).','Tap <b>Add app to Home screen</b> (or <b>Install</b>).','Tap <b>Add</b>. Guide Master is now on your home screen.'];
+  if(/Firefox/i.test(ua))return ['Firefox on a computer can’t install web apps. Open this page in Chrome or Edge to install it.','Or simply bookmark it: once loaded, the game also plays offline in this browser.'];
+  if(!mobile&&/Safari/i.test(ua)&&!/Chrome|Chromium|Edg/i.test(ua))return ['In Safari’s menu bar, choose <b>File → Add to Dock…</b> (macOS Sonoma or later).','Click <b>Add</b>. Guide Master opens from the Dock in its own window.'];
+  if(!mobile)return ['Click the install icon (a screen with a down arrow) at the right end of the address bar,','or open the browser menu (⋮ or …) and choose <b>Install Guide Master</b> (Edge: <b>Apps → Install this site as an app</b>).','Click <b>Install</b>. Guide Master gets its own window and a desktop icon.'];
+  return ['Open the browser menu (⋮), at the top right.','Tap <b>Install app</b> or <b>Add to Home screen</b>.','Tap <b>Install</b> (or <b>Add</b>). Guide Master is now on your home screen.'];
+}
+function installSheet(){
+  const steps=installSteps();
+  modal('📲 Install Guide Master',`<p>Put the game on your home screen: it opens full screen, like an app, and plays offline.</p>
+  <ol class="inst-steps">${steps.map(s=>`<li>${s}</li>`).join('')}</ol>
+  <p style="font-size:13px;color:var(--mute)">Don’t see it in the menu? Use the game for a minute and look again: some browsers only offer it after a short visit. On Android and computers the installed app keeps this browser’s saved games.</p>`,
+  [{l:'Got it',fn:()=>{}}]);
+}
+window.doInstall=async()=>{
+  if(deferredInstall){const ev=deferredInstall;deferredInstall=null;
+    try{ev.prompt();const c=await ev.userChoice;if(c&&c.outcome==='accepted'){try{localStorage.setItem(INSTALLED_KEY,'1')}catch(e){}}}catch(e){}
+    syncInstallBtn();return}
+  if(isIOS()){if(typeof saveGame==='function'&&S&&!S.over)saveGame();location.href='install/ios.html';return}
+  installSheet();
+};
 // ---------------- boot ----------------
 applyPrefs();
 titleScreen();
