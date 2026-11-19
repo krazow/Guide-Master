@@ -354,7 +354,7 @@
     if(t.phase!=='winter') return 'Only in the off-season';
     const loanOK=()=>st.credit>t.s?'The bank won’t lend after the forced sale':t.rep<K.BUY_REP?`A loan needs reputation ${K.BUY_REP}`:null;
     // a purchase must leave the guide's working money, the floor, and the first season's crew and upkeep in the bank
-    const keep=k=>n0(t.floor,T.FLOOR)+Math.round(reserve(k)*scale(t)),short=(pay,k)=>t.cash-pay<keep(k)?`Keep ${$(keep(k))} for your guiding${reserve(k)?' and the first season’s crew and upkeep':''}`:null;
+    const keep=k=>n0(t.floor,T.FLOOR)+Math.round(reserve(k)*scale(t)),short=(pay,k)=>t.cash-pay<keep(k)?`Keep ${$(keep(k))} for your guiding${reserve(k)?' and the first season’s crew':''}`:null;
     const buy=(price,k)=>{const c=Math.round(price*scale(t));if(a.loan){const w=loanOK();if(w)return w;if(t.cash<c*K.DOWN)return `Needs ${$(Math.round(c*K.DOWN))} down`;return short(Math.round(c*K.DOWN),k)}return t.cash<c?'Can’t afford it':short(c,k)};
     switch(id){
       case 'lease':if(st.tenders.length>=K.MAX_TENDERS)return `${K.MAX_TENDERS} tenders is all you can crew`;if(t.rep<K.LEASE_REP)return `Needs reputation ${K.LEASE_REP}`;if(t.cash<D.VESSELS.lease.cost*scale(t))return 'Can’t afford the charter';return short(Math.round(D.VESSELS.lease.cost*scale(t)),'lease');
@@ -375,8 +375,8 @@
       default:return null;
     }
   };
-  // what a new venture needs in the bank for its first season: a tender's crew and fuel, a plant's crew and upkeep
-  const reserve=k=>k==='buyT'?15000:D.PLANTS[k]?D.PLANTS[k].crew*D.FIX_CREW+(k==='space'?0:D.PLANTS[k].fixed*.25):0;
+  // what a new venture needs in the bank for its first season: a tender's crew and fuel, a plant's crew
+  const reserve=k=>k==='buyT'?15000:D.PLANTS[k]?D.PLANTS[k].crew*D.FIX_CREW:0;
   const crewCost=(t,st,lvl)=>st.plant?Math.round(D.PLANTS[st.plant.kind].crew*(lvl==='lean'?.7:1)*D.FIX_CREW*(st.plant.mix==='fillet'?D.MIX_ADD.fillet.crew:1)*scale(t)):0;
   T.crewCost=(t0,lvl)=>{const t=T.normTicket(t0);return crewCost(t,t.state,lvl)};
   T.price=(t0,id)=>{const t=T.normTicket(t0);return Math.round((id==='lease'?D.VESSELS.lease.cost:id==='space'?D.PLANTS.space.lease:id==='buyT'?D.VESSELS.used.price:D.PLANTS[id]?D.PLANTS[id].price:0)*scale(t))};

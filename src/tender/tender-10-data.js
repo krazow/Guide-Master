@@ -67,13 +67,13 @@
   const GOING={sockeye:[1.05,1.45,2.05],coho:[.85,1.1,1.4],chum:[.45,.6,.75],pink:[.18,.3,.42],crab:[3.5,4.5,6]};   // a pound over the rail, weak/normal/strong
   const MKT_OF={sockeye:'salmon',coho:'salmon',chum:'salmon',pink:'pink',crab:'crab'};
   // the plant's margin a pound over what a tender's fish cost delivered (the going price plus the tender's spread), after labor, packaging, freezing, storage and freight (frozen H&G)
-  const MARGIN={sockeye:[.04,.12,.2],coho:[.02,.1,.17],chum:[0,.05,.09],pink:[-.04,.02,.06],crab:[.2,.45,.7]};
+  const MARGIN={sockeye:[.045,.125,.205],coho:[.02,.1,.17],chum:[0,.05,.09],pink:[-.04,.02,.06],crab:[.2,.45,.7]};
   const MIX_ADD={fresh:{sockeye:.2,coho:.16,share:.12},fillet:{sockeye:.07,coho:.06,chum:.04,speed:.65,crew:1.15},can:{pink:[-.08,.08,.13],chum:[-.03,.07,.11]}};
   const FRESH_FIX={space:6000,shore:18000,floater:30000};   // a fresh program: air-freight contracts, a fresh buyer's fees, boxes and gel ice
   const ENERGY={space:5000,shore:30000,floater:110000};   // diesel for generators and freezers, a season at $5 a gallon
   const FIX_CREW=1800;      // a seasonal plant worker's travel, recruiting and bunkhouse, a season
   // the fleet: pounds a buyer can see on one opener at the run's peak (all buyers together, near your anchorage)
-  const FLEET={uci:{sockeye:185000,coho:17000,pink:11000,chum:10000},lci:{sockeye:90000,pink:300000,chum:16000,coho:3000}};
+  const FLEET={uci:{sockeye:190000,coho:17000,pink:11000,chum:10000},lci:{sockeye:90000,pink:300000,chum:16000,coho:3000}};
   // the timing of each catch through the summer (day of year)
   const TIMING={uci:{sockeye:[198,9],coho:[224,8],pink:[214,7],chum:[205,11]},lci:{sockeye:[186,13],pink:[214,9],chum:[208,11],coho:[230,9]}};
   // outside supply to a plant (other tenders, docks), pounds a season in an average run, and the east-side setnet deliveries

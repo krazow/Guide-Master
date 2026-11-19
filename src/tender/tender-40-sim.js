@@ -24,7 +24,7 @@
       }
       // the plant: line space first, a shore plant once the business has a few seasons and the cash
       if(!st.plant&&owned+(out.some(x=>x[0]==='buyT')?1:0)>0){
-        const sp=T.price(t,'shore'),cushion=(t.floor||T.FLOOR)+120000;
+        const sp=T.price(t,'shore'),cushion=(t.floor||T.FLOOR)+T.crewCost(Object.assign({},t,{state:Object.assign({},st,{plant:{kind:'shore',mix:'fresh'}})}),'full');
         if(st.yrs>=2&&left>=3&&fc.salmon>0&&t.rep>=K.BUY_REP&&cash>=sp*K.DOWN+cushion) out.push(['shore',{area:'uci',loan:cash<sp+cushion}]);
         else if(st.yrs>=1&&cash>=T.price(t,'space')+30000) out.push(['space',{area:'uci'}]);
       }

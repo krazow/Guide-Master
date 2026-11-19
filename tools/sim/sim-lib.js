@@ -40,7 +40,7 @@ STYLES.tycoon=Object.assign({},STYLES.food,{biz:'tycoon'});
 // fish buying & processing (45-tender.js, src/tender): `processor` charters a tender, buys one, leases line space and buys a shore plant
 // sensibly, and runs the tender itself on opener days with no party booked; `mogul` borrows for two tenders and a floating processor.
 // Both play the rest like `food`.
-STYLES.processor=Object.assign({},STYLES.food,{tender:'processor',tenderSelf:true});
+STYLES.processor=Object.assign({},STYLES.food,{tender:'processor',tenderSelf:true,reserve:120000});   // saves for a plant: guiding upgrades only above $120k
 STYLES.mogul=Object.assign({},STYLES.food,{tender:'mogul'});
 for(const k of Object.keys(STYLES).slice()){STYLES[k+'_c']=Object.assign({},STYLES[k],{home:'careful'});STYLES[k+'_p']=Object.assign({},STYLES[k],{home:'payall'});STYLES[k+'_n']=Object.assign({},STYLES[k],{home:'neglect'})}
 

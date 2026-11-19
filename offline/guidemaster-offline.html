@@ -1931,13 +1931,13 @@ const Tender={
   const GOING={sockeye:[1.05,1.45,2.05],coho:[.85,1.1,1.4],chum:[.45,.6,.75],pink:[.18,.3,.42],crab:[3.5,4.5,6]};   // a pound over the rail, weak/normal/strong
   const MKT_OF={sockeye:'salmon',coho:'salmon',chum:'salmon',pink:'pink',crab:'crab'};
   // the plant's margin a pound over what a tender's fish cost delivered (the going price plus the tender's spread), after labor, packaging, freezing, storage and freight (frozen H&G)
-  const MARGIN={sockeye:[.04,.12,.2],coho:[.02,.1,.17],chum:[0,.05,.09],pink:[-.04,.02,.06],crab:[.2,.45,.7]};
+  const MARGIN={sockeye:[.045,.125,.205],coho:[.02,.1,.17],chum:[0,.05,.09],pink:[-.04,.02,.06],crab:[.2,.45,.7]};
   const MIX_ADD={fresh:{sockeye:.2,coho:.16,share:.12},fillet:{sockeye:.07,coho:.06,chum:.04,speed:.65,crew:1.15},can:{pink:[-.08,.08,.13],chum:[-.03,.07,.11]}};
   const FRESH_FIX={space:6000,shore:18000,floater:30000};   // a fresh program: air-freight contracts, a fresh buyer's fees, boxes and gel ice
   const ENERGY={space:5000,shore:30000,floater:110000};   // diesel for generators and freezers, a season at $5 a gallon
   const FIX_CREW=1800;      // a seasonal plant worker's travel, recruiting and bunkhouse, a season
   // the fleet: pounds a buyer can see on one opener at the run's peak (all buyers together, near your anchorage)
-  const FLEET={uci:{sockeye:185000,coho:17000,pink:11000,chum:10000},lci:{sockeye:90000,pink:300000,chum:16000,coho:3000}};
+  const FLEET={uci:{sockeye:190000,coho:17000,pink:11000,chum:10000},lci:{sockeye:90000,pink:300000,chum:16000,coho:3000}};
   // the timing of each catch through the summer (day of year)
   const TIMING={uci:{sockeye:[198,9],coho:[224,8],pink:[214,7],chum:[205,11]},lci:{sockeye:[186,13],pink:[214,9],chum:[208,11],coho:[230,9]}};
   // outside supply to a plant (other tenders, docks), pounds a season in an average run, and the east-side setnet deliveries
@@ -2304,7 +2304,7 @@ const Tender={
     if(t.phase!=='winter') return 'Only in the off-season';
     const loanOK=()=>st.credit>t.s?'The bank won’t lend after the forced sale':t.rep<K.BUY_REP?`A loan needs reputation ${K.BUY_REP}`:null;
     // a purchase must leave the guide's working money, the floor, and the first season's crew and upkeep in the bank
-    const keep=k=>n0(t.floor,T.FLOOR)+Math.round(reserve(k)*scale(t)),short=(pay,k)=>t.cash-pay<keep(k)?`Keep ${$(keep(k))} for your guiding${reserve(k)?' and the first season’s crew and upkeep':''}`:null;
+    const keep=k=>n0(t.floor,T.FLOOR)+Math.round(reserve(k)*scale(t)),short=(pay,k)=>t.cash-pay<keep(k)?`Keep ${$(keep(k))} for your guiding${reserve(k)?' and the first season’s crew':''}`:null;
     const buy=(price,k)=>{const c=Math.round(price*scale(t));if(a.loan){const w=loanOK();if(w)return w;if(t.cash<c*K.DOWN)return `Needs ${$(Math.round(c*K.DOWN))} down`;return short(Math.round(c*K.DOWN),k)}return t.cash<c?'Can’t afford it':short(c,k)};
     switch(id){
       case 'lease':if(st.tenders.length>=K.MAX_TENDERS)return `${K.MAX_TENDERS} tenders is all you can crew`;if(t.rep<K.LEASE_REP)return `Needs reputation ${K.LEASE_REP}`;if(t.cash<D.VESSELS.lease.cost*scale(t))return 'Can’t afford the charter';return short(Math.round(D.VESSELS.lease.cost*scale(t)),'lease');
@@ -2325,8 +2325,8 @@ const Tender={
       default:return null;
     }
   };
-  // what a new venture needs in the bank for its first season: a tender's crew and fuel, a plant's crew and upkeep
-  const reserve=k=>k==='buyT'?15000:D.PLANTS[k]?D.PLANTS[k].crew*D.FIX_CREW+(k==='space'?0:D.PLANTS[k].fixed*.25):0;
+  // what a new venture needs in the bank for its first season: a tender's crew and fuel, a plant's crew
+  const reserve=k=>k==='buyT'?15000:D.PLANTS[k]?D.PLANTS[k].crew*D.FIX_CREW:0;
   const crewCost=(t,st,lvl)=>st.plant?Math.round(D.PLANTS[st.plant.kind].crew*(lvl==='lean'?.7:1)*D.FIX_CREW*(st.plant.mix==='fillet'?D.MIX_ADD.fillet.crew:1)*scale(t)):0;
   T.crewCost=(t0,lvl)=>{const t=T.normTicket(t0);return crewCost(t,t.state,lvl)};
   T.price=(t0,id)=>{const t=T.normTicket(t0);return Math.round((id==='lease'?D.VESSELS.lease.cost:id==='space'?D.PLANTS.space.lease:id==='buyT'?D.VESSELS.used.price:D.PLANTS[id]?D.PLANTS[id].price:0)*scale(t))};
@@ -2544,7 +2544,7 @@ const Tender={
       }
       // the plant: line space first, a shore plant once the business has a few seasons and the cash
       if(!st.plant&&owned+(out.some(x=>x[0]==='buyT')?1:0)>0){
-        const sp=T.price(t,'shore'),cushion=(t.floor||T.FLOOR)+120000;
+        const sp=T.price(t,'shore'),cushion=(t.floor||T.FLOOR)+T.crewCost(Object.assign({},t,{state:Object.assign({},st,{plant:{kind:'shore',mix:'fresh'}})}),'full');
         if(st.yrs>=2&&left>=3&&fc.salmon>0&&t.rep>=K.BUY_REP&&cash>=sp*K.DOWN+cushion) out.push(['shore',{area:'uci',loan:cash<sp+cushion}]);
         else if(st.yrs>=1&&cash>=T.price(t,'space')+30000) out.push(['space',{area:'uci'}]);
       }
