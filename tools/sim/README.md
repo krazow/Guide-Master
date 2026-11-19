@@ -48,6 +48,27 @@ Append `_c`, `_p` or `_n` to a style for the careful, pay-everything or full-neg
 
 To compare a change: run with the same `N` and seeds on the old build (`IDX=/path/old/index.html`) and the new one, then read both. The seeds are the same in both runs, but the game consumes random numbers differently once anything changes, so treat differences under about two standard errors (the `+-` column) as noise, and use `N` of 40 or more.
 
+## Commercial & crab balance (1.19.0)
+
+Mean season score ± standard error (non-lost careers), same seeds for every style. The default styles play exactly as on 1.18.0: 560 of
+560 five-year careers (7 styles × 40 × normal and hard) and 140 of 140 ten-year careers have the same score, seed for seed.
+
+| style | 5-yr normal (40) | 5-yr hard (40) | 10-yr normal |
+|---|---|---|---|
+| `food` (guiding only) | 58,896 ± 556 | 56,357 ± 419 | 62,748 ± 540 (40) |
+| `gillnet` | 57,780 ± 550 (−1.9%) | 55,527 ± 652 (−1.5%) | 63,052 ± 770 (20; food 63,135) |
+| `gillgreedy` | 49,037 ± 715 (3 lost) | 46,737 ± 560 (4 lost) | |
+| `seine` / `seinecrew` | 58,950 ± 651 (+0.1%) | 55,926 ± 453 (−0.8%) | |
+| `seineall` | 45,950 ± 501 (−22%) | 43,901 ± 465 (−22%) | |
+| `crab` | 60,095 ± 556 (+2.0%) | 56,356 ± 611 (0.0%) | 63,061 ± 658 (20) |
+| `crabr` | 59,317 ± 531 (+0.7%) | 56,374 ± 600 (0.0%) | |
+| `processor` | 64,173 ± 1,512 (+9.0%) | 52,659 ± 1,612 (−6.6%) | 65,046 ± 2,752 (40, +3.7%) |
+| `mogul` | 59,646 ± 3,193 (+1.3%) | 57,995 ± 4,095 (+2.9%) | |
+| `fishmix` (gillnet + crab + tender) | 63,937 ± 1,732 (+8.6%) | 51,450 ± 1,613 (−8.7%) | 67,109 ± 2,983 (40, +6.9%) |
+
+The fish business carries the spread: a good market and a plant pay well, a weak market or a forced sale costs a grade. Doing all of it
+(`fishmix`) ends about 7% above guiding only over ten years, with five times the spread; gillnetting and crabbing alone are close to even.
+
 ## Illustration coverage
 
 `node tools/sim/art-coverage.js [careers] [years]` plays careers with the shipped pictures on (the off-season through the real fall
