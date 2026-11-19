@@ -3,6 +3,14 @@
 Release notes for Guide Master. `/release now` adds a section here for every release, and the GitHub release notes
 are taken from it. Earlier versions are described in the README and the in-game update notice.
 
+## Unreleased
+
+### Changed
+- **❓ Help, rewritten** for the game as it is now: a contents list at the top (tap a topic to jump to it, ↑ to come back), then
+  18 short sections in the order you meet things, from getting started and your first trip to the outfit, the trophy wall, settings
+  and installing the app. Fixed: the Sunday/Monday closure and the 6 PM rule only run through July 31, and the cabin's condition is on
+  the Home tab (not the top bar).
+
 ## 1.17.0 (2026-11-18)
 
 ### Added

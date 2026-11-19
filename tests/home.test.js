@@ -587,7 +587,7 @@ module.exports = [
     assert.ok(/^1\.1\d\.\d+$/.test(r.v) && r.v >= '1.12.1', r.v); assert.ok(r.s >= 4, `schema ${r.s}`);
     assert.ok(/booked trip/.test(r.c1) && /bad sleep/.test(r.c1) && /\$800/.test(r.c1) && /never ends a career/.test(r.c1) && /game in progress/.test(r.c1), r.c1);
     assert.ok(/Home tab/.test(r.c) && /two at a time/.test(r.c) && /game in progress/.test(r.c));
-    assert.ok(/three ways/.test(r.h) && /Never more than two/.test(r.h) && /never ends your career/.test(r.h) && /10 free days/.test(r.h) && /generator indoors/.test(r.h) && /booked party that cancels/.test(r.h) && r.tip);
+    assert.ok(/three ways/.test(r.h) && /Never more than two/.test(r.h) && /never ends your career/.test(r.h) && /10 free days/.test(r.h) && /generator indoors/.test(r.h) && /booked party can cancel/.test(r.h) && r.tip);
     await newGame(page); assert.strictEqual(await page.evaluate(() => winterCosts()[0][1]), 800, 'living costs'); const row = await page.evaluate(() => endRows().find(x => x[0] === 'The cabin')[1]); assert.ok(/0 jobs done yourself/.test(row) && /condition 80/.test(row), row);
     assert.ok(fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8').includes(r.v), 'sw.js carries the version');
     noErrors(errors);
