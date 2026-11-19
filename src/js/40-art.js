@@ -99,7 +99,7 @@ let ART_NARR=null;   // the Here tab's picture: {html, narr, ev}, shown in the s
 const ART_REST=3;
 const ART_SEEN=new Map();     // file → {d: the game day it was last shown, k: the screen it was shown on}
 const ART_LOADED=new Set();   // ids already decoded this session: drawn again (a redraw) without the fade
-const artKey=e=>e.webp||e.file;
+const artKey=e=>{const f=e.webp||e.file;return /^data:/.test(f)?'id:'+e.id:f};   // the drawing (entries can share one); an inlined picture by its id
 const artDayN=()=>S?(S.winter?100000+S.winter.s:day()):0;
 const artResting=(e,key)=>{const s=ART_SEEN.get(artKey(e));return !!s&&s.k!==key&&artDayN()-s.d<ART_REST};
 function artFor(set,ctx,o){

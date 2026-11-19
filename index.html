@@ -241,9 +241,9 @@ button.act,.ghost,.big{min-height:44px}
 .modal>.art-fig:first-child{margin:-20px -18px 14px;border-radius:0;aspect-ratio:auto;max-height:none;height:var(--art-h)}
 /* a tab: the picture takes the drawn scene's place, at the banner's height; the place's name moves to the sky, one line */
 .scene>.art-fig{position:absolute;inset:0;margin:0;border-radius:0;aspect-ratio:auto;max-height:none;height:100%}
-.scene:has(>.art-fig){height:var(--art-h)}
-.scene:has(>.art-fig) .place{top:10px;bottom:auto;padding:4px 10px;box-shadow:0 1px 4px rgba(0,0,0,.18)}
-.scene:has(>.art-fig) .place h2{font-size:16px}.scene:has(>.art-fig) .place div{display:none}
+.scene:has(>.art-fig:not([data-err])){height:var(--art-h)}
+.scene:has(>.art-fig:not([data-err])) .place{top:10px;bottom:auto;padding:4px 10px;box-shadow:0 1px 4px rgba(0,0,0,.18)}
+.scene:has(>.art-fig:not([data-err])) .place h2{font-size:16px}.scene:has(>.art-fig:not([data-err])) .place div{display:none}
 @media (prefers-reduced-motion:reduce){.art-fig img{transition:none}}
 @media (prefers-color-scheme:dark){.art-fig{background:#22313a;filter:brightness(.86) saturate(.95)}}
 </style>
@@ -6900,7 +6900,7 @@ let ART_NARR=null;   // the Here tab's picture: {html, narr, ev}, shown in the s
 const ART_REST=3;
 const ART_SEEN=new Map();     // file → {d: the game day it was last shown, k: the screen it was shown on}
 const ART_LOADED=new Set();   // ids already decoded this session: drawn again (a redraw) without the fade
-const artKey=e=>e.webp||e.file;
+const artKey=e=>{const f=e.webp||e.file;return /^data:/.test(f)?'id:'+e.id:f};   // the drawing (entries can share one); an inlined picture by its id
 const artDayN=()=>S?(S.winter?100000+S.winter.s:day()):0;
 const artResting=(e,key)=>{const s=ART_SEEN.get(artKey(e));return !!s&&s.k!==key&&artDayN()-s.d<ART_REST};
 function artFor(set,ctx,o){
