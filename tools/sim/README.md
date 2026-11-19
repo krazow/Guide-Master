@@ -27,9 +27,13 @@ Environment variables: `STYLES` (comma list), `DIFFS` (space list for run.sh), `
 | `opport` | rule-breaker: takes bending-the-rules options while it has fewer than two citations |
 | `outfit` | like `food`, and grows the business from the third off-season (36-business.js): hires a reliable guide at a fair wage (a second at Rep 72 and $70k), buys a second jet sled once cash allows, gives raises before a guide sours, lets a guide with a citation go |
 | `tycoon` | like `food`, and over-expands: every guide its reputation allows at the lowest wage, every boat it can afford, no raises |
+| `processor` | like `food`, and, once three seasons are behind it, runs a fish-buying business (46-tender.js, src/tender): charters a tender, buys a used one (a bank loan for most of it), leases line space, buys a shore plant once cash allows in a year the market doesn't look weak; full crew, fresh fish, +2¢ over the going price; runs the tender itself on opener days with no party booked |
+| `mogul` | like `food`, and over-invests in the fish business: borrows for two tenders and a plant (a floating processor when it can), overpays the fleet by 8¢, skips upkeep, fillets everything |
 | others | `bytb`, `ruler`, `careless`, `nofuel`, `nolog` ... single-habit variants, see `STYLES` in `sim-lib.js` |
 
 Weeks (1.14.0): from the second season the bots pick which two weeks of the summer they guide. The default policy, `mix`, keeps one July week and tries June kings, August silvers and September rainbows in turn (seasons 2–5: Jul 13 + Aug, Jun + Jul 20, Jul 20 + Sep, both July weeks). `OVER='{"weeks":"july"}'` plays the two July weeks every year as before; `junaug`, `augsep`, `junsep`, `julaug` are fixed pairs (see `WEEKPOL` in `sim-lib.js`).
+
+Records of the fish-business styles carry `tenderTot` (career totals), `tenderHist` (each season's net), `tenderVal`, `tenderDebt`, `tenderPlant`, `tenderN` and `tenderSelf` (openers run in person).
 
 Append `_c`, `_p` or `_n` to a style for the careful, pay-everything or full-neglect cabin policy. Camping is played by `campBot` (style flag `camp`).
 

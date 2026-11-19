@@ -141,6 +141,14 @@ const HELP=[
     <li>Be at Homer harbor by <b>6:00 AM</b>, or drive down the night before and sleep aboard. A crewman who’s late gets left at the dock.</li>
     <li>On the water: pick the bay, read the jumpers, set now or wait for a better school, take your turn at the hook-off and stay outside the closed lines. Brail the catch and sell it to the tender.</li>
     <li>It’s risky: water hauls, a net torn on a reef, a line in the wheel, a hurt hand. Sockeye pay well; pinks pay little.</li></ul>`,'seine'],
+  ['⚓','Fish buying & processing',(K=>`<p class="help-sum">With ${K.UNLOCK} seasons behind you, you can buy fish from the commercial fleet. It’s optional, and risky.</p><ul>
+    <li>In the off-season, open <b>⚓ Commercial & crab</b>, then <b>⚓ Fish buying & processing</b>. Charter a tender for a season (${$(Tender.data.VESSELS.lease.cost)}) or buy a used one (${$(Tender.data.VESSELS.used.price)}). She anchors off the Kenai River mouth or in Kachemak Bay off Homer.</li>
+    <li>On each opener your skipper buys fish over the rail at your posted price. Pay more than the other buyers and boats line up, but the margin goes with them. Cold, bled fish earn a quality bonus; a warm hold gets downgraded.</li>
+    <li>On an opener day you can run the tender yourself from the 🧭 Here tab. It takes the whole day and ${K.SELF_ENERGY} energy, and saves the skipper’s wage. A party booked that day is yours to cancel, hand to a guide or keep.</li>
+    <li>After a season of tendering you can lease line space at a processor. After two you can buy a small shore plant (${$(Tender.data.PLANTS.shore.price)}), and after three an old floating processor. A plant needs a crew hired in the winter (${K.CREW_DAY} free day), upkeep, and a food-safety inspection every season.</li>
+    <li>Runs, king closures and the market move the money. A weak pink market or soft salmon prices can turn a good run into a loss.</li>
+    <li>The bank lends the rest when you put ${Math.round(K.DOWN*100)}% down, at ${Math.round(K.RATE*100)}% over ${K.TERM} years. In a bad season it can carry the loss on your loan; if it can’t, everything goes to the dock auction.</li>
+    <li>The business never takes your last ${$(Tender.FLOOR)}: that’s your guiding money, so a failed business can’t end your career. Boats and plants count in your score at nine tenths of their value, and the loan counts against it.</li></ul>`)(Tender.data.K),'tender'],
   ['💬','Feedback',`<p class="help-sum">Ideas, bugs, or a rule or fact we got wrong? Tell the developer.</p><ul>
     <li>Tap <b>Send feedback</b> below, on the title screen or in ⚙️ Settings.</li>
     <li>Add your email if you’d like a reply. If you’re offline, it’s sent the next time you’re online.</li></ul>`,'feedback'],
