@@ -1,8 +1,9 @@
 // Illustrations (src/js/40-art.js, art/, tools/art.py, sw.js): the registry and its matching, the hooks (Home tab and fall cabin
 // sheet, arriving at the launch, the trip sheet (the boat, then each step's own picture) and the dock, repairs at the shop, a loaner,
 // the camping hub and days, event pop-ups, the morning report (the cabin's events, your guides' trips) and the cabin's storm prompts),
-// the Settings switch, the builds and the service worker's runtime cache. Every image ships switched off: with none enabled, every
-// screen is byte-for-byte what it was, and an enabled image adds its <figure> and nothing else.
+// the Settings switch, the builds and the service worker's runtime cache, and the display rules (1.17.0: where a picture sits, how big,
+// how often, alt text, fade-in). With no image enabled, or Settings → Illustrations off, every screen is byte-for-byte what it is
+// without art, and an enabled image adds its <figure> and nothing else.
 const fs = require('fs'), os = require('os'), path = require('path'), { execFileSync } = require('child_process');
 const { open, newGame, noErrors, assert, ID } = require('./helpers');
 const ROOT = path.resolve(__dirname, '..');
@@ -13,6 +14,7 @@ const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAASCAIAAAC1qksFA
 const FIXTURES = [
   { id: 't-cabin', set: 'cabin', file: PNG, thumb: PNG, alt: 'A log cabin with smoke from the chimney.', when: { season: 'any', cond: [0, 100] } },
   { id: 't-boat', set: 'boat', file: PNG, alt: 'A jet sled at the launch.', when: { boat: 'sled', cond: [0, 100] } },
+  { id: 't-dock', set: 'boat', file: PNG, alt: 'A sled tied up at the dock.', when: { boat: 'sled', where: 'dock', cond: [0, 100] } },
   { id: 't-launch', set: 'boat', file: PNG, alt: 'A sled backed down the ramp on its trailer.', when: { boat: 'sled', where: 'trailer', cond: [0, 100] } },
   { id: 't-shop', set: 'boat', file: PNG, alt: 'A sled on its trailer in the shop.', when: { boat: 'sled', where: 'shop', cond: [0, 100] } },
   { id: 't-loaner', set: 'boat', file: PNG, alt: 'A tired borrowed sled.', when: { boat: 'loaner', where: ['shop', 'launch'], cond: [0, 100], trip: 'reds' } },
@@ -24,15 +26,17 @@ const FIXTURES = [
 ];
 
 // In the page: play the same seeded stretch of the game and keep the HTML of every screen that has a hook.
-// mode: 'none' (as shipped), 'off' (fixtures registered but disabled), 'pref' (enabled, Settings → Illustrations off), 'on'.
+// mode: 'none' (no image at all), 'off' (fixtures registered but disabled), 'pref' (enabled, Settings → Illustrations off), 'on',
+// 'shipped-off' (the shipped manifest, Settings → Illustrations off).
 const scenario = async ({ mode, fixtures }) => {
   // (the keyboard hints, 09-keys.js, are drawn on the next animation frame, so they come and go with timing: leave them out)
   const snaps = [], snap = k => { const m = document.getElementById('mbg'); snaps.push([k, (k === 'home' || k.startsWith('app:') ? document.getElementById('app').innerHTML : m ? m.innerHTML : '').replace(/<i class="kn" aria-hidden="true">\d<\/i>/g, '')]); };
   const wait = () => new Promise(r => setTimeout(r, 0));
   let a = 4242; Math.random = () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
-  ART.clear();
-  if (mode !== 'none') fixtures.forEach(f => ART.register(Object.assign({}, f, { enabled: mode !== 'off' })));
-  setPref('art', mode !== 'pref');
+  ART_SEEN.clear(); ART_LOADED.clear();
+  if (mode !== 'shipped-off') ART.clear();
+  if (mode !== 'none' && mode !== 'shipped-off') fixtures.forEach(f => ART.register(Object.assign({}, f, { enabled: mode !== 'off' })));
+  setPref('art', mode !== 'pref' && mode !== 'shipped-off');
   try { localStorage.setItem(KEY('popups'), 'on'); } catch (e) {}
   if (!EV.some(e => e.id === 'art_test')) {
     defEvent({ id: 'art_test', hook: 'art_hook', tile: ['🦆', 'Ducks on the dock', 'info'], chance: 0, run: () => say('🦆 A raft of mergansers.') });
@@ -60,6 +64,10 @@ const scenario = async ({ mode, fixtures }) => {
   S.cur = 2; S.t = 2 * 1440 + 1300; S.loc = 'shop'; S.book = []; S.calls = {}; S.dipnetAsk = 99;
   S.book.push({ id: S.nextId++, d: 2, type: 'reds', n: 2, who: 'staff party', from: 'Iowa', res: false, quirk: [], status: 'booked', asst: true });   // your assistant's trip
   forceEvent('art_wake'); endDay('home'); snap('morning'); closeModals(); clearTiles();
+  // a morning with no event: your guide's trip brings the picture
+  S.cur = 3; S.t = 3 * 1440 + 1300; S.loc = 'shop'; S.book = []; S.calls = {};
+  S.book.push({ id: S.nextId++, d: 3, type: 'reds', n: 2, who: 'staff party', from: 'Iowa', res: false, quirk: [], status: 'booked', asst: true });
+  endDay('home'); snap('morning2'); closeModals(); clearTiles();
   // the off-season: the fall cabin sheet, the first storms (the cabin's prompts), then winter camping
   S.years = 2; const d = SEASON - 1; S.cur = d; S.t = d * 1440 + 1300; S.loc = 'shop'; S.book = S.book.filter(x => x.d < d - 1);
   endDay('home'); closeModals(); clearTiles(); S.money = 20000; S.energy = 90;
@@ -89,7 +97,7 @@ module.exports = [
     await newGame(page);
     const r = await page.evaluate(() => {
       const out = {};
-      out.shipped = ART.list().length; out.anyShipped = ART.any();
+      out.shipped = ART.list().length; out.shippedOn = ART.enabled().length; out.anyShipped = ART.any();
       ART.clear();
       out.bad = [ART.register(null), ART.register({ id: 'x', set: 'nope', file: 'a.png' }), ART.register({ id: 'y', set: 'cabin' })];
       const e = ART.register({ id: 'c1', set: 'cabin', file: 'cabin/01.png', alt: 'a', when: {} });
@@ -129,7 +137,12 @@ module.exports = [
       ART.clear();
       return out;
     });
-    assert.strictEqual(r.shipped, 0, 'the game ships with no illustration enabled'); assert.strictEqual(r.anyShipped, false);
+    const man = JSON.parse(fs.readFileSync(path.join(ROOT, 'art', 'manifest.json'), 'utf8'));
+    if (ctx.target.name === 'offline') assert.deepStrictEqual([r.shipped, r.anyShipped], [0, false], 'the single-file offline build carries no pictures');
+    else {
+      assert.strictEqual(r.shipped, man.length, 'every manifest entry is embedded'); assert.strictEqual(r.shippedOn, man.filter(e => e.enabled === true).length);
+      assert.strictEqual(r.anyShipped, true, '1.17.0: the illustrations ship switched on');
+    }
     assert.deepStrictEqual(r.bad, [null, null, null]);
     assert.deepStrictEqual(r.def, { enabled: false, w: 1600, h: 900 }); assert.strictEqual(r.truthy, false, 'only enabled:true switches an entry on');
     assert.strictEqual(r.nullWhenOff, null);
@@ -142,7 +155,7 @@ module.exports = [
     assert.deepStrictEqual(r.replace, [1, 'y.png'], 'registering an id again replaces it');
     noErrors(errors);
   } },
-  { name: 'hooks: with no image enabled every screen is byte-identical; an enabled image adds only its figure (alt, lazy) at each hook', fn: async ctx => {
+  { name: 'hooks: with no image enabled (or Illustrations off) every screen is byte-identical; an enabled image adds only its figure at each hook, once', fn: async ctx => {
     const { page, errors } = await open(ctx);
     await newGame(page);
     const ls = await page.evaluate(() => JSON.stringify(Object.assign({}, localStorage)));
@@ -150,41 +163,51 @@ module.exports = [
       await page.evaluate(s => { localStorage.clear(); const o = JSON.parse(s); for (const k in o) localStorage.setItem(k, o[k]); }, ls);
       return page.evaluate(scenario, { mode, fixtures: FIXTURES.map(f => Object.assign({}, f)) });
     };
-    const none = await run('none'), off = await run('off'), pref = await run('pref'), on = await run('on');
+    const shippedOff = await run('shipped-off'), none = await run('none'), off = await run('off'), pref = await run('pref'), on = await run('on');
     const keys = none.map(s => s[0]);
-    assert.ok(keys.includes('home') && keys.includes('trip') && keys.includes('dock') && keys.includes('event') && keys.includes('morning') && keys.includes('cabin-sheet'), keys.join());
+    assert.ok(keys.includes('home') && keys.includes('trip') && keys.includes('dock') && keys.includes('event') && keys.includes('morning') && keys.includes('morning2') && keys.includes('cabin-sheet'), keys.join());
     assert.ok(keys.some(k => k === 'camp:hub') && keys.some(k => k === 'camp:day') && keys.some(k => k === 'camp:night'), 'the camping run reaches a day and a night: ' + keys.join());
     assert.ok(keys.some(k => k.startsWith('storm:')), 'the cabin storm prompts');
-    for (const [name, other] of [['disabled entries', off], ['Illustrations off', pref]]) {
+    for (const [name, other] of [['the shipped pictures with Illustrations off', shippedOff], ['disabled entries', off], ['Illustrations off', pref]]) {
       assert.deepStrictEqual(other.map(s => s[0]), keys, name + ': the same screens');
       other.forEach((s, i) => assert.strictEqual(s[1], none[i][1], `${name}: ${s[0]} differs`));
     }
     none.forEach(s => assert.ok(!/art-fig|art-img/.test(s[1]), 'no figure with art off: ' + s[0]));
     assert.deepStrictEqual(on.map(s => s[0]), keys, 'an enabled image changes no screen order and no random draw');
     on.forEach((s, i) => assert.strictEqual(strip(s[1]), none[i][1], 'only the figure is added: ' + s[0]));
-    const fig = k => { const s = on.find(x => x[0] === k); return s && (s[1].match(/<figure class="art-fig" data-art="([^"]+)">[\s\S]*?<\/figure>/) || []); };
-    for (const [k, id] of [['home', 't-cabin'], ['app:launch', 't-launch'], ['trip', 't-launch'], ['dock', 't-boat'], ['app:shop', 't-shop'], ['app:loaner', 't-loaner'], ['event', 't-ev'], ['morning', 't-wake'], ['cabin-sheet', 't-cabin'], ['camp:hub', 't-camp'], ['camp:day', 't-camp'], ['camp:night', 't-camp']]) {
+    on.forEach(s => assert.ok((s[1].match(/<figure class="art-fig"/g) || []).length <= 1, 'one picture per screen: ' + s[0]));
+    const fig = k => { const s = on.find(x => x[0] === k); return s && (s[1].match(/<figure class="art-fig" data-art="([^"]+)"[^>]*>[\s\S]*?<\/figure>/) || []); };
+    // decorative where the text right below says the same (events): alt="" and aria-hidden; a scene keeps its description
+    const DECO = ['event', 'morning'];
+    for (const [k, id] of [['home', 't-cabin'], ['app:launch', 't-launch'], ['trip', 't-boat'], ['dock', 't-dock'], ['app:shop', 't-shop'], ['app:loaner', 't-loaner'], ['event', 't-ev'], ['morning', 't-wake'], ['morning2', 't-staff'], ['cabin-sheet', 't-cabin'], ['camp:hub', 't-camp']]) {
       const m = fig(k); assert.ok(m && m[1], `a figure at ${k}`);
-      assert.ok(m[1] === id || (k === 'camp:night' && /^t-/.test(m[1])), `${k}: ${m[1]} (wanted ${id})`);
-      assert.match(m[0], /<img class="art-img" src="data:image\/png;base64,/); assert.match(m[0], / alt="[^"]+"/); assert.match(m[0], / loading="lazy"/);
+      assert.strictEqual(m[1], id, `${k}: ${m[1]} (wanted ${id})`);
+      assert.match(m[0], /<img class="art-img" src="data:image\/png;base64,/); assert.match(m[0], / loading="lazy"/);
+      if (DECO.includes(k)) { assert.match(m[0], / alt=""/); assert.match(m[0], /aria-hidden="true"/); } else { assert.match(m[0], / alt="[^"]+"/); assert.ok(!/aria-hidden/.test(m[0]), k); }
       assert.match(m[0], / decoding="async"/); assert.match(m[0], / width="1600" height="900"/); assert.match(m[0], /object-fit:cover/);
     }
-    const storm = on.filter(s => s[0].startsWith('storm:') && /data-art="t-storm"/.test(s[1]));
+    // where it sits: a tab's picture in the drawn scene's slot; a sheet's above its title
+    for (const k of ['home', 'app:launch', 'app:shop']) assert.match(on.find(s => s[0] === k)[1], /<div class="scene"><svg[\s\S]*?<\/svg><figure class="art-fig"[\s\S]*?<\/figure><div class="place">/, k + ': in the scene');
+    for (const k of ["trip", "dock", "event", "morning", "cabin-sheet"]) assert.match(on.find(s => s[0] === k)[1], /<div class="modal[^"]*"[^>]*><figure class="art-fig"[\s\S]*?<\/figure><h2>/, k + ': above the title');
+    const storm = on.filter(s => s[0].startsWith('storm:') && /data-art="t-storm"[^>]*aria-hidden="true"/.test(s[1]));
     assert.ok(storm.length >= 1, 'the cabin storm prompt shows its event picture');
-    // the morning report: the morning's event on top, your guide's trip in the night section, right above its line
-    const morning = on.find(s => s[0] === 'morning')[1];
-    assert.match(morning, /<figure class="art-fig" data-art="t-staff">[\s\S]*?<\/figure><p>🧑‍🤝‍🧑 /, 'the staff picture sits above the guides’ trips');
-    assert.ok(morning.indexOf('data-art="t-wake"') < morning.indexOf('data-art="t-staff"'));
-    // the boat at the put-in shows on arriving and on the opening step only, not on every decision; the dock has its own
-    assert.strictEqual(on.filter(s => /data-art="t-launch"/.test(s[1])).length, 2);
+    // the morning report: one picture. The morning's event wins over your guide's trip; with no event, the trip's picture sits above its line
+    const morning = on.find(s => s[0] === 'morning')[1], morning2 = on.find(s => s[0] === 'morning2')[1];
+    assert.ok(!/data-art="t-staff"/.test(morning), 'one picture in the morning report');
+    assert.match(morning2, /<figure class="art-fig" data-art="t-staff"[^>]*>[\s\S]*?<\/figure><p>🧑‍🤝‍🧑 /, 'the staff picture sits above the guides’ trips');
+    // frequency: the launch picture shows on arriving, then rests: the opening step shows the next best (the boat), the beats and the
+    // dock never repeat a picture of this trip; the camp scene shows once per camping trip, not on every screen
+    assert.strictEqual(on.filter(s => /data-art="t-launch"/.test(s[1])).length, 1);
     assert.strictEqual(on.filter(s => /data-art="t-boat"/.test(s[1])).length, 1);
+    const inTrip = on.filter(s => /^camp:(day|evening|night|result)/.test(s[0]));
+    assert.strictEqual(inTrip.filter(s => /data-art="t-camp"/.test(s[1])).length, 1, 'once per camping trip: ' + inTrip.map(s => s[0] + (/t-camp/.test(s[1]) ? '*' : '')).join());
     noErrors(errors);
   } },
   { name: 'morning report: a night event (no pop-up of its own) can bring its picture; a morning event wins', fn: async ctx => {
     const { page, errors } = await open(ctx);
     await newGame(page);
     const r = await page.evaluate(png => {
-      closeModals(); clearTiles();
+      closeModals(); clearTiles(); ART.clear();
       defEvent({ id: 'art_night', hook: 'night', tile: ['🌙', 'Midnight sun', 'info'], chance: 0, run: () => say('🌙 Still light at midnight.') });
       defEvent({ id: 'art_wake2', hook: 'wake', tile: ['🪿', 'Geese', 'info'], chance: 0, run: () => say('🪿 Geese.') });
       ART.register({ id: 'n', set: 'event', file: png, alt: 'Light at midnight.', when: { event: 'art_night', time: 'night' }, enabled: true });
@@ -199,7 +222,7 @@ module.exports = [
     assert.strictEqual(r.a, 'n'); assert.strictEqual(r.b, 'w');
     noErrors(errors);
   } },
-  { name: 'artImg: a WebP source (thumb 400w + full 1600w) over a small JPEG fallback (thumb 400w + 960w), save-data uses thumbs, dark mode dims, the 2:1 banner', fn: async ctx => {
+  { name: 'artImg: a WebP source (thumb 400w + full 1600w) over a small JPEG fallback (thumb 400w + 960w), save-data uses thumbs, dark mode dims, the 2:1 banner, its own placeholder color and focus', fn: async ctx => {
     const { page, errors } = await open(ctx);
     await newGame(page);
     const r = await page.evaluate(png => {
@@ -211,7 +234,8 @@ module.exports = [
       ART.clear(); ART.register({ id: 'shown', set: 'cabin', file: png, alt: 'A cabin.', when: {}, enabled: true });
       closeModals(); tab = 'home'; render();
       const img = document.querySelector('#app .art-fig img'), fig = img.closest('.art-fig'), r = fig.getBoundingClientRect();
-      const out = { full, lite, ratio: Math.round(r.width / r.height * 100) / 100, fit: getComputedStyle(img).objectFit, bg: getComputedStyle(fig).backgroundImage };
+      const out = { full, lite, ratio: Math.round(r.width / r.height * 100) / 100, fit: getComputedStyle(img).objectFit, bg: getComputedStyle(fig).backgroundColor,
+        own: artImg({ id: 'f', set: 'cabin', file: png, w: 1600, h: 900, alt: 'x', bg: '#123456', focus: '50% 70%' }), bad: artImg({ id: 'f', set: 'cabin', file: png, w: 1600, h: 900, alt: 'x', bg: 'red;x', focus: 'url(x)' }) };
       ART.clear(); render();
       return out;
     }, PNG);
@@ -222,9 +246,11 @@ module.exports = [
     assert.match(r.full, /alt="A &quot;quoted&quot; &lt;cabin&gt;\."/);
     assert.match(r.lite, /src="art\/cabin\/01-x\.thumb\.jpg\?v=abc"/); assert.match(r.lite, /<source type="image\/webp" srcset="art\/cabin\/01-x\.thumb\.webp\?v=abc">/);
     assert.ok(!/1600w|960w/.test(r.lite), 'save-data: no full-size srcset');
-    assert.strictEqual(r.ratio, 2); assert.strictEqual(r.fit, 'cover'); assert.match(r.bg, /gradient/, 'a soft placeholder color while it loads');
+    assert.strictEqual(r.ratio, 2); assert.strictEqual(r.fit, 'cover'); assert.match(r.bg, /^rgb\(207, 223, 227\)$/, 'a soft placeholder color while it loads');
+    assert.match(r.own, /<figure class="art-fig" data-art="f" style="background:#123456">/, 'the picture’s own average color'); assert.match(r.own, /object-fit:cover;object-position:50% 70%"/);
+    assert.ok(!/red;x|url\(x\)|object-position/.test(r.bad), 'only a #rrggbb color and an "X% Y%" focus are written');
     await page.emulateMedia({ colorScheme: 'dark' });
-    const dark = await page.evaluate(png => { ART.register({ id: 'shown', set: 'cabin', file: png, alt: 'A cabin.', when: {}, enabled: true }); render(); const f = getComputedStyle(document.querySelector('#app .art-fig img')).filter; ART.clear(); render(); return f; }, PNG);
+    const dark = await page.evaluate(png => { ART.register({ id: 'shown', set: 'cabin', file: png, alt: 'A cabin.', when: {}, enabled: true }); render(); const f = getComputedStyle(document.querySelector('#app .art-fig')).filter; ART.clear(); render(); return f; }, PNG);
     assert.match(dark, /brightness/);
     noErrors(errors);
   } },
@@ -234,6 +260,7 @@ module.exports = [
     const r = await page.evaluate(png => {
       const labels = () => { openSettings(); const l = MB.map(b => b.l); return l; };
       const out = {};
+      ART.clear();
       closeModals(); out.none = labels().filter(l => /Illustrations/.test(l)); closeModals();
       ART.register({ id: 'h', set: 'cabin', file: png, alt: 'A cabin.', when: {}, enabled: true });
       tab = 'home'; render(); out.fig1 = !!document.querySelector('#app .art-fig');
@@ -389,8 +416,10 @@ module.exports = [
   { only: 'index.html', name: 'builds: index.html embeds the enabled manifest entries; the offline file carries none and links no art/', fn: async () => {
     const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
     const man = JSON.parse(fs.readFileSync(path.join(ROOT, 'art', 'manifest.json'), 'utf8'));
-    assert.ok(Array.isArray(man)); assert.ok(man.every(e => e.enabled !== true), 'the repo ships every illustration switched off');
-    assert.strictEqual((html.match(/\/\*@ART@\*\/\[\]\/\*@\/ART@\*\//g) || []).length, 1, 'an empty manifest in index.html');
+    assert.ok(Array.isArray(man)); assert.ok(man.every(e => e.enabled === true), '1.17.0: the repo ships every illustration switched on');
+    const emb = JSON.parse(html.match(/\/\*@ART@\*\/(.*?)\/\*@\/ART@\*\//s)[1].replace(/<\\\//g, '</'));
+    assert.deepStrictEqual(emb.map(e => e.id), man.map(e => e.id), 'index.html embeds every enabled entry');
+    assert.ok(emb.every(e => !('notes' in e) && !('meta' in e) && !('where' in e)), 'only what the game reads is embedded');
     assert.ok(!/["(]art\/[^"]*\.(png|webp)/.test(html), 'no image is linked or inlined');
     const off = path.join(ROOT, 'offline', `${ID}-offline.html`);
     if (fs.existsSync(off)) { const o = fs.readFileSync(off, 'utf8'); assert.match(o, /\/\*@ART@\*\/\[\]\/\*@\/ART@\*\//); assert.ok(!/art\/[^"]*\.(png|webp)/.test(o)); }
@@ -516,5 +545,147 @@ for n in (1,2):
     await new Promise(r => setTimeout(r, 20));
     assert.ok(stores[ART].size() <= max, `capped at ${max}: ${stores[ART].size()}`);
     assert.match(src, /k !== VERSION && k !== FONTS && k !== ART\)/, 'a new release keeps the art cache');
+  } },
+  // ---- 1.17.0: the display rules (art/README.md, "How pictures are shown") ----
+  { name: 'display: a full-bleed banner over the sheet title and in the tab’s scene; height capped at 30% of the screen, 2:1 on phones, 16:9 on tablets; the box is reserved before the image arrives', fn: async ctx => {
+    const { page, errors } = await open(ctx);
+    await newGame(page);
+    const out = {};
+    for (const [w, h] of [[390, 844], [360, 740], [768, 1024], [844, 390]]) {
+      await page.setViewportSize({ width: w, height: h });
+      out[w + 'x' + h] = await page.evaluate(png => {
+        ART.clear(); ART_SEEN.clear(); ART_LOADED.clear();
+        ART.register({ id: 'c', set: 'cabin', file: png, alt: 'A cabin.', when: {}, enabled: true });
+        ART.register({ id: 'e', set: 'event', file: png, alt: 'Ducks.', when: { event: 'art_size', from: 'game' }, enabled: true });
+        closeModals(); tab = 'home'; render();
+        const sf = document.querySelector('.scene > .art-fig'), sr = sf.getBoundingClientRect(), place = document.querySelector('.scene .place').getBoundingClientRect();
+        const scene = { w: Math.round(sr.width), h: Math.round(sr.height), top: Math.round(place.top - sr.top), loadedYet: !!sf.dataset.ld };
+        modal('🦆 Ducks', artSlot('event', { event: 'art_size', from: 'game' }) + '<p>A raft of mergansers.</p>', [{ l: 'OK', fn: () => {} }]);
+        const m = document.querySelector('#mbg .modal'), f = m.querySelector('.art-fig'), fr = f.getBoundingClientRect(), mr = m.getBoundingClientRect();
+        const sheet = { w: Math.round(fr.width), h: Math.round(fr.height), mw: Math.round(mr.width), left: Math.round(fr.left - mr.left), top: Math.round(fr.top - mr.top), next: f.nextElementSibling.tagName, first: m.firstElementChild === f };
+        closeModals(); ART.clear(); tab = 'act'; render();
+        return { scene, sheet, vh: innerHeight, vw: innerWidth };
+      }, PNG);
+    }
+    for (const [k, r] of Object.entries(out)) {
+      const col = Math.min(r.vw, 480), want = Math.round(Math.min(col * (r.vw >= 600 && r.vh >= 900 ? 9 / 16 : 1 / 2), r.vh * .3));
+      for (const [n, b] of [['scene', r.scene], ['sheet', r.sheet]]) {
+        assert.ok(Math.abs(b.h - want) <= 1, `${k} ${n}: ${b.h} px high (wanted ${want})`);
+        assert.ok(b.h <= r.vh * .3 + 1, `${k} ${n}: at most 30% of the screen`);
+        assert.strictEqual(b.w, col, `${k} ${n}: full width of the column`);
+      }
+      assert.strictEqual(r.scene.loadedYet, false, 'the box has its size before the image has loaded');
+      assert.ok(r.scene.top <= 12, `${k}: the place’s name moves to the top of the picture`);
+      assert.deepStrictEqual([r.sheet.left, r.sheet.top, r.sheet.next, r.sheet.first], [0, 0, 'H2', true], `${k}: the banner opens the sheet, edge to edge`);
+    }
+    assert.strictEqual(out['390x844'].sheet.h, 195); assert.strictEqual(out['360x740'].sheet.h, 180); assert.strictEqual(out['768x1024'].sheet.h, 270); assert.strictEqual(out['844x390'].sheet.h, 117);
+    noErrors(errors);
+  } },
+  { name: 'display: fades in once loaded (not with reduced motion, not again on a redraw); a picture that can’t load takes its box away', fn: async ctx => {
+    const { page, errors } = await open(ctx);
+    await newGame(page);
+    const show = () => page.evaluate(png => {
+      ART.clear(); ART.register({ id: 'c', set: 'cabin', file: png, alt: 'A cabin.', when: {}, enabled: true }); closeModals(); tab = 'home'; render();
+      const img = document.querySelector('.scene .art-img'); return { html: document.querySelector('.scene .art-fig').outerHTML, op: getComputedStyle(img).opacity, tr: getComputedStyle(img).transitionDuration };
+    }, PNG);
+    await page.evaluate(() => ART_LOADED.clear());
+    const a = await show();
+    assert.ok(!/data-ld/.test(a.html), 'the first showing starts hidden'); assert.strictEqual(a.op, '0'); assert.strictEqual(a.tr, '0.45s');
+    await page.waitForFunction(() => document.querySelector('.scene .art-fig[data-ld]')); await page.waitForTimeout(600);
+    assert.strictEqual(await page.evaluate(() => getComputedStyle(document.querySelector('.scene .art-img')).opacity), '1');
+    const b = await show();
+    assert.match(b.html, /data-ld="1"/, 'a redraw shows it at once, no second fade');
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.evaluate(() => ART_LOADED.clear());
+    assert.strictEqual((await show()).tr, '0s', 'reduced motion: no fade');
+    const err = await page.evaluate(async () => {
+      ART.clear(); ART.register({ id: 'gone', set: 'cabin', file: 'cabin/no-such-picture.jpg', alt: 'Nothing.', when: {}, enabled: true }); tab = 'home'; render();
+      for (let i = 0; i < 50 && !document.querySelector('.scene .art-fig[data-err]'); i++) await new Promise(r => setTimeout(r, 20));
+      const f = document.querySelector('.scene .art-fig'); const out = { err: !!f.dataset.err, shown: getComputedStyle(f).display, scene: Math.round(document.querySelector('.scene').getBoundingClientRect().height) };
+      ART.clear(); tab = 'act'; render(); return out;
+    });
+    assert.deepStrictEqual(err, { err: true, shown: 'none', scene: 170 }, 'the drawn scene is back at its own size');
+    noErrors(errors);
+  } },
+  { name: 'display: routine scenes rest for 3 days once shown (the next best shows instead); the same screen may draw it again; events always show', fn: async ctx => {
+    const { page, errors } = await open(ctx);
+    await newGame(page);
+    const r = await page.evaluate(png => {
+      ART.clear(); ART_SEEN.clear();
+      const reg = (id, set, when) => ART.register({ id, set, file: png + '#' + id, alt: id, when, enabled: true });
+      reg('best', 'boat', { boat: 'sled', where: 'launch', cond: [0, 100] }); reg('next', 'boat', { boat: 'sled' }); reg('ev', 'event', { event: 'art_r', from: 'game' });
+      const id = h => (h.match(/data-art="([^"]+)"/) || [])[1] || null, at = d => { S.cur = d; S.t = d * 1440 + 600; };
+      const ctx = () => artBoatCtx(null, 'launch'), o = k => ({ rest: true, key: k });
+      at(1); const out = { d1: id(artSlot('boat', ctx, o('a'))), again: id(artSlot('boat', ctx, o('a'))), other: id(artSlot('boat', ctx, o('b'))), third: id(artSlot('boat', ctx, o('c'))) };
+      at(3); out.d3 = id(artSlot('boat', ctx, o('d')));
+      at(4); out.d4 = id(artSlot('boat', ctx, o('e')));
+      out.ev = [id(artSlot('event', { event: 'art_r', from: 'game' })), id(artSlot('event', { event: 'art_r', from: 'game' }))];
+      out.noRest = id(artSlot('boat', ctx));   // a slot without the rule (the Home tab, events) always shows its best
+      out.peek = (() => { ART_SEEN.clear(); artSlot('boat', ctx, { peek: true }); return ART_SEEN.size; })();
+      ART.clear(); ART_SEEN.clear();
+      return out;
+    }, PNG);
+    assert.deepStrictEqual(r, { d1: 'best', again: 'best', other: 'next', third: null, d3: null, d4: 'best', ev: ['ev', 'ev'], noRest: 'best', peek: 0 });
+    noErrors(errors);
+  } },
+  { only: 'index.html', name: 'display: a trip shows at most three pictures (the put-in, one stretch of the day, the dock), never the same one twice; a day-time event with no pop-up shows over the narration', fn: async ctx => {
+    const { page, errors } = await open(ctx);
+    await newGame(page);
+    const r = await page.evaluate(() => {
+      const out = { trips: [] };
+      for (const [type, loc] of [['reds', 'lower'], ['trout', 'cooper'], ['halibut', 'homer'], ['reds', 'lower'], ['silver', 'lower']]) {
+        closeModals(); clearTiles();
+        const d = S.cur + 1; S.cur = d; S.t = d * 1440 + TRIPS[type].start; S.loc = loc; S.gear = 3; S.boat = 90; S.fuel = 30; S.book = []; S.cred.fa = 999; S.dil = null;
+        const b = { id: S.nextId++, d, type, n: 2, who: 'test party', from: 'Ohio', res: false, quirk: [], status: 'booked' }; S.book.push(b);
+        tripStart(b); const shown = []; let i = 0;
+        while (S.trip && i++ < 40) { const f = document.querySelector('#mbg .art-fig'); shown.push([S.trip.steps[S.trip.step], f ? f.dataset.art : null]); MBTN(legalBtn()); }
+        const f = document.querySelector('#mbg .art-fig'); shown.push(['dock', f ? f.dataset.art : null]);
+        out.trips.push({ type, shown });
+      }
+      closeModals(); clearTiles();
+      // pop-ups off (the default): a moose on the road shows over the narration, in the scene, until the next tap
+      tab = 'act'; S.loc = 'shop'; S.t = S.cur * 1440 + 600; uiNarr = []; ART_NARR = null; ART_SEEN.clear();
+      forceEvent('moose'); fireHook('travel', { from: 'shop', to: 'lower' }); render();
+      const nf = document.querySelector('.scene > .art-fig'); out.narr = nf && [nf.dataset.art, nf.getAttribute('aria-hidden')];
+      uiNarr = []; render(); out.after = !!document.querySelector('.scene > .art-fig');
+      return out;
+    });
+    for (const t of r.trips) {
+      const ids = t.shown.map(x => x[1]).filter(Boolean), steps = t.shown.map(x => x[0] + ':' + (x[1] || '-')).join(' ');
+      assert.ok(t.shown[0][1], `${t.type}: the opening step shows the boat: ${steps}`);
+      assert.strictEqual(new Set(ids).size, ids.length, `${t.type}: no picture twice: ${steps}`);
+      const mid = t.shown.slice(1, -1).filter(x => x[1] && !/^event-/.test(x[1]));
+      assert.ok(mid.length <= 1 && mid.every(x => x[0] === 'beat'), `${t.type}: at most one stretch of the day: ${steps}`);
+    }
+    assert.deepStrictEqual(r.narr, ['event-01-moose-highway', 'true']); assert.strictEqual(r.after, false, 'the next tap drops it');
+    noErrors(errors);
+  } },
+  { only: 'index.html', name: 'display: every set comes up in play with the shipped pictures (the Home tab, the launch, a trip incident, camping, a storm prompt)', fn: async ctx => {
+    const { page, errors } = await open(ctx);
+    await newGame(page);
+    const r = await page.evaluate(async () => {
+      const seen = new Set(), look = () => document.querySelectorAll('[data-art]').forEach(f => seen.add(f.dataset.art)), wait = () => new Promise(r => setTimeout(r, 0));
+      ART_SEEN.clear(); closeModals(); clearTiles(); S.cred.fa = 999;
+      tab = 'home'; render(); look(); tab = 'act';
+      S.cur = 1; S.t = 1440 + 300; S.loc = 'lower'; S.gear = 3; S.boat = 90; S.fuel = 30; S.book = [];
+      const b = { id: S.nextId++, d: 1, type: 'reds', n: 3, who: 'test party', from: 'Ohio', res: false, quirk: [], status: 'booked' }; S.book.push(b);
+      uiNarr = []; say('🚙 You get to the launch.'); onArrive('lower'); render(); look();
+      S.t = 1440 + 360; tripStart(b); if (!S.trip.steps.includes('combat')) S.trip.steps.splice(S.trip.step + 2, 0, 'combat');
+      for (let i = 0; i < 40 && S.trip; i++) { look(); MBTN(legalBtn()); } closeModals(); clearTiles();
+      S.years = 2; const d = SEASON - 1; S.cur = d; S.t = d * 1440 + 1300; S.loc = 'shop'; S.book = []; endDay('home'); closeModals(); clearTiles(); S.money = 20000; S.energy = 90;
+      homeRollWinterSync(); cabin().queue.unshift({ id: 'cold', sev: 3 });
+      CabinUpkeep.ui.scenes(homeHost(), null, () => {});
+      for (let k = 0; k < 10 && document.getElementById('mbg'); k++) { look(); MBTN(0); await wait(); }
+      closeModals(); campModal();
+      for (let k = 0; k < 150 && document.getElementById('mbg'); k++) {
+        look(); const h = CAMP_ART && CAMP_ART.h && CAMP_ART.h.session; if (!h) break;
+        const v = h.view(), id = KenaiCamp.policies.thoughtful({ reserve: 100 })(v, h.state), j = v.buttons.findIndex(x => x.id === id); MBTN(j < 0 ? 0 : j); await wait();
+      }
+      closeModals();
+      return [...seen].sort();
+    });
+    for (const set of ['cabin', 'boat', 'camp', 'event']) assert.ok(r.some(id => id.startsWith(set + '-')), `a ${set} picture: ${r.join(' ')}`);
+    assert.ok(r.includes('event-16-trip-combat') && r.includes('event-07-cold-snap-ice-fog'), r.join(' '));
+    noErrors(errors);
   } },
 ];

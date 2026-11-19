@@ -38,3 +38,9 @@ Append `_c`, `_p` or `_n` to a style for the careful, pay-everything or full-neg
 `node tools/sim/analyze.js tools/sim/out/a.json` prints, per style, difficulty and years: mean season score (careers that were not lost), grade mix (A..F, F is a lost career), score parts, losses and citations. Records also carry `staffTrips`, `staffNet`, `staffCites`, `bizStaff`, `bizBoats` and `bizPast` (why each guide left) for the outfit styles. Grade cuts per season are A 62,000, B 55,000, C 44,000, D 27,000 (`CUTS=a,b,c,d` overrides). `MATRIX=1 node tools/sim/analyze.js ...` shows careful / default / neglect side by side with the neglect cost in percent.
 
 To compare a change: run with the same `N` and seeds on the old build (`IDX=/path/old/index.html`) and the new one, then read both. The seeds are the same in both runs, but the game consumes random numbers differently once anything changes, so treat differences under about two standard errors (the `+-` column) as noise, and use `N` of 40 or more.
+
+## Illustration coverage
+
+`node tools/sim/art-coverage.js [careers] [years]` plays careers with the shipped pictures on (the off-season through the real fall
+sheet, storm prompts and camping screens) and prints, for every `art/manifest.json` entry, how often it was shown and where, then the
+pictures and kilobytes of a first week. See `art/README.md` (Coverage).

@@ -107,7 +107,12 @@ function campArtShow(btns){
   let ev=null;
   if(T&&ph==='night'&&T.events.length>A.ev) ev=T.events[T.events.length-1];
   A.ev=T?T.events.length:0;
-  const art=!CAMP_ART_PHASES.includes(ph)||(ph==='result'&&!T)?'':(ev&&artSlot('event',()=>Object.assign(artEventCtx(ev,'camp'),{time:'night'})))||artSlot('camp',()=>artCampCtx(s,{activity:A.act,night:A.night}));
+  // tonight's encounter always shows; a camp scene shows once per camping trip (the screen it first fits), never on every screen
+  let art=!CAMP_ART_PHASES.includes(ph)||(ph==='result'&&!T)?'':(ev&&artSlot('event',()=>Object.assign(artEventCtx(ev,'camp'),{time:'night'}),{deco:true,key:'camp'}))||'';
+  if(!art&&CAMP_ART_PHASES.includes(ph)&&!(ph==='result'&&!T)){
+    art=artSlot('camp',()=>artCampCtx(s,{activity:A.act,night:A.night}),{avoid:A.shown,key:'camp'});
+    const e=art&&ART.get((art.match(/data-art="([^"]+)"/)||[])[1]);if(e)A.shown.add(artKey(e));
+  }
   return {art,btns:btns.map((b,i)=>Object.assign({},b,{fn:()=>{const id=v.buttons[i]&&v.buttons[i].id;
     if((ph==='day'||ph==='evening')&&id&&id!=='evening'){A.act=id;A.night=ph==='evening'}if(b.fn)b.fn()}}))};
 }
@@ -116,7 +121,7 @@ function campModal(){
   if(!S.winter) return;
   if(cabin().rolled!==S.winter.s) return homeBeforeCamping(()=>campModal());   // the winter's first storm lands before the free days are spent
   campW();
-  CAMP_ART={h:null,act:null,night:false,ev:0};
+  CAMP_ART={h:null,act:null,night:false,ev:0,shown:new Set()};
   CAMP_ART.h=KenaiCamp.start({mode:'guide',ticket:campTicket(),host:{
     show:(title,html,btns,lock)=>{if(!artOn())return modal(title,html,btns,lock);const a=campArtShow(btns);modal(title,a.art+html,a.btns,lock)},
     toast:msg=>showTile('🏕️',msg,'','info'),

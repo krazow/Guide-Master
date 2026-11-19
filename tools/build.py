@@ -28,7 +28,7 @@ def game_field(name):
     return m.group(1)
 
 ART_RE = re.compile(r'/\*@ART@\*/.*?/\*@/ART@\*/', re.S)
-ART_FIELDS = ('id', 'set', 'file', 'fw', 'thumb', 'webp', 'thumbWebp', 'v', 'w', 'h', 'alt', 'when', 'enabled')
+ART_FIELDS = ('id', 'set', 'file', 'fw', 'thumb', 'webp', 'thumbWebp', 'v', 'w', 'h', 'alt', 'when', 'enabled', 'focus', 'bg')
 
 def art_entries():
     """The enabled entries of art/manifest.json, trimmed to what the game reads (a missing manifest is an empty one)."""

@@ -250,8 +250,9 @@ function tripNext(){
   const open=sheet&&!t.shown?`<p class="small-note" style="margin:0 0 6px">You load the ${b.who} into the ${b.type==='trout'?'drift boat':b.type==='halibut'?'charter boat':'jet sled'} at ${L[T.loc].name} and push off at ${fmt(S.t)}.</p>`:'';
   const first=!t.shown;t.shown=true;
   // 40-art.js: this step's own picture (a trip event: the STEP id, from 'trip'), else on the first step the boat at the put-in
-  const art=artOn()?artSlot('event',()=>artEventCtx(key,'trip'))||(packed?artSlot('event',()=>artEventCtx('spot','trip')):'')||
-    (first?artSlot('boat',()=>artBoatCtx(b,T.loc==='homer'?['harbor','river']:['launch','trailer','river'])):''):'';
+  const art=artOn()?artSlot('event',()=>artEventCtx(key,'trip'),{deco:true,key:'trip:'+t.id})||(packed?artSlot('event',()=>artEventCtx('spot','trip'),{deco:true,key:'trip:'+t.id}):'')||
+    (first?artSlot('boat',()=>artBoatCtx(b,T.loc==='homer'?['harbor','river']:['launch','trailer','river']),{rest:true,key:'trip:'+t.id,avoid:artTripAhead(t)}):'')||
+    (key==='beat'&&!t.artBeat?artBeat(b,t):''):'';   // and once, on a stretch of the day, the river at that hour (a different picture)
   const mm=memSheet(b,t,key);                              // 37-memories.js: a catch moment on top, the mentor's line below
   modalSwap(v.t,`${art}<p class="small-note" style="color:var(--mute);margin:0 0 6px">${T.ic} ${T.n} · ${b.who}${prog}</p>${open}${mm.top}${v.b}${packed?packHTML(pv):''}${hot}${mm.foot}`,opts.map(({o,k})=>({l:o.l,s:o.s,legal:o.legal!==false,dis:!!o.dis,np:true,k,stay:sheet,fn:()=>{
     const tt=S.trip;if(!tt) return;const bb=bk(tt.id);if(!bb) {S.trip=null;return}
@@ -327,7 +328,7 @@ function tripEnd(b,t){
   const mood=happy>=82?'😁 They’re already asking about next season. Word of mouth will bring you more bookings.':happy>=65?'🙂 Solid day. Handshakes at the trailer.':happy>=45?'😐 Polite thanks, small tip.':review?'😠 Tight-lipped goodbyes and a one-star review. Word gets around the Kenai.':'😕 They leave a little deflated.';
   const row=(l,v)=>`<br>${l}: <b>${v>=0?'':'−'}${$(Math.abs(v))}</b>`;
   const why=[];if(skunk)why.push('skunked');if(S.gear<=0&&t.notes.some(n=>n.startsWith('🪱')))why.push('no tackle');if(refund&&happy<42)why.push('unhappy clients');
-  modalSwap(`${T.ic} Back at the dock`,`${(t.homeEv&&homeArt(t.homeEv))||artSlot('boat',()=>artBoatCtx(b,['dock',T.loc==='homer'||S.loc==='harbor'?'harbor':'launch']))}${mem.top}${t.notes.map(n=>`<p>${n}</p>`).join('')}
+  modalSwap(`${T.ic} Back at the dock`,`${(t.homeEv&&homeArt(t.homeEv))||artSlot('boat',()=>artBoatCtx(b,['dock',T.loc==='homer'||S.loc==='harbor'?'harbor':'launch']),{rest:true,key:'dock:'+t.id})}${mem.top}${t.notes.map(n=>`<p>${n}</p>`).join('')}
     <p><b>Catch:</b> ${line}${t.kept?` (${t.kept} kept on the sly)`:''}${lost?` · ${lost} minutes lost`:''}</p>
     ${towed?'<p>🛟 <b>Towed in.</b> Half the fare refunded.</p>':''}<p><b>The pay:</b>${row(`Booked fare${b.type==='halibut'&&!S.up.chp?' (day rate)':''}`,fare)}${refund?row(`Refund${why.length?` (${why.join(', ')})`:''}`,-refund):''}${row('Tip',tip)}${xs.map(([l,v])=>row(l,v)).join('')}${costs?row('Launch fee',-costs):''}<br><b>Net: ${net<0?'−':''}${$(Math.abs(net))}</b></p>
     <p>${mood} Rep ${dRep>=0?'+':'−'}${Math.abs(dRep)}.</p>${reviewHTML(rv,b)}${mem.html}
