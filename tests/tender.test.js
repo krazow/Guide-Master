@@ -250,15 +250,16 @@ module.exports = [
       for (let s = 1; s <= 3; s++) {
         S.cur = s * SEASON - 1; S.t = S.cur * 1440 + 1300; S.loc = 'shop'; S.book.forEach(b => { if (b.status === 'booked') b.status = 'done' });
         endDay('home'); await new Promise(r => setTimeout(r, 5)); closeModals();
-        winterModal(); out.s.push({ s: S.winter.s, btn: MB.some(x => /Fish buying/.test(x.l)), sup: (S.winter.sup || []).some(l => /fish buying/i.test(l)) }); closeModals();
+        winterModal(); out.s.push({ s: S.winter.s, btn: MB.some(x => /Commercial & crab/.test(x.l)) && fishHubList().some(x => x.id === 'tender'), sup: (S.winter.sup || []).some(l => /fish buying/i.test(l)) }); closeModals();
         if (s < 3) { finishWinter(); closeModals() }
       }
-      out.tip = TIPS.some(t => t.id === 'tender' && t.when());
+      out.hub = FISH_HUB.filter(x => x.id === 'tender').length; out.tip = TIPS.some(t => t.id === 'tender' && t.when());
       out.unlock = TENDER_UNLOCK;
       return out;
     });
     assert.strictEqual(r.unlock, 3);
-    assert.deepStrictEqual(r.s.map(x => x.btn), [false, false, true]); assert.deepStrictEqual(r.s.map(x => x.sup), [false, false, true]); assert.ok(r.tip);
+    assert.deepStrictEqual(r.s.map(x => x.btn), [false, false, true]); assert.deepStrictEqual(r.s.map(x => x.sup), [false, false, true]); assert.ok(r.tip); assert.strictEqual(r.hub, 1);
+    assert.match(fs.readFileSync(path.join(ROOT, 'src/js/24-career.js'), 'utf8'), /\.\.\.\(typeof fishWinterBtns==='function'\?fishWinterBtns\(\):\[\]\)/, 'the one shared line in winterModal');
     noErrors(errors);
   } },
   { name: 'game: charter a tender in the planner, the season opens with the bookings, an opener shows in the morning and on the Here tab, the skipper runs it at night', fn: async ctx => {
@@ -267,7 +268,7 @@ module.exports = [
       setPref('years', 10); newGame('normal'); closeModals(); S.money = 150000; S.rep = 70;
       for (let s = 1; s <= 3; s++) { S.cur = s * SEASON - 1; S.t = S.cur * 1440 + 1300; S.loc = 'shop'; S.book.forEach(b => { if (b.status === 'booked') b.status = 'done' }); endDay('home'); await new Promise(r => setTimeout(r, 5)); closeModals(); if (s < 3) { finishWinter(); closeModals() } }
       const out = {}, m0 = S.money;
-      winterModal(); MBTN(MB.findIndex(x => /Fish buying/.test(x.l)));
+      winterModal(); MBTN(MB.findIndex(x => /Commercial & crab/.test(x.l)));
       out.planner = document.querySelector('#mbg h2').textContent;
       MBTN(MB.findIndex(x => /^⚓ Tenders/.test(x.l))); MBTN(MB.findIndex(x => /Charter a tender/.test(x.l))); out.areaBtns = MB.map(x => x.l); MBTN(0);
       out.paid = m0 - S.money; out.kind = S.fish.tender.tenders[0].kind; out.sheets = document.querySelectorAll('.modal-bg').length;

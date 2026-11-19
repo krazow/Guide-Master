@@ -12,7 +12,7 @@
 //  Nothing here draws a random number or changes a thing until you charter or buy something: a game without the business plays as before.
 //
 //  Hooks (wrapped, not edited): startSeason (the fall settlement), finishWinter (the season opens), onMorning (the opener notice, the
-//  plant's call), onNight (the skipper's opener), actionsHere (run the tender yourself), bizWinterBtns (the planner button),
+//  plant's call), onNight (the skipper's opener), actionsHere (run the tender yourself), the shared FISH_HUB section (the planner button, one line in 24-career.js),
 //  scoreParts and endRows (assets, the loan, the rest of the summer), the Bookings tab (the business at a glance).
 //  For the other commercial modules (gillnet, seine, crab): tenderRoute({species, lbs, area, day}) sells your own catch to your own
 //  buyer when you have one in that water (it returns null otherwise, and the delivery goes to an outside buyer as before).
@@ -49,13 +49,27 @@ const tenderHost=()=>({show:(t,h,b,lock,meta)=>modalSwap(t,tenderArt(meta&&meta.
 const tenderBotHost=()=>({ticket:()=>tenderTicket(),apply:r=>tenderApply(r,true)});
 
 // ---- the off-season ----
-const _tenderBizBtns=bizWinterBtns;
-bizWinterBtns=function(){
-  const out=_tenderBizBtns();
-  if(!tenderOn()||!S.winter) return out;
-  const st=TND(),has=Tender.active(st);
-  return out.concat([{l:'⚓ Fish buying & processing',s:has?`${st.tenders.length} tender${st.tenders.length===1?'':'s'}${st.plant?', your '+st.plant.name:''}${st.loan?`, ${$(st.loan.bal)} owed`:''}.`:'Optional: charter a tender and buy fish from the commercial fleet, then a plant. Big money both ways.',fn:()=>Tender.ui.planner(tenderHost(),()=>setTimeout(winterModal,0))}]);
+// The "Commercial & crab" sheet is shared with the gillnet, seine and crab adapters (same names and shapes in each branch, so a merge
+// keeps one copy): each pushes one section {id, order, ic, l, short, s(), open(back), on()} into FISH_HUB; fishWinterBtns() is the
+// planner's button (one line in winterModal, 24-career.js). on() (optional) hides a section until it opens: the tender comes later.
+var FISH_HUB=typeof FISH_HUB!=='undefined'&&Array.isArray(FISH_HUB)?FISH_HUB:[];
+var fishHubList=typeof fishHubList==='function'?fishHubList:function(){return FISH_HUB.filter(x=>!x.on||x.on()).sort((a,b)=>a.order-b.order)};
+var fishHubOn=typeof fishHubOn==='function'?fishHubOn:function(){return !!(S&&S.winter&&fishHubList().length)};
+var fishWinterBtns=typeof fishWinterBtns==='function'?fishWinterBtns:function(){
+  const H=fishHubList();if(!fishHubOn()||!H.length) return [];
+  const t=H.map(x=>x.short).join(' · ');
+  return [{l:'⚓ Commercial & crab',s:t.charAt(0).toUpperCase()+t.slice(1)+'. Optional, and risky.',fn:()=>fishHubModal()}];
 };
+var fishHubModal=typeof fishHubModal==='function'?fishHubModal:function(){
+  const back=()=>setTimeout(winterModal,0),again=()=>setTimeout(fishHubModal,0),H=fishHubList();
+  if(H.length===1) return H[0].open(back);
+  modal('⚓ Commercial & crab',`<p style="font-size:13px;color:var(--mute)">Work the water when you are not guiding. Cash ${$(Math.round(S.money))}. ${campDaysLeft()} free day${campDaysLeft()===1?'':'s'} left this winter.</p>`,
+    H.map(x=>({l:`${x.ic} ${x.l}`,s:x.s(),fn:()=>x.open(again)})).concat([{l:'Back to the off-season',fn:back}]));
+};
+FISH_HUB.push({id:'tender',order:4,ic:'⚓',l:'Fish buying & processing',short:'a tender and a plant',on:()=>tenderOn(),
+  s:()=>{const st=TND();return Tender.active(st)?`${st.tenders.length} tender${st.tenders.length===1?'':'s'}${st.plant?', your '+st.plant.name:''}${st.loan?`, ${$(st.loan.bal)} owed`:''}.`:'Charter a tender and buy fish from the commercial fleet, then a plant. Big money both ways.'},
+  open:back=>{if(!tenderOn()){modal('⚓ Fish buying & processing',`<p>The fleet’s buyers want someone with ${TENDER_UNLOCK} seasons on the water behind them.</p>`,[{l:'Back',fn:()=>back()}]);return}
+    Tender.ui.planner(tenderHost(),()=>back())}});
 // the fall: what you didn't play, the plant's season, the winter's bills (into the off-season summary, no pop-up of its own)
 const _tenderStart=startSeason;
 startSeason=function(s){
@@ -67,7 +81,7 @@ startSeason=function(s){
     const rep=tenderApply(Tender.closeSeason(t),true);lines.push(...rep.lines);S.fish.tender.events=rep.events;
   }
   if(S.seasons.length===TENDER_UNLOCK&&!(S.fish&&S.fish.tender&&S.fish.tender.told)){TND().told=true;
-    lines.push('⚓ <b>New: fish buying & processing.</b> The commercial fleet needs buyers. Charter a tender, then maybe a plant, from <b>⚓ Fish buying & processing</b> below. Optional, and risky.')}
+    lines.push('⚓ <b>New: fish buying & processing.</b> The commercial fleet needs buyers. Charter a tender, then maybe a plant, from <b>⚓ Commercial & crab</b> below. Optional, and risky.')}
   if(lines.length&&S.winter){S.winter.sup=(S.winter.sup||[]).concat(lines);lines.forEach(l=>say(l))}
 };
 // spring: the season opens with the bookings
