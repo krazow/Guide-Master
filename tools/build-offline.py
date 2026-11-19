@@ -27,6 +27,9 @@ html = html.replace("if('serviceWorker' in navigator&&", "if(false&&")
 # Nothing to install from a file: the title screen's Install app button stays hidden (src/js/41-install.js).
 assert html.count("const SINGLE_FILE=false;") == 1, 'SINGLE_FILE marker missing in src/js/41-install.js'
 html = html.replace("const SINGLE_FILE=false;", "const SINGLE_FILE=true;")
+# Help's link to the iPhone how-to page (install/ios.html) has no page to open from a file: keep the words, drop the link.
+assert html.count('<a href="install/ios.html">') == 1, "Help's install/ios.html link missing in src/js/26-help.js"
+html = html.replace('<a href="install/ios.html">', '<a>')
 
 # Illustrations (src/js/40-art.js): the images live in art/ next to index.html, which a single file can't reach. By default the
 # embedded manifest is emptied, so the offline game shows its drawn scenes exactly as with art off; --with-art inlines them instead.

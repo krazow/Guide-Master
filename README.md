@@ -1,13 +1,26 @@
 # Guide Master
 
-**A guide's career on the Kenai.** A mobile game (installable PWA, works offline) about life as a charter fishing guide on Alaska's Kenai Peninsula: a 2-, 5- or 10-year career, each year the two-week July peak of the late sockeye run (season 1 is the real July 13–26, 2026).
+**A guide's career on the Kenai.** A mobile game (installable PWA, works offline) about life as a charter fishing guide on Alaska's Kenai Peninsula: a 2-, 5- or 10-year career with two weeks of guiding each summer. Season 1 is the two-week July peak of the late sockeye run (the real July 13–26, 2026); from the second summer you pick your two weeks: June kings, either July week, August silvers or September rainbows.
 
 You run a small guide business out of Soldotna with a jet sled, a drift boat, a stack of credentials and a phone that won't stop ringing. Meet your clients at the launch by 6 AM, find them fish, keep them happy, fill out your logbook, and stay on the right side of the rules. Three citations and Alaska State Parks pulls your Kenai River guide permit.
+
+## How to play
+
+The in-game **❓ Help!** (title screen, or ⚙️ Settings → Help) is the full guide, with a contents list you can tap to jump. In short:
+
+- **A day:** time moves only when you act. Tap actions on the 🧭 Here tab, drive with *Go somewhere*, and watch your energy. Go to bed at the shop; the alarm rings at 5:00 AM.
+- **A trip:** be at the launch on time, pack the cooler, pick a spot, then make the calls through the day (stay, switch tactics, move, shore lunch, head in early). Dilemmas come up along the way; there is always a legal answer, and it costs something. At the dock you get the fare, a tip that follows how happy the party was, and their written review.
+- **Clients** come for something (a full cooler, one big fish, kids' action, photos, fly fishing, coaching, calm water). Fit the day to them. Reviews make your **★ rating** (the last 20): ★4.5 makes you top-rated, ★4.7 brings a magazine feature, a ★4.7 season a lodge partnership.
+- **The water:** the 🐟 Fish tab (or scouting) gives each spot a Hot/Good/Fair/Poor read. Tides, traffic, wind and the run change through the day.
+- **The rules:** the 📖 Regs tab. Bending one can pay today, but every rule broken makes the next likelier to be caught, citations cost bookings, and three active citations end your career.
+- **Keep things running:** fuel only at the Kenai Harbor dock, tackle and groceries in Soldotna, boat service at the shop, the logbook before bed, a current first-aid card, and the cabin's jobs on the 🏠 Home tab.
+- **The season:** requests wait on 📅 Bookings, three season goals a summer, big-day targets. **The off-season:** bills, upgrades, your weeks, the cabin, winter camping and work (10 free days) and, from the third winter, hiring guides and boats.
+- **The score** is graded per season: **A 62,000, B 55,000, C 44,000, D 27,000**, F below (a career that ends early is an F).
 
 ## The Kenai
 
 - **Places:** your shop & cabin in Soldotna, town (tackle shop, ADF&G office, diner, clinic), the lower Kenai launch at Centennial Park, Cooper Landing and the Russian River, Kenai City Beach (the dipnet fishery) and the Homer Spit.
-- **Trips:** lower-river sockeye trips, early silver (coho) back-trolling, upper-river drift-boat trout floats, and a Homer halibut charter captained on a friend's permit.
+- **Trips:** lower-river sockeye trips, silver (coho) back-trolling (early silvers in July, the main run in August and September), June king trips when the year's rules allow, upper-river drift-boat trout floats, and a Homer halibut charter captained on a friend's permit (or your own, with the Charter Halibut Permit).
 - **Lore:** glacial-flour turquoise water, combat fishing at the Russian River confluence, Les Anderson's 97 lb 4 oz world-record king (1985), brown bears on the gravel bars, the midnight sun, the river-mile-19 sockeye sonar, Cook Inlet tides, Friday traffic on the Sterling Highway, Kahtnu (the Dena'ina name for the Kenai).
 
 ## The rules it models
@@ -45,6 +58,7 @@ To change the form, edit `FEEDBACK.formId` in `27-feedback.js` and rebuild.
 
 - **Pop-ups** (`modal()` in `src/js/02-kit.js`): focus moves into the pop-up, Tab and Shift+Tab stay inside it (the page behind is `inert`), **Esc closes it** (it presses the pop-up's own Close/Got it button, or just puts a multi-choice pop-up away; a trip dilemma you put away is picked up again from **Back to your trip**) and focus returns to the button you pressed. Required pop-ups (`modal(…, true)`, like the update notice) ignore Esc.
 - **Go buttons** carry an `aria-label` with the destination ("Go to Kenai Harbor · 25 min"). Everything you can press is at least **44×44 px**: action buttons, chips, the ⚙️ gear, toast ✓, tips, pins and the priority list buttons.
+- **Help** (`src/js/26-help.js`): a contents list at the top of the sheet; each link (and the ↑ next to every section heading) is a 44 px target that scrolls the sheet to the section and moves focus to its heading, so a keyboard or screen reader follows. Instant with reduced motion.
 - **Top bar:** the day and clock stay on one line and the date line gets its own full-width row (it ellipsizes, with the full text in its tooltip). Stat values never wrap: cash shows compact in the bar ($48k from $10,000 up, full amount in its tooltip) and the largest text setting lays the stats out two rows of four. Settings also has text size, high contrast and reduced motion.
 
 ## Update notice
@@ -84,7 +98,7 @@ Balance (5-year careers, 40 per cell, default cabin play, mean season score; bef
 
 ## Careers: 2, 5 or 10 years
 
-When you start a new game you pick a **2-, 5- or 10-year career** (`src/js/24-career.js`). Each season you play the two-week July peak, Monday to Sunday, starting on the Monday nearest July 13 (2026: Jul 13; 2027: Jul 12; 2028: Jul 10…). Between seasons comes the **off-season**:
+When you start a new game you pick a **2-, 5- or 10-year career** (`src/js/24-career.js`). Each season you play two weeks, Monday to Sunday. Season 1 is the July peak, starting on the Monday nearest July 13 (2026: Jul 13; 2027: Jul 12; 2028: Jul 10…); from the second summer the off-season's **📆 Your weeks** picks any two of June kings, July week 1 or 2, August silvers or September rainbows (`src/js/34-summer.js`). Between seasons comes the **off-season**:
 
 - **Recap and bills:** the year's trips and earnings, then winter living costs, license and permit renewals (ADF&G guide and business licenses, KRSMA permit, decals) and insurance.
 - **Next year's rules and runs:** season 1 is the real 2026 (kings closed, single-hook/no-bait, Area 3A halibut 27-inch second fish, no retention Tue/Wed). Later seasons are invented but plausible. The sockeye and coho forecasts vary in size and timing, and kings may be closed, catch-and-release only or open (1 a day, harvest record). Bait is allowed when kings are open. The halibut size limit and closed days shift too. Weak sockeye years can bring an emergency order cutting the limit to 2; strong years raise it to 6. Pinks run only in even years.
@@ -296,7 +310,7 @@ Time only moves when you act, so skipping ahead has its own action: **⏳ Wait u
 - **Running dry:** the Coast Guard tows you to Kenai Harbor and the harbormaster brings you to the fuel dock for $102 (Homer's harbor tariff rate), and sells you 12 gallons to get going again (36 for the charter boat). The trip is cut short with half the fare refunded, you lose rep, and the boarding may turn up an expired flare kit. In 20-career five-year sims a guide who never refuels (always "Risk it") used to lose every career by about day 9 after a run of tows (2,200 points a season); with the 12-gallon top-off and the other changes they still lose 19 of 20, but around day 31, and score about 8,100 a season. A by-the-book guide is unaffected (56,700 against 57,100 a season, within noise). Solo outings and scouting can run dry too.
 - **Prices (approximate, 2026):** marine gas starts at $6.19/gal at Kenai and $6.45 at Homer (pump gas on the Peninsula was about $5.14–5.55) and drifts each season. DIY boat service is $165 in parts; a dealer 100-hour service is $525. Tackle is $120 for four trips; a broken rod and reel costs $165. The motorized launch fee is $15.
 - **Upgrades** at realistic prices: repower with a new 50 hp jet outboard $13,500; new 20-ft welded sled, motor and trailer $52,000; drift boat and trailer $12,500; Charter Halibut Permit plus a used 28-ft six-pack boat $165,000; assistant guide and second sled $32,000; four guest cabins $95,000; riverfront lot with private launch $240,000 (what each really does is above).
-- **The rest of the summer:** you play the July peak, and the off-season settles June, August and September. That's about 1.95× your July trip count (it was 2.4× before 1.8.0), scaled by reputation, **by how the July went** (the season's average client happiness: an average season is 76, and each point is about 1.1% either way, from 0.7× to 1.25×), by word of mouth and by your regulars (+0.3% each), at your July fares **and tips** minus fuel, launches and tackle, so realistic boat prices are reachable over a career. The winter marketing buy adds 12% to that summer.
+- **The rest of the summer:** you play two weeks, and the off-season settles the weeks you didn't play (June, August and September when you play the July peak; a quieter week played books more of the busy summer under your name). That's about 1.95× your July trip count (it was 2.4× before 1.8.0), scaled by reputation, **by how the July went** (the season's average client happiness: an average season is 76, and each point is about 1.1% either way, from 0.7× to 1.25×), by word of mouth and by your regulars (+0.3% each), at your July fares **and tips** minus fuel, launches and tackle, so realistic boat prices are reachable over a career. The winter marketing buy adds 12% to that summer.
 
 ## Food, home fuel and the generator
 
@@ -338,7 +352,7 @@ All prices are 2026 estimates, not quotes. Checked: Honda EU7000iS $4,449, 5.1 g
 - **Weather** every morning: temperature, wind, rain and the Kenai's glacial river level (rain and warm-day melt raise it). Rising, dirty water scatters reds; overcast helps trout; wind over 18 kt sours Cook Inlet halibut trips and raises the odds of Skilak and Barren Islands blowups.
 - **Tides** at the mouth (semi-diurnal with a spring/neap cycle): reds ride the flood tide into the dipnetters; halibut bite at slack water.
 - **Time of day**: first light and long July evenings beat midday sun and crowds.
-- **🚤 Take the boat out** at the lower launch or Cooper Landing. It checks your bookings first: the boat can't go while a party is on the dock, and solo runs are capped so you're back an hour before your next launch (plus drive time). Without clients your sled is still a *registered guide vessel*, so the Sun/Mon closure and the 6 AM–6 PM hours below Skilak still apply. Pick a species with live odds, fish 2–6 hours, fill the freezer within bag limits, release any king, and get a scouting bonus for your next trip.
+- **🚤 Take the boat out** at the lower launch or Cooper Landing. It checks your bookings first: the boat can't go while a party is on the dock, and solo runs are capped so you're back an hour before your next launch (plus drive time). Without clients your sled is still a *registered guide vessel*, so the Sun/Mon closure and the 6 AM–6 PM hours below Skilak still apply (May 1–Jul 31). Pick a species with live odds, fish 2–6 hours, fill the freezer within bag limits, release any king, and get a scouting bonus for your next trip.
 - **🐟 Fish tab**: today's weather, river level, tide table, odds by place and species, **where to fish today** (a read of every spot for the trips you have booked) and a run-timing chart with your two weeks and today marked.
 - **Spots answer to the day** (1.8.0, `SPOT_FIT` in `23-fish.js`): each spot in the *Where to, Captain?* step does better or worse with the day's water (rising or falling, high or low), wind, cloud, tide and the size of the run: Big Eddy's seams like a strong run and clearing water, the Swiftwater bars like high water, the Centennial walkway likes overcast, Skilak needs a calm lake, the Barren Islands need calm seas. The fit moves the catch by up to ±.15 (`SPOT_Q`) on top of each spot's own trade-offs, so the classic spot is not always the best one. **Nothing is hidden from a player who looks:** after you read the Fish tab today the spot buttons carry a 🐟 *Hot / Good / Fair / Poor* read with the reason, and after you scout the river (or fish the upper river) the buttons carry an exact 🔭 read that also includes the day's local noise. With no look you pick blind. The closed-habitat bank has no read; it is still against the rules. In 70-day samples the best spot beats always taking the first by .04 to .11 of catch.
 
@@ -346,7 +360,7 @@ This is a simplified model of typical run timing, not a forecast.
 
 ## Play
 
-Open `index.html`, or deploy the folder to any static https host (GitHub Pages works: `.nojekyll` is included) and install it from the browser. `offline/guidemaster-offline.html` (from `python3 tools/build-offline.py`) runs by double-clicking.
+Open `index.html`, or deploy the folder to any static https host (GitHub Pages works: `.nojekyll` is included) and install it from the browser: the title screen's **📲 Install app** button opens the browser's install prompt (Chrome, Edge, Android), shows the menu steps in other browsers, and on iPhone/iPad opens `install/ios.html`, a how-to page with a short video (`install/ios-add-to-home.mp4`, precached by `sw.js` so it works offline). `offline/guidemaster-offline.html` (from `python3 tools/build-offline.py`) runs by double-clicking.
 
 ## Build & test
 
