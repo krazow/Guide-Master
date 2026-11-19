@@ -30,6 +30,7 @@
     BURN:{uci:70,lci:95},   // gallons of diesel an opener burns (anchored, pumping, the run to the plant)
     PLANT_ENERGY:3,         // your energy each played morning you own a plant (calls with the plant manager)
     SELF_ENERGY:25,         // your energy for a day running the tender yourself
+    BLOW:22,                // knots of wind that keep much of the fleet in (a small-craft advisory on Cook Inlet)
   };
   const AREAS={
     uci:{n:'Upper Cook Inlet',short:'Kenai/Kasilof',port:'Kenai',ic:'🌊',fleet:'drift gillnetters',where:'at anchor off the Kenai River mouth',

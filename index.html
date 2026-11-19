@@ -1896,6 +1896,7 @@ const Tender={
     BURN:{uci:70,lci:95},   // gallons of diesel an opener burns (anchored, pumping, the run to the plant)
     PLANT_ENERGY:3,         // your energy each played morning you own a plant (calls with the plant manager)
     SELF_ENERGY:25,         // your energy for a day running the tender yourself
+    BLOW:22,                // knots of wind that keep much of the fleet in (a small-craft advisory on Cook Inlet)
   };
   const AREAS={
     uci:{n:'Upper Cook Inlet',short:'Kenai/Kasilof',port:'Kenai',ic:'🌊',fleet:'drift gillnetters',where:'at anchor off the Kenai River mouth',
@@ -1982,7 +1983,7 @@ const Tender={
   };
   // a ticket from the host: anything missing gets a default
   T.normTicket=function(t){
-    t=Object.assign({phase:'winter',s:0,year:2026,cash:0,floor:T.FLOOR,rep:50,energy:80,costMult:1,diesel:5,daysLeft:10,seasonsLeft:5,md:0,
+    t=Object.assign({phase:'winter',s:0,year:2026,cash:0,floor:T.FLOOR,wind:null,rep:50,energy:80,costMult:1,diesel:5,daysLeft:10,seasonsLeft:5,md:0,
       run:{sockeye:1,coho:1,pinkEven:true,king:'closed'}},t||{});
     t.state=T.normState(t.state);t.run=Object.assign({sockeye:1,coho:1,pinkEven:true,king:'closed'},t.run||{});
     return t;
@@ -2070,7 +2071,9 @@ const Tender={
     const same=st.tenders.filter(x=>x.area===A).indexOf(v);   // a second tender in the same water sees fewer boats
     const off=clamp(n0(ch.offset,0),-.15,.2),self=!!ch.self,care=ch.care==='fast'?'fast':'bled',run=ch.run==='tide'?'tide':'now';
     const share=clamp(.42+3*off+(st.brep-50)/250-(care==='bled'?.05:0)+(self?.04:0),.06,.85)*(same>0?.7:1);
-    const noise=exp?1:.65+r()*.7;
+    // weather: a southwest blow keeps half the fleet in, and the tender rides it out at anchor (survival suits checked, an anchor watch)
+    const wind=ch.wind!=null?n0(ch.wind,8):exp?8:(r()<.12?24+Math.round(r()*10):8),blow=wind>=K.BLOW;
+    const noise=(exp?1:.65+r()*.7)*(blow?.6:1);
     const cap=(v.kind==='lease'?D.VESSELS.lease.hold:D.VESSELS.used.hold)*(A==='uci'?1.8:1.3);
     let lbsSp={},tot=0;for(const sp of SP){lbsSp[sp]=P[sp]*share*noise;tot+=lbsSp[sp]}
     let turned=0;if(tot>cap){const k=cap/tot;for(const sp of SP)lbsSp[sp]*=k;turned=tot-cap;tot=cap}
@@ -2079,6 +2082,7 @@ const Tender={
     let paid=0,rev=0;
     for(const sp of SP){const L=lbsSp[sp];paid+=L*(g[sp]+offSp(off,sp,g));rev+=L*(g[sp]+K.SPREAD[sp]+K.QBONUS[sp]*qi)}
     const lines=[],events=[];let repair=0,rej=0;
+    if(blow)lines.push(`💨 A blow out of the southwest, ${wind} knots: half the fleet stays in. ${self?'You':'The skipper'} double${self?'':'s'} the anchor watch and check${self?'':'s'} that every survival suit aboard fits.`);
     const pRej=(run==='tide'?.12:.03)+(v.cond<45?.12:0)+(care==='fast'?.04:0);
     if(!exp&&r()<pRej){const f=.3+r()*.3;rej=Math.round(tot*f);const lost=rev*f*.6;rev-=lost;qi=Math.min(qi,.3);
       lines.push(`🌡️ The plant’s quality checker probes a warm hold: ${lb(rej)} are downgraded to number twos (${$(lost)} less).`);events.push({id:'tender_reject',sev:1})}
@@ -2101,7 +2105,7 @@ const Tender={
   T.opener=function(t0,choice,o){
     const t=T.normTicket(t0),st=copy(t.state),rep=report(st),r=rnd(o),today=T.openerToday(Object.assign({},t,{state:st}));
     if(!today) return Object.assign(rep,{none:true});
-    const ch=Object.assign({offset:st.policy.offset,care:st.policy.care,run:'now',self:false},choice||{});
+    const ch=Object.assign({offset:st.policy.offset,care:st.policy.care,run:'now',self:false,wind:t.wind},choice||{});
     const res=[];
     today.tenders.forEach((x,i)=>{const v=st.tenders.find(y=>y.id===x.id);res.push(oneOpener(t,st,v,t.md,i===0?ch:Object.assign({},ch,{self:false}),r,false,rep))});
     let net=0;res.forEach(x=>{net+=x.net});
@@ -2110,7 +2114,7 @@ const Tender={
       const who=i===0&&ch.self?'You run':'Your skipper runs';
       rep.lines.push(`⚓ ${who} the ${st.tenders.find(v=>v.id===today.tenders[i].id).name} ${D.AREAS[x.area].where}: ${x.boats} boat${x.boats>1?'s':''} alongside, ${lb(x.lbs)} bought at ${c2(st.season.going.sockeye+x.off)} for sockeye. Delivered to the plant, after crew and fuel: <b>${$(x.net)}</b>.${x.turned?` You turn away ${lb(x.turned)}: the hold is full.`:''}`);
       rep.lines.push(...x.lines)});
-    if(ch.self){rep.energyDelta-=K.SELF_ENERGY}
+    if(ch.self){rep.energyDelta-=K.SELF_ENERGY+(n0(ch.wind,8)>=K.BLOW?5:0)}
     if(net<0) rep.events.push({id:'tender_anchor',sev:1});
     guard(t,st,rep);
     return rep;
@@ -2301,7 +2305,7 @@ const Tender={
     const t=T.normTicket(t0),st=t.state,a=arg||{};
     if(t.phase!=='winter') return 'Only in the off-season';
     const loanOK=()=>st.credit>t.s?'The bank won’t lend after the forced sale':t.rep<K.BUY_REP?`A loan needs reputation ${K.BUY_REP}`:null;
-    // a purchase must leave the guide's working money (the floor) and the first season's crew and upkeep in the bank
+    // a purchase must leave the guide's working money, the floor, and the first season's crew and upkeep in the bank
     const keep=k=>n0(t.floor,T.FLOOR)+Math.round(reserve(k)*scale(t)),short=(pay,k)=>t.cash-pay<keep(k)?`Keep ${$(keep(k))} for your guiding${reserve(k)?' and the first season’s crew and upkeep':''}`:null;
     const buy=(price,k)=>{const c=Math.round(price*scale(t));if(a.loan){const w=loanOK();if(w)return w;if(t.cash<c*K.DOWN)return `Needs ${$(Math.round(c*K.DOWN))} down`;return short(Math.round(c*K.DOWN),k)}return t.cash<c?'Can’t afford it':short(c,k)};
     switch(id){
@@ -2501,7 +2505,7 @@ const Tender={
       {l:'Check temperatures, take bled fish only',s:'Slower. Cold, bled fish earn the plant’s quality bonus; a few boats go elsewhere.',fn:later(()=>{ch.care='bled';step3()})},
       {l:'Take every fish, fast',s:'More pounds, less care: a smaller bonus and a better chance of a rejected load.',fn:later(()=>{ch.care='fast';step3()})}],false,{events:[{id:'tender_pump',sev:0}]});
     const opt=x=>({l:`${x===0?'Post the going price':(x>0?'Post +':'Post ')+c2(x)} — sockeye ${c2(g.sockeye+x)}`,s:x<0?'Thin traffic; you keep more of each pound.':x===0?'A fair share of the boats.':x>=.1?'Boats line up for you; most of the margin goes with them.':'More boats choose you.',fn:later(()=>{ch.offset=x;step2()})});
-    show(h,`⚓ Opener: ${A.short}, ${U.mdTxt(t.md)}`,`<p>The ${esc(v.name)} is ${A.where}, the ${A.fleet} are setting, and the other buyers are posting ${c2(g.sockeye)} a pound for sockeye. Hold condition ${Math.round(v.cond)}.</p>${note(`Running it yourself saves the skipper’s ${$(K.SKIPPER)} and you can be picky about quality. It takes the whole day and ${K.SELF_ENERGY} energy.`)}`,
+    show(h,`⚓ Opener: ${A.short}, ${U.mdTxt(t.md)}`,`<p>The ${esc(v.name)} is ${A.where}, the ${A.fleet} are setting, and the other buyers are posting ${c2(g.sockeye)} a pound for sockeye. Hold condition ${Math.round(v.cond)}.${t.wind>=K.BLOW?` <b>Small-craft advisory: ${t.wind} knots.</b> Survival suits on the bridge, a deckhand on anchor watch.`:''}</p>${note(`Running it yourself saves the skipper’s ${$(K.SKIPPER)} and you can be picky about quality. It takes the whole day and ${K.SELF_ENERGY} energy.`)}`,
       [0,.05,.1,-.05].map(opt).concat([{l:'Let the skipper run it',s:'Back to your day.',fn:later(()=>done&&done(null))}]),false,{events:[{id:'tender_anchor',sev:0}]});
   };
 
@@ -8051,9 +8055,9 @@ const tenderHas=()=>!!(S&&S.fish&&S.fish.tender&&(Tender.active(S.fish.tender)||
 const tenderOn=()=>!!(S&&S.seasons&&S.seasons.length>=TENDER_UNLOCK)||tenderHas();
 function tenderTicket(o){
   const w=!!S.winter,d=day(),s=w?S.winter.s:seasonOf(d),R=REG();
-  return Object.assign({state:TND(),phase:w?'winter':'summer',s,year:2026+s,cash:Math.round(S.money),floor:Math.round(Tender.FLOOR*DF().cost),rep:S.rep,energy:S.energy,costMult:DF().cost,
+  return Object.assign({state:TND(),phase:w?'winter':'summer',s,year:2026+s,cash:Math.round(S.money),floor:Tender.FLOOR,rep:S.rep,energy:S.energy,costMult:DF().cost,
     diesel:Math.max(3,Math.round(((S.fuelBase&&S.fuelBase.kenai)||6.19)*.85*100)/100),daysLeft:w?campDaysLeft():0,seasonsLeft:S.years-s,md:w?0:mdOf(d),
-    run:{sockeye:R.mult.sockeye,coho:R.mult.coho,pinkEven:(2026+s)%2===0,king:R.king}},o||{});
+    run:{sockeye:R.mult.sockeye,coho:R.mult.coho,pinkEven:(2026+s)%2===0,king:R.king},wind:w?null:wxOf(d).wind},o||{});
 }
 function tenderApply(rep,quiet){
   if(!rep) return rep;
@@ -8100,6 +8104,7 @@ const _tenderFinish=finishWinter;
 finishWinter=function(){
   if(S.winter&&tenderHas()){const rep=tenderApply(Tender.openSeason(tenderTicket()),true);rep.lines.forEach(l=>say(l))}
   _tenderFinish();
+  tenderNotice();   // the season's first morning can be an opener
 };
 
 // ---- the summer ----
@@ -8110,9 +8115,13 @@ onMorning=function(d){
   if(S.winter||!S.fish||!S.fish.tender||!S.fish.tender.season) return;
   const st=S.fish.tender;
   if(st.plant){const rep=tenderApply(Tender.plantDay(tenderTicket()),true);if(rep.energyDelta)say(`🏭 A call with the plant manager before coffee: energy ${rep.energyDelta}.`)}
-  const op=tenderToday();
-  if(op){const A=Tender.data.AREAS,l=`⚓ <b>Opener today</b>, ${op.tenders.map(x=>A[x.area].short).join(' and ')}: your skipper takes the ${op.tenders.map(x=>x.name).join(' and the ')} out unless you run ${op.tenders.length>1?'one':'her'} yourself (Here tab, by ${fmt(TENDER_SELF_BY)}).`;say(l);digestLine(l)}
+  tenderNotice();
 };
+function tenderNotice(){
+  const op=tenderToday();if(!op) return;
+  const A=Tender.data.AREAS,l=`⚓ <b>Opener today</b>, ${op.tenders.map(x=>A[x.area].short).join(' and ')}: your skipper takes the ${op.tenders.map(x=>x.name).join(' and the ')} out unless you run ${op.tenders.length>1?'one':'her'} yourself (Here tab, by ${fmt(TENDER_SELF_BY)}).`;
+  say(l);digestLine(l);
+}
 const _tenderNight=onNight;
 onNight=function(where,notes,d){
   _tenderNight(where,notes,d);

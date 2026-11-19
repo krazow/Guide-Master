@@ -31,7 +31,7 @@
   };
   // a ticket from the host: anything missing gets a default
   T.normTicket=function(t){
-    t=Object.assign({phase:'winter',s:0,year:2026,cash:0,floor:T.FLOOR,rep:50,energy:80,costMult:1,diesel:5,daysLeft:10,seasonsLeft:5,md:0,
+    t=Object.assign({phase:'winter',s:0,year:2026,cash:0,floor:T.FLOOR,wind:null,rep:50,energy:80,costMult:1,diesel:5,daysLeft:10,seasonsLeft:5,md:0,
       run:{sockeye:1,coho:1,pinkEven:true,king:'closed'}},t||{});
     t.state=T.normState(t.state);t.run=Object.assign({sockeye:1,coho:1,pinkEven:true,king:'closed'},t.run||{});
     return t;
@@ -119,7 +119,9 @@
     const same=st.tenders.filter(x=>x.area===A).indexOf(v);   // a second tender in the same water sees fewer boats
     const off=clamp(n0(ch.offset,0),-.15,.2),self=!!ch.self,care=ch.care==='fast'?'fast':'bled',run=ch.run==='tide'?'tide':'now';
     const share=clamp(.42+3*off+(st.brep-50)/250-(care==='bled'?.05:0)+(self?.04:0),.06,.85)*(same>0?.7:1);
-    const noise=exp?1:.65+r()*.7;
+    // weather: a southwest blow keeps half the fleet in, and the tender rides it out at anchor (survival suits checked, an anchor watch)
+    const wind=ch.wind!=null?n0(ch.wind,8):exp?8:(r()<.12?24+Math.round(r()*10):8),blow=wind>=K.BLOW;
+    const noise=(exp?1:.65+r()*.7)*(blow?.6:1);
     const cap=(v.kind==='lease'?D.VESSELS.lease.hold:D.VESSELS.used.hold)*(A==='uci'?1.8:1.3);
     let lbsSp={},tot=0;for(const sp of SP){lbsSp[sp]=P[sp]*share*noise;tot+=lbsSp[sp]}
     let turned=0;if(tot>cap){const k=cap/tot;for(const sp of SP)lbsSp[sp]*=k;turned=tot-cap;tot=cap}
@@ -128,6 +130,7 @@
     let paid=0,rev=0;
     for(const sp of SP){const L=lbsSp[sp];paid+=L*(g[sp]+offSp(off,sp,g));rev+=L*(g[sp]+K.SPREAD[sp]+K.QBONUS[sp]*qi)}
     const lines=[],events=[];let repair=0,rej=0;
+    if(blow)lines.push(`💨 A blow out of the southwest, ${wind} knots: half the fleet stays in. ${self?'You':'The skipper'} double${self?'':'s'} the anchor watch and check${self?'':'s'} that every survival suit aboard fits.`);
     const pRej=(run==='tide'?.12:.03)+(v.cond<45?.12:0)+(care==='fast'?.04:0);
     if(!exp&&r()<pRej){const f=.3+r()*.3;rej=Math.round(tot*f);const lost=rev*f*.6;rev-=lost;qi=Math.min(qi,.3);
       lines.push(`🌡️ The plant’s quality checker probes a warm hold: ${lb(rej)} are downgraded to number twos (${$(lost)} less).`);events.push({id:'tender_reject',sev:1})}
@@ -150,7 +153,7 @@
   T.opener=function(t0,choice,o){
     const t=T.normTicket(t0),st=copy(t.state),rep=report(st),r=rnd(o),today=T.openerToday(Object.assign({},t,{state:st}));
     if(!today) return Object.assign(rep,{none:true});
-    const ch=Object.assign({offset:st.policy.offset,care:st.policy.care,run:'now',self:false},choice||{});
+    const ch=Object.assign({offset:st.policy.offset,care:st.policy.care,run:'now',self:false,wind:t.wind},choice||{});
     const res=[];
     today.tenders.forEach((x,i)=>{const v=st.tenders.find(y=>y.id===x.id);res.push(oneOpener(t,st,v,t.md,i===0?ch:Object.assign({},ch,{self:false}),r,false,rep))});
     let net=0;res.forEach(x=>{net+=x.net});
@@ -159,7 +162,7 @@
       const who=i===0&&ch.self?'You run':'Your skipper runs';
       rep.lines.push(`⚓ ${who} the ${st.tenders.find(v=>v.id===today.tenders[i].id).name} ${D.AREAS[x.area].where}: ${x.boats} boat${x.boats>1?'s':''} alongside, ${lb(x.lbs)} bought at ${c2(st.season.going.sockeye+x.off)} for sockeye. Delivered to the plant, after crew and fuel: <b>${$(x.net)}</b>.${x.turned?` You turn away ${lb(x.turned)}: the hold is full.`:''}`);
       rep.lines.push(...x.lines)});
-    if(ch.self){rep.energyDelta-=K.SELF_ENERGY}
+    if(ch.self){rep.energyDelta-=K.SELF_ENERGY+(n0(ch.wind,8)>=K.BLOW?5:0)}
     if(net<0) rep.events.push({id:'tender_anchor',sev:1});
     guard(t,st,rep);
     return rep;
@@ -350,7 +353,7 @@
     const t=T.normTicket(t0),st=t.state,a=arg||{};
     if(t.phase!=='winter') return 'Only in the off-season';
     const loanOK=()=>st.credit>t.s?'The bank won’t lend after the forced sale':t.rep<K.BUY_REP?`A loan needs reputation ${K.BUY_REP}`:null;
-    // a purchase must leave the guide's working money (the floor) and the first season's crew and upkeep in the bank
+    // a purchase must leave the guide's working money, the floor, and the first season's crew and upkeep in the bank
     const keep=k=>n0(t.floor,T.FLOOR)+Math.round(reserve(k)*scale(t)),short=(pay,k)=>t.cash-pay<keep(k)?`Keep ${$(keep(k))} for your guiding${reserve(k)?' and the first season’s crew and upkeep':''}`:null;
     const buy=(price,k)=>{const c=Math.round(price*scale(t));if(a.loan){const w=loanOK();if(w)return w;if(t.cash<c*K.DOWN)return `Needs ${$(Math.round(c*K.DOWN))} down`;return short(Math.round(c*K.DOWN),k)}return t.cash<c?'Can’t afford it':short(c,k)};
     switch(id){

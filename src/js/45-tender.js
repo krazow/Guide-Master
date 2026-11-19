@@ -28,7 +28,7 @@ function tenderTicket(o){
   const w=!!S.winter,d=day(),s=w?S.winter.s:seasonOf(d),R=REG();
   return Object.assign({state:TND(),phase:w?'winter':'summer',s,year:2026+s,cash:Math.round(S.money),floor:Tender.FLOOR,rep:S.rep,energy:S.energy,costMult:DF().cost,
     diesel:Math.max(3,Math.round(((S.fuelBase&&S.fuelBase.kenai)||6.19)*.85*100)/100),daysLeft:w?campDaysLeft():0,seasonsLeft:S.years-s,md:w?0:mdOf(d),
-    run:{sockeye:R.mult.sockeye,coho:R.mult.coho,pinkEven:(2026+s)%2===0,king:R.king}},o||{});
+    run:{sockeye:R.mult.sockeye,coho:R.mult.coho,pinkEven:(2026+s)%2===0,king:R.king},wind:w?null:wxOf(d).wind},o||{});
 }
 function tenderApply(rep,quiet){
   if(!rep) return rep;
@@ -75,6 +75,7 @@ const _tenderFinish=finishWinter;
 finishWinter=function(){
   if(S.winter&&tenderHas()){const rep=tenderApply(Tender.openSeason(tenderTicket()),true);rep.lines.forEach(l=>say(l))}
   _tenderFinish();
+  tenderNotice();   // the season's first morning can be an opener
 };
 
 // ---- the summer ----
@@ -85,9 +86,13 @@ onMorning=function(d){
   if(S.winter||!S.fish||!S.fish.tender||!S.fish.tender.season) return;
   const st=S.fish.tender;
   if(st.plant){const rep=tenderApply(Tender.plantDay(tenderTicket()),true);if(rep.energyDelta)say(`🏭 A call with the plant manager before coffee: energy ${rep.energyDelta}.`)}
-  const op=tenderToday();
-  if(op){const A=Tender.data.AREAS,l=`⚓ <b>Opener today</b>, ${op.tenders.map(x=>A[x.area].short).join(' and ')}: your skipper takes the ${op.tenders.map(x=>x.name).join(' and the ')} out unless you run ${op.tenders.length>1?'one':'her'} yourself (Here tab, by ${fmt(TENDER_SELF_BY)}).`;say(l);digestLine(l)}
+  tenderNotice();
 };
+function tenderNotice(){
+  const op=tenderToday();if(!op) return;
+  const A=Tender.data.AREAS,l=`⚓ <b>Opener today</b>, ${op.tenders.map(x=>A[x.area].short).join(' and ')}: your skipper takes the ${op.tenders.map(x=>x.name).join(' and the ')} out unless you run ${op.tenders.length>1?'one':'her'} yourself (Here tab, by ${fmt(TENDER_SELF_BY)}).`;
+  say(l);digestLine(l);
+}
 const _tenderNight=onNight;
 onNight=function(where,notes,d){
   _tenderNight(where,notes,d);
