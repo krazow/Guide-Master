@@ -6970,7 +6970,10 @@ function artLaunch(dest){
   if(b) artNarr('boat',()=>artBoatCtx(b,dest==='homer'?'harbor':['launch','trailer']),{rest:true});
 }
 // a trip's one mid-day picture (22-trips.js tripNext, on a 'beat' step): the river at that hour, never the drawing the trip opened with
-function artBeat(b,t){const h=artSlot('boat',()=>artBoatCtx(b,'river'),{rest:true,key:'beat:'+t.id,avoid:artTripAhead(t)});if(h)t.artBeat=1;return h}
+// (the trip's clock stands at the launch until it ends, so the hour is the stretch's own: the launch time plus BEATS[type].at)
+function artBeat(b,t){
+  const n=t.steps.slice(0,t.step).filter(k=>k==='beat').length,A=typeof BEATS!=='undefined'&&BEATS[b.type]?BEATS[b.type].at:[0],off=A[Math.min(n+1,A.length-1)]||0;
+  const h=artSlot('boat',()=>Object.assign(artBoatCtx(b,'river'),{time:artTime(tod()+off)}),{rest:true,key:'beat:'+t.id,avoid:artTripAhead(t)});if(h)t.artBeat=1;return h}
 // the drawings this trip's coming incidents will show (the combat fishing, the sow and cubs): the river scenes leave them to the incident
 function artTripAhead(t){const out=new Set();t.steps.slice(t.step+1).forEach(k=>{const e=artFor('event',artEventCtx(k,'trip'));if(e)out.add(artKey(e))});return out}
 // the morning report: one picture. The cabin's mishaps first, then the morning's events, the cabin's news, the night's events (on top);
@@ -6991,9 +6994,9 @@ function artMorning(D){
 
 // ---- context builders: what each set's "when" keys are matched against ----
 // time of day the way the scene art draws it (05-ui.js sceneSVG): 'day' | 'dusk' | 'night'
-function artTime(){
+function artTime(at){
   if(!S) return 'day';
-  const m=tod(),[rise,set]=SCENE.sun;
+  const m=at!=null?at:tod(),[rise,set]=SCENE.sun;
   return m<rise||m>set?'night':(m>=set-90&&m<=set+30)||(m>=rise-30&&m<=rise+60)?'dusk':'day';
 }
 // cabin: heat, season, time, cond, has
