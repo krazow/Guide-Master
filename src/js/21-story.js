@@ -95,18 +95,21 @@ function onMorning(d){
   if(t.length) say('🛶 Today: '+t.map(b=>`${TRIPS[b.type].ic} ${TRIPS[b.type].n} at ${fmt(TRIPS[b.type].start)}, ${L[TRIPS[b.type].loc].name} (the ${b.who}, ${b.n})`).join(' · '));
   else say('🛶 No trips booked today. Service the boat, return calls, or go fill the freezer.');
   if(isSunMon(d)) say(`🚫 ${dayName(d)}: no fishing from guide boats on the Kenai below Skilak Lake through July 31.`);
-  const strong=REG().mult.sockeye>=.85;
-  if(!strong&&S.limit===3&&REG().mult.sockeye<.7&&sd>=5){
+  // The late-run sockeye emergency orders belong to the July peak: they follow the July calendar (jd: days since the Monday nearest Jul 13,
+  // so the default weeks keep their old days) and never come in a June, August or September week (34-summer.js).
+  const jd=sockEODay(d),strong=REG().mult.sockeye>=.85;
+  if(jd<0) return;
+  if(!strong&&S.limit===3&&REG().mult.sockeye<.7&&jd>=5){
     S.limit=2;S.eo.push('Kenai River sockeye limit cut to 2 per day, 4 in possession');
     say('📣 <b>Emergency order:</b> the late run is tracking below its goal. ADF&G cuts the Kenai sockeye limit to <b>2 per day</b>.');
     showTile('📣','Sockeye limit cut to 2','ADF&G emergency order','bad');
   }
-  if(strong&&S.limit===3&&(S.cum>1200000*REG().mult.sockeye||sd>=8)){
+  if(strong&&S.limit===3&&(S.cum>1200000*REG().mult.sockeye||jd>=8)){
     S.limit=6;S.eo.push('Kenai River sockeye limit raised to 6 per day, 12 in possession');
     say('📣 <b>Emergency order:</b> with the late run past its escapement goal, ADF&G raises the Kenai sockeye limit to <b>6 per day, 12 in possession</b>.');
     showTile('📣','Sockeye limit raised to 6','ADF&G emergency order','good');
   }
-  if(strong&&sd===10&&!S.eo.some(e=>/Russian/.test(e))){
+  if(strong&&jd>=10&&!S.eo.some(e=>/Russian/.test(e))){
     S.eo.push('Russian River & upper Kenai sockeye limit 6 per day, 12 in possession');
     say('📣 <b>Emergency order:</b> the Russian River and a stretch of the upper Kenai go to 6 sockeye a day, too.');
   }
@@ -308,7 +311,7 @@ function todoItems(){
   it.push({l:'Optional: fill the freezer with 25 dipnet reds',s:`${S.freezer}/25. Kenai City Beach, 6 AM–11 PM.`,ok:S.freezer>=25});
   return it;
 }
-const RULES_HTML='<p>Guide two weeks every summer of a 2-, 5- or 10-year career. You lose if you get 3 active citations (permit pulled; citations drop off after the next season), your reputation hits 0, or you fall $2,000 in debt.</p><p>Score: net cash + the estimated rest of your last summer + nine tenths of the value of boats and permits you bought + reputation ×15 + 60 per trip − 400 per citation + 2 per freezer fish, plus 300 a season for a career without a violation. The grade is per season, so careers of any length compare: A at 62,000 a season, B 55,000, C 44,000, D 27,000 (a lost career is always an F). On Licensed Guide a by-the-book career lands mostly on B, a sharp one (phone requests, every upgrade, no violations) on B or A, a skilled one (Fish tab and scouting to pick spots, a well-kept boat, regulars, no overpricing) on A, a passive one on C or B and one that skips meals and lunches on C or D. Combat Season grades about a step lower and Rookie Season about a step higher.</p><p>Difficulty gives no score bonus. It changes the game instead: <b>Rookie</b> has fewer patrols, gentler fines, cheaper fuel and bills, friendlier clients and a bit more off-month work; <b>Licensed</b> is the baseline; <b>Combat</b> has more patrols, fines that climb with every citation, dearer fuel, bills and repairs, pickier clients, less off-month work and more bad luck. The same play grades about a step lower on Combat and a step higher on Rookie.</p>';
+const RULES_HTML='<p>Guide two weeks every summer of a 2-, 5- or 10-year career. You lose if you get 3 active citations (permit pulled; citations drop off after the next season), your reputation hits 0, or you fall $2,000 in debt.</p><p>Score: net cash + the estimated rest of your last summer + nine tenths of the value of boats and permits you bought + reputation ×15 + 60 per trip − 400 per citation + 2 per freezer fish, plus 300 a season for a career without a violation. The grade is per season, so careers of any length compare: A at 62,000 a season, B 55,000, C 44,000, D 27,000 (a lost career is always an F). On Licensed Guide a by-the-book career lands mostly on B, a sharp one (phone requests, every upgrade, no violations) on B or A, a skilled one (Fish tab and scouting to pick spots, a well-kept boat, regulars, no overpricing) on A, a passive one on C or B and one that skips meals and lunches on C or D. The same play scores about 5–15% less on Combat Season, about half a grade (A and B careers turn mostly B, some C), and about 17% more on Rookie Season, a full grade (B and C careers turn A and B).</p><p>Difficulty gives no score bonus. It changes the game instead: <b>Rookie</b> has fewer patrols, gentler fines, cheaper fuel and bills, friendlier clients and a bit more off-month work; <b>Licensed</b> is the baseline; <b>Combat</b> has more patrols, fines that climb with every citation, dearer fuel, bills and repairs, pickier clients, less off-month work and more bad luck. The same play grades about half a grade lower on Combat and a full grade higher on Rookie.</p>';
 
 // ---- achievements ----
 const ACH=[

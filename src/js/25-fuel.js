@@ -37,7 +37,7 @@ function fillUp(tank,where,max){
 function towIn(notes){
   S.fuel=0;S.stats.tows=(S.stats.tows||0)+1;
   const lines=['🛟 The motor coughs, catches, and dies. Empty tank. You drop the anchor out of the channel and make the call on VHF 16.',
-    '🚤 The Coast Guard comes up the river, takes your towline and brings you down to Kenai Harbor. Nobody on the Kenai will let you forget it.',
+    `🚤 The Coast Guard comes up the river, takes ${bName(sledKey())?bName(sledKey())+'’s':'your'} towline and brings you down to Kenai Harbor. Nobody on the Kenai will let you forget it.`,
     `⚓ The harbormaster brings you alongside the fuel dock: ${$(HARBOR_TOW)} harbor assist.`];
   money(-HARBOR_TOW);S.stats.spent+=HARBOR_TOW;adj('rep',-4);adj('energy',-8);
   const top=fillUp('fuel','kenai',TOW_FILL);                      // alongside the fuel dock: the harbormaster sells you enough to get going again

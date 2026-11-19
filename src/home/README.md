@@ -80,6 +80,7 @@ host = {
 | `homeFuel` | gallons of home gas (a test run of the generator burns half a gallon) |
 | `outage` | this winter's power outage `{ h, gen }` or `null` (a long outage with no generator and no stove chills the cabin) |
 | `recentFish`, `fish`, `clients` | trips with fish at home in the last few days; for `processing`, the fish and clients of the trip |
+| `name` | optional: what the host calls the cabin ("Krazow’s Cabin"), for the Home tab's heading and the winter report's title |
 
 ### The report (module → host)
 

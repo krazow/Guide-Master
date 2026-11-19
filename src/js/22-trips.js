@@ -183,12 +183,12 @@ function tripStart(b){
   if(late){t.happy-=late/3;t.notes.push(`⏰ You rolled in ${late} minutes late. The ${b.who} noticed.`)}
   // tackle and boat condition shape the day before you even leave the dock
   if(S.gear<=0){t.happy-=3;t.notes.push('🪱 You’re out of tackle. The clients fish with whatever is left in the bottom of the box, and they notice.')}
-  if(t.loan){t.happy-=6;t.notes.push('🤝 You run the trip on a borrowed rig. It is tired and the clients can tell.')}
+  if(t.loan){t.happy-=6;t.notes.push(`🤝 You run the trip on a borrowed rig, the <i>${LOANER_NAME}</i>. It is tired and the clients can tell.`)}
   t.happy+=clamp(Math.round((S.boat-65)/7),-3,4);   // a well-kept boat pleases clients; a tired one shows
   hungerTrip(t);                                           // 31-supplies.js: a hungry guide is a grumpy guide
   if(!t.loan&&S.boat<70&&b.type!=='halibut'&&Math.random()<(70-S.boat)/90){
     const m=60+Math.floor(Math.random()*60);lose(t,m);t.happy-=12;fx(t,-Math.round(payOf(b)*.15),'Breakdown credit');fx(t,-rp(80),'Roadside repair');adj('boat',8);
-    t.notes.push(`🔧 Worn-out gear lets you down: ${b.type==='trout'?'an oarlock snaps and the trailer bearing howls':'the jet sled quits on the way out'} and you lose ${m} minutes. You credit the ${b.who} 15% of the fare and pay ${$(rp(80))} for a quick fix. Service the boats at the shop.`);
+    t.notes.push(`🔧 Worn-out gear lets you down: ${b.type==='trout'?`an oarlock snaps on ${bName('drift')||'the drift boat'} and the trailer bearing howls`:`${bName('sled')||'the jet sled'} quits on the way out`} and you lose ${m} minutes. You credit the ${b.who} 15% of the fare and pay ${$(rp(80))} for a quick fix. Service the boats at the shop.`);
   }
   if(fuelShort(b)) t.steps.push('fuel');                 // 25-fuel.js
   const iss=issueOf(b);if(iss) t.steps.push('issue_'+iss);
@@ -208,7 +208,7 @@ function tripStart(b){
   if(q.includes('photo')&&b.type==='trout'&&dilOK('photo')) beats.push('photo');
   if(q.includes('kid')&&b.type!=='halibut'&&dilOK('pfd')) beats.push('pfd');
   if(b.type==='halibut'&&halClosed(b.d)) beats.push('tuewed');
-  if(S.boat<25&&!t.loan&&TRIPS[b.type].fuel){beats.push('motor');t.q-=.08;t.notes.push('🔧 The neglected jet sled runs rough all day. Service the boats at the shop.')}
+  if(S.boat<25&&!t.loan&&TRIPS[b.type].fuel){beats.push('motor');t.q-=.08;t.notes.push(`🔧 ${bName('sled')?`${bName('sled')}, neglected,`:'The neglected jet sled'} runs rough all day. Service the boats at the shop.`)}
   if(q.includes('promised')){t.happy-=15;t.notes.push('👑 They were “promised” a shot at a king. There was never going to be one: the fishery is closed.')}
   const pd=partyDils(b).filter(x=>!beats.includes(x)&&dilOK(x));
   while(beats.length<want&&pd.length) beats.push(pd.splice(Math.floor(Math.random()*pd.length),1)[0]);
@@ -247,7 +247,7 @@ function tripNext(){
   const hot=v.o.some(o=>o.legal===false)&&heat()>0?`<p class="small-note heat-note">🚔 You’ve broken ${heat()===1?'a rule':`${heat()} rules`} this season. The troopers and the other guides know your boat now: the odds of getting caught go up with every one.</p>`:'';
   const left=t.steps.slice(t.step).filter(x=>x!=='pack').length,done=t.steps.slice(0,t.step).filter(x=>x!=='pack').length;
   const prog=sheet?` · ${done+1} of ${done+left}`:'';
-  const open=sheet&&!t.shown?`<p class="small-note" style="margin:0 0 6px">You load the ${b.who} into the ${b.type==='trout'?'drift boat':b.type==='halibut'?'charter boat':'jet sled'} at ${L[T.loc].name} and push off at ${fmt(S.t)}.</p>`:'';
+  const open=sheet&&!t.shown?`<p class="small-note" style="margin:0 0 6px">You load the ${b.who} into ${tripBoatRef(b)} at ${L[T.loc].name} and push off at ${fmt(S.t)}.</p>`:'';
   const first=!t.shown;t.shown=true;
   // 40-art.js: this step's own picture (a trip event: the STEP id, from 'trip'), else on the first step the boat at the put-in
   const art=artOn()?artSlot('event',()=>artEventCtx(key,'trip'),{deco:true,key:'trip:'+t.id})||(packed?artSlot('event',()=>artEventCtx('spot','trip'),{deco:true,key:'trip:'+t.id}):'')||
@@ -328,7 +328,7 @@ function tripEnd(b,t){
   const mood=happy>=82?'😁 They’re already asking about next season. Word of mouth will bring you more bookings.':happy>=65?'🙂 Solid day. Handshakes at the trailer.':happy>=45?'😐 Polite thanks, small tip.':review?'😠 Tight-lipped goodbyes and a one-star review. Word gets around the Kenai.':'😕 They leave a little deflated.';
   const row=(l,v)=>`<br>${l}: <b>${v>=0?'':'−'}${$(Math.abs(v))}</b>`;
   const why=[];if(skunk)why.push('skunked');if(S.gear<=0&&t.notes.some(n=>n.startsWith('🪱')))why.push('no tackle');if(refund&&happy<42)why.push('unhappy clients');
-  modalSwap(`${T.ic} Back at the dock`,`${(t.homeEv&&homeArt(t.homeEv))||artSlot('boat',()=>artBoatCtx(b,['dock',T.loc==='homer'||S.loc==='harbor'?'harbor':'launch']),{rest:true,key:'dock:'+t.id})}${mem.top}${t.notes.map(n=>`<p>${n}</p>`).join('')}
+  modalSwap(`${T.ic} Back at the dock`,`${(t.homeEv&&homeArt(t.homeEv))||artSlot('boat',()=>artBoatCtx(b,['dock',T.loc==='homer'||S.loc==='harbor'?'harbor':'launch']),{rest:true,key:'dock:'+t.id})}${mem.top}${t.notes.map(n=>`<p>${n}</p>`).join('')}${dockBoatLine(b,T)}
     <p><b>Catch:</b> ${line}${t.kept?` (${t.kept} kept on the sly)`:''}${lost?` · ${lost} minutes lost`:''}</p>
     ${towed?'<p>🛟 <b>Towed in.</b> Half the fare refunded.</p>':''}<p><b>The pay:</b>${row(`Booked fare${b.type==='halibut'&&!S.up.chp?' (day rate)':''}`,fare)}${refund?row(`Refund${why.length?` (${why.join(', ')})`:''}`,-refund):''}${row('Tip',tip)}${xs.map(([l,v])=>row(l,v)).join('')}${costs?row('Launch fee',-costs):''}<br><b>Net: ${net<0?'−':''}${$(Math.abs(net))}</b></p>
     <p>${mood} Rep ${dRep>=0?'+':'−'}${Math.abs(dRep)}.</p>${reviewHTML(rv,b)}${mem.html}

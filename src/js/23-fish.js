@@ -238,7 +238,7 @@ function runChart(d){
   return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;background:#fff;border:1px solid var(--line);border-radius:10px" role="img" aria-label="Run timing chart">
     ${weekBoxes(d,X,H)}
     <line x1="${X(doyOf(d))}" x2="${X(doyOf(d))}" y1="8" y2="${H-18}" stroke="#e3642e" stroke-width="2"/>
-    ${months.map(([x,l])=>`<line x1="${X(x)}" x2="${X(x)}" y1="${H-18}" y2="${H-14}" stroke="#999"/><text x="${X(x)}" y="${H-4}" text-anchor="middle" font-size="9" fill="#6b7478" font-family="DM Sans">${l}</text>`).join('')}
+    ${months.map(([x,l])=>`<line x1="${X(x)}" x2="${X(x)}" y1="${H-18}" y2="${H-14}" stroke="#999"/><text x="${X(x)}" y="${H-4}" text-anchor="middle" font-size="9" fill="#6b7478" font-family="DM Sans, system-ui, sans-serif">${l}</text>`).join('')}
     <line x1="20" x2="${W-10}" y1="${H-18}" y2="${H-18}" stroke="#ccc"/>
     ${series.map(([n,c,f])=>`<path d="${path(f)}" fill="none" stroke="${c}" stroke-width="2"${n==='king'?' stroke-dasharray="4 3"':''}/>`).join('')}
   </svg><div style="display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11.5px;color:var(--mute);margin:6px 2px 0">${series.map(([n,c])=>`<span><i style="display:inline-block;width:12px;height:3px;background:${c};vertical-align:middle;margin-right:4px"></i>${SPECIES[n].n}</span>`).join('')}<span><i style="display:inline-block;width:2px;height:10px;background:#e3642e;vertical-align:middle;margin-right:4px"></i>today</span></div>`;

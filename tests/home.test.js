@@ -378,7 +378,7 @@ module.exports = [
     const { page, errors } = await quiet(ctx);
     const r = await page.evaluate(() => { setTab('home'); return { tabs: [...document.querySelectorAll('.tabs button')].map(b => b.textContent.trim()), dot: !!document.querySelector('.tabs button.on .dot'), jobs: document.querySelectorAll('[data-cab=job]').length, text: document.querySelector('.content').textContent } });
     assert.ok(r.tabs.some(t => /Home/.test(t)) && r.dot && r.jobs >= 1 && r.jobs <= 2, JSON.stringify(r));
-    assert.ok(/Cabin condition/.test(r.text) && /80\/100/.test(r.text) && /Heat/.test(r.text));
+    assert.ok(/T’s Cabin · condition/.test(r.text) && /80\/100/.test(r.text) && /Heat/.test(r.text));
     await page.click('[data-cab=job]');
     const m = await page.evaluate(() => ({ title: document.querySelector('#mbg h2').textContent, btns: [...document.querySelectorAll('#mbg button.act')].map(b => ({ t: b.textContent, h: b.getBoundingClientRect().height })) }));
     assert.ok(/Do it yourself/.test(m.btns[0].t) && /Pay someone/.test(m.btns[1].t) && /Skip it/.test(m.btns[2].t), JSON.stringify(m));
@@ -430,7 +430,7 @@ module.exports = [
     const { page, errors } = await winterGame(ctx);
     const r = await page.evaluate(() => {
       const out = {}; winterModal();
-      out.label = [...document.querySelectorAll('#mbg button.act')].map(b => b.textContent).find(t => /The cabin/.test(t));
+      out.label = [...document.querySelectorAll('#mbg button.act')].map(b => b.textContent).find(t => /T’s Cabin:/.test(t));
       out.phase = homePhase(); out.before = campDaysLeft();
       closeModals(); const j = CabinUpkeep.jobs(homeTicket())[0]; out.job = j.id; out.jobs = CabinUpkeep.jobs(homeTicket()).length;
       const oil = CabinUpkeep.jobs(homeTicket(), { all: true }).find(x => x.id === 'oil'); out.oil = !!oil;
@@ -440,7 +440,7 @@ module.exports = [
     assert.ok(/job/.test(r.label) && r.phase === 'fall' && r.jobs <= 2 && r.oil && r.before === 10 && r.after === 9 && r.usedDays === 1, JSON.stringify(r));
     // camping first rolls the winter: the storm report and prompts come before the camping hub
     const s = await page.evaluate(() => { closeModals(); S.cabin.did.oil = S.winter.s; const rr = Math.random; Math.random = () => 0; campModal(); Math.random = rr; return { title: document.querySelector('#mbg h2').textContent, rolled: cabin().rolled === S.winter.s, queue: cabin().queue.map(q => q.id) } });
-    assert.ok(/The cabin this winter/.test(s.title) && s.rolled && s.queue.includes('cold') && s.queue.includes('snow'), JSON.stringify(s));
+    assert.ok(/T’s Cabin this winter/.test(s.title) && s.rolled && s.queue.includes('cold') && s.queue.includes('snow'), JSON.stringify(s));
     // the storm prompts are locked until answered (Esc does nothing), then the camping hub opens
     await page.keyboard.press('Escape'); assert.ok(await page.evaluate(() => !!document.getElementById('mbg')));
     const t = await page.evaluate(() => { const seen = []; let g = 0; while (document.getElementById('mbg') && g++ < 12) { const h = document.querySelector('#mbg h2').textContent; seen.push(h); if (/Winter camp/.test(h)) break; MBTN(0) } return { seen, queue: cabin().queue.length } });
@@ -588,7 +588,7 @@ module.exports = [
     assert.ok(/booked trip/.test(r.c1) && /bad sleep/.test(r.c1) && /\$800/.test(r.c1) && /never ends a career/.test(r.c1) && /game in progress/.test(r.c1), r.c1);
     assert.ok(/Home tab/.test(r.c) && /two at a time/.test(r.c) && /game in progress/.test(r.c));
     assert.ok(/three ways/.test(r.h) && /Never more than two/.test(r.h) && /never ends your career/.test(r.h) && /10 free days/.test(r.h) && /generator indoors/.test(r.h) && /booked party can cancel/.test(r.h) && r.tip);
-    await newGame(page); assert.strictEqual(await page.evaluate(() => winterCosts()[0][1]), 800, 'living costs'); const row = await page.evaluate(() => endRows().find(x => x[0] === 'The cabin')[1]); assert.ok(/0 jobs done yourself/.test(row) && /condition 80/.test(row), row);
+    await newGame(page); assert.strictEqual(await page.evaluate(() => winterCosts()[0][1]), 800, 'living costs'); const row = await page.evaluate(() => endRows().find(x => x[0] === 'T’s Cabin')[1]); assert.ok(/0 jobs done yourself/.test(row) && /condition 80/.test(row), row);
     assert.ok(fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8').includes(r.v), 'sw.js carries the version');
     noErrors(errors);
   } },

@@ -49,6 +49,8 @@ const guideDaysRule=d=>{const m=mdOf(d);return m>=501&&m<=731};        // Sun/Mo
 const baitRule=d=>{const m=mdOf(d);return m>=620&&m<=815};             // one unbaited single hook below Skilak (with kings restricted)
 const halDaysRule=d=>mdOf(d)<=831;                                    // closed charter-halibut days: early June to late August
 const dipOpen=d=>{const m=mdOf(d);return m>=710&&m<=731};             // the Kenai personal-use dipnet fishery
+// the late-run sockeye emergency orders (21-story.js onMorning): the day of the two July peak weeks (0 = the Monday nearest Jul 13), or −1 in any other week
+const sockEODay=d=>{const id=weekIdOf(d);return id==='jul1'||id==='jul2'?Math.round((dateOf(d)-seasonStartUTC(yearOf(d)))/864e5):-1};
 const lateSummer=()=>{try{return !!(S&&!S.winter&&mdOf(day())>=801)}catch(e){return false}};
 const MON3=i=>MONTH[i].slice(0,3);
 function weekRange(y,id){const t=weekStartUTC(y,id),a=new Date(t),b=new Date(t+6*864e5);return `${MON3(a.getUTCMonth())} ${a.getUTCDate()}–${a.getUTCMonth()===b.getUTCMonth()?'':MON3(b.getUTCMonth())+' '}${b.getUTCDate()}`}
@@ -167,7 +169,7 @@ function weekCatchEnd(b,t,qw,fishers){
 function weekHead(d){if(sday(d)%7)return '';const W=weekOf(d);return `<div class="sect" style="margin-top:6px">${W.ic} ${W.n} · ${dlabel(d)}–${dlabel(d+6)}</div>`}
 function weekTripsTxt(){const s=seasonOf(day());if(!weeksOf(s).includes('june')||kingRule()==='closed')return '';return `· 👑 kings ${$(Math.round(TRIPS.king.price*S.up.rate))}/angler (6 AM, lower river, 4 max, June) `}
 function weekBoxes(d,X,H){
-  const s=seasonOf(d),y=yearOf(d),box=(a,n,t)=>`<rect x="${X(a)}" y="8" width="${X(a+n)-X(a)}" height="${H-26}" fill="#1f5d63" opacity=".08"/><text x="${X(a+n/2)}" y="18" text-anchor="middle" font-size="9" fill="#1f5d63" font-family="DM Sans">${t}</text>`;
+  const s=seasonOf(d),y=yearOf(d),box=(a,n,t)=>`<rect x="${X(a)}" y="8" width="${X(a+n)-X(a)}" height="${H-26}" fill="#1f5d63" opacity=".08"/><text x="${X(a+n/2)}" y="18" text-anchor="middle" font-size="9" fill="#1f5d63" font-family="DM Sans, system-ui, sans-serif">${t}</text>`;
   if(!weekGap(s)) return box(doyOf(s*SEASON),13,`your 2 weeks · ${y}`);
   return [0,7].map((k,i)=>box(doyOf(s*SEASON+k),6,`week ${i+1}`)).join('');
 }

@@ -5,6 +5,9 @@
 //  CabinUpkeep.ui.open(host, jobId)      the choice pop-up for one job: do it yourself, pay someone, or skip it
 //  CabinUpkeep.ui.shop(host, back)       the things you buy once
 //  CabinUpkeep.ui.scenes(host, rep, done) a winter report followed by each storm prompt in turn, then done()
+//  CabinUpkeep.ui.batch(host, o)         every job that is due on one screen; o: {title, intro, extra (more buttons), events (a picture for the
+//                                        sheet, passed to host.show as meta.events)}
+//  The ticket's optional name ("Krazow’s Cabin") titles the Home tab and the winter report; without one they say "the cabin".
 //
 //  The host adapter: {
 //    show(title, html, buttons, lock, meta), required. Show a pop-up. buttons: [{l, s, dis, fn, stay}]; fn runs after the pop-up has closed.
@@ -39,7 +42,7 @@
     const t=C.normTicket(t0),s=t.state,jobs=C.jobs(t0),more=C.dueCount(t0)-jobs.length;
     const rows=C.status(t0).map(([a,b])=>`<div class="kv"><span>${a}</span><b style="text-align:right">${esc(b)}</b></div>`).join('');
     const low=s.cond<40;
-    return `<div class="sect">🏠 Cabin condition</div>
+    return `<div class="sect">${t0&&t0.name?`🏠 ${esc(t0.name)} · condition`:'🏠 Cabin condition'}</div>
       <div style="display:flex;align-items:center;gap:10px;margin:4px 0 10px"><div style="flex:1">${meter(s.cond)}</div><b style="min-width:3.2em;text-align:right${low?';color:var(--bad)':''}">${Math.round(s.cond)}/100</b></div>
       <p style="font-size:13px;color:var(--mute);margin:0 0 8px">${low?'The cabin is run down, so bad luck finds it more often.':s.cond>=75?'In good shape. Things go wrong less often.':'It drifts down a little every season. Jobs bring it back up.'} Every job: do it yourself, pay someone, or skip it and take the risk.</p>
       ${rows}
@@ -78,7 +81,7 @@
       job.opts.forEach(op=>btns.push({l:`${job.ic} ${job.title}: ${op.l}${op.id==='skip'?'':` · ${op.cash?$(op.cash):'free'}`}`,s:op.dis&&op.why?op.why:(op.id==='skip'?job.risk:op.s),dis:op.dis,stay:true,fn:run(op)}));
     });
     (o.extra||[]).forEach(b=>btns.push(b));
-    host.show(o.title||'🏠 The cabin',`<p style="font-size:13px;color:var(--mute)">${o.intro||''}</p>${jobs.length?`<p>${jobs.length} job${jobs.length>1?'s':''} due. Pick a way for each one.</p>`:'<p>Nothing else is due.</p>'}`,btns);
+    host.show(o.title||`🏠 ${t.name?esc(t.name):'The cabin'}`,`<p style="font-size:13px;color:var(--mute)">${o.intro||''}</p>${jobs.length?`<p>${jobs.length} job${jobs.length>1?'s':''} due. Pick a way for each one.</p>`:'<p>Nothing else is due.</p>'}`,btns,false,o.events?{events:o.events}:undefined);
   };
   // what a result shows: the report's events, or a storm prompt's own id when nothing came of it
   const evOf=(rep,job)=>rep.events&&rep.events.length?rep.events:job&&job.ev?[{id:job.ev,sev:0}]:[];
@@ -95,7 +98,8 @@
   U2.scenes=function(host,rep,done){
     const events=()=>C.jobs(host.ticket(),{all:true}).filter(j=>j.kind==='event');
     const next=()=>{const e=events()[0];if(!e){if(done)done();return}U2.open(host,e.id,next,true)};
-    if(rep&&rep.lines&&rep.lines.length)host.show('🏠 The cabin this winter',rep.lines.map(l=>`<p>${l}</p>`).join('')+condLine(rep),[{l:'Continue',stay:true,fn:next}],true,{events:evOf(rep)});
+    const nm=host.ticket().name;
+    if(rep&&rep.lines&&rep.lines.length)host.show(`🏠 ${nm?esc(nm):'The cabin'} this winter`,rep.lines.map(l=>`<p>${l}</p>`).join('')+condLine(rep),[{l:'Continue',stay:true,fn:next}],true,{events:evOf(rep)});
     else next();
   };
   // a plain report as a pop-up (spring, a failed generator, a summer bear)

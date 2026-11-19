@@ -21,6 +21,7 @@ function homeTicket(o){
     cash:Math.round(S.money),energy:S.energy,rep:S.rep,daysLeft:w?campDaysLeft():0,atHome:S.loc==='shop'&&!S.trip,
     costMult:DF().cost,bad:DF().bad,
     gen:{owned:!!genOf(),gas:S.home.stale>0?'stale':'ok'},homeFuel:fuelFresh(),outage:w?(S.winOut||null):null,recentFish:homeRecentFish(),
+    name:typeof cabinName==='function'?cabinName():'',   // 45-names.js: "Krazow’s Cabin" on the Home tab and the winter report
   },o||{});
 }
 // lost free days come out of the winter budget; with none left, the winter work that slipped costs money
@@ -129,17 +130,20 @@ function homeFinishWinter(){
   if(!S.winter) return;
   homeRollWinterSync();homeAnswerStorms();
   const rep=homeApply(CabinUpkeep.rollSpring(homeTicket()),true);
-  if(rep.lines.length){rep.lines.forEach(l=>say(l));CabinUpkeep.ui.report(homeHost(),'🏠 Spring at the cabin',rep)}
+  if(rep.lines.length){rep.lines.forEach(l=>say(l));CabinUpkeep.ui.report(homeHost(),`🏠 Spring at ${esc(cabinName())}`,rep)}
 }
+// the spring sheets' picture (40-art.js, through homeHost's meta.events): the event each due spring job guards against, breakup first
+const HOME_SPRING_EV={breakup:'breakup_stuck',well:'well_pump',septic:'septic_backup'};
+const homeSpringArt=t=>CabinUpkeep.jobs(t).map(j=>HOME_SPRING_EV[j.id]).filter(Boolean).concat(['breakup_stuck']).filter((id,i,a)=>a.indexOf(id)===i).map(id=>({id,sev:0}));
 // the winter pop-up's own buttons
 function homeWinterModal(){
   const t=homeTicket(),jobs=CabinUpkeep.jobs(t),more=CabinUpkeep.dueCount(t)-jobs.length,ph=t.phase;
   if(ph==='spring'){
-    CabinUpkeep.ui.batch(homeHost(),{title:'🏠 Spring breakup at the cabin',intro:`Condition ${Math.round(cabin().cond)}/100. Cash ${$(t.cash)}. ${t.daysLeft} free day${t.daysLeft===1?'':'s'} left, shared with camping and winter work.`,
+    CabinUpkeep.ui.batch(homeHost(),{title:`🏠 Spring breakup at ${esc(cabinName())}`,events:homeSpringArt(t),intro:`Condition ${Math.round(cabin().cond)}/100. Cash ${$(t.cash)}. ${t.daysLeft} free day${t.daysLeft===1?'':'s'} left, shared with camping and winter work.`,
       extra:[{l:'🏪 Home upgrades',s:'A wood stove, a fish processing station, a bear-resistant bin.',fn:()=>setTimeout(()=>CabinUpkeep.ui.shop(homeHost(),homeWinterModal),0)},{l:'Back to the off-season',fn:()=>setTimeout(winterModal,0)}]});
     return;
   }
-  modal(ph==='fall'?'🏠 Get the cabin ready for winter':'🏠 Spring breakup at the cabin',
+  modal(ph==='fall'?`🏠 Get ${esc(cabinName())} ready for winter`:`🏠 Spring breakup at ${esc(cabinName())}`,
     `${artSlot('cabin',artCabinCtx,{key:'cabin-sheet'})}<p style="font-size:13px;color:var(--mute)">Condition ${Math.round(cabin().cond)}/100. Cash ${$(t.cash)}. ${t.daysLeft} free day${t.daysLeft===1?'':'s'} left this winter, shared with camping and winter work. ${ph==='fall'?'The first cold snap and the first big snow come when you leave for camping or open bookings.':'Last winter’s storms are behind you; breakup comes next.'}</p>${jobs.length?'':'<p>Nothing is due right now.</p>'}${more>0?`<p style="font-size:12.5px;color:var(--mute)">${more} more job${more>1?'s':''} after these.</p>`:''}`,
     jobs.map(j=>({l:`${j.ic} ${j.title}`,s:`${j.why} ${j.risk}`,fn:()=>setTimeout(()=>CabinUpkeep.ui.open(homeHost(),j.id,()=>homeWinterModal()),0)}))
       .concat([{l:'🏪 Home upgrades',s:'A wood stove, a fish processing station, a bear-resistant bin.',fn:()=>setTimeout(()=>CabinUpkeep.ui.shop(homeHost(),homeWinterModal),0)},{l:'Back to the off-season',fn:()=>setTimeout(winterModal,0)}]));
@@ -152,7 +156,7 @@ function homeOpenGate(go){
   if(cabin().rolled!==w.s){homeRollWinter(()=>setTimeout(winterModal,0));return}
   const n=CabinUpkeep.dueCount(homeTicket());
   if(n&&S.homeAsk!==w.s){S.homeAsk=w.s;
-    CabinUpkeep.ui.batch(homeHost(),{title:'🏠 Spring jobs are due',intro:'Breakup is coming. Do them yourself, pay someone, or skip them and take your chances.',extra:[{l:'Open bookings',fn:go}]});return}
+    CabinUpkeep.ui.batch(homeHost(),{title:'🏠 Spring jobs are due',events:homeSpringArt(homeTicket()),intro:'Breakup is coming. Do them yourself, pay someone, or skip them and take your chances.',extra:[{l:'Open bookings',fn:go}]});return}
   go();
 }
 // camping starts: the first storm has to land before the free days are spent

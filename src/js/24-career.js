@@ -193,14 +193,14 @@ function winterModal(){
     <p style="font-size:13px;color:var(--mute)">Season ${s+1} of ${S.years}. Bookings open when you finish planning.</p>`,[
     {l:'🛠️ Upgrades & business',s:'Boats, marketing, rates, a Homer charter permit.',fn:()=>upgradeModal()},
     weeksWinterOpt(s),   // 34-summer.js: which two weeks of the summer you guide yourself
-    {l:`🏠 The cabin: ${homeWinterLabel()}`,s:cabinWinterBlurb(),fn:()=>homeWinterModal()},
+    {l:`🏠 ${esc(cabinName())}: ${homeWinterLabel()}`,s:cabinWinterBlurb(),fn:()=>homeWinterModal()},
     {l:'🏕️ Winter camping & work',s:campUsed()?'You’ve used your free days this winter. You can still look at your camping log.':`${campDaysLeft()} free days: camping trips within 100 miles (ice fishing, scouting, company), winter work, a camping log.`,fn:()=>campModal()},
     ...(typeof bizWinterBtns==='function'?bizWinterBtns():[]),   // 36-business.js: the outfit (from the third off-season)
     {l:`🛶 Open bookings for ${2026+s}`,s:'Start the season.',fn:()=>homeOpenGate(()=>finishWinter())}]);
 }
 function upgradeModal(){
   modal(`🛠️ Off-season plans · cash ${$(Math.round(S.money))}`,`<p style="font-size:13px;color:var(--mute)">Rates now ×${S.up.rate.toFixed(1)}. Rep ${S.rep}.</p>`,
-    UPGRADES.map(u=>{const why=upOK(u);return {l:`${u.ic} ${u.n}${u.cost?` — ${$(u.cost)}`:''}`,s:why?`${why}. ${u.d}`:u.d,dis:!!why,fn:()=>{buyUp(u);setTimeout(upgradeModal,0)}}})
+    UPGRADES.map(u=>{const why=upOK(u);return {l:`${u.ic} ${u.n}${u.cost?` — ${$(u.cost)}`:''}`,s:why?`${why}. ${u.d}`:u.d,dis:!!why,fn:()=>{buyUp(u);setTimeout(()=>boatAfterBuy(u.id,upgradeModal),0)}}})   // 45-names.js: a new boat gets a name first
       .concat([{l:'🏠 Home: generator, fuel storage, freezer',s:`${genOf()?genOf().short+' generator, ':'No generator, '}${fuelCap()} gal of fuel storage, a ${fishCap()}-fish freezer.`,fn:()=>homeShopModal(()=>upgradeModal())},{l:'Done',s:'Back to the off-season summary.',fn:()=>setTimeout(winterModal,0)}]));
 }
 function finishWinter(){
