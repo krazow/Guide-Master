@@ -430,7 +430,7 @@ module.exports = [
     const { page, errors } = await winterGame(ctx);
     const r = await page.evaluate(() => {
       const out = {}; winterModal();
-      out.label = [...document.querySelectorAll('#mbg button.act')].map(b => b.textContent).find(t => /The cabin/.test(t));
+      out.label = [...document.querySelectorAll('#mbg button.act')].map(b => b.textContent).find(t => /T’s Cabin:/.test(t));
       out.phase = homePhase(); out.before = campDaysLeft();
       closeModals(); const j = CabinUpkeep.jobs(homeTicket())[0]; out.job = j.id; out.jobs = CabinUpkeep.jobs(homeTicket()).length;
       const oil = CabinUpkeep.jobs(homeTicket(), { all: true }).find(x => x.id === 'oil'); out.oil = !!oil;
@@ -588,7 +588,7 @@ module.exports = [
     assert.ok(/booked trip/.test(r.c1) && /bad sleep/.test(r.c1) && /\$800/.test(r.c1) && /never ends a career/.test(r.c1) && /game in progress/.test(r.c1), r.c1);
     assert.ok(/Home tab/.test(r.c) && /two at a time/.test(r.c) && /game in progress/.test(r.c));
     assert.ok(/three ways/.test(r.h) && /Never more than two/.test(r.h) && /never ends your career/.test(r.h) && /10 free days/.test(r.h) && /generator indoors/.test(r.h) && /booked party can cancel/.test(r.h) && r.tip);
-    await newGame(page); assert.strictEqual(await page.evaluate(() => winterCosts()[0][1]), 800, 'living costs'); const row = await page.evaluate(() => endRows().find(x => x[0] === '🏠 T’s Cabin')[1]); assert.ok(/0 jobs done yourself/.test(row) && /condition 80/.test(row), row);
+    await newGame(page); assert.strictEqual(await page.evaluate(() => winterCosts()[0][1]), 800, 'living costs'); const row = await page.evaluate(() => endRows().find(x => x[0] === 'T’s Cabin')[1]); assert.ok(/0 jobs done yourself/.test(row) && /condition 80/.test(row), row);
     assert.ok(fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8').includes(r.v), 'sw.js carries the version');
     noErrors(errors);
   } },

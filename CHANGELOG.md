@@ -14,6 +14,12 @@ are taken from it. Earlier versions are described in the README and the in-game 
   icon on the Home Screen, the game opening full screen and still playing in airplane mode, followed by the same steps in text, a note
   on Chrome/Edge/Firefox (iOS 16.4+) and how to move a career into the Home Screen app with 🔁 Transfer a saved game (it keeps its own
   saves on iOS).
+- **Names.** The cabin is named after you ("Krazow’s Cabin": the Home tab, the fall and spring cabin sheets, the winter report, the
+  off-season planner, Help and the end screen; "Your Cabin" until you pick a name), and your boats can have names: **✏️ Name your
+  boats** at the Shop & Cabin (with suggestions, no pop-up at the start), a name sheet after buying a new sled or drift boat, and ✏️
+  chips on the Outfit page. An extra outfit boat comes with a suggested name. Names are up to 24 characters, plain text only, and a
+  name another of your boats has gets a II. They show at the launch and the dock, in breakdowns, tows, services and repairs, on your
+  guides' trips and the Outfit page, and on the end screen (*Your boats*). The buddy's loaner is the *Rust Bucket II*.
 
 ### Changed
 - **❓ Help, rewritten** for the game as it is now: a contents list at the top (tap a topic to jump to it, ↑ to come back), then
@@ -28,6 +34,18 @@ are taken from it. Earlier versions are described in the README and the in-game 
   ✕ hides it for 30 days), then the picture, the title and one big button (Start, or Continue), the intro and its five points folded
   under **What's the game about?**, and the other buttons (New game, Save slots, Install app, Help!, Send feedback, Transfer) in a
   two-column grid. On short screens the picture gives up height first.
+- Hired guides' reviews have their own lines, naming the guide, instead of borrowing yours (no more "lunch on the gravel bar" on a trip
+  you weren't on).
+- Help, the rules and the README now give the difficulty gaps measured in a fresh 40-career, 5-year sim: the same play scores about
+  5–15% less on Combat Season (about half a grade) and about 17% more on Rookie Season (a full grade), not "a step" either way.
+
+### Fixed
+- The late-run sockeye emergency orders (the limit cut to 2, raised to 6, the Russian River at 6) only come in the two July weeks: they
+  no longer show up in a June, August or September morning report.
+- The spring jobs sheet shows the spring breakup picture.
+- Text never falls back to the browser's default serif when a web font can't load (the title's tagline did, offline): every font has a
+  fallback stack, and the headings' Fraunces stays self-hosted and precached. The iPhone how-to video was re-rendered with the current
+  title screen.
 
 ## 1.17.0 (2026-11-18)
 

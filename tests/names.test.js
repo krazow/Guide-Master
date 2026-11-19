@@ -38,7 +38,7 @@ module.exports = [
     assert.strictEqual(r.k, 'Krazow’s Cabin'); assert.strictEqual(r.j, 'James’s Cabin', 'names ending in s still take ’s');
     assert.strictEqual(r.sp, 'Mary Ann’s Cabin', 'trimmed'); assert.strictEqual(r.def, 'Your Cabin'); assert.strictEqual(r.empty, 'Your Cabin');
     assert.strictEqual(r.h2, '🏠 Krazow’s Cabin'); assert.match(r.sect, /Krazow’s Cabin · condition/);
-    assert.ok(r.end.includes('🏠 Krazow’s Cabin') && !r.end.includes('The cabin'), r.end.join('|'));
+    assert.ok(r.end.includes('Krazow’s Cabin') && !r.end.includes('The cabin'), r.end.join('|'));
     assert.strictEqual(r.help, 'Krazow’s Cabin'); assert.ok(r.helpBody);
     assert.strictEqual(r.renamed, 'Dana’s Cabin'); assert.strictEqual(r.h2b, '🏠 Dana’s Cabin');
     assert.match(r.planner, /^🏠 Dana’s Cabin: /); assert.match(r.fall, /Get Dana’s Cabin ready for winter/);
@@ -110,7 +110,7 @@ module.exports = [
       o.out = actionsHere().find(a => /out of service/.test(a.l)).l;
       S.log = []; actionsHere().find(a => /Rent a loaner/.test(a.l)).fn(); o.rent = S.log.map(x => x.s).join(' ');
       S.t = 1440 + 360; tripStart(lb); o.loanLaunch = document.getElementById('mbg').innerHTML.match(/You load[^]*?push off/)[0]; window.modalSwap = (t, b, x, n) => { if (/Back at the dock/.test(t)) dockHTML = b; return mw(t, b, x, n); }; try { RUN(); } finally { window.modalSwap = mw; } o.loanOut = dockHTML;
-      o.end = endRows().find(x => x[0] === '🚤 Your boats');
+      o.end = endRows().find(x => x[0] === 'Your boats');
       return o;
     });
     assert.match(r.plain, /You load the Test party into the jet sled at/, 'unnamed: as before');
@@ -121,7 +121,7 @@ module.exports = [
     assert.match(r.major, /rebuilds <i>Silver Ghost<\/i>’s jet unit and you replace <i>Lazy Oar<\/i>’s floor/);
     assert.match(r.out, /Your jet sled <i>Silver Ghost<\/i> is out of service/);
     assert.match(r.rent, /<i>Rust Bucket II<\/i>/); assert.match(r.loanLaunch, /into the loaner <i>Rust Bucket II<\/i>/); assert.match(r.loanOut, /borrowed rig, the <i>Rust Bucket II<\/i>/);
-    assert.deepStrictEqual(r.end, ['🚤 Your boats', '<i>Silver Ghost</i> (jet sled), <i>Lazy Oar</i> (drift boat)']);
+    assert.deepStrictEqual(r.end, ['Your boats', '<i>Silver Ghost</i> (jet sled), <i>Lazy Oar</i> (drift boat)']);
     noErrors(errors);
   } },
   { name: 'boat names: an outfit boat comes with a name, renamed on the Outfit page; staff trips say which boat they ran on', fn: async ctx => {
@@ -136,7 +136,7 @@ module.exports = [
       const Z = BZ(), g = { id: Z.nid++, name: 'Test Guide', kind: 'steady', line: 'x', skill: 60, rel: .99, wage: 300, uscg: true, hired: 2, seasons: 0, mood: 70, streak: 0, last: -9, sn: bizLedger(), tot: { trips: 0, net: 0, cites: 0 } }; Z.staff.push(g);
       const sb = addBooking({ d: S.cur, type: 'reds', n: 2, who: 'Staff party', from: 'Iowa', quirk: [], asst: true, g: g.id });
       o.key = tripBoatKey(sb); const notes = []; bizSettle(sb, g, notes); o.note = notes.join(' '); o.line = sb.out.line;
-      o.end = endRows().find(x => x[0] === '🚤 Your boats');
+      o.end = endRows().find(x => x[0] === 'Your boats');
       return o;
     });
     assert.ok(r.auto && r.auto.length <= 24, r.auto); assert.match(r.say, new RegExp(`<i>${r.auto}</i>`));

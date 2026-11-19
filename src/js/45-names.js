@@ -169,8 +169,8 @@ function boatsEndText(){
 {const _endRows=endRows;
   endRows=function(){
     const rows=_endRows(),c=rows.find(r=>r[0]==='The cabin');
-    if(c) c[0]=`🏠 ${esc(cabinName())}`;
-    const bt=boatsEndText();if(bt) rows.push(['🚤 Your boats',bt]);
+    if(c) c[0]=esc(cabinName());
+    const bt=boatsEndText();if(bt) rows.push(['Your boats',bt]);
     return rows};}
 
 // ---- Help: the cabin's section carries its name ----
