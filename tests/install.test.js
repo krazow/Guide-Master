@@ -61,7 +61,8 @@ module.exports = [
   { name: 'no button from a file or in the one-file offline build', fn: async ctx => {
     const { page, errors } = await open(ctx);
     assert.strictEqual(await btn(page).count(), 0);
-    assert.ok(/Transfer a saved game/.test(await page.textContent('.title')), 'title screen drawn');
+    assert.ok(/Transfer a save/.test(await page.textContent('.title')), 'title screen drawn');
+    assert.strictEqual(await page.locator('#installBar').count(), 0, 'no install bar either');
     assert.ok(await page.evaluate(() => HELP.some(h => /Install app/.test(h[2])) && CHANGELOG[APP_VERSION].some(l => /Install app/.test(l))), 'Help and the update notice mention it');
     if (ctx.target.name === 'offline') assert.strictEqual(await page.evaluate(() => SINGLE_FILE), true);
     // even if a browser offered an install, a file has nothing to install

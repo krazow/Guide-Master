@@ -34,11 +34,29 @@ button{font:inherit;cursor:pointer;touch-action:manipulation;-webkit-user-select
 /* title */
 .title{flex:1;display:flex;flex-direction:column;background:linear-gradient(var(--brand),var(--brand-dark));color:#fff}
 .title .art{height:250px}
-.title .body{padding:18px 22px 28px;display:flex;flex-direction:column;gap:14px}
+.title .art{position:relative;flex:none;overflow:hidden}
+.title .body{padding:16px 20px 22px;display:flex;flex-direction:column;gap:12px}
 .title h1{font-size:40px;line-height:1;letter-spacing:-.5px}
 .title h1 span{display:block;font-size:17px;font-family:"DM Sans";font-weight:500;letter-spacing:.3px;opacity:.85;margin-top:8px}
 .title p{margin:0;line-height:1.5;opacity:.92;font-size:15px}
 .title ul{margin:0;padding-left:18px;line-height:1.55;font-size:14.5px;opacity:.92}
+/* "What's the game about?": the intro and bullets, folded */
+.title details.about{border-radius:14px;background:rgba(255,255,255,.08)}
+.title details.about summary{min-height:44px;display:flex;align-items:center;gap:8px;padding:10px 14px;font-weight:700;font-size:15.5px;cursor:pointer;list-style:none;border-radius:14px}
+.title details.about summary::-webkit-details-marker{display:none}
+.title details.about summary::before{content:"▸";display:inline-block;transition:transform .15s;opacity:.85}
+.title details.about[open] summary::before{transform:rotate(90deg)}
+.title details.about>p,.title details.about>ul{padding:0 14px 0 32px}.title details.about>p{padding-left:14px;margin-bottom:8px}
+.title details.about>ul{margin-left:14px;padding:0 14px 12px 18px}
+/* the other buttons: two columns; an odd one out spans both */
+.title .tgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.title .tgrid .ghost{min-height:48px;padding:8px 6px;font-size:15px;line-height:1.2;display:flex;align-items:center;justify-content:center;text-align:center}
+.title .tgrid .wide{grid-column:1/-1}
+/* the install bar (41-install.js) at the very top */
+.inst-bar{display:flex;align-items:center;gap:2px;background:#0a2a2d;color:#fff;padding:0 0 0 12px;font-size:14px;line-height:1.25;border-bottom:1px solid rgba(255,255,255,.18)}
+.inst-bar .ib-t{flex:1;min-width:0}
+.inst-bar .ib-go{flex:none;height:44px;min-width:44px;padding:0 14px;border:5px solid transparent;background-clip:padding-box;border-radius:15px;background-color:#fff;color:var(--brand-dark);font-weight:700;font-size:14.5px}
+.inst-bar .ib-x{flex:none;width:44px;height:44px;border:0;background:transparent;color:#fff;font-size:18px;border-radius:10px}
 .big{background:var(--cta);color:#fff;border:0;border-radius:14px;padding:16px;font-weight:700;font-size:18px;box-shadow:0 4px 0 var(--cta-dark)}
 .big:active{transform:translateY(2px);box-shadow:0 2px 0 var(--cta-dark)}
 .small-note{font-size:12px;opacity:.7}
@@ -2479,23 +2497,48 @@ function diffModal(then){
 window.startNewGame=()=>{const go=k=>{newGame(k);render()};const pickDiff=()=>diffModal(go);if(!profileName())nameModal({first:true,then:pickDiff});else pickDiff()};
 
 // ---------------- title screen ----------------
+// Phone-first: an install bar (41-install.js, when installing makes sense), the art with the ⚙️ gear, the title, ONE big button
+// (Start, or Continue when there's a save), "What's the game about?" (intro + bullets, folded), then the other buttons in a
+// two-column grid (an odd one out spans both columns) and the version note. fitTitle() shrinks the art when the screen is short.
 function titleScreen(){clearTiles();
+  const prev=document.querySelector('.title details.about'),wasOpen=prev?prev.open:null;
   const d=loadSave(),multi=[2,3].some(k=>k<=GAME.slots&&k!==curSlot()&&rawSave(k));
-  app.innerHTML=withName(`<div class="title"><button class="tgear" onclick="openSettings()" aria-label="Settings">⚙️</button><div class="art">${TITLE.art()}</div>
+  const cells=[
+    ...(d?['<button class="ghost" onclick="startNewGame()">🆕 New game</button>']:[]),
+    ...(GAME.slots>1?['<button class="ghost" onclick="slotsModal()">💾 Save slots</button>']:[]),
+    ...(installButton()?[installButton()]:[]),
+    ...(typeof helpModal==='function'?['<button class="ghost" onclick="helpModal()">❓ Help!</button>']:[]),
+    ...(typeof feedbackModal==='function'?['<button class="ghost" onclick="feedbackModal()">💬 Send feedback</button>']:[]),
+    '<button class="ghost" onclick="openTransfer()" title="Transfer a saved game to another device or browser">🔁 Transfer a save</button>'];
+  if(cells.length%2)cells[cells.length-1]=cells[cells.length-1].replace('class="ghost"','class="ghost wide"').replace('🔁 Transfer a save<','🔁 Transfer a saved game<');
+  const about=TITLE.intro||TITLE.bullets.length;
+  app.innerHTML=withName(`<div class="title">${typeof installBar==='function'?installBar():''}<div class="art"><button class="tgear" onclick="openSettings()" aria-label="Settings">⚙️</button>${TITLE.art()}</div>
   <div class="body"><h1>${esc(GAME.title)}<span>${esc(GAME.tagline)}</span></h1>
-  <p>${TITLE.intro}</p>
-  ${TITLE.bullets.length?`<ul>${TITLE.bullets.map(b=>`<li>${b}</li>`).join('')}</ul>`:''}
-  ${d?`<button class="big" onclick="resumeGame()">Continue as ${esc(d.S.name||currentName())}: ${dayName(d.S.cur)} ${fmt(d.S.t)}${multi||curSlot()>1?` (slot ${curSlot()})`:''}</button><button class="ghost" onclick="startNewGame()">Start a new game</button>`:`<button class="big" onclick="startNewGame()">${TITLE.start}</button>`}
-  ${GAME.slots>1?'<button class="ghost" onclick="slotsModal()">💾 Save slots</button>':''}
-  ${installButton()}
-  ${typeof helpModal==='function'?'<button class="ghost" onclick="helpModal()">❓ Help!</button>':''}
-  ${typeof feedbackModal==='function'?'<button class="ghost" onclick="feedbackModal()">💬 Send feedback</button>':''}
-  <button class="ghost" onclick="openTransfer()">🔁 Transfer a saved game</button>
+  ${d?`<button class="big" onclick="resumeGame()">Continue as ${esc(d.S.name||currentName())}: ${dayName(d.S.cur)} ${fmt(d.S.t)}${multi||curSlot()>1?` (slot ${curSlot()})`:''}</button>`:`<button class="big" onclick="startNewGame()">${TITLE.start}</button>`}
+  ${about?`<details class="about"><summary>What’s the game about?</summary>${TITLE.intro?`<p>${TITLE.intro}</p>`:''}
+  ${TITLE.bullets.length?`<ul>${TITLE.bullets.map(b=>`<li>${b}</li>`).join('')}</ul>`:''}</details>`:''}
+  <div class="tgrid">${cells.join('')}</div>
   ${saveNotice?`<div class="hint">⚠️ ${saveNotice}</div>`:''}${exitNotice?`<div class="hint">${exitNotice}</div>`:''}
   <div class="small-note">Version ${APP_VERSION}. ${TITLE.note||''}</div></div></div>`);
   exitNotice='';saveNotice='';
+  const det=document.querySelector('.title details.about');
+  // folded for returning players; a brand-new player sees it open only when everything still fits with the full picture
+  if(det){if(wasOpen!=null)det.open=wasOpen;else if(!d&&!anySave()){det.open=true;if(!titleFits(250))det.open=false}}
+  fitTitle();
   if(typeof maybeUpdateNotice==='function')maybeUpdateNotice();
 }
+function anySave(){for(let k=1;k<=GAME.slots;k++)if(rawSave(k))return true;return false}
+const TITLE_ART_MIN=120,TITLE_ART_MAX=250;
+// Does the title screen fit the window with the art at this height?
+function titleFits(h){const t=document.querySelector('.title'),a=t&&t.querySelector('.art');if(!a)return true;
+  a.style.height=h+'px';const r=document.scrollingElement.scrollHeight<=innerHeight+1;a.style.height='';return r}
+// The art gives up height (down to TITLE_ART_MIN) so the buttons stay on screen.
+function fitTitle(){const t=document.querySelector('.title'),a=t&&t.querySelector('.art');if(!a)return;
+  a.style.height='';const det=t.querySelector('details.about');if(det&&det.open)return;   // reading the intro: scroll instead
+  const over=document.scrollingElement.scrollHeight-innerHeight;
+  if(over>0)a.style.height=Math.max(TITLE_ART_MIN,TITLE_ART_MAX-over)+'px'}
+window.addEventListener('resize',()=>{if(document.querySelector('.title'))fitTitle()});
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{if(document.querySelector('.title'))fitTitle()});
 
 // ---------------- save slots ----------------
 function slotLabel(n){const d=loadSave(n);return d?`${esc(d.S.name||currentName())} · ${DIFFS[d.S.diff].ic} ${dayName(d.S.cur)} ${fmt(d.S.t)}`:'<span class="slot-empty">Empty</span>'}
@@ -7152,8 +7195,10 @@ function artCampCtx(sess,extra){
 }
 // event: event (an id from defEvent, CabinUpkeep.EVENTS, src/camp's encounters or a trip STEP), from ('game' | 'home' | 'camp' | 'trip'), time
 function artEventCtx(id,from){const t=S&&!S.winter?artTime():null;return {event:id,from:from||'game',time:!t?['day','night']:t==='dusk'?['dusk','night']:t}}   // the off-season has no clock
-// ---------------- "📲 Install app" on the title screen ----------------
-// 08-settings.js puts installButton() on the title screen. What the button does depends on the device:
+// ---------------- "📲 Install app" on the title screen, and the install bar above it ----------------
+// 08-settings.js puts installButton() in the title screen's button grid, and installBar() at the very top: a slim
+// "📲 Play offline: install the app [Install] [✕]" line for phones and tablets in a browser (and any browser that has offered an
+// install). ✕ hides the bar for 30 days; the Install app button stays in the grid. What the button does depends on the device:
 //   Chrome / Edge / Samsung Internet (Android and computers): when the browser has offered an install (beforeinstallprompt),
 //     the button opens the browser's own install prompt; after appinstalled it hides and says thanks.
 //   No offer yet (Firefox, a browser that hasn't decided the page is installable, …): a short sheet with the menu steps.
@@ -7171,9 +7216,20 @@ function installShown(){
   try{return localStorage.getItem(INSTALLED_KEY)!=='1'}catch(e){return true}
 }
 function installButton(){return installShown()?'<button id="installBtn" class="ghost" onclick="doInstall()">📲 Install app</button>':''}
-function syncInstallBtn(){const b=document.getElementById('installBtn');
+const isPhoneOrTablet=()=>isIOS()||/android|mobi|silk|kindle|tablet/i.test(navigator.userAgent)||!!(navigator.userAgentData&&navigator.userAgentData.mobile);
+const BAR_KEY=KEY('installBarHidden'),BAR_DAYS=30;   // when ✕ was tapped (ms)
+function installBarDismissed(){try{const t=+localStorage.getItem(BAR_KEY);return t>0&&Date.now()-t<BAR_DAYS*864e5}catch(e){return false}}
+function installBarShown(){return installShown()&&(isPhoneOrTablet()||!!deferredInstall)&&!installBarDismissed()}
+function installBar(){return installBarShown()?`<div class="inst-bar" id="installBar" role="region" aria-label="Install the app"><span class="ib-t">📲 Play offline: install the app</span>
+  <button id="installBarBtn" class="ib-go" onclick="doInstall()">Install</button><button class="ib-x" onclick="dismissInstallBar()" aria-label="Dismiss">✕</button></div>`:''}
+window.dismissInstallBar=()=>{try{localStorage.setItem(BAR_KEY,String(Date.now()))}catch(e){}
+  const b=document.getElementById('installBar');if(b)b.remove();
+  const f=document.querySelector('.title .big');if(f)f.focus();
+  if(typeof fitTitle==='function')fitTitle()};
+function syncInstallBtn(){const b=document.getElementById('installBtn'),bar=document.getElementById('installBar');
   if(b&&!installShown())b.remove();
-  else if(!b&&installShown()&&document.querySelector('.title'))titleScreen()}
+  if(bar&&!installBarShown())bar.remove();
+  if(document.querySelector('.title')&&((!b&&installShown())||(!bar&&installBarShown())||(b&&!installShown())))titleScreen()}
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstall=e;try{localStorage.removeItem(INSTALLED_KEY)}catch(x){}syncInstallBtn()});
 window.addEventListener('appinstalled',()=>{deferredInstall=null;try{localStorage.setItem(INSTALLED_KEY,'1')}catch(e){}syncInstallBtn();
   installToast('✅ Thanks for installing Guide Master! Find it on your home screen. It plays offline, too.')});
