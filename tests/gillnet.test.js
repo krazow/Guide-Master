@@ -215,7 +215,7 @@ module.exports = [
       toWinter(1); out.on1 = gnOn(); out.btn1 = fishWinterBtns().length; out.sup1 = (S.winter.sup || []).join(' ');
       finishWinter(); toWinter(2); out.on2 = gnOn(); out.sup2 = (S.winter.sup || []).join(' ');
       winterModal(); out.btns = MB.map(b => b.l); closeModals();
-      out.hub = FISH_HUB.map(x => x.l); fishHubModal(); out.sheet = document.querySelector('#mbg').textContent; out.gn = MB.map(b => b.l); closeModals();
+      out.hub = fishHubList().map(x => x.l); fishHubModal(); out.hubBtns = MB.map(b => b.l); closeModals(); FISH_HUB.find(x => x.id === 'gillnet').open(() => {}); out.sheet = document.querySelector('#mbg').textContent; out.gn = MB.map(b => b.l); closeModals();
       return out;
     });
     assert.strictEqual(r.on0, false); assert.strictEqual(r.btn0, 0); assert.strictEqual(r.act0, false);
@@ -223,7 +223,7 @@ module.exports = [
     assert.strictEqual(r.on2, true); assert.match(r.sup2, /New: commercial fishing/);
     const i = r.btns.findIndex(l => /Commercial & crab/.test(l)); assert.ok(i > 0 && i === r.btns.length - 2, r.btns.join(' | '));
     assert.strictEqual(r.btns.filter(l => /Commercial & crab/.test(l)).length, 1);
-    assert.match(r.hub[0], /Gillnetting/); assert.strictEqual(r.hub.length, 1);
+    assert.match(r.hub[0], /Gillnetting/); assert.deepStrictEqual(r.hub.length, 3, 'gillnetting, seining and crabbing (the fish business waits a winter more)'); assert.ok(r.hubBtns.some(l => /Gillnetting/.test(l)), r.hubBtns.join(' | '));
     assert.match(r.sheet, /Setnets:/); assert.match(r.sheet, /Drift boats:/);
     for (const re of [/Crew on a family setnet site/, /Lease a setnet site/, /Deckhand on a drift boat/, /Lease a drift permit/, /Buy a drift permit and boat/, /survival suit/]) assert.ok(r.gn.some(l => re.test(l)), String(re));
     noErrors(errors);
@@ -307,14 +307,14 @@ module.exports = [
       // the next one: cancel the party and go
       toMorning(d2); closeModals(); const b2 = addBooking({ d: d2, type: 'trout', n: 2, who: 'second party', from: 'Iowa', res: false, quirk: [] });
       const rep0 = S.rep; actionsHere().find(z => /opener/.test(z.l)).fn(); MBTN(MB.findIndex(z => /Cancel/.test(z.l))); await new Promise(r => setTimeout(r, 5));
-      out.status2 = b2.status; out.rep = S.rep - rep0; out.sess = document.querySelector('#mbg h2').textContent; await playSheets(); out.done2 = GNS().done[d2];
+      out.status2 = b2.status; out.rep = S.rep - rep0; out.cancelRep = FISH_CANCEL_REP; out.sess = document.querySelector('#mbg h2').textContent; await playSheets(); out.done2 = GNS().done[d2];
       return out;
     });
-    assert.match(r.sub, /test party/); assert.strictEqual(r.primary, ''); assert.match(r.sheet, /Trips booked today/);
-    assert.ok(r.btns.some(l => /Cancel the trip and go fishing/.test(l)) && r.btns.some(l => /Guide today instead/.test(l)), r.btns.join(' | '));
+    assert.match(r.sub, /test party/); assert.strictEqual(r.primary, ''); assert.match(r.sheet, /booked today/);
+    assert.ok(r.btns.some(l => /Cancel the trip, and go/.test(l)) && r.btns.some(l => /Guide today instead/.test(l)), r.btns.join(' | '));
     assert.strictEqual(r.open, false); assert.strictEqual(r.status0, 'booked');
     assert.ok(r.partner > 0, `your partner's share ${r.partner}`); assert.match(r.night, /Your hired skipper ran the boat/); assert.ok(r.done.partner);
-    assert.strictEqual(r.status2, 'cancelled'); assert.strictEqual(r.rep, -3); assert.match(r.sess, /Drift opener/); assert.ok(r.done2 && !r.done2.skipped);
+    assert.strictEqual(r.status2, 'cancelled'); assert.strictEqual(r.rep, -r.cancelRep); assert.strictEqual(r.cancelRep, 5); assert.match(r.sess, /Drift opener/); assert.ok(r.done2 && !r.done2.skipped);
     noErrors(errors);
   } },
   { name: 'game: a citation from the opener goes through the game’s own cite(): a fine, the record and the permit count', fn: async ctx => {

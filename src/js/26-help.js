@@ -84,7 +84,7 @@ const HELP=[
     <li><b>Camping:</b> pick one of ten spots within 100 road miles, a month, company, where you sleep and what to pack. <b>Ice fish</b> (you need a fishing license, and licenses run by calendar year), ski, snowshoe, track wildlife, scout next season’s water or watch the northern lights.</li>
     <li>Each night has a 50% chance of an encounter, good or bad. What you pack and where you sleep change the odds.</li>
     <li>Each winter, skill rusts a little, warnings reset and old citations drop off. Renew your first-aid card if it’s due.</li></ul>`,'winter'],
-  ['🧑‍🤝‍🧑','Growing the business',`<p class="help-sum">From your third off-season you can build an outfit, if you want to.</p><ul>
+  ['🧑‍🤝‍🧑','Growing the business',`<p class="help-sum">From your second off-season you can build an outfit, if you want to.</p><ul>
     <li>Hire up to <b>three guides</b> (reputation 55, 65 and 75 for the first, second and third) and buy up to <b>two more boats</b>: a used jet sled or a second drift boat.</li>
     <li>Guides take parties on days you’re booked, get calls of their own, and you can hand them one of your trips on the <b>Outfit</b> page of 📅 Bookings. Each needs a free boat. They never run Homer halibut.</li>
     <li>Their trips show up in the morning report. Their reviews name them and <b>don’t count</b> toward your own ★ rating.</li>
@@ -113,6 +113,26 @@ const HELP=[
     <li>Answer requests, and hand happy parties your card.</li>
     <li>Pay the legal price in a dilemma. It’s cheaper than the fine.</li>
     <li>Raise your rates carefully: the third step costs more bookings than it’s worth.</li></ul>`,'tips'],
+  ['📲','Install the app and play offline',`<p class="help-sum">Install Guide Master on your phone or computer and it plays like an app, even with no signal.</p><ul>
+    <li>Tap <b>Install</b> in the bar at the top of the title screen, or <b>📲 Install app</b> under the big button. On Android, Chrome and Edge your browser asks to install; other browsers show their menu steps.</li>
+    <li>On an iPhone or iPad it opens <a href="install/ios.html">a short how-to with a video</a>: in Safari, tap Share, then <b>Add to Home Screen</b>, then <b>Add</b>.</li>
+    <li>Open it once from the new icon while online. After that it plays offline.</li>
+    <li>On iPhone and iPad the Home Screen app keeps its own saves, so play from the icon. Use <b>🔁 Transfer a saved game</b> to move a game there or to another device.</li></ul>`,'install'],
+  ['🪢','Commercial gillnetting',`<p class="help-sum">From your second off-season you can fish Cook Inlet sockeye for the fish ticket, on a setnet beach or a drift boat.</p><ul>
+    <li>Plan it in the off-season under <b>⚓ Commercial & crab</b>: crew for a share first, then lease a setnet site or a drift permit and boat. Later you can buy your own drift permit and boat.</li>
+    <li>Openers are regular periods on <b>Mondays and Thursdays</b>, plus extra periods by emergency order. ADF&amp;G announces each one the morning before; see <b>📅 Bookings</b> and the morning report.</li>
+    <li>An opener is a whole day. Start it from <b>🧭 Here</b> in the early morning. On a day with trips booked you hand them to a guide, cancel them, or guide instead. One commercial day at a time: an opener, a seine period or your own tender.</li>
+    <li>The day runs in a few calls: when to set on the tide, pick now or let them soak, bleed and ice the fish, and the tender or the dock. A drift boat also picks its drift line and fights the tide.</li>
+    <li>The setnet beach is tied to the Kenai kings. In a year kings are closed it starts the summer closed, and only a huge sockeye run might reopen it. Money paid up front is gone if it never opens.</li>
+    <li>Rules have teeth: nets fishing after the close, or a drift across the corridor line into closed water, can mean a citation on your record. Seals, torn nets and wind cost fish.</li>
+    <li>With a lease or your own boat, a partner fishes the openers you guide through, for a share. A survival suit is cheap insurance on the water.</li></ul>`,'gillnet'],
+  ['🎣','Purse seining out of Homer',`<p class="help-sum">From your second off-season you can work salmon openers on a Homer seiner, if you want to.</p><ul>
+    <li>Pick it in the off-season under <b>⚓ Commercial & crab</b>: crew on a seiner for a share of each opener (8 to 10% of the catch after fuel, ice and groceries), or later run a chartered boat on an emergency permit transfer or your own permit.</li>
+    <li>Kachemak Bay’s seine periods run <b>Monday, Wednesday and Friday, 6 AM to 10 PM</b> from mid-June. After July they open only in a fair pink year. ADF&G can close a period with a few days’ notice.</li>
+    <li>Sign on or pass for each opener in <b>📅 Bookings</b>. It’s a whole day off the river: a trip booked that day is yours to cancel, hand to one of your guides, or keep.</li>
+    <li>Be at Homer harbor by <b>6:00 AM</b>, or drive down the night before and sleep aboard. A crewman who’s late gets left at the dock.</li>
+    <li>On the water: pick the bay, read the jumpers, set now or wait for a better school, take your turn at the hook-off and stay outside the closed lines. Brail the catch and sell it to the tender.</li>
+    <li>It’s risky: water hauls, a net torn on a reef, a line in the wheel, a hurt hand. Sockeye pay well; pinks pay little.</li></ul>`,'seine'],
   ['🦀','Crabbing',`<p class="help-sum">From the second off-season: a crab pot for free afternoons in Homer, and a winter job on a crab boat out west.</p><ul>
     <li>Buy a pot in the off-season planner, under <b>⚓ Commercial &amp; crab</b>. On a free afternoon at the Homer Spit, set it across Kachemak Bay, then pull it on your next free afternoon there.</li>
     <li>A long soak loses the bait, and sometimes the pot. Your buoy carries your name and address, and nobody else may pull it.</li>
@@ -121,31 +141,12 @@ const HELP=[
     <li>Some years a fishery stays closed: the Dungeness pots in summer, or the winter Tanner season, which opens only when the survey finds enough legal males. The action tells you.</li>
     <li>A deckhand job on a Bering Sea crab boat takes most of your winter’s free days. A greenhorn earns half a share; it gets better if you go back.</li>
     <li>It is cold, hard and dangerous. Learn the survival suit, watch the swinging pots and beat the ice off the rails. A short season, an injury or a skipper who won’t pay can wipe out the trip.</li></ul>`,'crab'],
-  ['📲','Install the app and play offline',`<p class="help-sum">Install Guide Master on your phone or computer and it plays like an app, even with no signal.</p><ul>
-    <li>Tap <b>Install</b> in the bar at the top of the title screen, or <b>📲 Install app</b> under the big button. On Android, Chrome and Edge your browser asks to install; other browsers show their menu steps.</li>
-    <li>On an iPhone or iPad it opens <a href="install/ios.html">a short how-to with a video</a>: in Safari, tap Share, then <b>Add to Home Screen</b>, then <b>Add</b>.</li>
-    <li>Open it once from the new icon while online. After that it plays offline.</li>
-    <li>On iPhone and iPad the Home Screen app keeps its own saves, so play from the icon. Use <b>🔁 Transfer a saved game</b> to move a game there or to another device.</li></ul>`,'install'],
-  ['🪢','Commercial gillnetting',`<p class="help-sum">From your second off-season you can fish Cook Inlet sockeye for the fish ticket, on a setnet beach or a drift boat.</p><ul>
-    <li>Plan it in the off-season under <b>🎣 Commercial & crab</b>: crew for a share first, then lease a setnet site or a drift permit and boat. Later you can buy your own drift permit and boat.</li>
-    <li>Openers are regular periods on <b>Mondays and Thursdays</b>, plus extra periods by emergency order. ADF&amp;G announces each one the morning before; see <b>📅 Bookings</b> and the morning report.</li>
-    <li>An opener is a whole day. Start it from <b>🧭 Here</b> in the early morning. On a day with trips booked you hand them to a guide, cancel them, or guide instead.</li>
-    <li>The day runs in a few calls: when to set on the tide, pick now or let them soak, bleed and ice the fish, and the tender or the dock. A drift boat also picks its drift line and fights the tide.</li>
-    <li>The setnet beach is tied to the Kenai kings. In a year kings are closed it starts the summer closed, and only a huge sockeye run might reopen it. Money paid up front is gone if it never opens.</li>
-    <li>Rules have teeth: nets fishing after the close, or a drift across the corridor line into closed water, can mean a citation on your record. Seals, torn nets and wind cost fish.</li>
-    <li>With a lease or your own boat, a partner fishes the openers you guide through, for a share. A survival suit is cheap insurance on the water.</li></ul>`,'gillnet'],
-  ['⚓','Purse seining out of Homer',`<p class="help-sum">From your second off-season you can work salmon openers on a Homer seiner, if you want to.</p><ul>
-    <li>Pick it in the off-season under <b>⚓ Commercial & crab</b>: crew on a seiner for a share of each opener (8 to 10% of the catch after fuel, ice and groceries), or later run a chartered boat on an emergency permit transfer or your own permit.</li>
-    <li>Kachemak Bay’s seine periods run <b>Monday, Wednesday and Friday, 6 AM to 10 PM</b> from mid-June. After July they open only in a fair pink year. ADF&G can close a period with a few days’ notice.</li>
-    <li>Sign on or pass for each opener in <b>📅 Bookings</b>. It’s a whole day off the river: a trip booked that day is yours to cancel, hand to one of your guides, or keep.</li>
-    <li>Be at Homer harbor by <b>6:00 AM</b>, or drive down the night before and sleep aboard. A crewman who’s late gets left at the dock.</li>
-    <li>On the water: pick the bay, read the jumpers, set now or wait for a better school, take your turn at the hook-off and stay outside the closed lines. Brail the catch and sell it to the tender.</li>
-    <li>It’s risky: water hauls, a net torn on a reef, a line in the wheel, a hurt hand. Sockeye pay well; pinks pay little.</li></ul>`,'seine'],
   ['⚓','Fish buying & processing',(K=>`<p class="help-sum">With ${K.UNLOCK} seasons behind you, you can buy fish from the commercial fleet. It’s optional, and risky.</p><ul>
     <li>In the off-season, open <b>⚓ Commercial & crab</b>, then <b>⚓ Fish buying & processing</b>. Charter a tender for a season (${$(Tender.data.VESSELS.lease.cost)}) or buy a used one (${$(Tender.data.VESSELS.used.price)}). She anchors off the Kenai River mouth or in Kachemak Bay off Homer.</li>
     <li>On each opener your skipper buys fish over the rail at your posted price. Pay more than the other buyers and boats line up, but the margin goes with them. Cold, bled fish earn a quality bonus; a warm hold gets downgraded.</li>
     <li>On an opener day you can run the tender yourself from the 🧭 Here tab. It takes the whole day and ${K.SELF_ENERGY} energy, and saves the skipper’s wage. A party booked that day is yours to cancel, hand to a guide or keep.</li>
     <li>After a season of tendering you can lease line space at a processor. After two you can buy a small shore plant (${$(Tender.data.PLANTS.shore.price)}), and after three an old floating processor. A plant needs a crew hired in the winter (${K.CREW_DAY} free day), upkeep, and a food-safety inspection every season.</li>
+    <li>When your own gillnet, seine or crab-boat catch lands where you have a buyer, your own tender or plant buys it at your posted price.</li>
     <li>Runs, king closures and the market move the money. A weak pink market or soft salmon prices can turn a good run into a loss.</li>
     <li>The bank lends the rest when you put ${Math.round(K.DOWN*100)}% down, at ${Math.round(K.RATE*100)}% over ${K.TERM} years. In a bad season it can carry the loss on your loan; if it can’t, everything goes to the dock auction.</li>
     <li>The business never takes your last ${$(Tender.FLOOR)}: that’s your guiding money, so a failed business can’t end your career. Boats and plants count in your score at nine tenths of their value, and the loan counts against it.</li></ul>`)(Tender.data.K),'tender'],

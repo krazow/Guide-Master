@@ -14,7 +14,7 @@ The in-game **❓ Help!** (title screen, or ⚙️ Settings → Help) is the ful
 - **The water:** the 🐟 Fish tab (or scouting) gives each spot a Hot/Good/Fair/Poor read. Tides, traffic, wind and the run change through the day.
 - **The rules:** the 📖 Regs tab. Bending one can pay today, but every rule broken makes the next likelier to be caught, citations cost bookings, and three active citations end your career.
 - **Keep things running:** fuel only at the Kenai Harbor dock, tackle and groceries in Soldotna, boat service at the shop, the logbook before bed, a current first-aid card, and the cabin's jobs on the 🏠 Home tab.
-- **The season:** requests wait on 📅 Bookings, three season goals a summer, big-day targets. **The off-season:** bills, upgrades, your weeks, the cabin, winter camping and work (10 free days) and, from the third winter, hiring guides and boats.
+- **The season:** requests wait on 📅 Bookings, three season goals a summer, big-day targets. **The off-season:** bills, upgrades, your weeks, the cabin, winter camping and work (10 free days) and, from the second winter, hiring guides and boats.
 - **The score** is graded per season: **A 62,000, B 55,000, C 44,000, D 27,000**, F below (a career that ends early is an F).
 
 ## The Kenai

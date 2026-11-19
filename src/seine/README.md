@@ -86,6 +86,7 @@ host = {
 | `start`, `end`, `minutes` | minutes after midnight the day began and ended (back at the harbor, at most 11:45 PM) |
 | `fished`, `stayed`, `missed` | worked the opener; stayed in port (weather); missed the boat |
 | `events`, `lines` | what happened (ids from `Seine.data.EVENTS`, `sev` 0 news, 1 a mishap, 2 a serious one) and narration |
+| `delivery` | when fish were delivered: `{species (the most valuable), lbs, area: 'Kachemak Bay…', day (the ticket's `d`), value (the fish ticket), share (your part of it after the top), parts: [{species, lbs, value}]}`; a host with its own buyer there may buy it at its own price (Guide Master: `fishDeliver()`, `src/js/41b-fishhub.js`), else `null` |
 
 `Seine.data.EVENTS`: `dawn_set`, `full_bag`, `tender`, `water_haul`, `torn_net`, `skiff_wheel`, `injury`, `injury_bad`, `stay_in`,
 `weather_wait`, `cut_in`, `corked`, `line_cite`, `jackpot`, `missed_boat`.

@@ -87,6 +87,7 @@ host = {
 | `meals` | meals of crab meat for the household (Guide Master: four to a freezer "red", the rest to the pantry) |
 | `sore` | mornings of next season that start sore after an injury (Guide Master: energy −8 each) |
 | `lines`, `severity`, `events` | player-facing lines; 0 nothing, 1 a mishap, 2 serious; `[{id, sev}]` from `Crab.data.EVENTS` |
+| `delivery` | the deckhand job only, once paid: the boat's crab at the dock out west, `{species:'crab', lbs, area:'Dutch Harbor…', day:null, value, share (your part of it)}`, sized by `D.JOB.boat`. A host with its own buyer out west may buy it at its own price (Guide Master: `fishDeliver()`, `src/js/41b-fishhub.js`). The pot's crab is never sold: no delivery. |
 
 `Crab.data.EVENTS`: `pot_set`, `pot_pull` (pulling a pot in Kachemak Bay), `pot_lost`, `crab_feed`, `tanner_measure` (measuring a
 Tanner crab), `tanner_closed`, `job_hired`, `job_greenhorn`, `suit_drill` (a survival-suit drill on deck), `hauling` (setting and

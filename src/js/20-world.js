@@ -119,7 +119,7 @@ const partyLine=b=>`The ${b.who} (${b.from}${b.res?', Alaska residents':''}) · 
 const payOf=b=>b.type==='halibut'?(S.up&&S.up.chp?Math.round(350*b.n*S.up.rate):TRIPS.halibut.gig):Math.round(TRIPS[b.type].price*b.n*((S.up&&S.up.rate)||1));
 
 // ---- actions ----
-const ACT_CATS={trip:'🛶 Today’s trips',work:'🧰 Business & boat',town:'🏪 Around town',fish:'🐟 On the water',rest:'🛏️ Rest'};
+const ACT_CATS={trip:'🛶 Today’s trips',comm:'⚓ Commercial today',work:'🧰 Business & boat',town:'🏪 Around town',fish:'🐟 On the water',rest:'🛏️ Rest'};
 function canAfford(c){return S.money>=c}
 function spend(c,what){money(-c);S.stats.spent+=c}
 function actionsHere(){

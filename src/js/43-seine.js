@@ -33,24 +33,8 @@ const seineSigned=d=>{const o=seineOp(d);return !!(o&&o.ans==='yes'&&!o.done)};
 const seineDiesel=()=>Math.round(Math.max(4,((S.fuelBase&&S.fuelBase.homer)||6.45)-.75)*100)/100;   // marine diesel at the Homer fuel dock (an estimate off the gas price)
 const seineYear=d=>dateOf(d).getUTCFullYear();
 
-// ---- the winter: the shared "Commercial & crab" sheet ----
-// Shared with the gillnet and crab branches (same names and shapes; defined only if not already, so a merge keeps one copy):
-// FISH_HUB (sections {id, order, ic, l, short, s(), open(back)}), fishHubOn(), fishWinterBtns() (one line in winterModal, 24-career.js),
-// fishHubModal(). Order: gillnet 1, seine 2, crab 3, tender 4.
-var FISH_HUB=typeof FISH_HUB!=='undefined'&&Array.isArray(FISH_HUB)?FISH_HUB:[];
-var fishHubOn=typeof fishHubOn==='function'?fishHubOn:function(){return !!(S&&S.winter&&S.seasons&&S.seasons.length>=SEINE_UNLOCK)};
-var fishWinterBtns=typeof fishWinterBtns==='function'?fishWinterBtns:function(){
-  if(!fishHubOn()||!FISH_HUB.length) return [];
-  const t=FISH_HUB.slice().sort((a,b)=>a.order-b.order).map(x=>x.short).join(' · ');
-  return [{l:'⚓ Commercial & crab',s:t.charAt(0).toUpperCase()+t.slice(1)+'. Optional, and risky.',fn:()=>fishHubModal()}];
-};
-var fishHubModal=typeof fishHubModal==='function'?fishHubModal:function(){
-  const back=()=>setTimeout(winterModal,0),again=()=>setTimeout(fishHubModal,0),H=FISH_HUB.slice().sort((a,b)=>a.order-b.order);
-  if(H.length===1) return H[0].open(back);
-  modal('⚓ Commercial & crab',`<p style="font-size:13px;color:var(--mute)">Work the water when you are not guiding. Cash ${$(Math.round(S.money))}. ${campDaysLeft()} free day${campDaysLeft()===1?'':'s'} left this winter.</p>`,
-    H.map(x=>({l:`${x.ic} ${x.l}`,s:x.s(),fn:()=>x.open(again)})).concat([{l:'Back to the off-season',fn:back}]));
-};
-FISH_HUB.push({id:'seine',order:2,ic:'🎣',l:'Purse seining out of Homer',short:'salmon seining out of Homer',
+// ---- the winter: a section of the shared "⚓ Commercial & crab" sheet (41b-fishhub.js), from the 2nd off-season ----
+FISH_HUB.push({id:'seine',order:2,ic:'🎣',l:'Purse seining out of Homer',short:'salmon seining out of Homer',on:()=>seineUnlocked(),
   s:()=>{const P=seinePlan(S.winter.s);return P?(P.role==='crew'?`You’ll crew on the ${Seine.captain(2026+S.winter.s,SN().st).boat} this summer.`:`You’ll run the ${Seine.data.OWN_BOAT} this summer.`):'Crew on a salmon seiner for a share of each opener, or later run your own boat.'},
   open:back=>seineWinterModal(back)});
 function seineWinterTicket(){const s=S.winter.s;return {state:SN().st,season:s,year:2026+s,cash:Math.round(S.money),costMult:DF().cost,rep:S.rep}}
@@ -101,12 +85,13 @@ function seineOpts(o){
   const F=SN(),P=seinePlan(seasonOf(o.d)),crew=P&&P.role==='crew',trips=seineMine(o.d),opts=[];
   const word=crew?'Sign on':'Run it';
   if(o.closed) return opts;
+  const taken=o.ans!=='yes'&&fishTaken(o.d,'seine');if(taken){opts.push({l:'Pass on this one',s:FISH_WHAT[taken],fn:()=>{o.ans='no';say(`⚓ You pass on the ${dlabel(o.d)} opener.`)}});return opts}
   if(o.ans==='yes'){opts.push({l:'Back out',s:crew?'The skipper finds somebody else, and remembers.':'The crew loses a day’s pay.',fn:()=>{o.ans='no';if(crew){const c=Seine.captain(seineYear(o.d),F.st).i;F.st.respect[c]=(F.st.respect[c]||0)-1}say(`⚓ You back out of the ${dlabel(o.d)} opener.`)}});return opts}
   if(!trips.length) opts.push({l:`${word} — ${dlabel(o.d)}`,s:crew?`A crew share. A long day: ${fmt(SEINE_MEET)} at the harbor, back after 10 PM.`:'Your boat, your call. A long day.',fn:()=>{o.ans='yes';say(`⚓ You’re on for the ${dlabel(o.d)} opener.`)}});
   else{
-    const hand=trips.map(b=>[b,typeof staffLane==='function'?staffLane(b.d,b.type,null,b):null]);
-    if(hand.every(([,g])=>g!=null)) opts.push({l:`${word}, and hand ${trips.length>1?'your trips':`the ${trips[0].who}`} to ${hand.map(([,g])=>staffName(g)).filter((x,i,a)=>a.indexOf(x)===i).join(' and ')}`,s:'Your guides run the day. You’re paid less for those trips.',fn:()=>{hand.forEach(([b,g])=>bizAssign(b.id,g));o.ans='yes';say(`⚓ You’re on for the ${dlabel(o.d)} opener.`)}});
-    opts.push({l:`${word}, and cancel ${trips.length>1?`${trips.length} trips`:`the ${trips[0].who}`}`,s:`You refund the deposit${trips.length>1?'s':''}. Reputation −${5*trips.length}.`,fn:()=>{trips.forEach(b=>{b.status='cancelled';S.stats.cancelled++;adj('rep',-5);say(`📵 You cancel the ${b.who}’s ${TRIPS[b.type].n.toLowerCase()} on ${dlabel(b.d)} to go seining. You refund the deposit.`)});o.ans='yes';say(`⚓ You’re on for the ${dlabel(o.d)} opener.`)}});
+    const hand=fishHandPlan(trips);   // 41b-fishhub.js: the same choice as every commercial day
+    if(hand) opts.push({l:`${word}, and hand ${trips.length>1?'your trips':`the ${trips[0].who}`} to ${hand.map(([,g])=>staffName(g)).filter((x,i,a)=>a.indexOf(x)===i).join(' and ')}`,s:'Your guides run the day. You’re paid less for those trips.',fn:()=>{fishHand(hand);o.ans='yes';say(`⚓ You’re on for the ${dlabel(o.d)} opener.`)}});
+    opts.push({l:`${word}, and cancel ${trips.length>1?`${trips.length} trips`:`the ${trips[0].who}`}`,s:`You refund the deposit${trips.length>1?'s':''}. Reputation −${FISH_CANCEL_REP*trips.length}.`,fn:()=>{fishCancel(trips,`a seine opener on ${dlabel(o.d)}`);o.ans='yes';say(`⚓ You’re on for the ${dlabel(o.d)} opener.`)}});
   }
   opts.push({l:'Pass on this one',s:trips.length?'Guide your booked trip.':'',fn:()=>{o.ans='no';say(`⚓ You pass on the ${dlabel(o.d)} opener.`)}});
   return opts;
@@ -123,14 +108,15 @@ function seineView(){
   if(past.length) h+=`<p class="small-note" style="font-size:12px;color:var(--mute)">This season: ${past.map(o=>`${dlabel(o.d)} ${o.res.missed?'missed the boat':o.res.stayed?'stayed in':`${grp(o.res.lbs)} lb, ${o.res.cash<0?'−':''}${$(Math.abs(o.res.cash))}`}`).join(' · ')}.</p>`;
   return h;
 }
-{const bt=EXTRA_TABS.find(t=>t.k==='book');if(bt){const v0=bt.view;bt.view=()=>{const h=v0(),x=seineView();if(!x)return h;const i=h.indexOf('<div class="sect">Season ');return i>=0?h.slice(0,i)+x+h.slice(i):x+h}}}
+FISH_BOOK.push({id:'seine',order:2,view:()=>seineView()});
+FISH_TODAY.push({id:'seine',order:2,today:()=>{if(!seineOn())return '';const o=seineOp(day());return o&&!o.closed?(o.ans==='yes'?`⚓ seine opener, Homer harbor by ${fmt(SEINE_MEET)}${o.done?' ✅':''}`:o.ans==='no'?'':'⚓ a seine period (not signed on)'):''}});
 const seineDot=()=>{if(!seineOn())return false;const d=day();return SN().ops.some(o=>!o.ans&&!o.done&&o.d>d&&o.d<=d+2)};
 
 // ---- the day ----
 function seineTicket(o,late){
   const F=SN(),P=seinePlan(seasonOf(o.d)),d=o.d;
   return {role:P.role,route:P.route,state:F.st,md:o.md,dow:o.dow,year:seineYear(d),season:seasonOf(d),wind:windKt(d),sky:S.wx[d]||'cloud',
-    cash:Math.round(S.money),energy:S.energy,costMult:DF().cost,bad:DF().bad,late,diesel:seineDiesel(),dayTxt:dlong(d)};
+    cash:Math.round(S.money),energy:S.energy,costMult:DF().cost,bad:DF().bad,late,diesel:seineDiesel(),dayTxt:dlong(d),d};
 }
 const SEINE_FLOOR=-1500;         // the opener's bills never take cash below this (the boat owner carries you to the next fish ticket)
 function seineApply(rep,o){
@@ -144,6 +130,9 @@ function seineApply(rep,o){
   if(rep.repDelta)adj('rep',rep.repDelta);
   if(rep.fished&&rep.role==='crew'&&rep.fish.sockeye>20)addFish(Math.min(3,Math.floor(rep.fish.sockeye/200)+1));   // a few sockeye home for the freezer
   if(rep.cancels>0){const b=S.book.filter(x=>x.d===o.d+1&&x.status==='booked'&&!x.asst)[0];if(b){b.status='cancelled';S.stats.cancelled++;say(`📵 With your wrist in a splint you can’t run the ${b.who}’s ${TRIPS[b.type].n.toLowerCase()} tomorrow. You call them and refund the deposit.`)}}
+  // your own tender or plant in Kachemak Bay buys the catch at your own price (41b-fishhub.js, 46-tender.js)
+  const rt=rep.delivery?fishDeliver(rep.delivery):null;
+  if(rt){money(rt.diff);c+=rt.diff;rep.routed=rt;rt.lines.forEach(l=>say(l))}
   o.done=true;o.res={cash:c,lbs:rep.lbs,gross:rep.gross,missed:rep.missed,stayed:rep.stayed,role:rep.role,events:rep.events.map(e=>e.id)};
   const T=S.stats.seine=S.stats.seine||{ops:0,cash:0,lbs:0};if(!rep.missed&&!rep.stayed)T.ops++;T.cash+=c;T.lbs+=rep.lbs;
   if(rep.end>tod())pass(rep.end-tod());
@@ -164,12 +153,13 @@ function seineStart(o){
 function seineAfter(rep){
   const m=travelMins('homer','shop'),home=tod()+m<1430;
   render();
-  modal('🌙 Back in Homer harbor',`<p>${rep.missed?'The day is yours after all.':rep.stayed?'The wind howls in the rigging all day.':'The tender’s lights fade behind the Spit. Hose down the deck, coil the lines, eat something.'} It’s ${fmt(S.t)}.</p>`,
+  modal('🌙 Back in Homer harbor',`${rep.routed?rep.routed.lines.map(l=>`<p>${l}</p>`).join(''):''}<p>${rep.missed?'The day is yours after all.':rep.stayed?'The wind howls in the rigging all day.':'The tender’s lights fade behind the Spit. Hose down the deck, coil the lines, eat something.'} It’s ${fmt(S.t)}.</p>`,
     [{l:'Sleep aboard in the harbor',s:'A bunk on the boat. You wake up in Homer, not quite rested.',fn:()=>endDay('aboard')},
      ...(home?[{l:`Drive home to Soldotna — ${m} min`,s:'Your own bed, a late night.',fn:()=>{pass(m);S.loc='shop';say('🚗 You drive home up the Sterling Highway, windows down to stay awake.');endDay('home')}}]:[]),
      ...(rep.missed||rep.stayed?[{l:'Stay up and make something of the day',s:'You’re in Homer.',fn:()=>{}}]:[])],true);
 }
 function seineGo(o){
+  fishClaim(o.d,'seine');
   const go2=()=>{say(`⚓ ${seinePlan(seasonOf(o.d)).role==='crew'?`You walk down the ramp to the ${Seine.captain(seineYear(o.d),SN().st).boat}’s slip`:`You walk down to the ${Seine.data.OWN_BOAT}`} at ${fmt(S.t)}.`);seineStart(o)};
   if(S.loc==='homer') return go2();
   const m=travelMins(S.loc,'homer');
@@ -180,8 +170,8 @@ function seineGo(o){
   const d=day(),o=seineOp(d),m=tod(),P=seinePlan(seasonOf(d));
   if(o&&o.ans==='yes'&&!o.done){
     const tm=S.loc==='homer'?0:travelMins(S.loc,'homer'),arr=m+tm,late=arr-SEINE_MEET,crew=P.role==='crew';
-    if(m<16*60) a.unshift({ic:'⚓',l:crew?`Seine opener: meet the ${Seine.captain(seineYear(d),SN().st).boat} at Homer harbor`:`Seine opener: run the ${Seine.data.OWN_BOAT} from Homer harbor`,
-      s:`${S.loc==='homer'?'You’re in Homer.':`${tm} min to Homer.`} ${late>0?(crew&&late>SEINE_WAIT?'The boat leaves without you after 6:30.':`You’ll be ${late} min late.`):`On time for ${fmt(SEINE_MEET)}.`} A long day: back after 10 PM.`,cat:'trip',cls:'primary',fn:()=>seineGo(o)});
+    if(m<16*60&&!fishTaken(d,'seine')) a.unshift({ic:'⚓',l:crew?`Seine opener: meet the ${Seine.captain(seineYear(d),SN().st).boat} at Homer harbor`:`Seine opener: run the ${Seine.data.OWN_BOAT} from Homer harbor`,
+      s:`${S.loc==='homer'?'You’re in Homer.':`${tm} min to Homer.`} ${late>0?(crew&&late>SEINE_WAIT?'The boat leaves without you after 6:30.':`You’ll be ${late} min late.`):`On time for ${fmt(SEINE_MEET)}.`} A long day: back after 10 PM.`,cat:'comm',cls:'primary',fn:()=>seineGo(o)});
   }
   const t=seineOp(d+1);
   if(t&&t.ans==='yes'&&!t.done&&S.loc==='shop'&&m>=17*60&&m+travelMins('shop','homer')<1430)
@@ -224,6 +214,8 @@ function seineBotAnswer(mode){if(!seineOn())return;const d=day();SN().ops.filter
 function seineBotDay(opts){
   seineBotAnswer(opts&&opts.mode);
   const d=day(),o=seineOp(d);if(!o||o.ans!=='yes'||o.done)return false;
+  if(fishTaken(d,'seine')){o.ans='no';return false}
+  fishClaim(d,'seine');
   if(S.loc!=='homer'){const m=travelMins(S.loc,'homer');pass(m);S.loc='homer'}
   const r=Seine.sim({ticket:seineTicket(o,Math.max(0,tod()-SEINE_MEET)),rand:(opts&&opts.rand)||(()=>Math.random()),policy:(opts&&opts.policy)||'careful'});
   seineApply(r.report,o);

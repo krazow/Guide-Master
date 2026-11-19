@@ -370,7 +370,10 @@
         fish:copy(f),lbs:m.L,sets:X.sets,water:X.water,spot:X.spot,
         energyDelta:worked?X.energy-(skip?4:0):Math.min(0,X.energy+8),repDelta:X.viol&&skip?-3:0,skillDelta:worked?1:0,
         fines:skip?X.fines.slice():[],viol:skip?X.viol:0,cancels:X.cancels,start,end,minutes:Math.max(0,end-start),
-        events:X.events.slice(),lines:X.lines.slice(),respect:X.respect,fleet:X.fleet,captain:skip?null:{name:cap.name,boat:cap.boat},boat};
+        events:X.events.slice(),lines:X.lines.slice(),respect:X.respect,fleet:X.fleet,captain:skip?null:{name:cap.name,boat:cap.boat},boat,
+        // the delivery (a host with its own buyer in Kachemak Bay may buy it at its own price): share is the part of the ticket that reaches you
+        delivery:worked&&X.fished&&m.L>0?{species:Object.keys(m.lbs).sort((a,b)=>m.val[b]-m.val[a])[0],lbs:m.L,area:'Kachemak Bay (Lower Cook Inlet)',day:T.d!=null?T.d:null,value:m.gross,
+          share:m.net>0?clamp(m.take/m.net,0,1):0,parts:Object.keys(m.lbs).filter(k=>m.lbs[k]>0).map(k=>({species:k,lbs:m.lbs[k],value:m.val[k]}))}:null};
     };
     return Q;
   };

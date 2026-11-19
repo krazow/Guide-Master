@@ -70,10 +70,10 @@ module.exports = [
     assert.ok(a > 0 && b > a && d > b && c > d, `order ${a} ${b} ${d} ${c}`);
     assert.ok(/const Crab=/.test(fs.readFileSync(path.join(ROOT, 'offline', 'guidemaster-offline.html'), 'utf8')), 'the offline build carries it');
     assert.strictEqual(cp.spawnSync('python3', ['tools/build.py', '--check'], { cwd: ROOT }).status, 0);
-    const bp = fs.readFileSync(path.join(ROOT, 'tools', 'build.py'), 'utf8'); assert.ok(/'camp', 'home',.*'crab', 'js'/.test(bp), 'build order camp, home, (gillnet, seine,) crab, js');
+    const bp = fs.readFileSync(path.join(ROOT, 'tools', 'build.py'), 'utf8'); assert.ok(/'camp', 'home', 'gillnet', 'seine', 'crab', 'tender', 'js'/.test(bp), 'build order camp, home, gillnet, seine, crab, tender, js');
     const md = fs.readFileSync(path.join(DIR, 'README.md'), 'utf8');
     for (const re of [/ticket/i, /report/i, /SCHEMA/, /Facts and sources/, /never a sale|no sales/i, /EVENTS/, /Estimates, not checked/]) assert.ok(re.test(md), 'README: ' + re);
-    const v = fs.readFileSync(path.join(ROOT, 'src/js/00-game.js'), 'utf8'); assert.ok(/version:'1\.18\.0'/.test(v), 'no version bump on this branch');
+    const v = fs.readFileSync(path.join(ROOT, 'src/js/00-game.js'), 'utf8'); assert.ok(/version:'1\.19\.0'/.test(v), 'crabbing shipped in 1.19.0');
   } },
   { name: 'pot: set costs bait and a skiff (your own boat is cheaper), takes the afternoon, and must soak overnight', fn: async () => {
     const t = sum({ state: withState(sum(), s => { s.gear = true }).state });
@@ -187,17 +187,18 @@ module.exports = [
     const { page, errors } = await open(ctx);
     await page.evaluate(() => setPref('years', 5));
     await newGame(page);
-    const s1 = await page.evaluate(() => { closeModals(); S.loc = 'homer'; S.t = S.cur * 1440 + 900; return { acts: actionsHere().filter(a => /crab/i.test(a.l)).length, fish: S.fish === undefined }; });
+    const s1 = await page.evaluate(() => { closeModals(); S.loc = 'homer'; S.t = S.cur * 1440 + 900; return { acts: actionsHere().filter(a => /crab/i.test(a.l)).length, fish: !(S.fish && S.fish.crab) }; });
     assert.deepStrictEqual(s1, { acts: 0, fish: true }, 'season 1 untouched');
     await toWinter(page, 13);
-    const w1 = await page.evaluate(() => { closeModals(); winterModal(); return { b: MB.map(b => b.l), fish: S.fish === undefined }; });
+    const w1 = await page.evaluate(() => { closeModals(); winterModal(); return { b: MB.map(b => b.l), fish: !(S.fish && S.fish.crab) }; });
     assert.ok(!w1.b.some(l => /Commercial/.test(l)) && w1.fish, w1.b.join(' | '));
     await page.evaluate(() => { closeModals(); S.cabin.rolled = S.winter.s; finishWinter(); closeModals(); });
     await toWinter(page, 27);
     const w2 = await page.evaluate(async () => { S.cabin.rolled = S.winter.s; closeModals(); winterModal(); const b = MB.map(b => b.l); MBTN(b.findIndex(l => /Commercial & crab/.test(l))); await new Promise(r => setTimeout(r, 10));
-      return { b, t: document.querySelector('#mbg h2').textContent, o: MB.map(x => x.l), CRAB_UNLOCK }; });
+      const hub = MB.map(x => x.l); MBTN(MB.findIndex(l => /Crabbing/.test(l.l))); await new Promise(r => setTimeout(r, 10));   // the shared sheet: gillnetting, seining, crabbing
+      return { b, hub, t: document.querySelector('#mbg h2').textContent, o: MB.map(x => x.l), CRAB_UNLOCK }; });
     assert.ok(w2.b.indexOf('⚓ Commercial & crab') === w2.b.length - 2, 'just before Open bookings: ' + w2.b.join(' | '));
-    assert.match(w2.t, /Crabbing/); assert.ok(w2.o.some(l => /Buy a crab pot/.test(l)) && w2.o.some(l => /Tanner/.test(l)) && w2.o.some(l => /crab boat out west/.test(l)) && /Back/.test(w2.o[w2.o.length - 1]), w2.o.join(' | '));
+    assert.match(w2.t, /Crabbing/); assert.ok(w2.hub.some(l => /Crabbing/.test(l)) && !w2.hub.some(l => /Fish buying/.test(l)), w2.hub.join(' | ')); assert.ok(w2.o.some(l => /Buy a crab pot/.test(l)) && w2.o.some(l => /Tanner/.test(l)) && w2.o.some(l => /crab boat out west/.test(l)) && /Back/.test(w2.o[w2.o.length - 1]), w2.o.join(' | '));
     assert.strictEqual(w2.CRAB_UNLOCK, 2);
     noErrors(errors);
   } },
@@ -297,7 +298,7 @@ module.exports = [
     const r = await page.evaluate(() => {
       const o = {};
       const d = JSON.parse(JSON.stringify(packSave())); delete d.S.fish; d.app = '1.17.0';
-      const m = migrate(d); o.fish = m.S.fish === undefined;
+      const m = migrate(d); o.fish = !(m.S.fish && m.S.fish.crab);
       const keep = S; S = m.S; try { o.btns = fishWinterBtns().map(b => b.l); o.opts = Crab.winterOptions(crabTicket()).map(x => x.id); o.made = !!S.fish.crab; } finally { S = keep }
       const d2 = JSON.parse(JSON.stringify(packSave())); d2.S.fish = { crab: { v: 1, gear: true, pot: { d: 30, year: 2028 } } }; d2.S.winter = null; d2.S.cur = 31;
       const m2 = migrate(d2); const k2 = S; S = m2.S; try { const c = crabS(); o.pot = c.pot; o.tot = typeof c.tot.crab; o.host = JSON.stringify(c.host); } finally { S = k2 }

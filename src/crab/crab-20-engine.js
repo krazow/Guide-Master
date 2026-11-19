@@ -182,6 +182,9 @@
       R.unpaid=rand()<sk().noPay;R.paid=Math.round(R.unpaid?gross*J.paidPart:gross);
       if(R.unpaid){s.tot.unpaid++;r.severity=Math.max(r.severity,1);ev(r,'job_not_paid',1)}
       r.cashDelta+=R.paid;r.earned+=R.paid;s.tot.earned+=R.paid;ev(r,'job_payout');
+      // the boat's delivery at the dock out west (share: the part of its value that reached you)
+      const lbs=Math.round(full/J.boat.share/J.boat.price),val=Math.round(lbs*J.boat.price);
+      if(lbs>0&&R.paid>0) r.delivery={species:'crab',lbs,area:'Dutch Harbor (out west)',day:null,value:val,share:Math.min(1,R.paid/val)};
       r.energyDelta+=J.energy;r.skillDelta+=1;
       s.jobs++;s.tot.jobs++;s.invite=j.mood>=2&&j.skipper!=='shady'&&!R.unpaid;
       s.tot.jobNet+=r.cashDelta;

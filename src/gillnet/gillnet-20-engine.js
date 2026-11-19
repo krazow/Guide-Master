@@ -244,6 +244,9 @@
       if(crew) R.lines.push(`🤝 Your ${Math.round(K.crew*100)}% crew share: <b>${$(R.share)}</b>.`);
       else{const c=R.costs,parts=[c.lease?`${T.kind==='set'?'permit holder':'boat owner'} ${$(c.lease)}`:'',c.crew?`${T.kind==='set'?'your hand':'your deckhand'} ${$(c.crew)}`:'',c.fuel?`fuel ${$(c.fuel)}`:'',c.ice?`ice ${$(c.ice)}`:'',c.gas?`gas ${$(c.gas)}`:'',c.repair?`net repair ${$(c.repair)}`:''].filter(Boolean);
         R.lines.push(`💵 After ${parts.join(', ')}: <b>${R.cashDelta<0?'−':''}${$(Math.abs(R.cashDelta))}</b> to you.`)}
+      // the delivery (a host with its own buyer in these waters may buy it instead, at its own price): share is the part of the ticket that reaches you
+      if(R.lbs>0) R.delivery={species:'sockeye',lbs:R.lbs,area:T.kind==='set'?'Upper Cook Inlet (the Kenai east-side beach)':'Upper Cook Inlet',day:T.d!=null?T.d:null,value:R.gross,
+        share:crew?K.crew:T.kind==='set'?1-K.permit-K.hire:1-(T.role==='lease'?K.lease:0)-K.deck};
       if(fish>=K.fish*1.1&&!Q.events.some(e=>e.id==='gn_full_net'))R.events.push({id:'gn_full_net',sev:2});
       R.events.push({id:Q.flags.dock||Q.flags.river?'gn_dock':'gn_tender',sev:1});
     }

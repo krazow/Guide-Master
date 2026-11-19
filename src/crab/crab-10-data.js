@@ -62,6 +62,8 @@
     paidPart:.35,           // what a crewman sees when the skipper "pays later"
     injury:{base:.06,minor:{cash:350,sore:3},major:{cash:1800,sore:6,cut:.6},pMajor:.3},
     energy:-15,
+    boat:{share:.055,price:4.5},   // a full crew share is about this part of the boat's catch value; crab at the dock, a pound (estimates):
+                                   // they size the boat's delivery, which a host with its own buyer out west may buy at its own price
   };
   D.EVENTS=['pot_set','pot_pull','pot_lost','crab_feed','tanner_measure','tanner_closed','job_hired','job_greenhorn','suit_drill','hauling','sorting','heavy_seas_ice','job_payout','job_injury','job_not_paid','job_closed'];
 

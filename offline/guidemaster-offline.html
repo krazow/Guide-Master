@@ -2154,6 +2154,9 @@ const Gillnet={
       if(crew) R.lines.push(`🤝 Your ${Math.round(K.crew*100)}% crew share: <b>${$(R.share)}</b>.`);
       else{const c=R.costs,parts=[c.lease?`${T.kind==='set'?'permit holder':'boat owner'} ${$(c.lease)}`:'',c.crew?`${T.kind==='set'?'your hand':'your deckhand'} ${$(c.crew)}`:'',c.fuel?`fuel ${$(c.fuel)}`:'',c.ice?`ice ${$(c.ice)}`:'',c.gas?`gas ${$(c.gas)}`:'',c.repair?`net repair ${$(c.repair)}`:''].filter(Boolean);
         R.lines.push(`💵 After ${parts.join(', ')}: <b>${R.cashDelta<0?'−':''}${$(Math.abs(R.cashDelta))}</b> to you.`)}
+      // the delivery (a host with its own buyer in these waters may buy it instead, at its own price): share is the part of the ticket that reaches you
+      if(R.lbs>0) R.delivery={species:'sockeye',lbs:R.lbs,area:T.kind==='set'?'Upper Cook Inlet (the Kenai east-side beach)':'Upper Cook Inlet',day:T.d!=null?T.d:null,value:R.gross,
+        share:crew?K.crew:T.kind==='set'?1-K.permit-K.hire:1-(T.role==='lease'?K.lease:0)-K.deck};
       if(fish>=K.fish*1.1&&!Q.events.some(e=>e.id==='gn_full_net'))R.events.push({id:'gn_full_net',sev:2});
       R.events.push({id:Q.flags.dock||Q.flags.river?'gn_dock':'gn_tender',sev:1});
     }
@@ -2800,7 +2803,10 @@ const Seine={
         fish:copy(f),lbs:m.L,sets:X.sets,water:X.water,spot:X.spot,
         energyDelta:worked?X.energy-(skip?4:0):Math.min(0,X.energy+8),repDelta:X.viol&&skip?-3:0,skillDelta:worked?1:0,
         fines:skip?X.fines.slice():[],viol:skip?X.viol:0,cancels:X.cancels,start,end,minutes:Math.max(0,end-start),
-        events:X.events.slice(),lines:X.lines.slice(),respect:X.respect,fleet:X.fleet,captain:skip?null:{name:cap.name,boat:cap.boat},boat};
+        events:X.events.slice(),lines:X.lines.slice(),respect:X.respect,fleet:X.fleet,captain:skip?null:{name:cap.name,boat:cap.boat},boat,
+        // the delivery (a host with its own buyer in Kachemak Bay may buy it at its own price): share is the part of the ticket that reaches you
+        delivery:worked&&X.fished&&m.L>0?{species:Object.keys(m.lbs).sort((a,b)=>m.val[b]-m.val[a])[0],lbs:m.L,area:'Kachemak Bay (Lower Cook Inlet)',day:T.d!=null?T.d:null,value:m.gross,
+          share:m.net>0?clamp(m.take/m.net,0,1):0,parts:Object.keys(m.lbs).filter(k=>m.lbs[k]>0).map(k=>({species:k,lbs:m.lbs[k],value:m.val[k]}))}:null};
     };
     return Q;
   };
@@ -2990,6 +2996,8 @@ const Crab={
     paidPart:.35,           // what a crewman sees when the skipper "pays later"
     injury:{base:.06,minor:{cash:350,sore:3},major:{cash:1800,sore:6,cut:.6},pMajor:.3},
     energy:-15,
+    boat:{share:.055,price:4.5},   // a full crew share is about this part of the boat's catch value; crab at the dock, a pound (estimates):
+                                   // they size the boat's delivery, which a host with its own buyer out west may buy at its own price
   };
   D.EVENTS=['pot_set','pot_pull','pot_lost','crab_feed','tanner_measure','tanner_closed','job_hired','job_greenhorn','suit_drill','hauling','sorting','heavy_seas_ice','job_payout','job_injury','job_not_paid','job_closed'];
 
@@ -3190,6 +3198,9 @@ const Crab={
       R.unpaid=rand()<sk().noPay;R.paid=Math.round(R.unpaid?gross*J.paidPart:gross);
       if(R.unpaid){s.tot.unpaid++;r.severity=Math.max(r.severity,1);ev(r,'job_not_paid',1)}
       r.cashDelta+=R.paid;r.earned+=R.paid;s.tot.earned+=R.paid;ev(r,'job_payout');
+      // the boat's delivery at the dock out west (share: the part of its value that reached you)
+      const lbs=Math.round(full/J.boat.share/J.boat.price),val=Math.round(lbs*J.boat.price);
+      if(lbs>0&&R.paid>0) r.delivery={species:'crab',lbs,area:'Dutch Harbor (out west)',day:null,value:val,share:Math.min(1,R.paid/val)};
       r.energyDelta+=J.energy;r.skillDelta+=1;
       s.jobs++;s.tot.jobs++;s.invite=j.mood>=2&&j.skipper!=='shady'&&!R.unpaid;
       s.tot.jobNet+=r.cashDelta;
@@ -5063,7 +5074,7 @@ const partyLine=b=>`The ${b.who} (${b.from}${b.res?', Alaska residents':''}) · 
 const payOf=b=>b.type==='halibut'?(S.up&&S.up.chp?Math.round(350*b.n*S.up.rate):TRIPS.halibut.gig):Math.round(TRIPS[b.type].price*b.n*((S.up&&S.up.rate)||1));
 
 // ---- actions ----
-const ACT_CATS={trip:'🛶 Today’s trips',work:'🧰 Business & boat',town:'🏪 Around town',fish:'🐟 On the water',rest:'🛏️ Rest'};
+const ACT_CATS={trip:'🛶 Today’s trips',comm:'⚓ Commercial today',work:'🧰 Business & boat',town:'🏪 Around town',fish:'🐟 On the water',rest:'🛏️ Rest'};
 function canAfford(c){return S.money>=c}
 function spend(c,what){money(-c);S.stats.spent+=c}
 function actionsHere(){
@@ -6442,8 +6453,8 @@ function winterModal(){
     weeksWinterOpt(s),   // 34-summer.js: which two weeks of the summer you guide yourself
     {l:`🏠 ${esc(cabinName())}: ${homeWinterLabel()}`,s:cabinWinterBlurb(),fn:()=>homeWinterModal()},
     {l:'🏕️ Winter camping & work',s:campUsed()?'You’ve used your free days this winter. You can still look at your camping log.':`${campDaysLeft()} free days: camping trips within 100 miles (ice fishing, scouting, company), winter work, a camping log.`,fn:()=>campModal()},
-    ...(typeof bizWinterBtns==='function'?bizWinterBtns():[]),   // 36-business.js: the outfit (from the third off-season)
-    ...(typeof fishWinterBtns==='function'?fishWinterBtns():[]),   // 42-gillnet.js, 43-seine.js, 44-crab.js: commercial fishing and crabbing (from the second off-season)
+    ...(typeof bizWinterBtns==='function'?bizWinterBtns():[]),   // 36-business.js: the outfit (from the second off-season)
+    ...(typeof fishWinterBtns==='function'?fishWinterBtns():[]),   // 41b-fishhub.js: commercial fishing, crabbing and the fish business (from the second off-season)
     {l:`🛶 Open bookings for ${2026+s}`,s:'Start the season.',fn:()=>homeOpenGate(()=>finishWinter())}]);
 }
 function upgradeModal(){
@@ -6700,7 +6711,7 @@ const HELP=[
     <li><b>Camping:</b> pick one of ten spots within 100 road miles, a month, company, where you sleep and what to pack. <b>Ice fish</b> (you need a fishing license, and licenses run by calendar year), ski, snowshoe, track wildlife, scout next season’s water or watch the northern lights.</li>
     <li>Each night has a 50% chance of an encounter, good or bad. What you pack and where you sleep change the odds.</li>
     <li>Each winter, skill rusts a little, warnings reset and old citations drop off. Renew your first-aid card if it’s due.</li></ul>`,'winter'],
-  ['🧑‍🤝‍🧑','Growing the business',`<p class="help-sum">From your third off-season you can build an outfit, if you want to.</p><ul>
+  ['🧑‍🤝‍🧑','Growing the business',`<p class="help-sum">From your second off-season you can build an outfit, if you want to.</p><ul>
     <li>Hire up to <b>three guides</b> (reputation 55, 65 and 75 for the first, second and third) and buy up to <b>two more boats</b>: a used jet sled or a second drift boat.</li>
     <li>Guides take parties on days you’re booked, get calls of their own, and you can hand them one of your trips on the <b>Outfit</b> page of 📅 Bookings. Each needs a free boat. They never run Homer halibut.</li>
     <li>Their trips show up in the morning report. Their reviews name them and <b>don’t count</b> toward your own ★ rating.</li>
@@ -6729,6 +6740,26 @@ const HELP=[
     <li>Answer requests, and hand happy parties your card.</li>
     <li>Pay the legal price in a dilemma. It’s cheaper than the fine.</li>
     <li>Raise your rates carefully: the third step costs more bookings than it’s worth.</li></ul>`,'tips'],
+  ['📲','Install the app and play offline',`<p class="help-sum">Install Guide Master on your phone or computer and it plays like an app, even with no signal.</p><ul>
+    <li>Tap <b>Install</b> in the bar at the top of the title screen, or <b>📲 Install app</b> under the big button. On Android, Chrome and Edge your browser asks to install; other browsers show their menu steps.</li>
+    <li>On an iPhone or iPad it opens <a>a short how-to with a video</a>: in Safari, tap Share, then <b>Add to Home Screen</b>, then <b>Add</b>.</li>
+    <li>Open it once from the new icon while online. After that it plays offline.</li>
+    <li>On iPhone and iPad the Home Screen app keeps its own saves, so play from the icon. Use <b>🔁 Transfer a saved game</b> to move a game there or to another device.</li></ul>`,'install'],
+  ['🪢','Commercial gillnetting',`<p class="help-sum">From your second off-season you can fish Cook Inlet sockeye for the fish ticket, on a setnet beach or a drift boat.</p><ul>
+    <li>Plan it in the off-season under <b>⚓ Commercial & crab</b>: crew for a share first, then lease a setnet site or a drift permit and boat. Later you can buy your own drift permit and boat.</li>
+    <li>Openers are regular periods on <b>Mondays and Thursdays</b>, plus extra periods by emergency order. ADF&amp;G announces each one the morning before; see <b>📅 Bookings</b> and the morning report.</li>
+    <li>An opener is a whole day. Start it from <b>🧭 Here</b> in the early morning. On a day with trips booked you hand them to a guide, cancel them, or guide instead. One commercial day at a time: an opener, a seine period or your own tender.</li>
+    <li>The day runs in a few calls: when to set on the tide, pick now or let them soak, bleed and ice the fish, and the tender or the dock. A drift boat also picks its drift line and fights the tide.</li>
+    <li>The setnet beach is tied to the Kenai kings. In a year kings are closed it starts the summer closed, and only a huge sockeye run might reopen it. Money paid up front is gone if it never opens.</li>
+    <li>Rules have teeth: nets fishing after the close, or a drift across the corridor line into closed water, can mean a citation on your record. Seals, torn nets and wind cost fish.</li>
+    <li>With a lease or your own boat, a partner fishes the openers you guide through, for a share. A survival suit is cheap insurance on the water.</li></ul>`,'gillnet'],
+  ['🎣','Purse seining out of Homer',`<p class="help-sum">From your second off-season you can work salmon openers on a Homer seiner, if you want to.</p><ul>
+    <li>Pick it in the off-season under <b>⚓ Commercial & crab</b>: crew on a seiner for a share of each opener (8 to 10% of the catch after fuel, ice and groceries), or later run a chartered boat on an emergency permit transfer or your own permit.</li>
+    <li>Kachemak Bay’s seine periods run <b>Monday, Wednesday and Friday, 6 AM to 10 PM</b> from mid-June. After July they open only in a fair pink year. ADF&G can close a period with a few days’ notice.</li>
+    <li>Sign on or pass for each opener in <b>📅 Bookings</b>. It’s a whole day off the river: a trip booked that day is yours to cancel, hand to one of your guides, or keep.</li>
+    <li>Be at Homer harbor by <b>6:00 AM</b>, or drive down the night before and sleep aboard. A crewman who’s late gets left at the dock.</li>
+    <li>On the water: pick the bay, read the jumpers, set now or wait for a better school, take your turn at the hook-off and stay outside the closed lines. Brail the catch and sell it to the tender.</li>
+    <li>It’s risky: water hauls, a net torn on a reef, a line in the wheel, a hurt hand. Sockeye pay well; pinks pay little.</li></ul>`,'seine'],
   ['🦀','Crabbing',`<p class="help-sum">From the second off-season: a crab pot for free afternoons in Homer, and a winter job on a crab boat out west.</p><ul>
     <li>Buy a pot in the off-season planner, under <b>⚓ Commercial &amp; crab</b>. On a free afternoon at the Homer Spit, set it across Kachemak Bay, then pull it on your next free afternoon there.</li>
     <li>A long soak loses the bait, and sometimes the pot. Your buoy carries your name and address, and nobody else may pull it.</li>
@@ -6737,31 +6768,12 @@ const HELP=[
     <li>Some years a fishery stays closed: the Dungeness pots in summer, or the winter Tanner season, which opens only when the survey finds enough legal males. The action tells you.</li>
     <li>A deckhand job on a Bering Sea crab boat takes most of your winter’s free days. A greenhorn earns half a share; it gets better if you go back.</li>
     <li>It is cold, hard and dangerous. Learn the survival suit, watch the swinging pots and beat the ice off the rails. A short season, an injury or a skipper who won’t pay can wipe out the trip.</li></ul>`,'crab'],
-  ['📲','Install the app and play offline',`<p class="help-sum">Install Guide Master on your phone or computer and it plays like an app, even with no signal.</p><ul>
-    <li>Tap <b>Install</b> in the bar at the top of the title screen, or <b>📲 Install app</b> under the big button. On Android, Chrome and Edge your browser asks to install; other browsers show their menu steps.</li>
-    <li>On an iPhone or iPad it opens <a>a short how-to with a video</a>: in Safari, tap Share, then <b>Add to Home Screen</b>, then <b>Add</b>.</li>
-    <li>Open it once from the new icon while online. After that it plays offline.</li>
-    <li>On iPhone and iPad the Home Screen app keeps its own saves, so play from the icon. Use <b>🔁 Transfer a saved game</b> to move a game there or to another device.</li></ul>`,'install'],
-  ['🪢','Commercial gillnetting',`<p class="help-sum">From your second off-season you can fish Cook Inlet sockeye for the fish ticket, on a setnet beach or a drift boat.</p><ul>
-    <li>Plan it in the off-season under <b>🎣 Commercial & crab</b>: crew for a share first, then lease a setnet site or a drift permit and boat. Later you can buy your own drift permit and boat.</li>
-    <li>Openers are regular periods on <b>Mondays and Thursdays</b>, plus extra periods by emergency order. ADF&amp;G announces each one the morning before; see <b>📅 Bookings</b> and the morning report.</li>
-    <li>An opener is a whole day. Start it from <b>🧭 Here</b> in the early morning. On a day with trips booked you hand them to a guide, cancel them, or guide instead.</li>
-    <li>The day runs in a few calls: when to set on the tide, pick now or let them soak, bleed and ice the fish, and the tender or the dock. A drift boat also picks its drift line and fights the tide.</li>
-    <li>The setnet beach is tied to the Kenai kings. In a year kings are closed it starts the summer closed, and only a huge sockeye run might reopen it. Money paid up front is gone if it never opens.</li>
-    <li>Rules have teeth: nets fishing after the close, or a drift across the corridor line into closed water, can mean a citation on your record. Seals, torn nets and wind cost fish.</li>
-    <li>With a lease or your own boat, a partner fishes the openers you guide through, for a share. A survival suit is cheap insurance on the water.</li></ul>`,'gillnet'],
-  ['⚓','Purse seining out of Homer',`<p class="help-sum">From your second off-season you can work salmon openers on a Homer seiner, if you want to.</p><ul>
-    <li>Pick it in the off-season under <b>⚓ Commercial & crab</b>: crew on a seiner for a share of each opener (8 to 10% of the catch after fuel, ice and groceries), or later run a chartered boat on an emergency permit transfer or your own permit.</li>
-    <li>Kachemak Bay’s seine periods run <b>Monday, Wednesday and Friday, 6 AM to 10 PM</b> from mid-June. After July they open only in a fair pink year. ADF&G can close a period with a few days’ notice.</li>
-    <li>Sign on or pass for each opener in <b>📅 Bookings</b>. It’s a whole day off the river: a trip booked that day is yours to cancel, hand to one of your guides, or keep.</li>
-    <li>Be at Homer harbor by <b>6:00 AM</b>, or drive down the night before and sleep aboard. A crewman who’s late gets left at the dock.</li>
-    <li>On the water: pick the bay, read the jumpers, set now or wait for a better school, take your turn at the hook-off and stay outside the closed lines. Brail the catch and sell it to the tender.</li>
-    <li>It’s risky: water hauls, a net torn on a reef, a line in the wheel, a hurt hand. Sockeye pay well; pinks pay little.</li></ul>`,'seine'],
   ['⚓','Fish buying & processing',(K=>`<p class="help-sum">With ${K.UNLOCK} seasons behind you, you can buy fish from the commercial fleet. It’s optional, and risky.</p><ul>
     <li>In the off-season, open <b>⚓ Commercial & crab</b>, then <b>⚓ Fish buying & processing</b>. Charter a tender for a season (${$(Tender.data.VESSELS.lease.cost)}) or buy a used one (${$(Tender.data.VESSELS.used.price)}). She anchors off the Kenai River mouth or in Kachemak Bay off Homer.</li>
     <li>On each opener your skipper buys fish over the rail at your posted price. Pay more than the other buyers and boats line up, but the margin goes with them. Cold, bled fish earn a quality bonus; a warm hold gets downgraded.</li>
     <li>On an opener day you can run the tender yourself from the 🧭 Here tab. It takes the whole day and ${K.SELF_ENERGY} energy, and saves the skipper’s wage. A party booked that day is yours to cancel, hand to a guide or keep.</li>
     <li>After a season of tendering you can lease line space at a processor. After two you can buy a small shore plant (${$(Tender.data.PLANTS.shore.price)}), and after three an old floating processor. A plant needs a crew hired in the winter (${K.CREW_DAY} free day), upkeep, and a food-safety inspection every season.</li>
+    <li>When your own gillnet, seine or crab-boat catch lands where you have a buyer, your own tender or plant buys it at your posted price.</li>
     <li>Runs, king closures and the market move the money. A weak pink market or soft salmon prices can turn a good run into a loss.</li>
     <li>The bank lends the rest when you put ${Math.round(K.DOWN*100)}% down, at ${Math.round(K.RATE*100)}% over ${K.TERM} years. In a bad season it can carry the loss on your loan; if it can’t, everything goes to the dock auction.</li>
     <li>The business never takes your last ${$(Tender.FLOOR)}: that’s your guiding money, so a failed business can’t end your career. Boats and plants count in your score at nine tenths of their value, and the loan counts against it.</li></ul>`)(Tender.data.K),'tender'],
@@ -8496,7 +8508,7 @@ function bigAfterTrip(b,notes){
 {const _sat=storyAfterTrip;storyAfterTrip=function(b,happy,notes){_sat(b,happy,notes);bigAfterTrip(b,notes)}}
 // ============================================================
 //  GUIDE MASTER, part 9: grow the business (the outfit).
-//  From the third off-season on you can hire up to three guides and buy up to two more boats. Your guides take parties on days
+//  From the second off-season on you can hire up to three guides and buy up to two more boats. Your guides take parties on days
 //  you're booked (or that you hand them), and their trips run off-screen: the morning report says how each one went.
 //
 //  State: S.biz (bizBase()). Staff trips are bookings with b.asst=true and b.g=<guide id>, so the rest of the game treats them the
@@ -8515,7 +8527,7 @@ function bigAfterTrip(b,notes){
 //  (staffReview). Those reviews live in S.biz.reviews, NOT S.reviews: your star rating, its milestones, goals and the trophy wall are about
 //  the trips you guide yourself (the Outfit page shows each guide's stars). Staff stay off magazine, lodge and big-day bookings.
 // ============================================================
-const BIZ_UNLOCK=2;                                     // seasons played before you can grow (the third off-season)
+const BIZ_UNLOCK=2;                                     // seasons played before you can grow (the second off-season: after two summers)
 const BIZ_REP=[55,65,75];                               // reputation needed for the 1st, 2nd and 3rd guide
 const BIZ_MAX_BOATS=2;                                  // boats you can add to your sled and drift boat
 const BIZ_BOATS={
@@ -9617,6 +9629,102 @@ window.doInstall=async()=>{
   installSheet();
 };
 // ============================================================
+//  GUIDE MASTER: the shared "⚓ Commercial & crab" pieces (1.19.0).
+//  Four modules work the water when you aren't guiding: gillnetting (42-gillnet.js), purse seining (43-seine.js), crabbing
+//  (44-crab.js) and fish buying & processing (46-tender.js). This file holds what they share, in ONE place:
+//    - the off-season sheet: FISH_HUB (each adapter pushes one section {id, order, ic, l, short, s(), open(back), on()}; a section
+//      shows only once its own on() says so), fishHubList(), fishHubOn(), fishWinterBtns() (one line in winterModal, 24-career.js)
+//      and fishHubModal(). Gillnetting, seining and crabbing open from the second off-season; the fish business from the third.
+//    - the day: at most one commercial activity a day (fishClaim / fishTaken), and one way to settle a booked party when you go
+//      fishing instead (fishTripsChoice: hand it to a guide, cancel it for FISH_CANCEL_REP reputation, or keep it). The Here tab
+//      shows today's openers together under "⚓ Commercial today" (ACT_CATS.comm, 20-world.js); the Bookings tab shows each
+//      module's section (FISH_BOOK) together, above the season's days, under one line about today.
+//    - the delivery contract: gillnet, seine and crab reports carry delivery {species, lbs, area, day, value, share[, parts]}.
+//      fishDeliver(delivery) sells it to your own tender or plant (46-tender.js: tenderRoute) when you have a buyer in that water,
+//      at your own posted price, and returns the difference to you (null: an outside buyer took it, as before).
+//  Nothing here draws a random number.
+// ============================================================
+var FISH_HUB=[];
+function fishHubList(){return FISH_HUB.filter(x=>{try{return !x.on||x.on()}catch(e){return false}}).sort((a,b)=>a.order-b.order)}
+function fishHubOn(){return !!(S&&S.winter&&fishHubList().length)}
+function fishWinterBtns(){
+  const H=fishHubList();if(!fishHubOn()||!H.length) return [];
+  const t=H.map(x=>x.short).join(' · ');
+  return [{l:'⚓ Commercial & crab',s:t.charAt(0).toUpperCase()+t.slice(1)+'. Optional, and risky.',fn:()=>fishHubModal()}];
+}
+function fishHubModal(){
+  const back=()=>setTimeout(winterModal,0),again=()=>setTimeout(fishHubModal,0),H=fishHubList();
+  if(!H.length) return back();
+  if(H.length===1) return H[0].open(back);
+  modal('⚓ Commercial & crab',`<p style="font-size:13px;color:var(--mute)">Work the water when you are not guiding. Cash ${$(Math.round(S.money))}. ${campDaysLeft()} free day${campDaysLeft()===1?'':'s'} left this winter.</p>`,
+    H.map(x=>({l:`${x.ic} ${x.l}`,s:x.s(),fn:()=>x.open(again)})).concat([{l:'Back to the off-season',fn:back}]));
+}
+
+// ---- the day: one commercial activity at a time ----
+const FISH_CANCEL_REP=5;          // reputation each party costs you when you cancel on them to go fishing (or to run your tender)
+const FISH_WHAT={gillnet:'You’re fishing the gillnet opener today.',seine:'You’re on the seiner today.',tender:'You’re running your tender today.'};
+function fishClaim(d,id){if(!S.fish||typeof S.fish!=='object')S.fish={};S.fish.today={d,id}}
+// the commercial activity (other than id) that already has day d, or null
+function fishTaken(d,id){
+  const t=S&&S.fish&&S.fish.today;if(t&&t.d===d&&t.id!==id) return t.id;
+  if(id!=='seine'&&typeof seineSigned==='function'&&seineSigned(d)) return 'seine';   // signed on for a seine period that day
+  return null;
+}
+// every one of these parties to one of your guides (two parties at the same hour need two guides), or null
+function fishHandPlan(trips){
+  if(!trips.length||typeof canHand!=='function'||typeof staffLane!=='function'||typeof bizAssign!=='function') return null;
+  const done=[];let ok=true;
+  for(const b of trips){const g=canHand(b)?staffLane(b.d,b.type,null,b):null;if(g==null){ok=false;break}done.push([b,g,b.asst,b.g]);b.asst=true;b.g=g}
+  done.forEach(([b,,a,g0])=>{b.asst=a;if(g0===undefined)delete b.g;else b.g=g0});
+  return ok?done.map(([b,g])=>[b,g]):null;
+}
+const fishWho=trips=>trips.map(b=>'the '+b.who).join(' and ');
+function fishHand(plan){plan.forEach(([b,g])=>bizAssign(b.id,g))}
+function fishCancel(trips,why){
+  trips.forEach(b=>{b.status='cancelled';S.stats.cancelled++;adj('rep',-FISH_CANCEL_REP)});
+  if(trips.length) say(`📵 You call ${fishWho(trips)} to cancel: ${why}. You refund the deposit${trips.length>1?'s':''}.`);
+}
+// a booked party in the way: the one choice, the same for every module. o: {ic, d, what (‘fish the opener’), why (for the call),
+// go() (do it), keep: {l, s, fn}}. No parties: go straight on.
+function fishTripsChoice(o){
+  const trips=todays(o.d).filter(b=>!(S.trip&&S.trip.id===b.id));
+  if(!trips.length) return o.go();
+  const hand=fishHandPlan(trips),names=hand?hand.map(([,g])=>staffName(g)).filter((x,i,a)=>a.indexOf(x)===i).join(' and '):'';
+  const list=trips.map(b=>`${TRIPS[b.type].ic} the <b>${b.who}</b> (${b.n}), ${fmt(TRIPS[b.type].start)}, ${$(payOf(b))}`).join('<br>');
+  modal(`${o.ic} You’re booked today`,`<p>You can’t guide and ${o.what} the same day:</p><p>${list}</p><p style="font-size:13px;color:var(--mute)">Cancelling refunds the deposit, and the party remembers it.</p>`,[
+    ...(hand?[{l:`Hand ${trips.length>1?'them':`the ${trips[0].who}`} to ${names}, and go`,s:'Your guides take the parties. You’re paid less for those trips.',fn:()=>{fishHand(hand);o.go()}}]:[]),
+    {l:`Cancel ${trips.length>1?`all ${trips.length} trips`:'the trip'}, and go`,s:`Reputation −${FISH_CANCEL_REP*trips.length}. They’ll find another guide.`,fn:()=>{fishCancel(trips,o.why);o.go()}},
+    {l:o.keep.l,s:o.keep.s,fn:o.keep.fn||(()=>{})}]);
+}
+
+// ---- the Bookings tab: the modules' sections together, above the season's days ----
+// FISH_BOOK: {id, order, view()} (each view returns its HTML or ''); FISH_TODAY: {id, order, today()} → a short line about today, or ''
+var FISH_BOOK=[],FISH_TODAY=[];
+function fishBookView(){
+  const parts=FISH_BOOK.slice().sort((a,b)=>a.order-b.order).map(x=>{try{return x.view()||''}catch(e){return ''}}).filter(Boolean);
+  if(!parts.length) return '';
+  const d=day(),now=FISH_TODAY.slice().sort((a,b)=>a.order-b.order).map(x=>{try{return x.today()||''}catch(e){return ''}}).filter(Boolean);
+  const taken=S.fish&&S.fish.today&&S.fish.today.d===d?FISH_WHAT[S.fish.today.id]:'';
+  const top=now.length?`<div class="todo"><span class="ck" aria-hidden="true">⚓</span><div><b>Commercial today</b><span>${now.join(' · ')}${taken?`<br>${taken}`:now.length>1?'<br>One a day: whichever you start takes the day.':''}${todays(d).length?`<br><span style="color:var(--warn)">You have ${todays(d).length} trip${todays(d).length>1?'s':''} booked today.</span>`:''}</span></div></div>`:'';
+  return top+parts.join('');
+}
+{const bt=EXTRA_TABS.find(t=>t.k==='book');if(bt){const v0=bt.view;bt.view=()=>{const h=v0();if(S.winter) return h;let x='';try{x=fishBookView()}catch(e){x=''}if(!x)return h;
+  const i=h.indexOf('<div class="sect">Season ');return i<0?h+x:h.slice(0,i)+x+h.slice(i)}}}
+
+// ---- your own catch to your own buyer (the delivery contract) ----
+// dl: {species, lbs, area, day, value (what an outside buyer paid for it), share (the part of the fish ticket that reaches you),
+// parts: [{species, lbs, value}] (a mixed catch)}. Returns null (an outside buyer took it) or {diff (dollars more, or less, to you), lines}.
+function fishDeliver(dl){
+  if(!dl||!(dl.lbs>0)||typeof tenderRoute!=='function'||typeof tenderBuyerIn!=='function'||!tenderBuyerIn(dl.area)) return null;
+  const parts=Array.isArray(dl.parts)&&dl.parts.length?dl.parts:[{species:dl.species,lbs:dl.lbs,value:dl.value}],sh=Math.max(0,Math.min(1,+dl.share||0)),lines=[];
+  let diff=0,value=0;
+  parts.forEach(p=>{if(!(p.lbs>0))return;const r=tenderRoute({species:p.species,lbs:p.lbs,area:dl.area,day:dl.day});if(!r)return;value+=r.value;diff+=(r.value-(+p.value||0))*sh;lines.push(r.line)});
+  if(!lines.length) return null;
+  diff=Math.round(diff);
+  lines.push(diff?`💵 At your own price instead of the outside buyer’s: <b>${diff<0?'−':'+'}${$(Math.abs(diff))}</b> to you${sh<1?' (your part of the ticket)':''}. Your business keeps its margin.`:'💵 Your own price matches the outside buyer’s. Your business keeps its margin.');
+  return {diff,value,lines};
+}
+// ============================================================
 //  GUIDE MASTER, part 14: commercial gillnetting (the adapter).
 //  The fishery itself lives in src/gillnet/ (the Gillnet engine, which knows nothing about this game). This file is the thin
 //  bridge: the off-season plan (crew on a setnet site or a drift boat, lease a site or a permit and boat, or own a drift permit
@@ -9711,47 +9819,47 @@ function gnNote(l,ev){digestLine(l);if(ev&&DIGEST)(DIGEST.gn=DIGEST.gn||[]).push
 function gnTodayAction(){
   const d=day(),p=gnPlan(),o=gnDay(d),g=GNS();if(!p||!o||S.trip||S.winter) return null;
   const done=g.done[d];if(done) return null;
+  if(fishTaken(d,'gillnet')) return null;   // 41b-fishhub.js: one commercial activity a day
   const m=tod(),last=o.hours[0]+60,trips=todays(d);
   if(Gillnet.fishable(o)){
     const R=GN.ROLES[p.id],who=p.role==='crew'?` with ${gnSkipper(p.kind)}`:'';
     const busy=trips.length?` You have ${trips.map(b=>`the ${b.who} at ${fmt(TRIPS[b.type].start)}`).join(' and ')}: you’d have to hand them off or cancel.`:'';
-    if(m>last) return {ic:gnIc(p.kind),l:`The ${gnKind(p.kind)} opener started without you`,s:`It opened at ${fmt(o.hours[0])}. ${p.role==='crew'?`${gnSkipper(p.kind)} went short-handed.`:'Your partner is fishing it.'}`,cat:'trip',dis:true,fn:()=>{}};
-    return {ic:gnIc(p.kind),l:`Work the ${gnKind(p.kind)} opener${who}`,s:`${R.ic} ${gnHours(o)}, ${GN.ST[o.st]}, ${p.kind==='set'?'the east-side beach':GN.AREA[o.area]}. A long day: back around ${fmt(GN[p.kind].end)}.${busy}`,cat:'trip',cls:trips.length?'':'primary',fn:()=>gnGo(d)};
+    if(m>last) return {ic:gnIc(p.kind),l:`The ${gnKind(p.kind)} opener started without you`,s:`It opened at ${fmt(o.hours[0])}. ${p.role==='crew'?`${gnSkipper(p.kind)} went short-handed.`:'Your partner is fishing it.'}`,cat:'comm',dis:true,fn:()=>{}};
+    return {ic:gnIc(p.kind),l:`Work the ${gnKind(p.kind)} opener${who}`,s:`${R.ic} ${gnHours(o)}, ${GN.ST[o.st]}, ${p.kind==='set'?'the east-side beach':GN.AREA[o.area]}. A long day: back around ${fmt(GN[p.kind].end)}.${busy}`,cat:'comm',cls:trips.length?'':'primary',fn:()=>gnGo(d)};
   }
-  if(o.seine&&p.kind==='set'&&m<=last) return {ic:'🏖️',l:'Help on the experimental beach seine',s:`The setnets are closed for kings. A day’s wage, about ${$(GN.SEINE_WAGE)}.${trips.length?' You have trips booked today.':''}`,cat:'trip',fn:()=>gnGo(d,true)};
+  if(o.seine&&p.kind==='set'&&m<=last) return {ic:'🏖️',l:'Help on the experimental beach seine',s:`The setnets are closed for kings. A day’s wage, about ${$(GN.SEINE_WAGE)}.${trips.length?' You have trips booked today.':''}`,cat:'comm',fn:()=>gnGo(d,true)};
   return null;
 }
 {const _ah=actionsHere;actionsHere=function(){const a=_ah();try{if(gnOn()&&!S.winter){const x=gnTodayAction();if(x)a.unshift(x)}}catch(e){}return a}}
-// booked trips in the way: hand them to your guides, cancel them, or guide today instead
+// booked trips in the way: hand them to your guides, cancel them, or guide today instead (41b-fishhub.js, the same choice for every module)
 function gnGo(d,seine){
-  const trips=todays(d);
-  if(!trips.length) return gnStart(d,seine);
-  const hand=typeof canHand==='function'&&typeof staffLane==='function'&&trips.every(b=>canHand(b)&&staffLane(b.d,b.type,null,b)!=null);
-  const list=trips.map(b=>`${TRIPS[b.type].ic} the <b>${b.who}</b> (${b.n}), ${fmt(TRIPS[b.type].start)}, ${$(payOf(b))}`).join('<br>');
-  modal(`${seine?'🏖️':gnIc(gnPlan().kind)} Trips booked today`,`<p>You can’t guide and fish the same day:</p><p>${list}</p><p style="font-size:13px;color:var(--mute)">Cancelling refunds the deposit, and the party remembers it.</p>`,[
-    ...(hand?[{l:'Hand them to your guides, and go fishing',s:'Your guides take the parties.',fn:()=>{trips.forEach(b=>{const g=staffLane(b.d,b.type,null,b);if(g!=null)bizAssign(b.id,g)});gnStart(d,seine)}}]:[]),
-    {l:`Cancel ${trips.length>1?`all ${trips.length} trips`:'the trip'} and go fishing`,s:`Rep −${3*trips.length}. They’ll find another guide.`,fn:()=>{trips.forEach(b=>{b.status='cancelled';S.stats.cancelled++;adj('rep',-3)});
-      say(`📵 You call ${trips.map(b=>'the '+b.who).join(' and ')} to cancel: a commercial opener. You refund the deposit${trips.length>1?'s':''}.`);gnStart(d,seine)}},
-    {l:'Guide today instead',s:gnPlan().role==='crew'?`${gnSkipper(gnPlan().kind)} fishes without you.`:'Your partner fishes the opener for you.',fn:()=>{}}]);
+  const p=gnPlan();
+  fishTripsChoice({ic:seine?'🏖️':gnIc(p.kind),d,what:seine?'work the beach seine':'fish the opener',why:'a commercial opener',go:()=>gnStart(d,seine),
+    keep:{l:'Guide today instead',s:seine?'The beach seine goes on without you.':p.role==='crew'?`${gnSkipper(p.kind)} fishes without you.`:'Your partner fishes the opener for you.'}});
 }
 function gnTicket(d,seine){
   const p=gnPlan(),o=gnDay(d),g=GNS(),w=wxOf(d),tt=tideTable(d);
   return {kind:p.kind,role:p.role,day:Object.assign({},o),seine:!!seine,run:clamp(abundance('sockeye','kbeach',d),.15,1.4),price:(gnSched()||{}).price||1.65,
     wind:w.wind,wx:S.wx[d]||'sun',tides:tt.map(x=>({m:x.m,h:Math.round(x.h*10)/10,hi:x.hi})),amp:Math.round(tide(d*1440+720).amp*10)/10,now:tod(),
     energy:S.energy,cash:Math.round(S.money),xp:g.xp[p.kind]||0,suit:!!g.suit,exam:!!(g.own&&g.own.exam===seasonOf(d)),king:kingRule(),costMult:DF().cost,fuel:gnFuel(),
-    skipper:p.role==='crew'?gnSkipper(p.kind):''};
+    skipper:p.role==='crew'?gnSkipper(p.kind):'',d};
 }
 // the sheets: an illustration from the beat's events (the worst first), from 'gillnet'
 function gnArt(evs){if(!artOn()||!evs||!evs.length)return '';return artFirst(evs.map((e,i)=>({e,i})).sort((a,b)=>(b.e.sev||0)-(a.e.sev||0)||a.i-b.i).map(x=>()=>artSlot('event',()=>artEventCtx(x.e.id,'gillnet'),{deco:true,key:'gillnet'})))}
-const gnHost=d=>({show:(t,h,b,lock,meta)=>modal(t,gnArt(meta&&meta.events)+h,b,lock),rand:()=>Math.random(),onFinish:rep=>gnApply(rep,d)});
-function gnStart(d,seine){if(!gnPlan()||!gnDay(d))return;Gillnet.start({ticket:gnTicket(d,seine),host:gnHost(d)})}
+// the summary sheet also says where the fish went when your own tender or plant bought them (fishDeliver, applied in gnApply first)
+let GN_ROUTED=null;
+const gnHost=d=>({show:(t,h,b,lock,meta)=>modal(t,gnArt(meta&&meta.events)+h+(meta&&meta.phase==='done'&&GN_ROUTED?GN_ROUTED.lines.map(l=>`<p>${l}</p>`).join(''):''),b,lock),rand:()=>Math.random(),onFinish:rep=>gnApply(rep,d)});
+function gnStart(d,seine){if(!gnPlan()||!gnDay(d)||fishTaken(d,'gillnet'))return;GN_ROUTED=null;fishClaim(d,'gillnet');Gillnet.start({ticket:gnTicket(d,seine),host:gnHost(d)})}
 // the report goes back into the save
 function gnApply(rep,d){
   if(!rep) return rep;
   const g=GNS(),p=gnPlan(),K=p?p.kind:rep.kind,sn=gnSn(seasonOf(d));
   g.done[d]={skipped:!!rep.skipped,seine:!!rep.seine,fish:rep.fish,net:rep.cashDelta,gross:rep.gross};
   if(rep.lines) rep.lines.forEach(l=>say(l));
-  if(rep.skipped){if(p&&p.role==='crew')g.mood[K]=clamp(g.mood[K]+(rep.mood||-8),0,100);return rep}
+  if(rep.skipped){if(S.fish.today&&S.fish.today.d===d&&S.fish.today.id==='gillnet')S.fish.today=null;if(p&&p.role==='crew')g.mood[K]=clamp(g.mood[K]+(rep.mood||-8),0,100);return rep}
+  // your own tender or plant buys the fish when it works these waters (41b-fishhub.js, 46-tender.js), at your own posted price
+  const rt=GN_ROUTED=rep.delivery?fishDeliver(Object.assign({},rep.delivery,{day:d})):null;
+  if(rt){rep.cashDelta+=rt.diff;rep.gross=Math.round(rep.gross-rep.delivery.value+rt.value);rep.routed=rt;g.done[d].net=rep.cashDelta;g.done[d].gross=rep.gross;rt.lines.forEach(l=>say(l))}
   money(rep.cashDelta);
   if(rep.cashDelta<0)S.stats.spent+=-rep.cashDelta;
   if(rep.energyDelta) adj('energy',rep.energyDelta);
@@ -9809,24 +9917,8 @@ endRows=function(){const rows=_gnEndRows(),g=S.fish&&S.fish.gillnet;
 {const _todo=todoItems;todoItems=function(){const it=_todo();try{const o=gnDay(),p=gnPlan();if(p&&o&&!S.winter&&(Gillnet.fishable(o)||o.seine&&p.kind==='set')){const r=GNS().done[day()];
   it.splice(0,0,{l:Gillnet.fishable(o)?`${gnIc(p.kind)} ${p.kind==='set'?'Setnet':'Drift'} opener, ${gnHours(o)}`:'🏖️ Beach seine day (optional)',s:Gillnet.fishable(o)?(p.role==='crew'?`Crew for ${gnSkipper(p.kind)}.`:'Fish it, or your partner fishes it for a share.'):'A neighbor’s test seine.',ok:!!(r&&!r.skipped),fail:!!(r&&r.skipped),urgent:!r&&Gillnet.fishable(o)&&tod()<=o.hours[0]+60})}}catch(e){}return it}}
 
-// ---- the off-season planner: one shared "Commercial & crab" sheet ----
-// Shared with the seine and crab adapters (same names and shapes in each branch, so a merge keeps one copy): FISH_HUB (the sheet's
-// sections {id, order, ic, l, short, s(), open(back)}: gillnet 1, seine 2, crab 3, tender 4), fishHubOn(), fishWinterBtns() (the planner's
-// button, called from winterModal in 24-career.js) and fishHubModal(). Each is defined only if no other adapter defined it first.
-var FISH_HUB=typeof FISH_HUB!=='undefined'&&Array.isArray(FISH_HUB)?FISH_HUB:[];
-if(typeof fishHubOn!=='function') var fishHubOn=function(){return !!(S&&S.winter&&S.seasons&&S.seasons.length>=GN.UNLOCK)};
-if(typeof fishWinterBtns!=='function') var fishWinterBtns=function(){
-  if(!fishHubOn()||!FISH_HUB.length) return [];
-  const t=FISH_HUB.slice().sort((a,b)=>a.order-b.order).map(x=>x.short).join(' · ');
-  return [{l:'⚓ Commercial & crab',s:t.charAt(0).toUpperCase()+t.slice(1)+'. Optional, and risky.',fn:()=>fishHubModal()}];
-};
-if(typeof fishHubModal!=='function') var fishHubModal=function(){
-  const back=()=>setTimeout(winterModal,0),again=()=>setTimeout(fishHubModal,0),H=FISH_HUB.slice().sort((a,b)=>a.order-b.order);
-  if(H.length===1) return H[0].open(back);
-  modal('⚓ Commercial & crab',`<p style="font-size:13px;color:var(--mute)">Work the water when you are not guiding. Cash ${$(Math.round(S.money))}. ${campDaysLeft()} free day${campDaysLeft()===1?'':'s'} left this winter.</p>`,
-    H.map(x=>({l:`${x.ic} ${x.l}`,s:x.s(),fn:()=>x.open(again)})).concat([{l:'Back to the off-season',fn:back}]));
-};
-FISH_HUB.push({id:'gillnet',order:1,ic:'🪢',l:'Gillnetting: setnet or drift',short:'a setnet site or a drift boat',s:()=>gnPlanSum(),
+// ---- the off-season planner: a section of the shared "⚓ Commercial & crab" sheet (41b-fishhub.js), from the second off-season ----
+FISH_HUB.push({id:'gillnet',order:1,ic:'🪢',l:'Gillnetting: setnet or drift',short:'a setnet site or a drift boat',s:()=>gnPlanSum(),on:()=>!!(S&&Array.isArray(S.seasons)&&S.seasons.length>=GN.UNLOCK),
   open:back=>{gnOn();gnWinterModal(back)}});
 function gnPlanSum(){const p=gnPlan(),g=GNS();if(!p) return g.own?'Your drift boat waits on the hard.':'Gillnetting: not this summer.';return `Gillnetting: ${GN.ROLES[p.id].l.toLowerCase()}.`}
 function gnTk(){const g=GNS();return {cash:Math.round(S.money),costMult:DF().cost,xp:g.xp,did:g.did,own:g.own?{boat:true}:null,suit:g.suit,plan:gnPlan()?gnPlan().id:null}}
@@ -9868,7 +9960,9 @@ const GN_HOW='Openers are regular periods on Mondays and Thursdays (and extra pe
 TIPS.push({id:'gillnet',when:()=>gnOn()&&!!S.winter&&!gnPlan(),t:'🎣 You can try commercial fishing this summer: crew on a setnet site or a drift boat for a share, or lease one. It’s optional. Look in <b>Commercial & crab</b>.'});
 
 // ---- the Bookings tab: this season's openers at the top ----
-{const bt=EXTRA_TABS.find(t=>t.k==='book');if(bt){const v0=bt.view;bt.view=()=>{const h=v0();try{const x=gnBookView();if(!x)return h;const i=h.indexOf('<div class="sect">Season ');return i<0?x+h:h.slice(0,i)+x+h.slice(i)}catch(e){return h}}}}
+FISH_BOOK.push({id:'gillnet',order:1,view:()=>gnBookView()});
+FISH_TODAY.push({id:'gillnet',order:1,today:()=>{const p=gnPlan(),o=gnDay(),r=GNS().done[day()];if(!p||!o||S.winter)return '';
+  return Gillnet.fishable(o)?`${gnIc(p.kind)} ${p.kind==='set'?'setnet':'drift'} opener, ${gnHours(o)}${r?(r.skipped?(r.partner?' (fished for you)':' (missed)'):' ✅'):''}`:o.seine&&p.kind==='set'?'🏖️ a beach seine day':''}});
 function gnBookView(){
   const p=gnPlan(),x=gnSched();if(!p||!x||S.winter) return '';
   const g=GNS(),ds=Object.keys(x.days).map(Number).sort((a,b)=>a-b);
@@ -9901,8 +9995,8 @@ function gnBotDay(o){
   o=o||{};const d=day(),p=gnPlan(),x=gnDay(d),g=GNS();if(!p||!x||g.done[d]||S.trip||S.winter) return null;
   const seine=!Gillnet.fishable(x)&&x.seine&&p.kind==='set';if(!Gillnet.fishable(x)&&!seine) return null;
   if(todays(d).length&&!o.cancel) return null;
-  if(tod()>x.hours[0]+60) return null;
-  todays(d).forEach(b=>{b.status='cancelled';S.stats.cancelled++;adj('rep',-3)});
+  if(tod()>x.hours[0]+60||fishTaken(d,'gillnet')) return null;
+  fishCancel(todays(d),'a commercial opener');fishClaim(d,'gillnet');
   const r=Gillnet.sim({ticket:gnTicket(d,seine),rand:Math.random,policy:o.policy||'sensible'}).report;
   return gnApply(r,d);
 }
@@ -9942,24 +10036,8 @@ const seineSigned=d=>{const o=seineOp(d);return !!(o&&o.ans==='yes'&&!o.done)};
 const seineDiesel=()=>Math.round(Math.max(4,((S.fuelBase&&S.fuelBase.homer)||6.45)-.75)*100)/100;   // marine diesel at the Homer fuel dock (an estimate off the gas price)
 const seineYear=d=>dateOf(d).getUTCFullYear();
 
-// ---- the winter: the shared "Commercial & crab" sheet ----
-// Shared with the gillnet and crab branches (same names and shapes; defined only if not already, so a merge keeps one copy):
-// FISH_HUB (sections {id, order, ic, l, short, s(), open(back)}), fishHubOn(), fishWinterBtns() (one line in winterModal, 24-career.js),
-// fishHubModal(). Order: gillnet 1, seine 2, crab 3, tender 4.
-var FISH_HUB=typeof FISH_HUB!=='undefined'&&Array.isArray(FISH_HUB)?FISH_HUB:[];
-var fishHubOn=typeof fishHubOn==='function'?fishHubOn:function(){return !!(S&&S.winter&&S.seasons&&S.seasons.length>=SEINE_UNLOCK)};
-var fishWinterBtns=typeof fishWinterBtns==='function'?fishWinterBtns:function(){
-  if(!fishHubOn()||!FISH_HUB.length) return [];
-  const t=FISH_HUB.slice().sort((a,b)=>a.order-b.order).map(x=>x.short).join(' · ');
-  return [{l:'⚓ Commercial & crab',s:t.charAt(0).toUpperCase()+t.slice(1)+'. Optional, and risky.',fn:()=>fishHubModal()}];
-};
-var fishHubModal=typeof fishHubModal==='function'?fishHubModal:function(){
-  const back=()=>setTimeout(winterModal,0),again=()=>setTimeout(fishHubModal,0),H=FISH_HUB.slice().sort((a,b)=>a.order-b.order);
-  if(H.length===1) return H[0].open(back);
-  modal('⚓ Commercial & crab',`<p style="font-size:13px;color:var(--mute)">Work the water when you are not guiding. Cash ${$(Math.round(S.money))}. ${campDaysLeft()} free day${campDaysLeft()===1?'':'s'} left this winter.</p>`,
-    H.map(x=>({l:`${x.ic} ${x.l}`,s:x.s(),fn:()=>x.open(again)})).concat([{l:'Back to the off-season',fn:back}]));
-};
-FISH_HUB.push({id:'seine',order:2,ic:'🎣',l:'Purse seining out of Homer',short:'salmon seining out of Homer',
+// ---- the winter: a section of the shared "⚓ Commercial & crab" sheet (41b-fishhub.js), from the 2nd off-season ----
+FISH_HUB.push({id:'seine',order:2,ic:'🎣',l:'Purse seining out of Homer',short:'salmon seining out of Homer',on:()=>seineUnlocked(),
   s:()=>{const P=seinePlan(S.winter.s);return P?(P.role==='crew'?`You’ll crew on the ${Seine.captain(2026+S.winter.s,SN().st).boat} this summer.`:`You’ll run the ${Seine.data.OWN_BOAT} this summer.`):'Crew on a salmon seiner for a share of each opener, or later run your own boat.'},
   open:back=>seineWinterModal(back)});
 function seineWinterTicket(){const s=S.winter.s;return {state:SN().st,season:s,year:2026+s,cash:Math.round(S.money),costMult:DF().cost,rep:S.rep}}
@@ -10010,12 +10088,13 @@ function seineOpts(o){
   const F=SN(),P=seinePlan(seasonOf(o.d)),crew=P&&P.role==='crew',trips=seineMine(o.d),opts=[];
   const word=crew?'Sign on':'Run it';
   if(o.closed) return opts;
+  const taken=o.ans!=='yes'&&fishTaken(o.d,'seine');if(taken){opts.push({l:'Pass on this one',s:FISH_WHAT[taken],fn:()=>{o.ans='no';say(`⚓ You pass on the ${dlabel(o.d)} opener.`)}});return opts}
   if(o.ans==='yes'){opts.push({l:'Back out',s:crew?'The skipper finds somebody else, and remembers.':'The crew loses a day’s pay.',fn:()=>{o.ans='no';if(crew){const c=Seine.captain(seineYear(o.d),F.st).i;F.st.respect[c]=(F.st.respect[c]||0)-1}say(`⚓ You back out of the ${dlabel(o.d)} opener.`)}});return opts}
   if(!trips.length) opts.push({l:`${word} — ${dlabel(o.d)}`,s:crew?`A crew share. A long day: ${fmt(SEINE_MEET)} at the harbor, back after 10 PM.`:'Your boat, your call. A long day.',fn:()=>{o.ans='yes';say(`⚓ You’re on for the ${dlabel(o.d)} opener.`)}});
   else{
-    const hand=trips.map(b=>[b,typeof staffLane==='function'?staffLane(b.d,b.type,null,b):null]);
-    if(hand.every(([,g])=>g!=null)) opts.push({l:`${word}, and hand ${trips.length>1?'your trips':`the ${trips[0].who}`} to ${hand.map(([,g])=>staffName(g)).filter((x,i,a)=>a.indexOf(x)===i).join(' and ')}`,s:'Your guides run the day. You’re paid less for those trips.',fn:()=>{hand.forEach(([b,g])=>bizAssign(b.id,g));o.ans='yes';say(`⚓ You’re on for the ${dlabel(o.d)} opener.`)}});
-    opts.push({l:`${word}, and cancel ${trips.length>1?`${trips.length} trips`:`the ${trips[0].who}`}`,s:`You refund the deposit${trips.length>1?'s':''}. Reputation −${5*trips.length}.`,fn:()=>{trips.forEach(b=>{b.status='cancelled';S.stats.cancelled++;adj('rep',-5);say(`📵 You cancel the ${b.who}’s ${TRIPS[b.type].n.toLowerCase()} on ${dlabel(b.d)} to go seining. You refund the deposit.`)});o.ans='yes';say(`⚓ You’re on for the ${dlabel(o.d)} opener.`)}});
+    const hand=fishHandPlan(trips);   // 41b-fishhub.js: the same choice as every commercial day
+    if(hand) opts.push({l:`${word}, and hand ${trips.length>1?'your trips':`the ${trips[0].who}`} to ${hand.map(([,g])=>staffName(g)).filter((x,i,a)=>a.indexOf(x)===i).join(' and ')}`,s:'Your guides run the day. You’re paid less for those trips.',fn:()=>{fishHand(hand);o.ans='yes';say(`⚓ You’re on for the ${dlabel(o.d)} opener.`)}});
+    opts.push({l:`${word}, and cancel ${trips.length>1?`${trips.length} trips`:`the ${trips[0].who}`}`,s:`You refund the deposit${trips.length>1?'s':''}. Reputation −${FISH_CANCEL_REP*trips.length}.`,fn:()=>{fishCancel(trips,`a seine opener on ${dlabel(o.d)}`);o.ans='yes';say(`⚓ You’re on for the ${dlabel(o.d)} opener.`)}});
   }
   opts.push({l:'Pass on this one',s:trips.length?'Guide your booked trip.':'',fn:()=>{o.ans='no';say(`⚓ You pass on the ${dlabel(o.d)} opener.`)}});
   return opts;
@@ -10032,14 +10111,15 @@ function seineView(){
   if(past.length) h+=`<p class="small-note" style="font-size:12px;color:var(--mute)">This season: ${past.map(o=>`${dlabel(o.d)} ${o.res.missed?'missed the boat':o.res.stayed?'stayed in':`${grp(o.res.lbs)} lb, ${o.res.cash<0?'−':''}${$(Math.abs(o.res.cash))}`}`).join(' · ')}.</p>`;
   return h;
 }
-{const bt=EXTRA_TABS.find(t=>t.k==='book');if(bt){const v0=bt.view;bt.view=()=>{const h=v0(),x=seineView();if(!x)return h;const i=h.indexOf('<div class="sect">Season ');return i>=0?h.slice(0,i)+x+h.slice(i):x+h}}}
+FISH_BOOK.push({id:'seine',order:2,view:()=>seineView()});
+FISH_TODAY.push({id:'seine',order:2,today:()=>{if(!seineOn())return '';const o=seineOp(day());return o&&!o.closed?(o.ans==='yes'?`⚓ seine opener, Homer harbor by ${fmt(SEINE_MEET)}${o.done?' ✅':''}`:o.ans==='no'?'':'⚓ a seine period (not signed on)'):''}});
 const seineDot=()=>{if(!seineOn())return false;const d=day();return SN().ops.some(o=>!o.ans&&!o.done&&o.d>d&&o.d<=d+2)};
 
 // ---- the day ----
 function seineTicket(o,late){
   const F=SN(),P=seinePlan(seasonOf(o.d)),d=o.d;
   return {role:P.role,route:P.route,state:F.st,md:o.md,dow:o.dow,year:seineYear(d),season:seasonOf(d),wind:windKt(d),sky:S.wx[d]||'cloud',
-    cash:Math.round(S.money),energy:S.energy,costMult:DF().cost,bad:DF().bad,late,diesel:seineDiesel(),dayTxt:dlong(d)};
+    cash:Math.round(S.money),energy:S.energy,costMult:DF().cost,bad:DF().bad,late,diesel:seineDiesel(),dayTxt:dlong(d),d};
 }
 const SEINE_FLOOR=-1500;         // the opener's bills never take cash below this (the boat owner carries you to the next fish ticket)
 function seineApply(rep,o){
@@ -10053,6 +10133,9 @@ function seineApply(rep,o){
   if(rep.repDelta)adj('rep',rep.repDelta);
   if(rep.fished&&rep.role==='crew'&&rep.fish.sockeye>20)addFish(Math.min(3,Math.floor(rep.fish.sockeye/200)+1));   // a few sockeye home for the freezer
   if(rep.cancels>0){const b=S.book.filter(x=>x.d===o.d+1&&x.status==='booked'&&!x.asst)[0];if(b){b.status='cancelled';S.stats.cancelled++;say(`📵 With your wrist in a splint you can’t run the ${b.who}’s ${TRIPS[b.type].n.toLowerCase()} tomorrow. You call them and refund the deposit.`)}}
+  // your own tender or plant in Kachemak Bay buys the catch at your own price (41b-fishhub.js, 46-tender.js)
+  const rt=rep.delivery?fishDeliver(rep.delivery):null;
+  if(rt){money(rt.diff);c+=rt.diff;rep.routed=rt;rt.lines.forEach(l=>say(l))}
   o.done=true;o.res={cash:c,lbs:rep.lbs,gross:rep.gross,missed:rep.missed,stayed:rep.stayed,role:rep.role,events:rep.events.map(e=>e.id)};
   const T=S.stats.seine=S.stats.seine||{ops:0,cash:0,lbs:0};if(!rep.missed&&!rep.stayed)T.ops++;T.cash+=c;T.lbs+=rep.lbs;
   if(rep.end>tod())pass(rep.end-tod());
@@ -10073,12 +10156,13 @@ function seineStart(o){
 function seineAfter(rep){
   const m=travelMins('homer','shop'),home=tod()+m<1430;
   render();
-  modal('🌙 Back in Homer harbor',`<p>${rep.missed?'The day is yours after all.':rep.stayed?'The wind howls in the rigging all day.':'The tender’s lights fade behind the Spit. Hose down the deck, coil the lines, eat something.'} It’s ${fmt(S.t)}.</p>`,
+  modal('🌙 Back in Homer harbor',`${rep.routed?rep.routed.lines.map(l=>`<p>${l}</p>`).join(''):''}<p>${rep.missed?'The day is yours after all.':rep.stayed?'The wind howls in the rigging all day.':'The tender’s lights fade behind the Spit. Hose down the deck, coil the lines, eat something.'} It’s ${fmt(S.t)}.</p>`,
     [{l:'Sleep aboard in the harbor',s:'A bunk on the boat. You wake up in Homer, not quite rested.',fn:()=>endDay('aboard')},
      ...(home?[{l:`Drive home to Soldotna — ${m} min`,s:'Your own bed, a late night.',fn:()=>{pass(m);S.loc='shop';say('🚗 You drive home up the Sterling Highway, windows down to stay awake.');endDay('home')}}]:[]),
      ...(rep.missed||rep.stayed?[{l:'Stay up and make something of the day',s:'You’re in Homer.',fn:()=>{}}]:[])],true);
 }
 function seineGo(o){
+  fishClaim(o.d,'seine');
   const go2=()=>{say(`⚓ ${seinePlan(seasonOf(o.d)).role==='crew'?`You walk down the ramp to the ${Seine.captain(seineYear(o.d),SN().st).boat}’s slip`:`You walk down to the ${Seine.data.OWN_BOAT}`} at ${fmt(S.t)}.`);seineStart(o)};
   if(S.loc==='homer') return go2();
   const m=travelMins(S.loc,'homer');
@@ -10089,8 +10173,8 @@ function seineGo(o){
   const d=day(),o=seineOp(d),m=tod(),P=seinePlan(seasonOf(d));
   if(o&&o.ans==='yes'&&!o.done){
     const tm=S.loc==='homer'?0:travelMins(S.loc,'homer'),arr=m+tm,late=arr-SEINE_MEET,crew=P.role==='crew';
-    if(m<16*60) a.unshift({ic:'⚓',l:crew?`Seine opener: meet the ${Seine.captain(seineYear(d),SN().st).boat} at Homer harbor`:`Seine opener: run the ${Seine.data.OWN_BOAT} from Homer harbor`,
-      s:`${S.loc==='homer'?'You’re in Homer.':`${tm} min to Homer.`} ${late>0?(crew&&late>SEINE_WAIT?'The boat leaves without you after 6:30.':`You’ll be ${late} min late.`):`On time for ${fmt(SEINE_MEET)}.`} A long day: back after 10 PM.`,cat:'trip',cls:'primary',fn:()=>seineGo(o)});
+    if(m<16*60&&!fishTaken(d,'seine')) a.unshift({ic:'⚓',l:crew?`Seine opener: meet the ${Seine.captain(seineYear(d),SN().st).boat} at Homer harbor`:`Seine opener: run the ${Seine.data.OWN_BOAT} from Homer harbor`,
+      s:`${S.loc==='homer'?'You’re in Homer.':`${tm} min to Homer.`} ${late>0?(crew&&late>SEINE_WAIT?'The boat leaves without you after 6:30.':`You’ll be ${late} min late.`):`On time for ${fmt(SEINE_MEET)}.`} A long day: back after 10 PM.`,cat:'comm',cls:'primary',fn:()=>seineGo(o)});
   }
   const t=seineOp(d+1);
   if(t&&t.ans==='yes'&&!t.done&&S.loc==='shop'&&m>=17*60&&m+travelMins('shop','homer')<1430)
@@ -10133,6 +10217,8 @@ function seineBotAnswer(mode){if(!seineOn())return;const d=day();SN().ops.filter
 function seineBotDay(opts){
   seineBotAnswer(opts&&opts.mode);
   const d=day(),o=seineOp(d);if(!o||o.ans!=='yes'||o.done)return false;
+  if(fishTaken(d,'seine')){o.ans='no';return false}
+  fishClaim(d,'seine');
   if(S.loc!=='homer'){const m=travelMins(S.loc,'homer');pass(m);S.loc='homer'}
   const r=Seine.sim({ticket:seineTicket(o,Math.max(0,tod()-SEINE_MEET)),rand:(opts&&opts.rand)||(()=>Math.random()),policy:(opts&&opts.policy)||'careful'});
   seineApply(r.report,o);
@@ -10155,9 +10241,7 @@ window.seineBotWinter=seineBotWinter;window.seineBotDay=seineBotDay;window.seine
 //
 //  Save state: S.fish.crab is the module's own state (opaque here, Crab.normState fills in an older one); S.fish.crab.host holds
 //  this file's own bits: {sore: {s, n}} (mornings of season s that start sore). Old saves have no S.fish: it is made on first use.
-//  Shared with the gillnet and seine adapters (same names and shapes in each branch, so a merge keeps one copy): FISH_HUB (the
-//  sections of the "Commercial & crab" sheet), fishWinterBtns() (the planner's button, called from winterModal in 24-career.js),
-//  fishHubModal().
+//  The "Commercial & crab" sheet, the one-a-day rule and the delivery contract are shared: src/js/41b-fishhub.js.
 // ============================================================
 const CRAB_UNLOCK=2;          // seasons played before the sheet shows (the second off-season)
 const CRAB_SORE=8;            // energy a sore morning costs after an injury on a crab boat
@@ -10193,6 +10277,9 @@ function crabApply(rep,quiet){
   if(rep.daysUsed>0&&S.winter){campW();S.camp.days=Math.min(KenaiCamp.data.WINTER_DAYS,S.camp.days+rep.daysUsed)}
   if(rep.sore>0&&S.winter) h.sore={s:S.winter.s,n:rep.sore};
   if(rep.minutes>0&&!S.winter) pass(rep.minutes);
+  // the boat's crab to your own floating processor out west, at your own price (41b-fishhub.js, 46-tender.js)
+  const rt=rep.delivery?fishDeliver(rep.delivery):null;
+  if(rt){money(rt.diff);rep.cashDelta=(rep.cashDelta||0)+rt.diff;rep.routed=rt;rep.lines=rep.lines.concat(rt.lines)}
   if(!quiet) rep.lines.forEach(l=>say(l));
   return rep;
 }
@@ -10228,22 +10315,8 @@ startSeason=function(s){
   _crabStartSeason(s);
 };
 
-// ---- the off-season: the "Commercial & crab" sheet ----
-// Shared with the gillnet and seine branches: each pushes one section {id, order, ic, l, s(), open(back)} into FISH_HUB.
-var FISH_HUB=typeof FISH_HUB!=='undefined'&&Array.isArray(FISH_HUB)?FISH_HUB:[];
-function fishHubOn(){return !!(S&&S.winter&&S.seasons&&S.seasons.length>=CRAB_UNLOCK)}
-function fishWinterBtns(){
-  if(!fishHubOn()||!FISH_HUB.length) return [];
-  const t=FISH_HUB.slice().sort((a,b)=>a.order-b.order).map(x=>x.short).join(' · ');
-  return [{l:'⚓ Commercial & crab',s:t.charAt(0).toUpperCase()+t.slice(1)+'. Optional, and risky.',fn:()=>fishHubModal()}];
-}
-function fishHubModal(){
-  const back=()=>setTimeout(winterModal,0),again=()=>setTimeout(fishHubModal,0),H=FISH_HUB.slice().sort((a,b)=>a.order-b.order);
-  if(H.length===1) return H[0].open(back);
-  modal('⚓ Commercial & crab',`<p style="font-size:13px;color:var(--mute)">Work the water when you are not guiding. Cash ${$(Math.round(S.money))}. ${campDaysLeft()} free day${campDaysLeft()===1?'':'s'} left this winter.</p>`,
-    H.map(x=>({l:`${x.ic} ${x.l}`,s:x.s(),fn:()=>x.open(again)})).concat([{l:'Back to the off-season',fn:back}]));
-}
-FISH_HUB.push({id:'crab',order:3,ic:'🦀',l:'Crabbing',short:'crab pots and a crab boat',
+// ---- the off-season: a section of the shared "⚓ Commercial & crab" sheet (41b-fishhub.js), from the second off-season ----
+FISH_HUB.push({id:'crab',order:3,ic:'🦀',l:'Crabbing',short:'crab pots and a crab boat',on:()=>crabUnlocked(),
   s:()=>`${crabS().gear?'Your pot, for Homer afternoons':'A pot for Homer afternoons'} and winter Tanner days; a deckhand job on a Bering Sea crab boat (${Crab.data.JOB.days} free days).`,
   open:back=>{if(cabin().rolled!==S.winter.s)return homeBeforeCamping(()=>FISH_HUB.find(x=>x.id==='crab').open(back));   // the winter's first storm lands before free days are spent
     crabPrep();Crab.ui.winter(crabHost(),()=>setTimeout(back,0))}});
@@ -10474,7 +10547,7 @@ function boatsEndText(){
 // ============================================================
 const TENDER_UNLOCK=Tender.data.K.UNLOCK;                // seasons played before the business opens: the off-season after commercial fishing does
 const TENDER_SELF_BY=480;                                // run the tender yourself only if you start by 8:00 AM (the openers run 7 AM to 7 PM)
-const TENDER_CANCEL_REP=5;                               // reputation a party costs you when you cancel on them for an opener
+const TENDER_CANCEL_REP=FISH_CANCEL_REP;                 // reputation a party costs you when you cancel on them for an opener (41b-fishhub.js)
 function tenderSeed(){return Tender.util.hash(S.name||'',S.nextId||0,S.years||0,(S.seasons||[]).length)}
 function TND(){S.fish=S.fish||{};if(!S.fish.tender||typeof S.fish.tender!=='object')S.fish.tender=Tender.newState(tenderSeed());else Tender.normState(S.fish.tender);return S.fish.tender}
 const tenderHas=()=>!!(S&&S.fish&&S.fish.tender&&(Tender.active(S.fish.tender)||S.fish.tender.loan||S.fish.tender.season));
@@ -10504,23 +10577,7 @@ const tenderHost=()=>({show:(t,h,b,lock,meta)=>modalSwap(t,tenderArt(meta&&meta.
 const tenderBotHost=()=>({ticket:()=>tenderTicket(),apply:r=>tenderApply(r,true)});
 
 // ---- the off-season ----
-// The "Commercial & crab" sheet is shared with the gillnet, seine and crab adapters (same names and shapes in each branch, so a merge
-// keeps one copy): each pushes one section {id, order, ic, l, short, s(), open(back), on()} into FISH_HUB; fishWinterBtns() is the
-// planner's button (one line in winterModal, 24-career.js). on() (optional) hides a section until it opens: the tender comes later.
-var FISH_HUB=typeof FISH_HUB!=='undefined'&&Array.isArray(FISH_HUB)?FISH_HUB:[];
-var fishHubList=typeof fishHubList==='function'?fishHubList:function(){return FISH_HUB.filter(x=>!x.on||x.on()).sort((a,b)=>a.order-b.order)};
-var fishHubOn=typeof fishHubOn==='function'?fishHubOn:function(){return !!(S&&S.winter&&fishHubList().length)};
-var fishWinterBtns=typeof fishWinterBtns==='function'?fishWinterBtns:function(){
-  const H=fishHubList();if(!fishHubOn()||!H.length) return [];
-  const t=H.map(x=>x.short).join(' · ');
-  return [{l:'⚓ Commercial & crab',s:t.charAt(0).toUpperCase()+t.slice(1)+'. Optional, and risky.',fn:()=>fishHubModal()}];
-};
-var fishHubModal=typeof fishHubModal==='function'?fishHubModal:function(){
-  const back=()=>setTimeout(winterModal,0),again=()=>setTimeout(fishHubModal,0),H=fishHubList();
-  if(H.length===1) return H[0].open(back);
-  modal('⚓ Commercial & crab',`<p style="font-size:13px;color:var(--mute)">Work the water when you are not guiding. Cash ${$(Math.round(S.money))}. ${campDaysLeft()} free day${campDaysLeft()===1?'':'s'} left this winter.</p>`,
-    H.map(x=>({l:`${x.ic} ${x.l}`,s:x.s(),fn:()=>x.open(again)})).concat([{l:'Back to the off-season',fn:back}]));
-};
+// A section of the shared "⚓ Commercial & crab" sheet (41b-fishhub.js): on() hides it until the third off-season.
 FISH_HUB.push({id:'tender',order:4,ic:'⚓',l:'Fish buying & processing',short:'a tender and a plant',on:()=>tenderOn(),
   s:()=>{const st=TND();return Tender.active(st)?`${st.tenders.length} tender${st.tenders.length===1?'':'s'}${st.plant?', your '+st.plant.name:''}${st.loan?`, ${$(st.loan.bal)} owed`:''}.`:'Charter a tender and buy fish from the commercial fleet, then a plant. Big money both ways.'},
   open:back=>{if(!tenderOn()){modal('⚓ Fish buying & processing',`<p>The fleet’s buyers want someone with ${TENDER_UNLOCK} seasons on the water behind them.</p>`,[{l:'Back',fn:()=>back()}]);return}
@@ -10568,18 +10625,17 @@ onNight=function(where,notes,d){
   if(!S.fish||!S.fish.tender||!S.fish.tender.season) return;
   if(tenderToday()){const rep=tenderApply(Tender.opener(tenderTicket(),{self:false}),true);rep.lines.forEach(l=>notes.push(l))}
 };
-// run the tender yourself: a day choice. Your own parties today come first: cancel them, hand them to a guide, or leave the opener to the skipper.
+// run the tender yourself: a day choice. Your own parties today come first (41b-fishhub.js, the same choice for every module): cancel
+// them, hand them to a guide, or leave the opener to the skipper. One commercial activity a day.
 function tenderConflicts(){return todays(day()).filter(b=>!(S.trip&&S.trip.id===b.id))}
 function tenderSelf(){
-  const bs=tenderConflicts();
-  if(bs.length){const b=bs[0],T=TRIPS[b.type],g=typeof canHand==='function'&&canHand(b)&&typeof staffLane==='function'?staffLane(b.d,b.type,null,b):null;
-    modal('⚓ You’re booked today',`<p>The ${b.who} (${b.n}) have a ${T.ic} ${T.n.toLowerCase()} with you at ${fmt(T.start)}. Running the tender takes the whole day.</p>`,[
-      ...(g!=null?[{l:`Hand them to ${staffName(g)}`,s:'Your guide takes the party; you take the tender.',fn:()=>{bizAssign(b.id,g);tenderSelf()}}]:[]),
-      {l:`Cancel on the ${b.who}`,s:`Refund the deposit; reputation −${TENDER_CANCEL_REP}.`,fn:()=>{b.status='cancelled';S.stats.cancelled++;adj('rep',-TENDER_CANCEL_REP);say(`📵 You call the ${b.who} to cancel their ${T.n.toLowerCase()}: the fleet is fishing and your tender needs you. You refund the deposit.`);tenderSelf()}},
-      {l:'Let the skipper run the opener',s:'Keep your party.',fn:()=>{}}]);
-    return}
+  const d=day();if(fishTaken(d,'tender')) return;
+  fishTripsChoice({ic:'⚓',d,what:'run your tender',why:'the fleet is fishing and your tender needs you',go:()=>tenderGo(d),keep:{l:'Let the skipper run the opener',s:'Keep your party.'}});
+}
+function tenderGo(d){
+  fishClaim(d,'tender');
   Tender.ui.opener(tenderHost(),rep=>{
-    if(!rep) return;
+    if(!rep){if(S.fish.today&&S.fish.today.d===d&&S.fish.today.id==='tender')S.fish.today=null;return}
     const end=day()*1440+20*60+30;if(S.t<end)S.t=end;S.loc='shop';   // home by 8:30 PM, after the run to the plant
     sfx(rep.cashDelta>=0?'good':'bad');afterAction();
   });
@@ -10589,9 +10645,9 @@ const _tenderActions=actionsHere;
 actionsHere=function(){
   const a=_tenderActions();
   if(S.winter||S.trip||S.loc!=='shop') return a;
-  const op=tenderToday();if(!op) return a;
+  const op=tenderToday();if(!op||fishTaken(day(),'tender')) return a;
   const late=tod()>TENDER_SELF_BY,bs=tenderConflicts();
-  a.push({ic:'⚓',l:`Run your tender on today’s opener`,s:late?`The boats set at 7 AM: too late to run her yourself today. Your skipper has her.`:`The whole day: you post the price, pick the fish and make the run to the plant. Saves the skipper’s wage; energy −${Tender.data.K.SELF_ENERGY}.${bs.length?` You have ${bs.length} part${bs.length>1?'ies':'y'} booked today.`:''}`,cat:'work',dis:late,fn:()=>tenderSelf()});
+  a.push({ic:'⚓',l:`Run your tender on today’s opener`,s:late?`The boats set at 7 AM: too late to run her yourself today. Your skipper has her.`:`The whole day: you post the price, pick the fish and make the run to the plant. Saves the skipper’s wage; energy −${Tender.data.K.SELF_ENERGY}.${bs.length?` You have ${bs.length} part${bs.length>1?'ies':'y'} booked today.`:''}`,cat:'comm',dis:late,fn:()=>tenderSelf()});
   return a;
 };
 
@@ -10627,9 +10683,8 @@ endRows=function(){
   return rows;
 };
 // ---- the Bookings tab: the business at a glance, during the season ----
-{const bt=EXTRA_TABS.find(t=>t.k==='book');if(bt){const v0=bt.view;bt.view=()=>{
-  const h=v0();if(S.winter||!S.fish||!S.fish.tender||!S.fish.tender.season) return h;
-  try{return h+Tender.ui.tab(tenderTicket())}catch(e){return h}}}}
+FISH_BOOK.push({id:'tender',order:4,view:()=>S.winter||!S.fish||!S.fish.tender||!S.fish.tender.season?'':Tender.ui.tab(tenderTicket())});
+FISH_TODAY.push({id:'tender',order:4,today:()=>{const op=tenderToday();return op?`⚓ your tender${op.tenders.length>1?'s':''} buy${op.tenders.length>1?'':'s'} on today’s opener`:''}});
 // ---- bots and tests ----
 function tenderBot(policy){return Tender.autoplay(tenderBotHost(),{policy:policy||'processor'})}
 window.tenderBot=tenderBot;window.TND=TND;window.tenderTicket=tenderTicket;window.tenderApply=tenderApply;

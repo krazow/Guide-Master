@@ -85,8 +85,11 @@ host = {
 ### The report (engine → host)
 
 `{kind, role, skipped, seine, fish, lbs, price, gross, share, costs:{lease, crew, fuel, ice, gas, repair}, cashDelta, energyDelta, minutes,
-cites:[{what, fine, minor, who}], events:[{id, sev}], lines, kings, xp, mood, quality, status, area}`. The host applies `cashDelta` (all costs
+cites:[{what, fine, minor, who}], events:[{id, sev}], lines, kings, xp, mood, quality, status, area, delivery}`. The host applies `cashDelta` (all costs
 are already in it), `energyDelta`, `minutes`, the citations (through its own rules), and shows `lines`.
+`delivery` (when fish were landed) is `{species:'sockeye', lbs, area:'Upper Cook Inlet…', day (the ticket's `d`), value (the fish ticket),
+share (the part of the ticket that reaches you)}`: a host with its own buyer in that water may buy the fish at its own price and pay
+`(its value − value) × share` on top (Guide Master: `fishDeliver()` in `src/js/41b-fishhub.js`, the tender module).
 
 ### The schedule
 

@@ -11,9 +11,7 @@
 //
 //  Save state: S.fish.crab is the module's own state (opaque here, Crab.normState fills in an older one); S.fish.crab.host holds
 //  this file's own bits: {sore: {s, n}} (mornings of season s that start sore). Old saves have no S.fish: it is made on first use.
-//  Shared with the gillnet and seine adapters (same names and shapes in each branch, so a merge keeps one copy): FISH_HUB (the
-//  sections of the "Commercial & crab" sheet), fishWinterBtns() (the planner's button, called from winterModal in 24-career.js),
-//  fishHubModal().
+//  The "Commercial & crab" sheet, the one-a-day rule and the delivery contract are shared: src/js/41b-fishhub.js.
 // ============================================================
 const CRAB_UNLOCK=2;          // seasons played before the sheet shows (the second off-season)
 const CRAB_SORE=8;            // energy a sore morning costs after an injury on a crab boat
@@ -49,6 +47,9 @@ function crabApply(rep,quiet){
   if(rep.daysUsed>0&&S.winter){campW();S.camp.days=Math.min(KenaiCamp.data.WINTER_DAYS,S.camp.days+rep.daysUsed)}
   if(rep.sore>0&&S.winter) h.sore={s:S.winter.s,n:rep.sore};
   if(rep.minutes>0&&!S.winter) pass(rep.minutes);
+  // the boat's crab to your own floating processor out west, at your own price (41b-fishhub.js, 46-tender.js)
+  const rt=rep.delivery?fishDeliver(rep.delivery):null;
+  if(rt){money(rt.diff);rep.cashDelta=(rep.cashDelta||0)+rt.diff;rep.routed=rt;rep.lines=rep.lines.concat(rt.lines)}
   if(!quiet) rep.lines.forEach(l=>say(l));
   return rep;
 }
@@ -84,22 +85,8 @@ startSeason=function(s){
   _crabStartSeason(s);
 };
 
-// ---- the off-season: the "Commercial & crab" sheet ----
-// Shared with the gillnet and seine branches: each pushes one section {id, order, ic, l, s(), open(back)} into FISH_HUB.
-var FISH_HUB=typeof FISH_HUB!=='undefined'&&Array.isArray(FISH_HUB)?FISH_HUB:[];
-function fishHubOn(){return !!(S&&S.winter&&S.seasons&&S.seasons.length>=CRAB_UNLOCK)}
-function fishWinterBtns(){
-  if(!fishHubOn()||!FISH_HUB.length) return [];
-  const t=FISH_HUB.slice().sort((a,b)=>a.order-b.order).map(x=>x.short).join(' · ');
-  return [{l:'⚓ Commercial & crab',s:t.charAt(0).toUpperCase()+t.slice(1)+'. Optional, and risky.',fn:()=>fishHubModal()}];
-}
-function fishHubModal(){
-  const back=()=>setTimeout(winterModal,0),again=()=>setTimeout(fishHubModal,0),H=FISH_HUB.slice().sort((a,b)=>a.order-b.order);
-  if(H.length===1) return H[0].open(back);
-  modal('⚓ Commercial & crab',`<p style="font-size:13px;color:var(--mute)">Work the water when you are not guiding. Cash ${$(Math.round(S.money))}. ${campDaysLeft()} free day${campDaysLeft()===1?'':'s'} left this winter.</p>`,
-    H.map(x=>({l:`${x.ic} ${x.l}`,s:x.s(),fn:()=>x.open(again)})).concat([{l:'Back to the off-season',fn:back}]));
-}
-FISH_HUB.push({id:'crab',order:3,ic:'🦀',l:'Crabbing',short:'crab pots and a crab boat',
+// ---- the off-season: a section of the shared "⚓ Commercial & crab" sheet (41b-fishhub.js), from the second off-season ----
+FISH_HUB.push({id:'crab',order:3,ic:'🦀',l:'Crabbing',short:'crab pots and a crab boat',on:()=>crabUnlocked(),
   s:()=>`${crabS().gear?'Your pot, for Homer afternoons':'A pot for Homer afternoons'} and winter Tanner days; a deckhand job on a Bering Sea crab boat (${Crab.data.JOB.days} free days).`,
   open:back=>{if(cabin().rolled!==S.winter.s)return homeBeforeCamping(()=>FISH_HUB.find(x=>x.id==='crab').open(back));   // the winter's first storm lands before free days are spent
     crabPrep();Crab.ui.winter(crabHost(),()=>setTimeout(back,0))}});

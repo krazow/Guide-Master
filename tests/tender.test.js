@@ -52,7 +52,7 @@ module.exports = [
     assert.ok(a > 0 && b > a && c > b && d > c, `order ${a} ${b} ${c} ${d}`);
     assert.ok(/const Tender=/.test(fs.readFileSync(path.join(ROOT, 'offline', 'guidemaster-offline.html'), 'utf8')));
     assert.strictEqual(cp.spawnSync('python3', ['tools/build.py', '--check'], { cwd: ROOT }).status, 0);
-    assert.match(fs.readFileSync(path.join(ROOT, 'tools/build.py'), 'utf8'), /\('camp', 'home', 'tender', 'js'\)/);
+    assert.match(fs.readFileSync(path.join(ROOT, 'tools/build.py'), 'utf8'), /\('camp', 'home', 'gillnet', 'seine', 'crab', 'tender', 'js'\)/);
     const md = fs.readFileSync(path.join(DIR, 'README.md'), 'utf8');
     assert.ok(/ticket/i.test(md) && /report/i.test(md) && /SCHEMA/.test(md) && /Facts and estimates/.test(md) && /never ends a career/i.test(md) && /tenderRoute/.test(md) && /delivery/.test(md));
   } },
@@ -268,7 +268,8 @@ module.exports = [
       setPref('years', 10); newGame('normal'); closeModals(); S.money = 150000; S.rep = 70;
       for (let s = 1; s <= 3; s++) { S.cur = s * SEASON - 1; S.t = S.cur * 1440 + 1300; S.loc = 'shop'; S.book.forEach(b => { if (b.status === 'booked') b.status = 'done' }); endDay('home'); await new Promise(r => setTimeout(r, 5)); closeModals(); if (s < 3) { finishWinter(); closeModals() } }
       const out = {}, m0 = S.money;
-      winterModal(); MBTN(MB.findIndex(x => /Commercial & crab/.test(x.l)));
+      winterModal(); MBTN(MB.findIndex(x => /Commercial & crab/.test(x.l))); await new Promise(r => setTimeout(r, 5));
+      out.hubList = MB.map(x => x.l); MBTN(MB.findIndex(x => /Fish buying/.test(x.l))); await new Promise(r => setTimeout(r, 5));   // the shared sheet lists all four by now
       out.planner = document.querySelector('#mbg h2').textContent;
       MBTN(MB.findIndex(x => /^⚓ Tenders/.test(x.l))); MBTN(MB.findIndex(x => /Charter a tender/.test(x.l))); out.areaBtns = MB.map(x => x.l); MBTN(0);
       out.paid = m0 - S.money; out.kind = S.fish.tender.tenders[0].kind; out.sheets = document.querySelectorAll('.modal-bg').length;
@@ -288,7 +289,7 @@ module.exports = [
       out.led = S.fish.tender.season.led.n - led0; out.netNight = S.fish.tender.season.led.net;
       return out;
     });
-    assert.match(r.planner, /Fish buying/); assert.strictEqual(r.paid, 24000); assert.strictEqual(r.kind, 'lease'); assert.ok(r.areaBtns.some(l => /Upper Cook Inlet/.test(l)) && r.areaBtns.some(l => /Kachemak/.test(l)));
+    assert.match(r.planner, /Fish buying/); for (const re of [/Gillnetting/, /Purse seining/, /Crabbing/, /Fish buying/]) assert.ok(r.hubList.some(l => re.test(l)), r.hubList.join(' | ')); assert.strictEqual(r.paid, 24000); assert.strictEqual(r.kind, 'lease'); assert.ok(r.areaBtns.some(l => /Upper Cook Inlet/.test(l)) && r.areaBtns.some(l => /Kachemak/.test(l)));
     assert.ok(r.season && r.bookTab, JSON.stringify(r)); assert.match(r.opDay, /^(Mon|Thu)/); assert.ok(r.morning, 'the morning names the opener');
     assert.ok(r.action && r.late, 'the day choice is on the Here tab until 8 AM'); assert.strictEqual(r.led, 1); assert.ok(r.night, 'the morning report has the skipper’s day');
     noErrors(errors);
@@ -307,7 +308,7 @@ module.exports = [
       const e0 = S.energy, m0 = S.money, r0 = S.rep;
       actionsHere().find(x => /Run your tender/.test(x.l)).fn();
       out.t1 = document.querySelector('#mbg h2').textContent; out.b1 = MB.map(x => x.l);
-      MBTN(MB.findIndex(x => /Cancel on the Testers/.test(x.l)));
+      MBTN(MB.findIndex(x => /^Cancel the trip/.test(x.l)));
       out.t2 = document.querySelector('#mbg h2').textContent; out.b2 = MB.map(x => x.l); MBTN(1);           // +5¢
       out.t3 = document.querySelector('#mbg h2').textContent; MBTN(0);                                      // bled only
       out.t4 = document.querySelector('#mbg h2').textContent; MBTN(0);                                      // run in tonight
@@ -380,7 +381,7 @@ module.exports = [
       setPref('years', 10); newGame('normal'); closeModals();
       const out = {};
       const d = JSON.parse(JSON.stringify(packSave())); delete d.S.fish; const m = migrate(d); const keep = S;
-      S = m.S; try { out.noFish = typeof S.fish; out.parts = scoreParts().length; out.ticket = tenderTicket().state.v; out.has = tenderHas(); out.tab = typeof EXTRA_TABS.find(t => t.k === 'book').view() } finally { S = keep }
+      S = m.S; try { out.noFish = typeof (S.fish && S.fish.tender); /* migrate fills in the gillnet and seine defaults, never the tender's */ out.parts = scoreParts().length; out.ticket = tenderTicket().state.v; out.has = tenderHas(); out.tab = typeof EXTRA_TABS.find(t => t.k === 'book').view() } finally { S = keep }
       const d2 = JSON.parse(JSON.stringify(packSave())); d2.S.fish = { seine: { a: 2 } }; const m2 = migrate(d2);
       S = m2.S; try { TND(); out.seine = S.fish.seine.a; out.both = Object.keys(S.fish).sort().join(',') } finally { S = keep }
       S.cur = 3 * SEASON + 2; S.money = 300000; S.rep = 70;
@@ -390,7 +391,7 @@ module.exports = [
       return out;
     });
     assert.strictEqual(r.noFish, 'undefined'); assert.ok(r.parts > 5); assert.strictEqual(r.ticket, 1); assert.strictEqual(r.has, false); assert.strictEqual(r.tab, 'string');
-    assert.strictEqual(r.seine, 2); assert.strictEqual(r.both, 'seine,tender'); assert.ok(r.mid); assert.strictEqual(r.est, 'number');
+    assert.strictEqual(r.seine, 2); assert.strictEqual(r.both, 'gillnet,seine,tender', 'other keys survive (migrate fills in the gillnet defaults)'); assert.ok(r.mid); assert.strictEqual(r.est, 'number');
     noErrors(errors);
   } },
   { name: 'game: Help has one section for the business, and every number it quotes is the module’s own', fn: async ctx => {

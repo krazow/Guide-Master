@@ -256,8 +256,8 @@ module.exports = [
   } },
   { name: 'help: a Purse seining section; the numbers it quotes are the game’s', fn: async ctx => {
     const { page, errors } = await open(ctx);
-    const r = await page.evaluate(() => { const h = HELP.find(x => x[3] === 'seine'); return { t: h && h[2].replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/\s+/g, ' '), i: HELP.indexOf(h), n: HELP.length, meet: SEINE_MEET, unlock: SEINE_UNLOCK, share: Seine.data.SHARE, open: Seine.data.OPEN, close: Seine.data.CLOSE, days: Seine.data.DAYS } });
-    assert.ok(r.t, 'a section'); assert.strictEqual(r.i, r.n - 2, 'just before Feedback');
+    const r = await page.evaluate(() => { const h = HELP.find(x => x[3] === 'seine'); return { t: h && h[2].replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/\s+/g, ' '), i: HELP.indexOf(h), n: HELP.length, order: HELP.slice(-5).map(x => x[3]), meet: SEINE_MEET, unlock: SEINE_UNLOCK, share: Seine.data.SHARE, open: Seine.data.OPEN, close: Seine.data.CLOSE, days: Seine.data.DAYS } });
+    assert.ok(r.t, 'a section'); assert.deepStrictEqual(r.order, ['gillnet', 'seine', 'crab', 'tender', 'feedback'], 'the commercial sections together, just before Feedback');
     assert.match(r.t, new RegExp(['first', 'second', 'third'][r.unlock - 1] + ' off-season'));
     const sh = r.t.match(/(\d+) to (\d+)%/); assert.deepStrictEqual([+sh[1], +sh[2]], [r.share.green * 100, r.share.hand * 100]);
     assert.strictEqual(r.meet, 360); assert.match(r.t, /by 6:00 AM/); assert.deepStrictEqual([r.open, r.close], [360, 1320]); assert.match(r.t, /6 AM to 10 PM/);

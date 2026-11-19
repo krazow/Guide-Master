@@ -19,7 +19,7 @@
 // ============================================================
 const TENDER_UNLOCK=Tender.data.K.UNLOCK;                // seasons played before the business opens: the off-season after commercial fishing does
 const TENDER_SELF_BY=480;                                // run the tender yourself only if you start by 8:00 AM (the openers run 7 AM to 7 PM)
-const TENDER_CANCEL_REP=5;                               // reputation a party costs you when you cancel on them for an opener
+const TENDER_CANCEL_REP=FISH_CANCEL_REP;                 // reputation a party costs you when you cancel on them for an opener (41b-fishhub.js)
 function tenderSeed(){return Tender.util.hash(S.name||'',S.nextId||0,S.years||0,(S.seasons||[]).length)}
 function TND(){S.fish=S.fish||{};if(!S.fish.tender||typeof S.fish.tender!=='object')S.fish.tender=Tender.newState(tenderSeed());else Tender.normState(S.fish.tender);return S.fish.tender}
 const tenderHas=()=>!!(S&&S.fish&&S.fish.tender&&(Tender.active(S.fish.tender)||S.fish.tender.loan||S.fish.tender.season));
@@ -49,23 +49,7 @@ const tenderHost=()=>({show:(t,h,b,lock,meta)=>modalSwap(t,tenderArt(meta&&meta.
 const tenderBotHost=()=>({ticket:()=>tenderTicket(),apply:r=>tenderApply(r,true)});
 
 // ---- the off-season ----
-// The "Commercial & crab" sheet is shared with the gillnet, seine and crab adapters (same names and shapes in each branch, so a merge
-// keeps one copy): each pushes one section {id, order, ic, l, short, s(), open(back), on()} into FISH_HUB; fishWinterBtns() is the
-// planner's button (one line in winterModal, 24-career.js). on() (optional) hides a section until it opens: the tender comes later.
-var FISH_HUB=typeof FISH_HUB!=='undefined'&&Array.isArray(FISH_HUB)?FISH_HUB:[];
-var fishHubList=typeof fishHubList==='function'?fishHubList:function(){return FISH_HUB.filter(x=>!x.on||x.on()).sort((a,b)=>a.order-b.order)};
-var fishHubOn=typeof fishHubOn==='function'?fishHubOn:function(){return !!(S&&S.winter&&fishHubList().length)};
-var fishWinterBtns=typeof fishWinterBtns==='function'?fishWinterBtns:function(){
-  const H=fishHubList();if(!fishHubOn()||!H.length) return [];
-  const t=H.map(x=>x.short).join(' · ');
-  return [{l:'⚓ Commercial & crab',s:t.charAt(0).toUpperCase()+t.slice(1)+'. Optional, and risky.',fn:()=>fishHubModal()}];
-};
-var fishHubModal=typeof fishHubModal==='function'?fishHubModal:function(){
-  const back=()=>setTimeout(winterModal,0),again=()=>setTimeout(fishHubModal,0),H=fishHubList();
-  if(H.length===1) return H[0].open(back);
-  modal('⚓ Commercial & crab',`<p style="font-size:13px;color:var(--mute)">Work the water when you are not guiding. Cash ${$(Math.round(S.money))}. ${campDaysLeft()} free day${campDaysLeft()===1?'':'s'} left this winter.</p>`,
-    H.map(x=>({l:`${x.ic} ${x.l}`,s:x.s(),fn:()=>x.open(again)})).concat([{l:'Back to the off-season',fn:back}]));
-};
+// A section of the shared "⚓ Commercial & crab" sheet (41b-fishhub.js): on() hides it until the third off-season.
 FISH_HUB.push({id:'tender',order:4,ic:'⚓',l:'Fish buying & processing',short:'a tender and a plant',on:()=>tenderOn(),
   s:()=>{const st=TND();return Tender.active(st)?`${st.tenders.length} tender${st.tenders.length===1?'':'s'}${st.plant?', your '+st.plant.name:''}${st.loan?`, ${$(st.loan.bal)} owed`:''}.`:'Charter a tender and buy fish from the commercial fleet, then a plant. Big money both ways.'},
   open:back=>{if(!tenderOn()){modal('⚓ Fish buying & processing',`<p>The fleet’s buyers want someone with ${TENDER_UNLOCK} seasons on the water behind them.</p>`,[{l:'Back',fn:()=>back()}]);return}
@@ -113,18 +97,17 @@ onNight=function(where,notes,d){
   if(!S.fish||!S.fish.tender||!S.fish.tender.season) return;
   if(tenderToday()){const rep=tenderApply(Tender.opener(tenderTicket(),{self:false}),true);rep.lines.forEach(l=>notes.push(l))}
 };
-// run the tender yourself: a day choice. Your own parties today come first: cancel them, hand them to a guide, or leave the opener to the skipper.
+// run the tender yourself: a day choice. Your own parties today come first (41b-fishhub.js, the same choice for every module): cancel
+// them, hand them to a guide, or leave the opener to the skipper. One commercial activity a day.
 function tenderConflicts(){return todays(day()).filter(b=>!(S.trip&&S.trip.id===b.id))}
 function tenderSelf(){
-  const bs=tenderConflicts();
-  if(bs.length){const b=bs[0],T=TRIPS[b.type],g=typeof canHand==='function'&&canHand(b)&&typeof staffLane==='function'?staffLane(b.d,b.type,null,b):null;
-    modal('⚓ You’re booked today',`<p>The ${b.who} (${b.n}) have a ${T.ic} ${T.n.toLowerCase()} with you at ${fmt(T.start)}. Running the tender takes the whole day.</p>`,[
-      ...(g!=null?[{l:`Hand them to ${staffName(g)}`,s:'Your guide takes the party; you take the tender.',fn:()=>{bizAssign(b.id,g);tenderSelf()}}]:[]),
-      {l:`Cancel on the ${b.who}`,s:`Refund the deposit; reputation −${TENDER_CANCEL_REP}.`,fn:()=>{b.status='cancelled';S.stats.cancelled++;adj('rep',-TENDER_CANCEL_REP);say(`📵 You call the ${b.who} to cancel their ${T.n.toLowerCase()}: the fleet is fishing and your tender needs you. You refund the deposit.`);tenderSelf()}},
-      {l:'Let the skipper run the opener',s:'Keep your party.',fn:()=>{}}]);
-    return}
+  const d=day();if(fishTaken(d,'tender')) return;
+  fishTripsChoice({ic:'⚓',d,what:'run your tender',why:'the fleet is fishing and your tender needs you',go:()=>tenderGo(d),keep:{l:'Let the skipper run the opener',s:'Keep your party.'}});
+}
+function tenderGo(d){
+  fishClaim(d,'tender');
   Tender.ui.opener(tenderHost(),rep=>{
-    if(!rep) return;
+    if(!rep){if(S.fish.today&&S.fish.today.d===d&&S.fish.today.id==='tender')S.fish.today=null;return}
     const end=day()*1440+20*60+30;if(S.t<end)S.t=end;S.loc='shop';   // home by 8:30 PM, after the run to the plant
     sfx(rep.cashDelta>=0?'good':'bad');afterAction();
   });
@@ -134,9 +117,9 @@ const _tenderActions=actionsHere;
 actionsHere=function(){
   const a=_tenderActions();
   if(S.winter||S.trip||S.loc!=='shop') return a;
-  const op=tenderToday();if(!op) return a;
+  const op=tenderToday();if(!op||fishTaken(day(),'tender')) return a;
   const late=tod()>TENDER_SELF_BY,bs=tenderConflicts();
-  a.push({ic:'⚓',l:`Run your tender on today’s opener`,s:late?`The boats set at 7 AM: too late to run her yourself today. Your skipper has her.`:`The whole day: you post the price, pick the fish and make the run to the plant. Saves the skipper’s wage; energy −${Tender.data.K.SELF_ENERGY}.${bs.length?` You have ${bs.length} part${bs.length>1?'ies':'y'} booked today.`:''}`,cat:'work',dis:late,fn:()=>tenderSelf()});
+  a.push({ic:'⚓',l:`Run your tender on today’s opener`,s:late?`The boats set at 7 AM: too late to run her yourself today. Your skipper has her.`:`The whole day: you post the price, pick the fish and make the run to the plant. Saves the skipper’s wage; energy −${Tender.data.K.SELF_ENERGY}.${bs.length?` You have ${bs.length} part${bs.length>1?'ies':'y'} booked today.`:''}`,cat:'comm',dis:late,fn:()=>tenderSelf()});
   return a;
 };
 
@@ -172,9 +155,8 @@ endRows=function(){
   return rows;
 };
 // ---- the Bookings tab: the business at a glance, during the season ----
-{const bt=EXTRA_TABS.find(t=>t.k==='book');if(bt){const v0=bt.view;bt.view=()=>{
-  const h=v0();if(S.winter||!S.fish||!S.fish.tender||!S.fish.tender.season) return h;
-  try{return h+Tender.ui.tab(tenderTicket())}catch(e){return h}}}}
+FISH_BOOK.push({id:'tender',order:4,view:()=>S.winter||!S.fish||!S.fish.tender||!S.fish.tender.season?'':Tender.ui.tab(tenderTicket())});
+FISH_TODAY.push({id:'tender',order:4,today:()=>{const op=tenderToday();return op?`⚓ your tender${op.tenders.length>1?'s':''} buy${op.tenders.length>1?'':'s'} on today’s opener`:''}});
 // ---- bots and tests ----
 function tenderBot(policy){return Tender.autoplay(tenderBotHost(),{policy:policy||'processor'})}
 window.tenderBot=tenderBot;window.TND=TND;window.tenderTicket=tenderTicket;window.tenderApply=tenderApply;
