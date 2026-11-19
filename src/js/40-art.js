@@ -2,24 +2,28 @@
 //  GUIDE MASTER, part 18: illustrations (the art registry).
 //  Optional raster illustrations that can sit on top of a screen: the Home tab and the fall cabin sheet (set "cabin"), the trip
 //  sheet (set "boat"), the winter-camping screens (set "camp") and event pop-ups / the morning report (set "event").
-//  EVERY image ships switched off. With no enabled entry, every hook below returns '' and the screen is exactly what it was
-//  before; callers never need an "if". See art/README.md for how to add a set (tools/art.py import → review → enable → test).
+//  With no enabled entry, or Settings → Illustrations off, every hook below returns '' and the screen is exactly what it was
+//  without art; callers never need an "if". See art/README.md for how to add a set (tools/art.py import → review → enable → test)
+//  and for the display rules (where each picture sits, how big, how often, alt text).
 //
-//  ART.register(entry)        add or replace one manifest entry {id, set, file, fw?, thumb?, webp?, thumbWebp?, v?, w, h, alt, when, enabled}
+//  ART.register(entry)        add or replace one manifest entry {id, set, file, fw?, thumb?, webp?, thumbWebp?, v?, w, h, alt, when, enabled,
+//                             focus? (object-position, "50% 70%"), bg? (the placeholder color, "#8a9ba3")}
 //                             (webp: the full picture, w x h; file: the JPEG fallback, fw wide (960); thumb/thumbWebp: 400 wide)
 //                             (enabled is false unless it is exactly true). Returns the stored entry, or null if it is unusable.
-//  artFor(set, ctx)           the best ENABLED entry of a set whose `when` matches ctx, or null (the caller keeps its SVG art).
+//  artFor(set, ctx, o)        the best ENABLED entry of a set whose `when` matches ctx, or null (the caller keeps its SVG art).
 //                             Every key in `when` must match; the score is the number of keys that matched something specific
 //                             ("any" matches but scores 0). Ties are broken by a stable hash of the day and the set, so a scene
 //                             doesn't flicker between renders of the same day.
-//  artImg(entry)              the <figure><picture><source webp><img jpeg></picture></figure> HTML (alt, width/height, lazy, async decode,
+//  artImg(entry, o)           the <figure><picture><source webp><img jpeg></picture></figure> HTML (alt, width/height, lazy, async decode,
 //                             srcset thumb 400w + full; the WebP source first, the small JPEG as the fallback)
-//  artSlot(set, ctx)          artImg(artFor(set, ctx)) or '' (never throws)
+//  artSlot(set, ctx, o)       artImg(artFor(set, ctx, o), o) or '' (never throws); o: {rest, key, deco} (the display rules below)
 //  artCabinCtx(), artBoatCtx(b, where), artCampCtx(session, extra), artEventCtx(id, from)
 //                             build a ctx from the game's state (the keys are listed in ART.KEYS and art/README.md).
 //                             from is where an event id comes from: 'game' (defEvent), 'home' (CabinUpkeep.EVENTS), 'camp', 'trip' (a STEP id)
-//  artNarr(set, ctx)          a picture over the Here tab's narration until the next tap (arriving at a launch: artLaunch; a repair: artShop)
-//  artMorning(D)              the morning report's pictures: {top, night} (the cabin's and the game's events, the night's; your guides' trips)
+//  artNarr(set, ctx, o)       the Here tab's picture (in the scene, artScene) until the next tap (arriving at a launch: artLaunch; a repair:
+//                             artShop; a day-time event with no pop-up: artNarrEvent)
+//  artMorning(D)              the morning report's one picture: {top, night} (the cabin's and the game's events, the night's; else your guides' trips)
+//  artScene()                 the picture in the drawn scene's slot at the top of a tab: the Home tab's cabin, the Here tab's narration picture
 //
 //  The manifest is art/manifest.json, embedded here by tools/build.py between the markers below. The images stay separate files
 //  under art/ (cached on first use by sw.js, never precached) and are left out of the single-file offline build
@@ -64,7 +68,7 @@ const ART=(()=>{
   // a small stable string hash (FNV-1a)
   function hash(str){let h=0x811c9dc5;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,0x01000193)>>>0}return h>>>0}
   function pick(set,ctx,opts){
-    const c=ALL.filter(e=>e.set===set&&(e.enabled||(opts&&opts.all)));
+    const c=ALL.filter(e=>e.set===set&&(e.enabled||(opts&&opts.all))&&!(opts&&opts.skip&&opts.skip(e)));
     let best=-1,top=[];
     c.forEach(e=>{const s=score(e,ctx||{});if(s<0)return;if(s>best){best=s;top=[e]}else if(s===best)top.push(e)});
     if(!top.length) return null;
@@ -83,49 +87,95 @@ ART_MANIFEST.forEach(e=>ART.register(e));
 // Settings → Illustrations (on by default; the switch only shows once an image is enabled)
 const artPref=()=>prefs().art!==false;
 const artOn=()=>ART.any()&&artPref();
-let ART_NARR=null;   // the Here tab's picture: {html, narr}, shown above the narration it came with (a new narration, uiNarr=[], drops it)
-function artFor(set,ctx){
+let ART_NARR=null;   // the Here tab's picture: {html, narr, ev}, shown in the scene while the narration it came with lasts (a new narration, uiNarr=[], drops it)
+
+// ---- display rules (art/README.md, "How pictures are shown") ----
+// Rest: a routine scene (the boat at the launch, on the first trip step, at the dock, at the shop, your guides' trips) doesn't come back
+// for ART_REST days once it was shown on another screen; the next-best picture that isn't resting shows instead, or none. Event
+// pictures always show for their event (they are rare), and every picture shown (the Home tab's too) counts as seen, so the same
+// drawing (the combat-fishing and bear incidents share theirs with the boat set) never shows on two screens in a row.
+const ART_REST=3;
+const ART_SEEN=new Map();     // file → {d: the game day it was last shown, k: the screen it was shown on}
+const ART_LOADED=new Set();   // ids already decoded this session: drawn again (a redraw) without the fade
+const artKey=e=>e.webp||e.file;
+const artDayN=()=>S?(S.winter?100000+S.winter.s:day()):0;
+const artResting=(e,key)=>{const s=ART_SEEN.get(artKey(e));return !!s&&s.k!==key&&artDayN()-s.d<ART_REST};
+function artFor(set,ctx,o){
   if(!artOn()) return null;
   const c=Object.assign({},ctx);
   if(c.seed==null) c.seed=S?(S.winter?'w'+S.winter.s:day()):0;   // the same scene all day; a new pick tomorrow
-  return ART.pick(set,c);
+  const skip=o&&(o.rest||o.avoid)?e=>(o.avoid&&o.avoid.has(artKey(e)))||(o.rest&&artResting(e,o.key)):null;
+  return ART.pick(set,c,skip?{skip}:null);
 }
 // the image's address: files are relative to art/ (data:, blob: and http(s): addresses pass through, for tests and inlined builds)
 const artUrl=(f,v)=>/^(data:|blob:|https?:)/.test(f)?f:`art/${f}${v?`?v=${encodeURIComponent(v)}`:''}`;
 const artSaveData=()=>{try{return !!(navigator.connection&&navigator.connection.saveData)}catch(e){return false}};
-function artImg(e){
+// o.deco: the text right below already says what the picture shows (an event): alt="" and hidden from screen readers
+function artImg(e,o){
   if(!e) return '';
-  const lite=artSaveData()&&e.thumb,full=artUrl(e.file,e.v),th=e.thumb?artUrl(e.thumb,e.v):'';
-  const sizes='(max-width: 520px) 100vw, 480px';
+  const lite=artSaveData()&&e.thumb,full=artUrl(e.file,e.v),th=e.thumb?artUrl(e.thumb,e.v):'',deco=!!(o&&o.deco);
+  const sizes='(max-width: 480px) 100vw, 480px';
   const set=(f,t,w)=>t?`${t} 400w, ${f} ${w}w`:`${f} ${w}w`;
   const src=lite?th:full,srcset=lite?'':` srcset="${esc(set(full,th,e.fw||e.w))}" sizes="${sizes}"`;
   const webp=e.webp&&!lite?`<source type="image/webp" srcset="${esc(set(artUrl(e.webp,e.v),e.thumbWebp?artUrl(e.thumbWebp,e.v):'',e.w))}" sizes="${sizes}">`:
     e.thumbWebp&&lite?`<source type="image/webp" srcset="${esc(artUrl(e.thumbWebp,e.v))}">`:'';
-  const img=`<img class="art-img" src="${esc(src)}"${srcset} alt="${esc(e.alt||'')}" width="${e.w}" height="${e.h}" loading="lazy" decoding="async" style="object-fit:cover">`;
-  return `<figure class="art-fig" data-art="${esc(e.id)}">${webp?`<picture>${webp}${img}</picture>`:img}</figure>`;
+  const pos=typeof e.focus==='string'&&/^\d{1,3}% \d{1,3}%$/.test(e.focus)?`;object-position:${e.focus}`:'';
+  const bg=typeof e.bg==='string'&&/^#[0-9a-f]{6}$/i.test(e.bg)?` style="background:${e.bg}"`:'';
+  const img=`<img class="art-img" src="${esc(src)}"${srcset} alt="${deco?'':esc(e.alt||'')}" width="${e.w}" height="${e.h}" loading="lazy" decoding="async" style="object-fit:cover${pos}">`;
+  return `<figure class="art-fig" data-art="${esc(e.id)}"${ART_LOADED.has(e.id)?' data-ld="1"':''}${deco?' aria-hidden="true"':''}${bg}>${webp?`<picture>${webp}${img}</picture>`:img}</figure>`;
 }
-function artSlot(set,ctx){if(!artOn())return '';try{return artImg(artFor(set,typeof ctx==='function'?ctx():ctx))}catch(err){return ''}}   // pass ctx as a function: it is only built when art is on
-function artNarr(set,ctx){const html=artOn()?artSlot(set,ctx):'';ART_NARR=html?{html,narr:uiNarr}:null}
+// fade in once decoded (CSS: .art-fig[data-ld]); a picture that can't load (offline, not cached yet) takes its box away
+if(typeof document!=='undefined'){
+  const fig=t=>t&&t.classList&&t.classList.contains('art-img')?t.closest('.art-fig'):null;
+  document.addEventListener('load',ev=>{const f=fig(ev.target);if(f){f.dataset.ld='1';ART_LOADED.add(f.dataset.art)}},true);
+  document.addEventListener('error',ev=>{const f=fig(ev.target);if(f)f.dataset.err='1'},true);
+}
+// artSlot(set, ctx, o): the picture's HTML or '' (never throws). ctx can be a function: it is only built when art is on.
+// o: {rest, key, avoid, deco, peek}. Every picture handed out counts as seen (o.key names the screen; peek: just look).
+function artSlot(set,ctx,o){
+  if(!artOn())return '';
+  try{const e=artFor(set,typeof ctx==='function'?ctx():ctx,o);if(!e)return '';
+    if(!(o&&o.peek))ART_SEEN.set(artKey(e),{d:artDayN(),k:o&&o.key||''});
+    return artImg(e,o)}catch(err){return ''}
+}
+// the first of several candidates that has a picture (each is a function: later ones are never looked at, so never marked seen)
+function artFirst(list){for(const f of list){const h=f();if(h)return h}return ''}
+let ART_NARR_N=0;
+function artNarr(set,ctx,o){const html=artOn()?artSlot(set,ctx,Object.assign({key:'narr:'+(++ART_NARR_N)},o)):'';ART_NARR=html?{html,narr:uiNarr,ev:set==='event'}:null}
 const artNarrHTML=()=>ART_NARR&&ART_NARR.narr===uiNarr&&artOn()?ART_NARR.html:'';
+// the drawn scene's slot at the top of a tab (05-ui.js render): the Home tab's cabin, or the Here tab's picture while its narration lasts
+function artScene(){
+  if(!artOn()||!S) return '';
+  if(tab==='home') return artSlot('cabin',artCabinCtx,{key:'home'});
+  return tab==='act'&&uiNarr.length?artNarrHTML():'';
+}
+// a day-time event that showed no OK pop-up (Settings → Event pop-ups off, or today's one already used): its picture over the narration
+function artNarrEvent(ids){
+  if(!artOn()||!S||S.winter||!ids.length) return;
+  const html=artFirst(ids.map(id=>()=>artSlot('event',()=>artEventCtx(id,'game'),{deco:true,key:'narr:'+(ART_NARR_N+1)})));
+  if(html){ART_NARR_N++;ART_NARR={html,narr:uiNarr,ev:true}}
+}
 // a repair, a service, the patch or a loaner (20-world.js): the boat as it came in (cond0, before the work), at the shop or a launch
-function artShop(cond0,b,where){artNarr('boat',()=>Object.assign(artBoatCtx(b,where||(S.loc==='shop'?'shop':'launch')),{cond:Math.round(cond0)}))}
-// arriving where one of today's trips launches (21-story.js onArrive): the trailer at the ramp, or the harbor
+function artShop(cond0,b,where){artNarr('boat',()=>Object.assign(artBoatCtx(b,where||(S.loc==='shop'?'shop':'launch')),{cond:Math.round(cond0)}),{rest:true})}
+// arriving where one of today's trips launches (21-story.js onArrive): the trailer at the ramp, or the harbor (an event on the road wins)
 function artLaunch(dest){
   if(!artOn()||!S||S.winter) return;
+  if(ART_NARR&&ART_NARR.ev&&ART_NARR.narr===uiNarr) return;
   const b=todays().find(x=>TRIPS[x.type].loc===dest&&tod()<=TRIPS[x.type].start+90);
-  if(b) artNarr('boat',()=>artBoatCtx(b,dest==='homer'?'harbor':['launch','trailer']));
+  if(b) artNarr('boat',()=>artBoatCtx(b,dest==='homer'?'harbor':['launch','trailer']),{rest:true});
 }
-// the morning report: a picture on top (the cabin's mishaps first, then the morning's events, the cabin's news, the night's events),
-// and one over your guides' trips in the night section
+// the morning report: one picture. The cabin's mishaps first, then the morning's events, the cabin's news, the night's events (on top);
+// with none of those, your guides' trips (above the first line about them, in the night section; a routine scene, so it rests)
 function artMorning(D){
   const out={top:'',night:D.night};
   if(!artOn()) return out;
-  const H=(D.home||[]).map((e,i)=>({e,i})).sort((a,b)=>(b.e.sev||0)-(a.e.sev||0)||a.i-b.i).map(x=>x.e);
-  const home=f=>H.filter(f).map(e=>artSlot('event',()=>artEventCtx(e.id,'home')));
-  out.top=[...home(e=>e.sev>0),...D.items.map(it=>it.id?artSlot('event',()=>artEventCtx(it.id,'game')):''),...home(e=>!e.sev),
-    ...(D.nightIds||[]).map(id=>artSlot('event',()=>Object.assign(artEventCtx(id,'game'),{time:'night'})))].find(Boolean)||'';
+  const H=(D.home||[]).map((e,i)=>({e,i})).sort((a,b)=>(b.e.sev||0)-(a.e.sev||0)||a.i-b.i).map(x=>x.e),o={deco:true,key:'morning'};
+  const home=f=>H.filter(f).map(e=>()=>artSlot('event',()=>artEventCtx(e.id,'home'),o));
+  out.top=artFirst([...home(e=>e.sev>0),...D.items.filter(it=>it.id).map(it=>()=>artSlot('event',()=>artEventCtx(it.id,'game'),o)),...home(e=>!e.sev),
+    ...(D.nightIds||[]).map(id=>()=>artSlot('event',()=>Object.assign(artEventCtx(id,'game'),{time:'night'}),o))]);
+  if(out.top) return out;
   const sb=S.book.find(b=>b.asst&&b.d===D.from&&b.status==='done'),at=sb?D.night.indexOf('<p>🧑‍🤝‍🧑'):-1;
-  const sa=at>=0?artSlot('boat',()=>Object.assign(artBoatCtx(sb,'staff'),{time:'day'})):'';
+  const sa=at>=0?artSlot('boat',()=>Object.assign(artBoatCtx(sb,'staff'),{time:'day'}),{rest:true,key:'morning'}):'';
   if(sa) out.night=D.night.slice(0,at)+sa+D.night.slice(at);
   return out;
 }

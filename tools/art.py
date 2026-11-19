@@ -14,6 +14,8 @@ Usage:
   python3 tools/art.py disable cabin-03 | cabin ...     ... or off
   python3 tools/art.py remove  cabin-03 | cabin ...     drop entries from the manifest (and their files from art/)
   python3 tools/art.py list                             one line per entry
+  python3 tools/art.py colors                           recompute each entry's placeholder color (bg, the thumb's average; import
+                                                        sets it too). Needs Pillow
   python3 tools/art.py validate [--strict]              files exist, sizes, alt text, when-keys and values known to the game
 Put --root DIR before the command to work on another copy of the repo (a scratch checkout, say). After enable/disable, run
 python3 tools/build.py so index.html picks up the change.
@@ -54,7 +56,9 @@ FIXED = {
 RANGES = {'cabin.cond', 'boat.cond'}
 BUDGET_IMG, BUDGET_SET = 150 * 1024, 2 * 1024 * 1024   # bytes per full WebP; bytes per set, every file counted
 FULL, FALLBACK, THUMB = (1600, 900), (960, 540), (400, 225)
-TOP = {'id', 'set', 'n', 'title', 'file', 'fw', 'thumb', 'webp', 'thumbWebp', 'v', 'w', 'h', 'alt', 'where', 'when', 'notes', 'meta', 'enabled'}
+TOP = {'id', 'set', 'n', 'title', 'file', 'fw', 'thumb', 'webp', 'thumbWebp', 'v', 'w', 'h', 'alt', 'where', 'when', 'notes', 'meta', 'enabled', 'focus', 'bg'}
+FOCUS_RE = re.compile(r'^\d{1,3}% \d{1,3}%$')   # object-position: "50% 70%" keeps a low subject in the banner
+BG_RE = re.compile(r'^#[0-9a-f]{6}$')
 FILES = ('webp', 'file', 'thumbWebp', 'thumb')
 
 
@@ -169,6 +173,14 @@ def encode(png, thumb_png, dest, stem, q, jq):
     return out
 
 
+def avg_color(path):
+    """The picture's average color, "#rrggbb": the placeholder the game paints while the image loads."""
+    Image = pillow()
+    with Image.open(path) as im:
+        r, g, b = im.convert('RGB').resize((1, 1), getattr(Image, 'Resampling', Image).BOX).getpixel((0, 0))
+    return f'#{r:02x}{g:02x}{b:02x}'
+
+
 def load(root):
     p = os.path.join(root, 'art', 'manifest.json')
     if not os.path.exists(p): return []
@@ -214,6 +226,9 @@ def cmd_import(a):
              'w': FULL[0], 'h': FULL[1], 'alt': e.get('alt', ''), 'where': e.get('where', ''),
              'when': e.get('when', {}), 'notes': e.get('notes', '')}
         if 'meta' in e: x['meta'] = e['meta']
+        foc = e.get('focus') or (have.get(e['id']) or {}).get('focus')   # the drawn set's, else the one set here before
+        if foc: x['focus'] = foc
+        x['bg'] = avg_color(os.path.join(dest, stem + '.thumb.webp'))
         x['v'] = digest([os.path.join(a.root, 'art', x[k]) for k in FILES])
         old = have.get(x['id'])
         x['enabled'] = True if a.enable else bool(old and old.get('enabled') is True)
@@ -253,6 +268,17 @@ def cmd_remove(a):
     return 0
 
 
+def cmd_colors(a):
+    """Recompute every entry's placeholder color (bg) from its thumb (needs Pillow)."""
+    es = load(a.root)
+    for e in es:
+        p = os.path.join(a.root, 'art', e.get('thumbWebp') or e.get('thumb') or e['file'])
+        if os.path.exists(p): e['bg'] = avg_color(p)
+    save(a.root, es)
+    print(f'placeholder colors for {len(es)} entries. Now run: python3 tools/build.py')
+    return 0
+
+
 def cmd_list(a):
     for e in load(a.root):
         print(f'{"ON " if e.get("enabled") else "off"} {e["id"]:<16} {e.get("file", ""):<36} {json.dumps(e.get("when", {}), ensure_ascii=False)}')
@@ -272,6 +298,8 @@ def validate(root, strict, only=None):
         if not isinstance(e.get('enabled', False), bool): errs.append(f'{i}: enabled must be true or false')
         extra = sorted(set(e) - TOP)
         if extra: warns.append(f'{i}: unknown entry keys {extra} (notes and meta are the places for anything else)')
+        if 'focus' in e and not (isinstance(e['focus'], str) and FOCUS_RE.match(e['focus'])): errs.append(f'{i}: focus must be "X% Y%" (object-position), got {e["focus"]!r}')
+        if 'bg' in e and not (isinstance(e['bg'], str) and BG_RE.match(e['bg'])): errs.append(f'{i}: bg must be a color "#rrggbb", got {e["bg"]!r}')
         alt = (e.get('alt') or '').strip()
         if not alt: errs.append(f'{i}: no alt text')
         elif len(alt) > 250: warns.append(f'{i}: alt text is long ({len(alt)} characters); one sentence is plenty')
@@ -340,6 +368,7 @@ def main():
     for c in ('enable', 'disable', 'remove'):
         sub.add_parser(c).add_argument('names', nargs='+')
     sub.add_parser('list')
+    sub.add_parser('colors')
     sub.add_parser('events')
     sub.add_parser('validate').add_argument('--strict', action='store_true')
     a = ap.parse_args()
@@ -349,6 +378,7 @@ def main():
     if a.cmd == 'disable': return cmd_toggle(a, False)
     if a.cmd == 'remove': return cmd_remove(a)
     if a.cmd == 'list': return cmd_list(a)
+    if a.cmd == 'colors': return cmd_colors(a)
     if a.cmd == 'events': return cmd_events(a)
     return validate(a.root, a.strict)
 

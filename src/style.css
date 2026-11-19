@@ -207,9 +207,23 @@ button.act,.ghost,.big{min-height:44px}
 .digest .dig .di{font-size:22px;line-height:1.2}
 .digest .dig p{margin:3px 0 0;font-size:14px}
 .digest .sect{margin-top:10px}
-/* illustrations (40-art.js): a 2:1 banner cropped from the 16:9 art, a soft sky-colored placeholder while it loads */
-.art-fig{margin:0 0 10px;border-radius:12px;overflow:hidden;aspect-ratio:2/1;background:linear-gradient(#cfdfe3,#e7ece2)}
+/* illustrations (40-art.js; art/README.md "How pictures are shown"). The 16:9 art is cropped to a banner whose height is reserved
+   before the image arrives (no layout shift): half the column's width (2:1), at most 30% of the screen's height so the text and the
+   buttons stay in view; 16:9 on tall, wide screens (tablets). The placeholder is the picture's own average color (inline), the image
+   fades in once decoded (not with reduced motion, and not again on a redraw), and a picture that can't load takes its box away. */
+:root{--art-w:min(100vw,480px);--art-h:min(calc(var(--art-w) * .5),30vh)}
+@media (min-width:600px) and (min-height:900px){:root{--art-h:min(calc(var(--art-w) * .5625),30vh)}}
+.art-fig{margin:0 0 10px;border-radius:12px;overflow:hidden;aspect-ratio:2/1;max-height:30vh;background:#cfdfe3}
 .art-fig picture{display:contents}
-.art-fig img{display:block;width:100%;height:100%;object-fit:cover}
-.modal .art-fig{margin:0 0 10px}
-@media (prefers-color-scheme:dark){.art-fig{background:linear-gradient(#22313a,#1d2e22)}.art-fig img{filter:brightness(.86) saturate(.95)}}
+.art-fig img{display:block;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .45s ease-out}
+.art-fig[data-ld] img{opacity:1}
+.art-fig[data-err]{display:none}
+/* a sheet: a full-bleed banner above the title (02-kit.js sheetHTML lifts it there) */
+.modal>.art-fig:first-child{margin:-20px -18px 14px;border-radius:0;aspect-ratio:auto;max-height:none;height:var(--art-h)}
+/* a tab: the picture takes the drawn scene's place, at the banner's height; the place's name moves to the sky, one line */
+.scene>.art-fig{position:absolute;inset:0;margin:0;border-radius:0;aspect-ratio:auto;max-height:none;height:100%}
+.scene:has(>.art-fig){height:var(--art-h)}
+.scene:has(>.art-fig) .place{top:10px;bottom:auto;padding:4px 10px;box-shadow:0 1px 4px rgba(0,0,0,.18)}
+.scene:has(>.art-fig) .place h2{font-size:16px}.scene:has(>.art-fig) .place div{display:none}
+@media (prefers-reduced-motion:reduce){.art-fig img{transition:none}}
+@media (prefers-color-scheme:dark){.art-fig{background:#22313a;filter:brightness(.86) saturate(.95)}}

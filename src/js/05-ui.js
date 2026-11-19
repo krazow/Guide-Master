@@ -28,7 +28,7 @@ function render(){
   let h=hud();
   const al=typeof alertBar==='function'?alertBar():null;
   if(al) h+=`<div class="alertbar ${al.kind||''}">${al.t}</div>`;
-  h+=`<div class="scene">${sceneSVG()}<div class="place"><h2>${loc.ic} ${loc.name}</h2><div>${loc.desc||''}${loc.hours?' · '+hoursTxt(S.loc):''}</div></div></div>`;
+  h+=`<div class="scene">${sceneSVG()}${artScene()}<div class="place"><h2>${loc.ic} ${loc.name}</h2><div>${loc.desc||''}${loc.hours?' · '+hoursTxt(S.loc):''}</div></div></div>`;
   const xt=(EXTRA_TABS||[]).find(t=>t.k===tab);
   h+=`<div class="content">${tab==='act'?actView():tab==='todo'?todoView():tab==='log'?logView():xt?xt.view():actView()}</div>`;
   const pending=todoItems().filter(x=>x.urgent&&!x.ok).length,tabs=allTabs();
@@ -44,7 +44,7 @@ let ACTS=[];
 function actView(){
   ACTS=[];
   let h=tipView();
-  if(uiNarr.length) h+=`${artNarrHTML()}<div class="narr">${uiNarr.slice(-4).map(s=>'<p>'+s+'</p>').join('')}</div>`;
+  if(uiNarr.length) h+=`<div class="narr">${uiNarr.slice(-4).map(s=>'<p>'+s+'</p>').join('')}</div>`;
   const tags=typeof statusTags==='function'?statusTags():[];
   if(tags.length) h+=`<div class="status">${tags.join('')}</div>`;
   const acts=actionsHere().filter(Boolean);

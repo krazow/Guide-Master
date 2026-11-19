@@ -52,6 +52,7 @@ function fireHook(hook,ctx={}){
     res=res||r;
   }
   eventPopup(hook,popItems,capped);
+  if(popItems.length&&hook!=='night'&&!DIGEST&&!(popupsOn()&&!capped)) artNarrEvent(popItems.map(it=>it.e.id));   // 40-art.js: no pop-up, so its picture goes over the narration
   return res;
 }
 // ---- OK pop-up for events (on by default; Settings → Event pop-ups) ----
@@ -70,6 +71,6 @@ function eventPopup(hook,items,capped){
   const body=items.map(it=>{const m=meta(it.e);const txt=it.lines.map(l=>`<p style="margin:4px 0 0">${l}</p>`).join('');
     return items.length>1?`<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)"><span style="font-size:24px">${m[0]}</span><div><b>${m[1]}</b>${txt}</div></div>`:txt}).join('');
   const one=items.length===1?meta(items[0].e):null;
-  const art=artOn()?items.map(it=>artSlot('event',()=>artEventCtx(it.e.id,'game'))).find(Boolean)||'':'';   // 40-art.js: the first event with an illustration
+  const art=artOn()?artFirst(items.map(it=>()=>artSlot('event',()=>artEventCtx(it.e.id,'game'),{deco:true}))):'';   // 40-art.js: the first event with an illustration
   modal(one?`${one[0]} ${one[1]}`:'📍 Meanwhile…',art+(body||'<p></p>'),[{l:'OK',fn:()=>{}}]);
 }

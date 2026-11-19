@@ -26,7 +26,8 @@
   },
   "notes": "time 'dusk' = the game's dawn/dusk sky window (SCENE: sunrise-30 to sunrise+60 min, i.e. 4:30-6:00 AM), which the 6 AM sockeye start touches. Clean boat, so cond above the first warning tier (boatTier 0, >40). People redrawn in three-quarter/side view (nose, eye, shaded back) for readability.",
   "v": "50dfa4278f",
-  "enabled": true
+  "enabled": true,
+  "bg": "#857f8e"
  },
  {
   "id": "boat-02-sockeye-seam-crowd",
@@ -55,7 +56,8 @@
   },
   "notes": "Combat fishing: the crowd is drawn as batched mini figures. Sockeye drawn chrome-silver (fresh July reds). People redrawn in three-quarter/side view (nose, eye, shaded back) for readability.",
   "v": "0090de2221",
-  "enabled": true
+  "enabled": true,
+  "bg": "#7ba8ab"
  },
  {
   "id": "boat-03-drift-boat-upper-kenai",
@@ -84,7 +86,8 @@
   },
   "notes": "Matches the 'beads' and 'streamers' tactics; the bear echoes the Cooper Landing place art. A variant with up:['drift'] could add a fresh hull.",
   "v": "800cd0d73e",
-  "enabled": true
+  "enabled": true,
+  "bg": "#6ca39c"
  },
  {
   "id": "boat-04-charter-leaving-homer",
@@ -113,7 +116,8 @@
   },
   "notes": "Halibut trips ignore S.boat (the charter is not your sled/drift boat), hence cond 0-100. time 'dusk' = the game's dawn window. Polished: the glaciers across Kachemak Bay are now valley glaciers (cirque under the ridge, tongue with crevasses, lateral and medial moraines, blue-white shading).",
   "v": "7f2adfa95d",
-  "enabled": true
+  "enabled": true,
+  "bg": "#878796"
  },
  {
   "id": "boat-05-halibut-slack-tide",
@@ -142,7 +146,8 @@
   },
   "notes": "Open water on Cook Inlet. SPEC2 has no 'sea' value, so where stays 'river' (= out on the water fishing) and trip:'halibut' tells it apart from river trips.",
   "v": "c0e7327aaf",
-  "enabled": true
+  "enabled": true,
+  "bg": "#96b2bf"
  },
  {
   "id": "boat-06-trailer-soldotna-launch",
@@ -173,7 +178,8 @@
   },
   "notes": "Fog keeps it early-morning without needing the dawn palette. Not for players with the 'dock' upgrade (own private launch) if you want to be strict.",
   "v": "3d479d7df1",
-  "enabled": true
+  "enabled": true,
+  "bg": "#aebab6"
  },
  {
   "id": "boat-07-shop-repair-worn-sled",
@@ -201,7 +207,9 @@
   },
   "notes": "cond 0-20 matches boatTier 2+ ('runs rough', 'one or two more trips', 'out of service'). Window shows July green, not snow.",
   "v": "fd58792b11",
-  "enabled": true
+  "enabled": true,
+  "bg": "#715d48",
+  "focus": "50% 70%"
  },
  {
   "id": "boat-08-new-sled-at-dock",
@@ -231,7 +239,8 @@
   },
   "notes": "No canopy/heater in UPGRADES, so the upgrade shows as the new hull, white outboard and a five-rod rack.",
   "v": "e59791849c",
-  "enabled": true
+  "enabled": true,
+  "bg": "#79a5a8"
  },
  {
   "id": "boat-09-coast-guard-tow-dusk",
@@ -259,7 +268,8 @@
   },
   "notes": "Painted at dusk as asked, but in-game tows land about 2 PM (sockeye) or 8 PM (silver), so time is 'any'. The Homer charter tow (hfuel) would need a charter variant.",
   "v": "a3f079b284",
-  "enabled": true
+  "enabled": true,
+  "bg": "#7f6f7f"
  },
  {
   "id": "boat-10-outfit-busy-launch",
@@ -287,7 +297,9 @@
   },
   "notes": "Morning report section for your hired guides' trips (S.biz.boats non-empty or S.up.asst). Three hired guides max (BIZ), two extra boats max (BIZ_MAX_BOATS): the picture shows two sleds and a drift boat.",
   "v": "230fbf8856",
-  "enabled": true
+  "enabled": true,
+  "bg": "#8ba6a5",
+  "focus": "50% 75%"
  },
  {
   "id": "boat-11-combat-fishing-big-eddy",
@@ -311,7 +323,8 @@
   },
   "notes": "Also the art for event {event:'combat', from:'trip'} (dilemma 'combat' in 22-trips.js POOL reds/trout): the framework can register this same file in the event set, so the event agent need not draw it. The wader's legs are clipped at the waterline with a faint submerged ghost.",
   "v": "79f60e811d",
-  "enabled": true
+  "enabled": true,
+  "bg": "#7da7a7"
  },
  {
   "id": "boat-12-sow-and-cubs-eddy",
@@ -335,7 +348,9 @@
   },
   "notes": "Also usable for event {event:'bear', from:'trip'} (dilemma 'bear' is in the trout POOL). Bear spray on the rower's seat; the rower faces upstream pulling to hold the eddy.",
   "v": "6e58c5b2de",
-  "enabled": true
+  "enabled": true,
+  "bg": "#71a7a3",
+  "focus": "50% 70%"
  },
  {
   "id": "boat-13-loaner-sled-launch",
@@ -361,7 +376,8 @@
   },
   "notes": "S.loaner===day() (LOANER_COST option in 20-world.js). An oil sheen behind the transom and a dented bow rail; a clean rig on the far ramp for contrast.",
   "v": "ce08781026",
-  "enabled": true
+  "enabled": true,
+  "bg": "#86a6a5"
  },
  {
   "id": "boat-14-private-dock-morning",
@@ -386,7 +402,8 @@
   },
   "notes": "Upgrade 'dock' in UPGRADES (24-career.js): 'own ramp and pump on the Kenai'. Also fits where:'launch' with up:['dock']; boat omitted so it fits sled days in general. Low sun at the left and river mist for early morning.",
   "v": "52063961df",
-  "enabled": true
+  "enabled": true,
+  "bg": "#88a69f"
  },
  {
   "id": "boat-15-june-king-backtroll",
@@ -410,7 +427,8 @@
   },
   "notes": "time 'dusk' = the game's dawn sky window, like 01. Trip ids: booking kind==='king' (21-story.js) and dilemma 'king' in the reds/silver POOL; keep one of boat/trip if the framework ANDs keys strictly. The king is drawn with black-spotted back and tail, deep silver flanks.",
   "v": "757d9a2da3",
-  "enabled": true
+  "enabled": true,
+  "bg": "#968a91"
  },
  {
   "id": "boat-16-evening-silvers-backtroll",
@@ -434,7 +452,8 @@
   },
   "notes": "Boat mirrored (bow upstream to the left) so the lines run into the sun path. Fireweed gone to seed and dry grass in the foreground mark late summer.",
   "v": "4e2c38859c",
-  "enabled": true
+  "enabled": true,
+  "bg": "#937b77"
  },
  {
   "id": "cabin-01-wood-stove-winter-night",
@@ -464,7 +483,8 @@
   },
   "notes": "Warm stove light is the single source; cool moonlight from the window. Pairs with the 'wood stove carries the cabin through the cold' line.",
   "v": "b24d6c16c9",
-  "enabled": true
+  "enabled": true,
+  "bg": "#54412f"
  },
  {
   "id": "cabin-02-summer-morning-gear-chaos",
@@ -492,7 +512,8 @@
   },
   "notes": "The floor heater with its vent pipe and copper line is the furnace (heating oil or propane) every cabin starts with. Cooler and lunch kits match the pack-the-cooler system.",
   "v": "2d1c1dd1fc",
-  "enabled": true
+  "enabled": true,
+  "bg": "#8d6f4d"
  },
  {
   "id": "cabin-03-fly-tying-bench-winter-evening",
@@ -522,7 +543,8 @@
   },
   "notes": "The vise is a camp pack item in src/camp (id 'vise'), not a CabinUpkeep feature; the host can check the camp gear list. Stove glow at the left edge only, so it works with either heat.",
   "v": "93b9274e41",
-  "enabled": true
+  "enabled": true,
+  "bg": "#5a4a3d"
  },
  {
   "id": "cabin-04-kitchen-pantry-freezer",
@@ -552,7 +574,8 @@
   },
   "notes": "Pantry, fridge and freezer match S.food (pan, fri) and S.freezer. 'freezer' means the 70-fish chest freezer (S.home.frz); without it the base freezer still holds 30.",
   "v": "1eb3a2ce9f",
-  "enabled": true
+  "enabled": true,
+  "bg": "#967759"
  },
  {
   "id": "cabin-05-arctic-entry-mudroom",
@@ -580,7 +603,8 @@
   },
   "notes": "No feature gate. Bear spray and headlamp echo the camping pack; the boot dryer glows faintly orange.",
   "v": "7e73554f86",
-  "enabled": true
+  "enabled": true,
+  "bg": "#7d5a3b"
  },
  {
   "id": "cabin-06-power-outage-generator-night",
@@ -611,7 +635,9 @@
   },
   "notes": "Matches the code: the generator runs outside on home gas and feeds an inlet with an interlock (panel on the wall, no cord through the window). Without detectors, use another image. A no-generator outage variant would be a good addition.",
   "v": "73d26e887d",
-  "enabled": true
+  "enabled": true,
+  "bg": "#40362f",
+  "focus": "50% 65%"
  },
  {
   "id": "cabin-07-run-down-cabin-roof-drip",
@@ -639,7 +665,8 @@
   },
   "notes": "Greyed palette and cool light set it apart from the warm sets. The unchecked job list shows the jobs that were skipped.",
   "v": "91bcb7511d",
-  "enabled": true
+  "enabled": true,
+  "bg": "#6f675c"
  },
  {
   "id": "cabin-08-well-kept-cozy-cabin",
@@ -669,7 +696,8 @@
   },
   "notes": "Star cards show stars and no words. Cabins without a wood stove would need a furnace-only variant.",
   "v": "88fd099596",
-  "enabled": true
+  "enabled": true,
+  "bg": "#7f6747"
  },
  {
   "id": "cabin-09-fish-processing-station",
@@ -700,7 +728,8 @@
   },
   "notes": "Plywood board-and-batten walls and a concrete floor set the shed apart from the log cabin. The station is the shop's stainless table, sink, sealer and bench freezer.",
   "v": "7445d9ec92",
-  "enabled": true
+  "enabled": true,
+  "bg": "#9e987f"
  },
  {
   "id": "cabin-10-loft-midnight-sun",
@@ -728,7 +757,8 @@
   },
   "notes": "The analog alarm clock has no digits, so there is no text. Dark navy curtains frame the light shaft for contrast.",
   "v": "a96da89b1b",
-  "enabled": true
+  "enabled": true,
+  "bg": "#684932"
  },
  {
   "id": "cabin-11-power-outage-no-generator",
@@ -760,7 +790,8 @@
    "counterpart": "cabin-06-power-outage-generator-night"
   },
   "v": "5af3a04f25",
-  "enabled": true
+  "enabled": true,
+  "bg": "#594a3b"
  },
  {
   "id": "cabin-12-cozy-cabin-oil-heat",
@@ -791,7 +822,8 @@
    "counterpart": "cabin-08-well-kept-cozy-cabin"
   },
   "v": "adba3250ff",
-  "enabled": true
+  "enabled": true,
+  "bg": "#7c5f41"
  },
  {
   "id": "camp-01-aurora-tent",
@@ -816,7 +848,8 @@
   },
   "notes": "Aurora built from blurred vertical strips over a starfield; warm tent glow pooled on cool snow. Hidden Lake (forest habitat, Kenai Mtns behind) fits; any clear-night tent camp works.",
   "v": "0c247087ff",
-  "enabled": true
+  "enabled": true,
+  "bg": "#355356"
  },
  {
   "id": "camp-02-ice-fishing",
@@ -841,7 +874,8 @@
   },
   "notes": "Foreground scaled up for the header crop; the engine says the catch is stocked rainbow trout and char, so the fish is an olive-backed, pale-spotted char with white-edged fins. Reuse for place \"cook\" (Stormy Lake).",
   "v": "a921d23f4c",
-  "enabled": true
+  "enabled": true,
+  "bg": "#c5cac6"
  },
  {
   "id": "camp-03-wall-tent-dusk",
@@ -866,7 +900,8 @@
   },
   "notes": "Dusk palette from the game (#5f6f96 to #f0b98a); warm canvas against blue snow. Works at any place where the player owns the wall tent.",
   "v": "68a51f0655",
-  "enabled": true
+  "enabled": true,
+  "bg": "#877d96"
  },
  {
   "id": "camp-04-truck-camper",
@@ -891,7 +926,8 @@
   },
   "notes": "Alpenglow on the summits while the valley floor stays in shade; road and delineator posts have no text. Skilak Lake Road pull-out (Hidden Lake); fine for any roadside place.",
   "v": "7bbef37d6e",
-  "enabled": true
+  "enabled": true,
+  "bg": "#b0bdca"
  },
  {
   "id": "camp-05-public-use-cabin",
@@ -916,7 +952,8 @@
   },
   "notes": "Cold-snap cues: vertical smoke flattening under an inversion, 22-degree halo, sun dogs and diamond dust. Cabins exist only at swanson, skilak and quartz in the data.",
   "v": "429daa9271",
-  "enabled": true
+  "enabled": true,
+  "bg": "#bcc5ca"
  },
  {
   "id": "camp-06-moose-tracks",
@@ -941,7 +978,9 @@
   },
   "notes": "Track trail shrinks with distance to lead the eye to the moose; pale lower legs, shoulder hump and bell on the moose. Also fits snowshoeing at forest or river places.",
   "v": "22261ee333",
-  "enabled": true
+  "enabled": true,
+  "bg": "#b9c9d4",
+  "focus": "50% 65%"
  },
  {
   "id": "camp-07-upper-kenai-scout",
@@ -966,7 +1005,8 @@
   },
   "notes": "Ice shelf edges show blue-green cut faces; river widens toward the viewer for depth. Eagles echo the river-habitat eagle encounter.",
   "v": "3462af6b48",
-  "enabled": true
+  "enabled": true,
+  "bg": "#9ab7c7"
  },
  {
   "id": "camp-08-fly-tying-fire",
@@ -991,7 +1031,9 @@
   },
   "notes": "Two warm light sources (fire glow and the headlamp beam) against a cool night; the vise sits in front of the tier so the hands meet at the fly.",
   "v": "d64143a09d",
-  "enabled": true
+  "enabled": true,
+  "bg": "#2d3539",
+  "focus": "50% 65%"
  },
  {
   "id": "camp-09-homer-spit",
@@ -1016,7 +1058,8 @@
   },
   "notes": "Raft of otters (one with a clam), sea ducks, eagles on pilings, low pink winter light; the camper wears yellow raingear for the coastal wind.",
   "v": "f409ae84cf",
-  "enabled": true
+  "enabled": true,
+  "bg": "#909cab"
  },
  {
   "id": "camp-10-snowstorm-night",
@@ -1041,7 +1084,8 @@
   },
   "notes": "Low-contrast trees fading in the storm with a skewed wind lean; three layers of flakes plus blurred near flakes for depth. Generic place; the truck mound hints at the shovel-out.",
   "v": "eb50f9795a",
-  "enabled": true
+  "enabled": true,
+  "bg": "#434e5f"
  },
  {
   "id": "event-01-moose-highway",
@@ -1069,7 +1113,8 @@
    "previous_event_key": "moose"
   },
   "v": "ce3a750383",
-  "enabled": true
+  "enabled": true,
+  "bg": "#768e89"
  },
  {
   "id": "event-02-flat-trailer-tire",
@@ -1097,7 +1142,8 @@
    "previous_event_key": "flat"
   },
   "v": "db429c207f",
-  "enabled": true
+  "enabled": true,
+  "bg": "#716c76"
  },
  {
   "id": "event-03-trooper-boat-check",
@@ -1130,7 +1176,8 @@
    "previous_event_key": "trooper_check"
   },
   "v": "229bc1d07f",
-  "enabled": true
+  "enabled": true,
+  "bg": "#6d989c"
  },
  {
   "id": "event-04-guide-gossip",
@@ -1162,7 +1209,8 @@
    "previous_event_key": "gossip"
   },
   "v": "6557b7786c",
-  "enabled": true
+  "enabled": true,
+  "bg": "#8b9190"
  },
  {
   "id": "event-05-midnight-sun",
@@ -1191,7 +1239,8 @@
    "previous_event_key": "midnight_sun"
   },
   "v": "5655c03866",
-  "enabled": true
+  "enabled": true,
+  "bg": "#574746"
  },
  {
   "id": "event-06-bear-in-the-bin",
@@ -1222,7 +1271,8 @@
    ]
   },
   "v": "3182baa6b4",
-  "enabled": true
+  "enabled": true,
+  "bg": "#2a363e"
  },
  {
   "id": "event-07-cold-snap-ice-fog",
@@ -1252,7 +1302,8 @@
    ]
   },
   "v": "15fc03c1c4",
-  "enabled": true
+  "enabled": true,
+  "bg": "#65707a"
  },
  {
   "id": "event-08-burst-pipe",
@@ -1283,7 +1334,9 @@
    "previous_event_key": "cold"
   },
   "v": "d884108f86",
-  "enabled": true
+  "enabled": true,
+  "bg": "#6b5f58",
+  "focus": "50% 75%"
  },
  {
   "id": "event-09-chimney-fire",
@@ -1313,7 +1366,9 @@
    "previous_event_key": "fire"
   },
   "v": "3a3995321f",
-  "enabled": true
+  "enabled": true,
+  "bg": "#545054",
+  "focus": "50% 70%"
  },
  {
   "id": "event-10-breakup-mud",
@@ -1347,7 +1402,8 @@
    ]
   },
   "v": "35b0156a2c",
-  "enabled": true
+  "enabled": true,
+  "bg": "#8e928b"
  },
  {
   "id": "event-11-frozen-pipe-crawlspace",
@@ -1373,7 +1429,9 @@
    "season": "spring/late winter"
   },
   "v": "288a7ffed0",
-  "enabled": true
+  "enabled": true,
+  "bg": "#897861",
+  "focus": "50% 70%"
  },
  {
   "id": "event-12-garden-moose-dawn",
@@ -1402,7 +1460,8 @@
    ]
   },
   "v": "2e11495309",
-  "enabled": true
+  "enabled": true,
+  "bg": "#6e6b60"
  },
  {
   "id": "event-13-earthquake-shake",
@@ -1430,7 +1489,9 @@
    ]
   },
   "v": "00d22c0441",
-  "enabled": true
+  "enabled": true,
+  "bg": "#87674b",
+  "focus": "50% 70%"
  },
  {
   "id": "event-14-ice-dam-eave",
@@ -1459,7 +1520,8 @@
    ]
   },
   "v": "cf09d25174",
-  "enabled": true
+  "enabled": true,
+  "bg": "#9d9a8d"
  },
  {
   "id": "event-15-co-alarm-night",
@@ -1488,7 +1550,8 @@
    ]
   },
   "v": "eaa0facd97",
-  "enabled": true
+  "enabled": true,
+  "bg": "#543931"
  },
  {
   "id": "event-16-trip-combat",
@@ -1511,7 +1574,8 @@
   },
   "notes": "Same picture as boat-11-combat-fishing-big-eddy, shown with the trip incident.",
   "v": "79f60e811d",
-  "enabled": true
+  "enabled": true,
+  "bg": "#7da7a7"
  },
  {
   "id": "event-17-trip-bear",
@@ -1534,6 +1598,8 @@
   },
   "notes": "Same picture as boat-12-sow-and-cubs-eddy, shown with the trip incident.",
   "v": "6e58c5b2de",
-  "enabled": true
+  "enabled": true,
+  "bg": "#71a7a3",
+  "focus": "50% 70%"
  }
 ]

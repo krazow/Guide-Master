@@ -16,7 +16,9 @@ function focusBack(k){if(!k)return;
   if(el&&!el.disabled&&el.offsetParent!==null){try{el.focus({preventScroll:true})}catch(e){}}}
 function syncInert(){const a=document.getElementById('app'),on=!!document.getElementById('mbg');if(a){if(on)a.setAttribute('inert','');else a.removeAttribute('inert')}}
 // The pop-up's inner HTML (shared by modal() and modalSwap())
-function sheetHTML(title,body,btns){return withName(`<div class="modal" role="dialog" aria-modal="true" aria-label="${esc(title.replace(/<[^>]+>/g,''))}" tabindex="-1"><h2>${title}</h2><div class="mb">${body}</div>${btns.map((b,i)=>`<button class="act ${i===0&&!b.dis&&!b.np?'primary':''}" ${b.legal!==undefined?`data-legal="${b.legal}"`:''} ${b.dis?'disabled':''} onclick="MBTN(${i})"><span class="tx"><b>${b.l}</b>${b.s?'<span>'+b.s+'</span>':''}</span></button>`).join('')}</div>`)}
+// An illustration that opens the body (40-art.js) is lifted above the title: a full-bleed banner across the top of the sheet.
+function sheetHTML(title,body,btns){let fig='';if(body.startsWith('<figure class="art-fig"')){const k=body.indexOf('</figure>')+9;fig=body.slice(0,k);body=body.slice(k)}
+  return withName(`<div class="modal" role="dialog" aria-modal="true" aria-label="${esc(title.replace(/<[^>]+>/g,''))}" tabindex="-1">${fig}<h2>${title}</h2><div class="mb">${body}</div>${btns.map((b,i)=>`<button class="act ${i===0&&!b.dis&&!b.np?'primary':''}" ${b.legal!==undefined?`data-legal="${b.legal}"`:''} ${b.dis?'disabled':''} onclick="MBTN(${i})"><span class="tx"><b>${b.l}</b>${b.s?'<span>'+b.s+'</span>':''}</span></button>`).join('')}</div>`)}
 // A button with stay:true keeps the pop-up on screen while its fn runs: if fn calls modalSwap(), the same sheet shows the next step in place
 // (one pop-up for a whole trip, say); if it doesn't, the sheet closes as usual.
 let SWAPOK=false,SWAPPED=false;
