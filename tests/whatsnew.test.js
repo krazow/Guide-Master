@@ -43,7 +43,7 @@ module.exports = [
     const sum = page.locator('#mbg details.wn-older summary');
     assert.match(await sum.textContent(), /Show older updates \(\d+\)/);
     const b = await sum.boundingBox(); assert.ok(b.height >= 44, `summary ${b.height}px`);
-    await sum.focus(); await page.keyboard.press('Enter');
+    await sum.press('Enter'); await page.waitForFunction(() => document.querySelector('#mbg details.wn-older')?.open === true);
     s = await sheet(page); assert.strictEqual(s.olderOpen, true, 'Enter opens');
     assert.ok(await page.locator('#wn-1-3-0').isVisible(), 'the oldest notes show');
     await page.keyboard.press(' ');
