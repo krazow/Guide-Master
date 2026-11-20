@@ -66,6 +66,8 @@ To change the form, edit `FEEDBACK.formId` in `27-feedback.js` and rebuild.
 
 `src/js/29-update-notice.js`. The game remembers the last version it showed on this device (`guidemaster.lastVersion`). When the title screen appears with a different version (including after the service worker brings in an update and the app reloads), a **🆕 Updated to version X.Y.Z** pop-up lists what's new (from the `CHANGELOG` object; unknown versions get a generic line) and, if there are saved games, says they were updated. Every slot's save is run through `migrate()` and re-saved first, keeping its timestamp. It is required: Esc and shortcut keys don't dismiss it (`modal(…, true)`), and only **Got it** stores the new version, so a reload before that shows it again. New players with no saves see nothing. When you release, add a `CHANGELOG` entry for the new version.
 
+The notice shows at most eight lines. When a player skipped versions and lines were cut, it says how many more there are and adds **See everything new since X** (which also counts as Got it). That opens **🆕 What's new** (`whatsNewModal()`), the same sheet as the title screen's 🆕 What's new button, ⚙️ Settings and Help's Feedback section: every `CHANGELOG` version newest first, release dates from `WN_DATES` (copied from CHANGELOG.md; leave a version out rather than guess), the player's version marked and older updates folded under **Show older updates**. Tests: `tests/whatsnew.test.js`.
+
 ## Fewer pop-ups (1.12.0)
 
 New players were getting 6 to 9 pop-ups a day. Now a day is a **morning report** and, on a trip day, **one trip sheet**.

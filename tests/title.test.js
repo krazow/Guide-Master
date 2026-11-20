@@ -201,9 +201,8 @@ module.exports = [
   { name: 'grid: every button works as before; an odd one out spans both columns; tab order and contrast', only: 'index.html', fn: async ctx => {
     const { context, page, errors } = await phone(ctx, 'android');
     let l = await layout(page);
-    assert.deepStrictEqual(l.cells.map(c => c.t), ['💾 Save slots', '📲 Install app', '❓ Help!', '💬 Send feedback', '🔁 Transfer a saved game']);
-    const last = l.cells[4];
-    assert.ok(last.wide && Math.abs(last.w - l.grid.w) < 1, 'the fifth spans the row');
+    assert.deepStrictEqual(l.cells.map(c => c.t), ['💾 Save slots', '📲 Install app', '❓ Help!', '💬 Send feedback', '🆕 What’s new', '🔁 Transfer a save']);
+    assert.ok(l.cells.every(c => !c.wide), 'six: three full rows');
     assert.ok(Math.abs(l.cells[0].w - l.cells[1].w) < 1 && l.cells[0].top === l.cells[1].top, 'two columns');
     assert.ok(/Start your guiding career/.test(await page.textContent('.title .big')));
     // focus order: the bar, the gear, the big button, the intro, then the grid
@@ -217,18 +216,20 @@ module.exports = [
     assert.ok(contrast(col.bt, col.bb) >= 4.5, 'Install button');
     assert.ok(contrast(col.x, col.bg) >= 4.5, '✕');
     // each grid button still opens what it did
-    for (const [label, re] of [['Save slots', /Save slots/], ['Help!', /How to play/], ['Send feedback', /Send feedback/], ['Transfer a saved game', /Transfer a saved game/], ['Install app', /Install Guide Master/]]) {
+    for (const [label, re] of [['Save slots', /Save slots/], ['Help!', /How to play/], ['Send feedback', /Send feedback/], ['What’s new', /What’s new/], ['Transfer a save', /Transfer a saved game/], ['Install app', /Install Guide Master/]]) {
       await page.click(`.title .tgrid button >> text=${label}`);
       await page.waitForSelector('#mbg');
       assert.ok(re.test(await page.textContent('#mbg h2')), label);
       await page.evaluate(() => closeModals());
     }
-    // with a save: Continue is the big button, and New game joins the grid (six: two full rows)
+    // with a save: Continue is the big button, and New game joins the grid (seven: the odd one out, Transfer, spans the last row)
     await returning(page);
     l = await layout(page);
     assert.ok(/^Continue as T:/.test(await page.textContent('.title .big')));
-    assert.deepStrictEqual(l.cells.map(c => c.t), ['🆕 New game', '💾 Save slots', '📲 Install app', '❓ Help!', '💬 Send feedback', '🔁 Transfer a save']);
-    assert.ok(l.cells.every(c => !c.wide));
+    assert.deepStrictEqual(l.cells.map(c => c.t), ['🆕 New game', '💾 Save slots', '📲 Install app', '❓ Help!', '💬 Send feedback', '🆕 What’s new', '🔁 Transfer a saved game']);
+    const last = l.cells[6];
+    assert.ok(last.wide && Math.abs(last.w - l.grid.w) < 1, 'the seventh spans the row');
+    assert.ok(l.cells.slice(0, 6).every(c => !c.wide));
     assert.strictEqual(await page.getAttribute('.title .tgrid button >> text=Transfer a save', 'title'), 'Transfer a saved game to another device or browser');
     await page.click('.title .tgrid button >> text=New game');
     await page.waitForSelector('#mbg');

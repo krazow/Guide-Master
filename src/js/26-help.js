@@ -152,7 +152,8 @@ const HELP=[
     <li>The business never takes your last ${$(Tender.FLOOR)}: that’s your guiding money, so a failed business can’t end your career. Boats and plants count in your score at nine tenths of their value, and the loan counts against it.</li></ul>`)(Tender.data.K),'tender'],
   ['💬','Feedback',`<p class="help-sum">Ideas, bugs, or a rule or fact we got wrong? Tell the developer.</p><ul>
     <li>Tap <b>Send feedback</b> below, on the title screen or in ⚙️ Settings.</li>
-    <li>Add your email if you’d like a reply. If you’re offline, it’s sent the next time you’re online.</li></ul>`,'feedback'],
+    <li>Add your email if you’d like a reply. If you’re offline, it’s sent the next time you’re online.</li>
+    <li>Wondering what changed in an update? <button class="linkbtn" onclick="whatsNewModal({back:helpModal})">🆕 What’s new</button> lists every update, newest first. It’s on the title screen and in ⚙️ Settings too.</li></ul>`,'feedback'],
 ];
 const helpId=k=>'help-'+k;
 // tap a contents link: scroll the sheet to that section and move focus to its heading (keyboard and screen readers follow along)

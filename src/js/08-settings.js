@@ -31,6 +31,7 @@ function titleScreen(){clearTiles();
     ...(installButton()?[installButton()]:[]),
     ...(typeof helpModal==='function'?['<button class="ghost" onclick="helpModal()">❓ Help!</button>']:[]),
     ...(typeof feedbackModal==='function'?['<button class="ghost" onclick="feedbackModal()">💬 Send feedback</button>']:[]),
+    ...(typeof whatsNewModal==='function'?['<button id="whatsNewBtn" class="ghost" onclick="whatsNewModal()">🆕 What’s new</button>']:[]),
     '<button class="ghost" onclick="openTransfer()" title="Transfer a saved game to another device or browser">🔁 Transfer a save</button>'];
   if(cells.length%2)cells[cells.length-1]=cells[cells.length-1].replace('class="ghost"','class="ghost wide"').replace('🔁 Transfer a save<','🔁 Transfer a saved game<');
   const about=TITLE.intro||TITLE.bullets.length;
@@ -105,6 +106,7 @@ window.openSettings=()=>{
     {l:`🛶 Show every trip step: ${prefs().tripSteps?'On':'Off'}`,s:prefs().tripSteps?'Each choice on a trip opens its own pop-up. Tap to put a trip back on one sheet.':'A trip is one sheet: your choices and the result change in place. Tap to open a pop-up for every step.',fn:()=>{setPref('tripSteps',!prefs().tripSteps);openSettings()}},
     ...(typeof feedbackModal==='function'?[{l:'💬 Send feedback',s:'Ideas, bugs, a rule we got wrong: it goes straight to the developer.',fn:()=>feedbackModal(openSettings)}]:[]),
     ...(typeof helpModal==='function'?[{l:'❓ Help',s:'How to play, the trophy wall, the rating, and the mentor’s ride-along.',fn:()=>helpModal()}]:[]),
+    ...(typeof whatsNewModal==='function'?[{l:'🆕 What’s new',s:`Every update, newest first. You have version ${APP_VERSION}.`,fn:()=>whatsNewModal({back:openSettings})}]:[]),
     {l:'⌨️ Keyboard shortcuts',s:'On a computer: numbers press buttons, ? for the list.',fn:()=>keysModal(openSettings)},
     {l:`🏆 Achievements (${achCount()}/${ACH.length})`,s:'Earned on this device, across all your games.',fn:()=>achModal(openSettings)},
     ...(GAME.slots>1?[{l:`💾 Save slots (current: ${curSlot()})`,s:'Continue, start or delete games in each slot.',fn:()=>slotsModal()}]:[]),

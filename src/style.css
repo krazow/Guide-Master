@@ -270,3 +270,21 @@ button.act,.ghost,.big{min-height:44px}
 /* Install app (41-install.js): the steps sheet and the thank-you note */
 .inst-steps{margin:8px 0 10px;padding-left:22px;line-height:1.5;font-size:15px}.inst-steps li{margin:4px 0}
 .inst-toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 18px);transform:translateX(-50%);max-width:min(440px,calc(100% - 28px));background:var(--ink);color:#fff;border-radius:12px;padding:12px 16px;font-size:14.5px;line-height:1.4;box-shadow:0 6px 20px rgba(0,0,0,.3);z-index:60}
+
+/* 🆕 What's new (29-update-notice.js): a heading per version, the player's own marked, older ones folded */
+.wn-sum{color:var(--mute);font-size:14px}
+.wn-ver{padding:2px 0 8px;border-bottom:1px solid var(--line)}
+.wn-ver h3{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;font-family:var(--serif);font-size:18px;margin:10px 0 4px}
+.wn-ver h3:focus{outline:none}.wn-ver h3:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.wn-ver ul{margin:0;padding-left:20px}.wn-ver li{margin-bottom:6px}
+.wn-date{font-family:var(--sans);font-size:13px;font-weight:400;color:var(--mute)}
+.wn-tag{font-family:var(--sans);font-size:12px;font-weight:700;color:#fff;background:var(--accent);border-radius:999px;padding:2px 9px;align-self:center}
+.wn-cur{background:#eef4ee;border-radius:12px;padding:2px 10px 8px;margin:0 -10px;border-bottom:0}
+.wn-older{margin-top:6px}
+.wn-older>summary{min-height:44px;display:flex;align-items:center;gap:8px;padding:8px 2px;font-weight:700;color:var(--brand);cursor:pointer;list-style:none}
+.wn-older>summary::-webkit-details-marker{display:none}
+.wn-older>summary::before{content:"▸";display:inline-block;transition:transform .15s}
+.wn-older[open]>summary::before{transform:rotate(90deg)}
+.wn-older>summary:focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:8px}
+.wn-more{font-size:13.5px;color:var(--mute)}
+.linkbtn{display:inline-flex;align-items:center;min-height:44px;padding:0 4px;background:none;border:0;font:inherit;font-weight:700;color:var(--brand);text-decoration:underline;cursor:pointer}

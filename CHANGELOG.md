@@ -3,6 +3,18 @@
 Release notes for Guide Master. `/release now` adds a section here for every release, and the GitHub release notes
 are taken from it. Earlier versions are described in the README and the in-game update notice.
 
+## Unreleased
+
+### Added
+- **🆕 What's new**: a button on the title screen, an entry in ⚙️ Settings and a link in Help's Feedback section open one sheet with
+  every update's notes, newest first, a heading per version (with its release date where this changelog has one), your version marked
+  and the older updates folded under *Show older updates*.
+
+### Changed
+- The update pop-up stays short (eight lines at most), but when you skipped a few versions and not everything fits it says how many
+  more changes there are and offers **See everything new since …**, which opens the full list from the version you last played (and
+  counts as *Got it*).
+
 ## 1.19.0 (2026-11-19)
 
 This release includes everything planned for 1.18.0, which was never released on its own.
