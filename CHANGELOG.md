@@ -3,7 +3,7 @@
 Release notes for Guide Master. `/release now` adds a section here for every release, and the GitHub release notes
 are taken from it. Earlier versions are described in the README and the in-game update notice.
 
-## Unreleased
+## 1.19.1 (2026-11-19)
 
 ### Added
 - **🆕 What's new**: a button on the title screen, an entry in ⚙️ Settings and a link in Help's Feedback section open one sheet with
