@@ -73,7 +73,7 @@ module.exports = [
     const bp = fs.readFileSync(path.join(ROOT, 'tools', 'build.py'), 'utf8'); assert.ok(/'camp', 'home', 'gillnet', 'seine', 'crab', 'tender', 'js'/.test(bp), 'build order camp, home, gillnet, seine, crab, tender, js');
     const md = fs.readFileSync(path.join(DIR, 'README.md'), 'utf8');
     for (const re of [/ticket/i, /report/i, /SCHEMA/, /Facts and sources/, /never a sale|no sales/i, /EVENTS/, /Estimates, not checked/]) assert.ok(re.test(md), 'README: ' + re);
-    const v = fs.readFileSync(path.join(ROOT, 'src/js/00-game.js'), 'utf8'); assert.ok(/version:'1\.19\.0'/.test(v), 'crabbing shipped in 1.19.0');
+    const v = fs.readFileSync(path.join(ROOT, 'src/js/00-game.js'), 'utf8'); assert.ok(/version:'1\.(19|[2-9]\d)\.\d+'/.test(v), 'crabbing shipped in 1.19.0 (or a later version is out)');
   } },
   { name: 'pot: set costs bait and a skiff (your own boat is cheaper), takes the afternoon, and must soak overnight', fn: async () => {
     const t = sum({ state: withState(sum(), s => { s.gear = true }).state });

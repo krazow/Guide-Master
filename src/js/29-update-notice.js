@@ -3,6 +3,7 @@
 // version the game is now, what's new, and (when there are saved games) that they were brought up to date. The only way
 // to dismiss it is its "Got it" button; the version is remembered only after that, so a reload shows it again.
 // A brand-new player (no remembered version, no saves) gets no pop-up: the version is just remembered.
+// The full list, every version, opens from the title screen's 🆕 What’s new, ⚙️ Settings and Help (whatsNewModal below).
 // Add a line list here for each release (newest last). Unknown versions get the generic line below.
 const CHANGELOG={
   '1.3.0':['⛽ Fuel: gas up the jet sled and the truck, and watch the gauge before a long run.'],
@@ -23,6 +24,7 @@ const CHANGELOG={
   '1.16.0':['🧑‍🤝‍🧑 Grow the business, if you want to. From your third off-season you can hire up to three guides and buy up to two more boats. Guides take parties on days you’re booked, or ones you hand them from the new Outfit page of the Bookings tab, and the morning report tells you how each trip went.','🪪 Guides are people: a skill, a reliability and a wage, better every season and expecting raises to match. Each needs their own licenses, and their tickets go on your record.','⭐ Your guides fish the weeks you picked (June kings, September rainbows) and their parties review them by name. Those stars show on the Outfit page and don’t change your own rating.','💸 Not a money printer: wages, licenses, boat payments and your own energy add up. Run well, an outfit earns a bit more; one that grows too fast can lose money. Your game in progress carries on.'],
   '1.17.0':['🖼️ Pictures! Your cabin on the Home tab, the launch at dawn, the river, the dock, the morning report, the cabin’s storms and your camping trips now come with illustrations, more than fifty of them.','🐻 A bear on the gravel bar, a moose on the highway or a chimney fire gets its own picture, right above the choice. Everyday scenes take a few days off once you’ve seen them, so they stay special.','⚙️ Prefer the drawn scenes? Turn pictures off in Settings → Illustrations. They download as you meet them and stay for offline play. Your game in progress carries on.'],
   '1.18.0':['📲 Install the game: tap Install app on the title screen. On Android it installs in a tap or two; on iPhone and iPad a short video shows how to add it to your Home Screen. Installed, it opens full screen and plays offline.','💾 On iPhone and iPad the Home Screen app keeps its own saves: carry on from the icon, or bring your career along with the 🔁 Transfer button on the title screen.','🏞️ A tidier title screen: one big button up top, the story folded under “What’s the game about?”, the rest in a two-column grid. On phones a slim bar at the top offers the install; ✕ hides it for a month.','✏️ Your cabin carries your name now, and your boats can carry theirs: tap Name your boats at the Shop & Cabin. The names show on your trips, at the dock and on the end screen.'],
+  '1.19.1':['🆕 What’s new: a button on the title screen (and in ⚙️ Settings) lists every update, newest first. Skipped a few updates? The update notice now offers everything you missed since your last version.'],
   '1.19.0':['🪢 Commercial fishing, if you want it. From your second off-season, ⚓ Commercial & crab in the planner lets you crew on a Cook Inlet setnet site or drift boat (Mondays and Thursdays), or on a Homer purse seiner (Monday, Wednesday, Friday), then lease or run your own. Each opener is a day off the river: a party booked that day is yours to hand to a guide, cancel or keep.','🌊 A day on the water is a few calls: the tide, the drift line or the school, pick now or soak, bleed and ice, the tender. Seals, torn nets, a line in the wheel, water hauls and the closed lines all cost you, and the setnet beach follows the Kenai kings.','🦀 Crabbing: a pot across Kachemak Bay on a free afternoon in Homer (legal males for the freezer or a crab feed, never for sale), a Tanner day when the bay opens in winter, or a deckhand job on a Bering Sea crab boat with a survival-suit drill and ice on the rails.','⚓ From your third off-season, fish buying & processing: charter or buy a tender, post your price over the rail, then a plant or an old floating processor, with a bank loan if you want one. When your own catch lands where you have a buyer, your own tender or plant buys it. It can lose money, but it never takes your last $10,000.'],
   '1.15.0':['🏆 A trophy wall in the Log tab: your biggest fish of each species, your firsts, standout clients and postcards from past parties.','⭐ A star rating in the top bar, from your last 20 reviews. Reach ★4.5 for better tips, ★4.7 for a magazine feature, or a season that averages ★4.7 for a lodge partnership. Under ★2.5, fewer people book.','🎉 Trophies, kings, limit-outs and first fish get a moment on the water and a catch card at the dock that you can save as an image. An optional chime is in Settings.','🧓 On your first trip, Walt, an old Kenai guide, rides along and shows you the ropes. You can bring him back from Help. Your game in progress carries on, in whichever weeks you guide.'],
   '1.12.1':['🧰 Behind the scenes: a new way to ship updates, with a Windows download and the single-file offline game alongside each release. Your game in progress carries on as before.'],
@@ -55,12 +57,18 @@ function upgradeAllSaves(){
   }
   return out;
 }
-function changelogLines(from){
-  const vs=Object.keys(CHANGELOG).filter(v=>verCmp(v,APP_VERSION)<=0&&(!from||verCmp(v,from)>0)).sort((a,b)=>verCmp(b,a));
+// Every line since `from` (all of them with no `from`), newest version first: [[version, line], …].
+function changelogAll(from){
   const lines=[];
   if(!CHANGELOG[APP_VERSION])lines.push([APP_VERSION,CHANGELOG_GENERIC]);
-  vs.forEach(v=>CHANGELOG[v].forEach(t=>lines.push([v,t])));
-  return lines.slice(0,8);
+  changelogVersions(from).forEach(v=>CHANGELOG[v].forEach(t=>lines.push([v,t])));
+  return lines;
+}
+const NOTICE_MAX=8;   // the pop-up stays short; the full list is one tap away (whatsNewModal)
+function changelogLines(from){return changelogAll(from).slice(0,NOTICE_MAX)}
+// The versions with notes, up to this one, newer than `from`, newest first.
+function changelogVersions(from){
+  return Object.keys(CHANGELOG).filter(v=>verCmp(v,APP_VERSION)<=0&&(!from||verCmp(v,from)>0)).sort((a,b)=>verCmp(b,a));
 }
 function maybeUpdateNotice(){
   try{
@@ -69,10 +77,42 @@ function maybeUpdateNotice(){
     if(document.getElementById('mbg'))return; // something else is open; the next title screen will show it
     const saves=upgradeAllSaves(),from=seen||saves.oldest;
     if(!seen&&!saves.count){rememberVersion();return} // brand-new player
-    const lines=changelogLines(from),multi=new Set(lines.map(l=>l[0])).size>1;
+    const all=changelogAll(from),lines=all.slice(0,NOTICE_MAX),multi=new Set(lines.map(l=>l[0])).size>1;
+    // skipped a few updates and not everything fits: say so, and offer the full list from where they left off
+    const cut=all.length-lines.length,since=cut&&from?from:'';
     const intro=from&&from!==APP_VERSION?`<p>${esc(GAME.title)} was updated from version ${esc(from)} to <b>${esc(APP_VERSION)}</b>.</p>`:`<p>${esc(GAME.title)} is now on version <b>${esc(APP_VERSION)}</b>.</p>`;
     const sv=saves.count?`<p>${saves.count>1?'Your saved games were':'Your saved game was'} updated to work with this version.</p>`:'';
-    modal(`🆕 Updated to version ${esc(APP_VERSION)}`,`${intro}${sv}<p style="margin-bottom:2px"><b>What’s new</b></p><ul>${lines.map(l=>`<li>${multi?`<small>${esc(l[0])}</small> `:''}${l[1]}</li>`).join('')}</ul>`,
-      [{l:'Got it',fn:rememberVersion}],true);
+    modal(`🆕 Updated to version ${esc(APP_VERSION)}`,`${intro}${sv}<p style="margin-bottom:2px"><b>What’s new</b></p><ul>${lines.map(l=>`<li>${multi?`<small>${esc(l[0])}</small> `:''}${l[1]}</li>`).join('')}</ul>${cut?`<p class="wn-more">…and ${cut} more ${cut>1?'changes':'change'} from earlier updates.</p>`:''}`,
+      [{l:'Got it',fn:rememberVersion},
+       ...(cut?[{l:since?`See everything new since ${esc(since)}`:'See everything new',s:'Every update you missed, newest first.',fn:()=>{rememberVersion();whatsNewModal({from:since})}}]:[])],true);
   }catch(e){}
 }
+
+// ---------------- 🆕 What's new: every update, newest first ----------------
+// One sheet: a heading per version (with its release date when we know it; no date is made up), the version you have marked,
+// the newest few open and the rest folded under "Show older updates". With {from:'1.12.1'} (from the update pop-up) every version
+// since that one is open and the older ones are folded. {back:fn} adds a Back button (Settings, Help); otherwise Close.
+// Opening it from inside another sheet (Help's link) replaces that sheet: still one pop-up.
+const WN_DATES={'1.12.1':'2026-11-14','1.14.0':'2026-11-18','1.16.0':'2026-11-18','1.17.0':'2026-11-18','1.19.0':'2026-11-19'};   // from CHANGELOG.md
+const WN_OPEN=3;   // versions shown before "Show older"
+function wnDate(v){const d=WN_DATES[v];if(!d)return '';const [y,m,dd]=d.split('-').map(Number);
+  return `${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m-1]} ${dd}, ${y}`}
+const wnId=v=>'wn-'+v.replace(/\./g,'-');
+function wnVersion(v){
+  const cur=v===APP_VERSION,d=wnDate(v),lines=CHANGELOG[v]||[CHANGELOG_GENERIC];
+  return `<section class="wn-ver${cur?' wn-cur':''}" id="${wnId(v)}" aria-labelledby="${wnId(v)}-h"><h3 id="${wnId(v)}-h" tabindex="-1">Version ${esc(v)}${cur?' <span class="wn-tag">Your version</span>':''}${d?` <small class="wn-date">${d}</small>`:''}</h3>
+    <ul>${lines.map(t=>`<li>${t}</li>`).join('')}</ul></section>`;
+}
+function whatsNewBody(from){
+  const vs=changelogVersions('');if(!CHANGELOG[APP_VERSION])vs.unshift(APP_VERSION);
+  const n=from?Math.max(1,vs.filter(v=>verCmp(v,from)>0).length):WN_OPEN,top=vs.slice(0,n),older=vs.slice(n);
+  const sum=from?`<p class="wn-sum">New since version ${esc(from)}: ${top.length} ${top.length>1?'updates':'update'}, newest first. You have version <b>${esc(APP_VERSION)}</b>.</p>`
+    :`<p class="wn-sum">Every update, newest first. You have version <b>${esc(APP_VERSION)}</b>.</p>`;
+  return sum+top.map(wnVersion).join('')+(older.length?`<details class="wn-older"><summary>Show older updates (${older.length})</summary>${older.map(wnVersion).join('')}</details>`:'');
+}
+function whatsNewModal(opts={}){
+  const open=document.getElementById('mbg');if(open){open.remove();syncInert()}   // from inside Help: this sheet takes its place
+  modal('🆕 What’s new',whatsNewBody(opts.from||''),opts.back?[{l:'Back',fn:opts.back},{l:'Close',fn:()=>{}}]:[{l:'Close',fn:()=>{}}]);
+  const m=document.querySelector('#mbg .modal');if(m)m.scrollTop=0;
+}
+window.whatsNewModal=whatsNewModal;
